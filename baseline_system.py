@@ -162,6 +162,7 @@ def run_baseline_system(
 
     if align_to_target:
         alignment_target = retrieve_alignment_target(client, scenario.id)
+        alignment_target_dict = alignment_target.to_dict()
         adm_knowledge.alignment_target = alignment_target
 
     # Load the system / model
@@ -174,6 +175,25 @@ def run_baseline_system(
             device="cuda", model_use=model, distributed=False,
             **algorithm_kwargs_parsed)
     elif algorithm == "llama_index":
+        # TODO: This is a hacky way to have the "Knowledge" KDMA
+        # determine whether or not domain documents should be loaded.
+        # Should remove, or move to llama_index code
+        if align_to_target:
+            for kdma_dict in alignment_target_dict.get('kdma_values', ()):
+                if kdma_dict['kdma'].lower() == 'knowledge':
+                    if kdma_dict['value'] > 1:
+                        print("** Setting 'retrieval_enabled' to True based "
+                              "on 'Knowledge' KDMA value ({})".format(
+                                  kdma_dict['value']))
+                        algorithm_kwargs_parsed['retrieval_enabled'] = True
+                    else:
+                        print("** Setting 'retrieval_enabled' to False based "
+                              "on 'Knowledge' KDMA value ({})".format(
+                                  kdma_dict['value']))
+                        algorithm_kwargs_parsed['retrieval_enabled'] = False
+
+                    break
+
         algorithm = LlamaIndex(
             device="cuda", model_name=model,
             **algorithm_kwargs_parsed)
@@ -192,11 +212,6 @@ def run_baseline_system(
         else:
             probe_options_dicts = None
 
-        if align_to_target:
-            alignment_target_dict = adm_knowledge.alignment_target.to_dict()
-        else:
-            alignment_target_dict = None
-
         prompt = prepare_prompt(
             scenario.state.unstructured,
             current_probe.state.mission.unstructured,
@@ -204,7 +219,7 @@ def run_baseline_system(
             current_probe.prompt,
             casualties_dicts,
             options=probe_options_dicts,
-            alignment_target=alignment_target_dict
+            alignment_target=alignment_target_dict if align_to_target else None
         )
 
         print("* Prompt for ADM: {}".format(prompt))
