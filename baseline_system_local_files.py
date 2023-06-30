@@ -219,7 +219,6 @@ def _build_alignment_target_string(alignment_target):
 
 
 def _build_casualties_string(casualties):
-    #return "\n".join(["{}: {}".format(c['id'], c['unstructured'].strip())
     return "\n".join(["{}".format(c['unstructured'].strip())
                       for c in casualties])
 
@@ -232,8 +231,6 @@ def _build_prompt_options_string(options):
         options_code = chr(ord(options_code) + 1)
 
     return options_info
-    #return "\n".join(["{}: {}".format(o['id'], o['value'])
-    #                  for o in options])
 
 
 def _prepare_prompt(scenario_info,
