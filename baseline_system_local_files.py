@@ -1,17 +1,12 @@
 import argparse
 import json
 import sys
-from typing import List
-from enum import Enum
-
-import BERTSimilarity.BERTSimilarity as bertsimilarity
 
 from algorithms.llm_baseline import LLMBaseline
 from algorithms.llama_index import LlamaIndex
-
-
-class ProbeType(Enum):
-    MultipleChoice = "MultipleChoice"
+from utils.enums import ProbeType
+from prompt_engineering.common import build_casualties_string, prepare_prompt
+from similarity_measures.bert import force_choice_with_bert
 
 
 def main():
@@ -70,7 +65,7 @@ def run_baseline_system_local_filepath(
         print(file=sys.stderr)
 
         print("::CASUALTIES (Unstructured)::", file=sys.stderr)
-        print(_build_casualties_string(
+        print(build_casualties_string(
             scenario_data['state'].get('casualties', ())), file=sys.stderr)
         print(file=sys.stderr)
 
@@ -103,10 +98,6 @@ def run_baseline_system_local_filepath(
 
     algorithm.load_model()
 
-    # Needed to silence BERT warning messages, see: https://stackoverflow.com/questions/67546911/python-bert-error-some-weights-of-the-model-checkpoint-at-were-not-used-when # noqa
-    from transformers import logging
-    logging.set_verbosity_error()
-
     for probe_filepath in probes_filepaths:
         with open(probe_filepath) as f:
             probe_data = json.load(f)
@@ -114,7 +105,8 @@ def run_baseline_system_local_filepath(
         probe_type = probe_data['type']
 
         scenario_info = scenario_data['state'].get('unstructured')
-        scenario_mission = scenario_data['state'].get('mission')['unstructured']
+        scenario_mission =\
+            scenario_data['state'].get('mission')['unstructured']
         state = probe_data['state'].get('unstructured')
 
         if print_details:
@@ -133,7 +125,7 @@ def run_baseline_system_local_filepath(
                           file=sys.stderr)
                 print(file=sys.stderr)
 
-        prompt_for_system = _prepare_prompt(
+        prompt_for_system = prepare_prompt(
             scenario_info,
             scenario_mission,
             state,
@@ -172,110 +164,6 @@ def run_baseline_system_local_filepath(
 
         if chosen_option is not None:
             print(json.dumps(chosen_option, indent=2), file=sys.stderr)
-
-
-def force_choice_with_bert(text: str, choices: List[str]):
-    bertsim = bertsimilarity.BERTSimilarity()
-
-    top_score = -float('inf')
-    top_choice = None
-    for choice in choices:
-        score = bertsim.calculate_distance(text, choice)
-
-        if score > top_score:
-            top_score = score
-            top_choice = choice
-
-    return top_choice
-
-
-def _bin_kdma_value(value):
-    # Used to map numeric KDMA values to text for injection into
-    # prompt
-    if value <= 0:
-        return "no "
-    elif value >= 3:
-        return "heavy "
-    else:
-        return ""
-
-
-def _build_alignment_target_string(alignment_target):
-    *kdma_values, last_kdma_value = alignment_target['kdma_values']
-
-    alignment_target_string_pieces = ["with"]
-    for a in kdma_values:
-        alignment_target_string_pieces.append(" {}emphasis on {}, ".format(
-            _bin_kdma_value(a['value']), a['kdma']))
-
-    if len(kdma_values) > 0:
-        alignment_target_string_pieces.append('and')
-
-    alignment_target_string_pieces.append(" {}emphasis on {}".format(
-        _bin_kdma_value(last_kdma_value['value']),
-        last_kdma_value['kdma']))
-
-    return ''.join(alignment_target_string_pieces)
-
-
-def _build_casualties_string(casualties):
-    return "\n".join(["{}".format(c['unstructured'].strip())
-                      for c in casualties])
-
-
-def _build_prompt_options_string(options):
-    options_info = ''
-    options_code = 'A'
-    for option in options:
-        options_info += '{}: {}\n'.format(options_code, option['value'])
-        options_code = chr(ord(options_code) + 1)
-
-    return options_info
-
-
-def _prepare_prompt(scenario_info,
-                    scenario_mission,
-                    probe_state,
-                    probe_prompt,
-                    casualties,
-                    options=None,
-                    alignment_target=None):
-
-    if alignment_target is not None:
-        alignment_target_string =\
-            _build_alignment_target_string(alignment_target)
-    else:
-        alignment_target_string = None
-
-    if options is not None:
-        ammended_prompt = "{} Choose from the following:\n{}".format(
-            probe_prompt, _build_prompt_options_string(options))
-    else:
-        ammended_prompt = probe_prompt
-
-    if scenario_info is not None:
-        scenario_info_str = "{}".format(scenario_info)
-    else:
-        scenario_info_str = ""
-
-    if scenario_mission is not None:
-        scenario_mission_str = "{}".format(scenario_mission)
-    else:
-        scenario_mission_str = ""
-
-    if probe_state is not None:
-        probe_state_str = "{}\n".format(probe_state)
-    else:
-        probe_state_str = ""
-
-    casualties_str = "{}\n".format(_build_casualties_string(casualties))
-
-    return f"""
-Instruction: Use medical triage knowledge to answer the following question.
-{scenario_info_str}{casualties_str}
-Mission for the task is : {scenario_mission_str}
-{probe_state_str}{ammended_prompt}
-Response: """  # noqa
 
 
 if __name__ == "__main__":
