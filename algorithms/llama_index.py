@@ -18,8 +18,10 @@ query_wrapper_prompt = SimpleInputPrompt(
 
 class LlamaIndex:
     def __init__(self, domain_docs_dir=None, device="cuda", model_name="falcon", retrieval_enabled=True):  # noqa
-        if domain_docs_dir is None:
-            raise RuntimeError("'domain_docs_dir' argument must not be empty")
+        if retrieval_enabled and domain_docs_dir is None:
+            raise RuntimeError(
+                "'domain_docs_dir' argument must not be empty if "
+                "'retrieval_enabled' is True")
         self.domain_docs_dir = domain_docs_dir
         self.device = device
         self.model_name = model_name

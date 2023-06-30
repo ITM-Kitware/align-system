@@ -50,13 +50,13 @@ below:
 
 ```
 $ python baseline_system.py
-usage: baseline_system.py [-h] [-a API_ENDPOINT] [-u USERNAME] [-m MODEL] [-t]
+usage: baseline_system.py [-h] [-e API_ENDPOINT] [-u USERNAME] [-m MODEL] [-t] [-a ALGORITHM] [-A ALGORITHM_KWARGS]
 
 Simple LLM baseline system
 
 options:
   -h, --help            show this help message and exit
-  -a API_ENDPOINT, --api_endpoint API_ENDPOINT
+  -e API_ENDPOINT, --api_endpoint API_ENDPOINT
                         Restful API endpoint for scenarios / probes (default: "http://127.0.0.1:8080")
   -u USERNAME, --username USERNAME
                         ADM Username (provided to TA3 API server, default: "ALIGN-ADM")
@@ -64,6 +64,10 @@ options:
                         LLM Baseline model to use
   -t, --align-to-target
                         Align algorithm to target KDMAs
+  -a ALGORITHM, --algorithm ALGORITHM
+                        Algorithm to use
+  -A ALGORITHM_KWARGS, --algorithm-kwargs ALGORITHM_KWARGS
+                        JSON encoded dictionary of kwargs for algorithm initialization
 ```
 
 An example invocation of the system:
@@ -75,3 +79,26 @@ $ python baseline_system.py --model gpt-j
 half-hour to download the LLM model (which is roughly 25GB).
 Subsequent runs of the system should only take a few minutes as the
 model is cached.
+
+## ADM Invocations
+
+### Simple Baseline ADM
+
+Simple baseline (unaligned) system using the `falcon` model:
+```
+    python baseline_system.py \
+           --algorithm "llama_index" \
+           --algorithm-kwargs '{"retrieval_enabled": false}' \
+           --model falcon
+```
+
+### Simple Aligned ADM
+
+Simple aligned system using the `falcon` model (requires domain document PDFs):
+```
+    python baseline_system.py \
+           --algorithm "llama_index" \
+           --algorithm-kwargs '{"domain_docs_dir": "/path/to/DomainDocumentsPDF"}' \
+           --model falcon \
+           --align-to-target
+```
