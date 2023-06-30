@@ -2,9 +2,6 @@ import argparse
 from dataclasses import dataclass
 from typing import List, Set
 import sys
-from enum import Enum
-import re
-import random
 import json
 
 from swagger_client import ItmTa2EvalApi
@@ -21,14 +18,13 @@ from swagger_client import (
     ProbeResponse,
     AlignmentTarget
 )
-import BERTSimilarity.BERTSimilarity as bertsimilarity
 
-from algorithms.llm_baseline import (
-    LLMBaseline,
-    prepare_prompt,
-    prepare_prompt_instruct_gpt_j,
-)
+from algorithms.llm_baseline import LLMBaseline
 from algorithms.llama_index import LlamaIndex
+from utils.enums import ProbeType
+from prompt_engineering.common import prepare_prompt
+from similarity_measures.bert import force_choice_with_bert
+
 
 # Copy-paste from CACI's `itm_adm_scenario_runner.py` script; ideally
 # we could just import this from their client module
@@ -66,23 +62,11 @@ class ADMKnowledge:
     probe_choices: List[str] = None
 
 
-# Copy-paste from CACI's `itm_scenario_runner.py` script; ideally
-# we could just import this from their client module
-class CommandOption(Enum):
-    START = "start"
-    PROBE = "probe"
-    STATUS = "status"
-    VITALS = "vitals"
-    RESPOND = "respond"
-    HEART_RATE = "heart rate"
-    END = "end"
-
-
 def main():
     parser = argparse.ArgumentParser(
         description="Simple LLM baseline system")
 
-    parser.add_argument('-a', '--api_endpoint',
+    parser.add_argument('-e', '--api_endpoint',
                         default="http://127.0.0.1:8080",
                         type=str,
                         help='Restful API endpoint for scenarios / probes '
@@ -160,44 +144,6 @@ def adm_knowledge_from_scenario(scenario):
     return adm_knowledge
 
 
-# Current version of TA-3 API expects the provided explanation to be
-# one of the medical supplies available (rather than a freeform
-# response)
-def _map_explanation_to_available_supply(
-        text_explanation, supplies, fallback_to_random=False):
-    supply_names_re = re.compile(
-        '({})'.format('|'.join([s.name for s in supplies])), re.I)
-
-    mentioned_supplies = re.findall(supply_names_re, text_explanation)
-
-    if len(mentioned_supplies) == 0:
-        selection = None
-    else:
-        selection = mentioned_supplies[0].lower()
-
-    if selection is None and fallback_to_random:
-        selection = random.choice([s.name for s in supplies])
-
-    return selection
-
-
-def force_choice_with_bert(text: str, choices: List[str]):
-    bertsim = bertsimilarity.BERTSimilarity()
-
-    top_score = -float('inf')
-    top_choice = None
-    top_choice_idx = None
-    for i, choice in enumerate(choices):
-        score = bertsim.calculate_distance(text, choice)
-
-        if score > top_score:
-            top_score = score
-            top_choice = choice
-            top_choice_idx = i
-
-    return top_choice_idx, top_choice
-
-
 def run_baseline_system(
         api_endpoint,
         username,
@@ -205,9 +151,6 @@ def run_baseline_system(
         align_to_target=False,
         algorithm="llm_baseline",
         algorithm_kwargs=None):
-    # Needed to silence BERT warning messages, see: https://stackoverflow.com/questions/67546911/python-bert-error-some-weights-of-the-model-checkpoint-at-were-not-used-when # noqa
-    from transformers import logging
-    logging.set_verbosity_error()
 
     _config = Configuration()
     _config.host = api_endpoint
@@ -241,14 +184,28 @@ def run_baseline_system(
         current_probe = retrieve_probe(client, scenario.id)
         adm_knowledge.probes_received.append(current_probe)
 
-        if model == "instruct-gpt-j":
-            prompt = prepare_prompt_instruct_gpt_j(
-                scenario, current_probe,
-                alignment_target=adm_knowledge.alignment_target)
+        casualties_dicts =\
+            [c.to_dict() for c in current_probe.state.casualties]
+
+        if current_probe.type == ProbeType.MultipleChoice.value:
+            probe_options_dicts = [o.to_dict() for o in current_probe.options]
         else:
-            prompt = prepare_prompt(
-                scenario, current_probe,
-                alignment_target=adm_knowledge.alignment_target)
+            probe_options_dicts = None
+
+        if align_to_target:
+            alignment_target_dict = adm_knowledge.alignment_target.to_dict()
+        else:
+            alignment_target_dict = None
+
+        prompt = prepare_prompt(
+            scenario.state.unstructured,
+            current_probe.state.mission.unstructured,
+            current_probe.state.unstructured,
+            current_probe.prompt,
+            casualties_dicts,
+            options=probe_options_dicts,
+            alignment_target=alignment_target_dict
+        )
 
         print("* Prompt for ADM: {}".format(prompt))
 

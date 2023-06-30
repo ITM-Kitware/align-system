@@ -144,7 +144,7 @@ def run_baseline_system_local_filepath(
         chosen_option = None
         if probe_type == ProbeType.MultipleChoice.value:
             option_values = [str(o['value']) for o in probe_data['options']]
-            chosen_option_value = force_choice_with_bert(
+            _, chosen_option_value = force_choice_with_bert(
                 raw_response, option_values)
 
             idx_of_choice = option_values.index(chosen_option_value)
