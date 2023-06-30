@@ -8,6 +8,7 @@ import BERTSimilarity.BERTSimilarity as bertsimilarity
 
 from algorithms.llm_baseline import LLMBaseline
 from algorithms.llama_index import LlamaIndex
+from algorithms.delphi import Delphi
 
 
 class ProbeType(Enum):
@@ -100,6 +101,9 @@ def run_baseline_system_local_filepath(
         algorithm = LlamaIndex(
             device="cuda", model_name=model,
             **algorithm_kwargs_parsed)
+    elif algorithm == "delphi":
+        algorithm = Delphi(
+        device="cuda", model=model)
 
     algorithm.load_model()
 
