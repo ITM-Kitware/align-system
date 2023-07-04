@@ -23,7 +23,7 @@ from algorithms.llm_baseline import LLMBaseline
 from algorithms.llama_index import LlamaIndex
 from utils.enums import ProbeType
 from prompt_engineering.common import prepare_prompt
-from similarity_measures.bert import force_choice_with_bert
+from similarity_measures import force_choice
 
 
 # Copy-paste from CACI's `itm_adm_scenario_runner.py` script; ideally
@@ -93,6 +93,10 @@ def main():
                         required=False,
                         help="JSON encoded dictionary of kwargs for algorithm "
                              "initialization")
+    parser.add_argument('--similarity-measure',
+                        type=str,
+                        default="bert",
+                        help="Similarity measure to use (default: 'bert'")
 
     run_baseline_system(**vars(parser.parse_args()))
 
@@ -150,7 +154,8 @@ def run_baseline_system(
         model,
         align_to_target=False,
         algorithm="llm_baseline",
-        algorithm_kwargs=None):
+        algorithm_kwargs=None,
+        similarity_measure="bert"):
 
     _config = Configuration()
     _config.host = api_endpoint
@@ -164,6 +169,17 @@ def run_baseline_system(
         alignment_target = retrieve_alignment_target(client, scenario.id)
         alignment_target_dict = alignment_target.to_dict()
         adm_knowledge.alignment_target = alignment_target
+
+    # Get the chosen similarity measure function
+    if similarity_measure == "bert":
+        from similarity_measures.bert import build_bert_similarity_measure_func
+        similarity_measure_func = build_bert_similarity_measure_func()
+    elif similarity_measure == "heuristic":
+        from similarity_measures.heuristics import score_string_similarity
+        similarity_measure_func = score_string_similarity
+    else:
+        raise NotImplementedError("Unrecognized similarity measure '{}', "
+                                  "aborting!".format(similarity_measure))
 
     # Load the system / model
     algorithm_kwargs_parsed = {}
@@ -229,8 +245,10 @@ def run_baseline_system(
         print("* ADM Raw response: {}".format(raw_response))
 
         if current_probe.type == 'MultipleChoice':
-            selected_choice_idx, selected_choice = force_choice_with_bert(
-                raw_response, [o.value for o in current_probe.options])
+            selected_choice_idx, selected_choice = force_choice(
+                raw_response,
+                [o.value for o in current_probe.options],
+                similarity_measure_func)
             selected_choice_id = current_probe.options[selected_choice_idx].id
 
             print("* ADM Selected: '{}'".format(selected_choice))
