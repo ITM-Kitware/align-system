@@ -1,3 +1,5 @@
+import sys
+
 from langchain.embeddings.huggingface import HuggingFaceEmbeddings
 from llama_index import (
     VectorStoreIndex,
@@ -8,6 +10,8 @@ from llama_index import (
 from llama_index.llm_predictor import HuggingFaceLLMPredictor
 from llama_index.prompts.prompts import SimpleInputPrompt
 import torch
+
+from transformers import AutoModelForCausalLM
 
 query_wrapper_prompt = SimpleInputPrompt(
     "Below is an instruction that describes a task. "
@@ -33,11 +37,17 @@ class LlamaIndex:
 
         if self.device == 'cuda':
             model_kwargs = {"torch_dtype": torch.float16,
+                            "device_map": "auto",
                             "trust_remote_code": True}
+            predictor_kwargs = {"device_map": "auto"}
         else:
-            model_kwargs = {}
+            model_kwargs = {"trust_remote_code": True}
+            predictor_kwargs = {}
 
         self.embed_model = LangchainEmbedding(HuggingFaceEmbeddings())
+
+        model = AutoModelForCausalLM.from_pretrained(
+            self.model_name, **model_kwargs)
 
         self.hf_predictor = HuggingFaceLLMPredictor(
             max_input_size=2048,
@@ -45,11 +55,10 @@ class LlamaIndex:
             generate_kwargs={"temperature": 0.25, "do_sample": False},
             query_wrapper_prompt=query_wrapper_prompt,
             tokenizer_name=self.model_name,
-            model_name=self.model_name,
-            device_map="auto",
+            model=model,
             tokenizer_kwargs={"max_length": 2048},
-            model_kwargs=model_kwargs,
-            tokenizer_outputs_to_remove=["token_type_ids"])
+            tokenizer_outputs_to_remove=["token_type_ids"],
+            **predictor_kwargs)
 
         self.service_context = ServiceContext.from_defaults(
             embed_model=self.embed_model,
@@ -65,7 +74,7 @@ class LlamaIndex:
             # query with embed_model specified
             self.query_engine = new_index.as_query_engine(streaming=True)
         else:
-            print("Retrieval disabled")
+            print("Retrieval disabled", file=sys.stderr)
             self.query_engine = self.hf_predictor
 
         self.model_loaded = True

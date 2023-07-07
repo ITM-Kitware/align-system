@@ -89,11 +89,11 @@ def run_baseline_system_local_filepath(
 
     if algorithm == "llm_baseline":
         algorithm = LLMBaseline(
-            device="cuda", model_use=model, distributed=False,
+            model_use=model, distributed=False,
             **algorithm_kwargs_parsed)
     elif algorithm == "llama_index":
         algorithm = LlamaIndex(
-            device="cuda", model_name=model,
+            model_name=model,
             **algorithm_kwargs_parsed)
 
     algorithm.load_model()

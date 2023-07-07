@@ -172,7 +172,7 @@ def run_baseline_system(
 
     if algorithm == "llm_baseline":
         algorithm = LLMBaseline(
-            device="cuda", model_use=model, distributed=False,
+            model_use=model, distributed=False,
             **algorithm_kwargs_parsed)
     elif algorithm == "llama_index":
         # TODO: This is a hacky way to have the "Knowledge" KDMA
@@ -195,7 +195,7 @@ def run_baseline_system(
                     break
 
         algorithm = LlamaIndex(
-            device="cuda", model_name=model,
+            model_name=model,
             **algorithm_kwargs_parsed)
 
     algorithm.load_model()
