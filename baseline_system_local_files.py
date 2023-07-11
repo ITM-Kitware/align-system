@@ -22,7 +22,7 @@ def main():
                         help="File path to input alignment target JSON")
     parser.add_argument('probes_filepaths',
                         type=str,
-                        nargs='+',
+                        nargs='*',
                         help="File path to input probe JSON")
     parser.add_argument("--print-details",
                         action='store_true',
@@ -114,10 +114,19 @@ def run_baseline_system_local_filepath(
 
     algorithm.load_model()
 
-    for probe_filepath in probes_filepaths:
-        with open(probe_filepath) as f:
-            probe_data = json.load(f)
+    probes = []
+    if len(probes_filepaths) > 0:
+        for probe_filepath in probes_filepaths:
+            with open(probe_filepath) as f:
+                probes.append(json.load(f))
+    else:
+        # Assume probes are embedded in the scenario file
+        probes.extend(scenario_data.get('probes', []))
 
+    if len(probes) == 0:
+        raise RuntimeError("No probes specified, and none found in scenario")
+
+    for probe_data in probes:
         probe_type = probe_data['type']
 
         scenario_info = scenario_data['state'].get('unstructured')
