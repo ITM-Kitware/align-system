@@ -96,7 +96,11 @@ def main():
     parser.add_argument('--similarity-measure',
                         type=str,
                         default="bert",
-                        help="Similarity measure to use (default: 'bert'")
+                        help="Similarity measure to use (default: 'bert')")
+    parser.add_argument('-s', '--session-type',
+                        type=str,
+                        default="eval",
+                        help='TA3 API Session Type (default: "eval")')
 
     run_baseline_system(**vars(parser.parse_args()))
 
@@ -155,12 +159,16 @@ def run_baseline_system(
         align_to_target=False,
         algorithm="llm_baseline",
         algorithm_kwargs=None,
-        similarity_measure="bert"):
+        similarity_measure="bert",
+        session_type="eval"):
 
     _config = Configuration()
     _config.host = api_endpoint
     _api_client = ApiClient(configuration=_config)
     client = ItmTa2EvalApi(api_client=_api_client)
+
+    client.start_session(adm_name=username,
+                         session_type=session_type)
 
     scenario = retrieve_scenario(client, username)
     adm_knowledge = adm_knowledge_from_scenario(scenario)
