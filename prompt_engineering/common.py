@@ -72,7 +72,8 @@ def prepare_prompt(scenario_info,
     else:
         scenario_mission_str = ""
 
-    if probe_state is not None:
+    if probe_state is not None and (probe_state.strip()
+                                    != scenario_info.strip()):
         probe_state_str = "{}\n".format(probe_state)
     else:
         probe_state_str = ""
