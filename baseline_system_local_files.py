@@ -4,9 +4,12 @@ import sys
 
 from algorithms.llm_baseline import LLMBaseline
 from algorithms.llama_index import LlamaIndex
+from algorithms.delphi import Delphi
 from utils.enums import ProbeType
 from prompt_engineering.common import build_casualties_string, prepare_prompt
 from similarity_measures import force_choice
+
+
 
 
 def main():
@@ -111,6 +114,9 @@ def run_baseline_system_local_filepath(
         algorithm = LlamaIndex(
             model_name=model,
             **algorithm_kwargs_parsed)
+    elif algorithm == "delphi":
+        algorithm = Delphi(
+        device="cuda", model=model)
 
     algorithm.load_model()
 
