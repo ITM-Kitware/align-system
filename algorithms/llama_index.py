@@ -30,6 +30,8 @@ class LlamaIndex:
         self.device = device
         self.model_name = model_name
         self.retrieval_enabled = retrieval_enabled
+        self.documents = None
+        self.index = None
 
     def load_model(self):
         if self.model_name == 'falcon':
@@ -66,13 +68,13 @@ class LlamaIndex:
             llm_predictor=self.hf_predictor)
 
         if self.retrieval_enabled:
-            documents = SimpleDirectoryReader(self.domain_docs_dir).load_data()
-            new_index = VectorStoreIndex.from_documents(
-                documents,
+            self.documents = SimpleDirectoryReader(self.domain_docs_dir).load_data()
+            self.index = VectorStoreIndex.from_documents(
+                self.documents,
                 service_context=self.service_context)
 
             # query with embed_model specified
-            self.query_engine = new_index.as_query_engine(streaming=True)
+            self.query_engine = self.index.as_query_engine(streaming=True)
         else:
             print("Retrieval disabled", file=sys.stderr)
             self.query_engine = self.hf_predictor
