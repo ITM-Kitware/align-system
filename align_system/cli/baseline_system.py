@@ -19,11 +19,11 @@ from swagger_client import (
     AlignmentTarget
 )
 
-from algorithms.llm_baseline import LLMBaseline
-from algorithms.llama_index import LlamaIndex
-from utils.enums import ProbeType
-from prompt_engineering.common import prepare_prompt
-from similarity_measures import force_choice
+from align_system.algorithms.llm_baseline import LLMBaseline
+from align_system.algorithms.llama_index import LlamaIndex
+from align_system.utils.enums import ProbeType
+from align_system.prompt_engineering.common import prepare_prompt
+from align_system.similarity_measures import force_choice
 
 
 # Copy-paste from CACI's `itm_adm_scenario_runner.py` script; ideally
@@ -180,10 +180,12 @@ def run_baseline_system(
 
     # Get the chosen similarity measure function
     if similarity_measure == "bert":
-        from similarity_measures.bert import build_bert_similarity_measure_func
+        from align_system.similarity_measures.bert import (
+            build_bert_similarity_measure_func)
         similarity_measure_func = build_bert_similarity_measure_func()
     elif similarity_measure == "heuristic":
-        from similarity_measures.heuristics import score_string_similarity
+        from align_system.similarity_measures.heuristics import (
+            score_string_similarity)
         similarity_measure_func = score_string_similarity
     else:
         raise NotImplementedError("Unrecognized similarity measure '{}', "
