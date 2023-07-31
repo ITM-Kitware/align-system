@@ -80,9 +80,28 @@ class LocalFilesScenario:
     def data(self):
         return self._scenario
 
-    def respond_to_current_probe(self, response_data):
-        pass
-
     def iterate_probes(self):
         for probe in self._probes:
-            yield probe
+            yield LocalFilesProbe(probe)
+
+
+class LocalFilesProbe:
+    def __init__(self, probe_data):
+        self._probe_data = probe_data
+
+    def to_dict(self):
+        return self._probe_data
+
+    def data(self):
+        return self._probe_data
+
+    def respond(self, response_data):
+        pass
+
+    def pretty_print_str(self):
+        probe = self._probe_data
+
+        options_string = "\n".join([f"[{o['id']}] {o['value']}"
+                                    for o in probe.get('options', [])])
+
+        return f"[{probe['id']}] {probe['prompt']}\n{options_string}"

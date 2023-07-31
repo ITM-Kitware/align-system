@@ -40,10 +40,12 @@ def run_test_driver(interface,
     scenario = interface.start_scenario()
 
     for probe in scenario.iterate_probes():
-        print(probe['id'])
+        probe_dict = probe.to_dict()
+        print(probe.pretty_print_str())
+        print()
         # Algo stuff here
-        scenario.respond_to_current_probe(
-            {'choice': probe['options'][0]['id'],
+        probe.respond(
+            {'choice': probe_dict['options'][0]['id'],
              'justification': 'Seems right?'})
 
 
