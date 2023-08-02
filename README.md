@@ -18,43 +18,63 @@ included in that repository's README.
 You'll also need to install the client module that's included with
 this repository, so ensure that you have this code cloned locally.
 
-### Python environment and dependencies
+### Installation
 
-We recommend setting up a virtual Python environment to neatly manage
-dependencies.  For example, using conda:
+The `align-system` code can be installed as a Python module with `pip
+install git+https://github.com/ITM-Kitware/align-system.git`.
+
+It's generally recommended to set up a virtual Python environment to
+neatly manage dependencies.  For example, using `venv`:
 
 ```
-conda create -n align-system python=3.10
+python3.8 -m venv venv
 ```
 
-Activate the environment:
+This creates a new directory called `venv`.  You then activate this
+new environment with:
+
+```
+source venv/bin/activate
+```
+
+#### Environment setup with Conda
+
+It may be easier to create an environment using Conda (or
+[Miniconda](https://docs.conda.io/en/latest/miniconda.html)) if you
+require a different version of Python than what's on the system and
+don't have `sudo` permissions.  In that case you can create an
+environment with a specific Python version with:
+
+```
+conda create -n align-system python=3.8
+```
+
+Then activate the environment with:
 ```
 conda activate align-system
 ```
 
-Then, install the required dependencies:
-```
-pip install -r requirements.txt
-```
+### Developer Installation
 
-Then, install the TA3 ITM MVP client module:
-```
-pip install -e /path/to/itm-mvp/itm_client
-```
+If you're working directly on the `align-system` code, we recommend
+using [Poetry](https://python-poetry.org/) as that's what we use to
+manage dependencies.  Once poetry is installed, you can install the
+project (from inside a local clone of this repo) with `poetry
+install`.  By default poetry will create a virtual environment (with
+`venv`) for the project if one doesn't already exist.
+
 
 ## Running the system
 
-In the Python environment you have set up, the `baseline_system.py`
-script is the entrypoint for running the system.  Help text is shown
-below:
+In the Python environment you have set up, two CLI applications are available: `align_baseline_system` (interfaces with the TA3 server) and `align_baseline_system_local_files` (works with local files on disk).  They have similar command line arguments (can be shown with the `--help` argument), but we'll just demonstrate how to run the `align_baseline_system` script here:
 
 ```
-$ python baseline_system.py
-usage: baseline_system.py [-h] [-e API_ENDPOINT] [-u USERNAME] [-m MODEL] [-t] [-a ALGORITHM] [-A ALGORITHM_KWARGS] [--similarity-measure SIMILARITY_MEASURE] [-s SESSION_TYPE]
+$ align_baseline_system --help
+usage: align_baseline_system [-h] [-e API_ENDPOINT] [-u USERNAME] [-m MODEL] [-t] [-a ALGORITHM] [-A ALGORITHM_KWARGS] [--similarity-measure SIMILARITY_MEASURE] [-s SESSION_TYPE]
 
 Simple LLM baseline system
 
-options:
+optional arguments:
   -h, --help            show this help message and exit
   -e API_ENDPOINT, --api_endpoint API_ENDPOINT
                         Restful API endpoint for scenarios / probes (default: "http://127.0.0.1:8080")
@@ -76,7 +96,7 @@ options:
 
 An example invocation of the system:
 ```
-$ python baseline_system.py --model gpt-j
+$ align_baseline_system --model gpt-j
 ```
 
 *NOTE* - The first time you run the system it can take upwards of a
@@ -90,7 +110,7 @@ model is cached.
 
 Simple baseline (unaligned) system using the `falcon` model:
 ```
-    python baseline_system.py \
+    align_baseline_system \
            --algorithm "llama_index" \
            --algorithm-kwargs '{"retrieval_enabled": false}' \
            --model falcon
@@ -100,9 +120,18 @@ Simple baseline (unaligned) system using the `falcon` model:
 
 Simple aligned system using the `falcon` model (requires domain document PDFs):
 ```
-    python baseline_system.py \
+    align_baseline_system \
            --algorithm "llama_index" \
            --algorithm-kwargs '{"domain_docs_dir": "/path/to/DomainDocumentsPDF"}' \
            --model falcon \
            --align-to-target
 ```
+
+## System Requirements by Algorithm / Model
+
+*Note: This table is a work-in-progress and will evolve as we add new
+algorithms / models*
+
+|Algorithm|Model|RAM|GPU Memory|Disk Space|
+|---------|-----|---|----------|----------|
+|llama_index|falcon|>32GB|~18GB|~32GB|
