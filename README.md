@@ -23,47 +23,6 @@ this repository, so ensure that you have this code cloned locally.
 The `align-system` code can be installed as a Python module with `pip
 install git+https://github.com/ITM-Kitware/align-system.git`.
 
-It's generally recommended to set up a virtual Python environment to
-neatly manage dependencies.  For example, using `venv`:
-
-```
-python3.8 -m venv venv
-```
-
-This creates a new directory called `venv`.  You then activate this
-new environment with:
-
-```
-source venv/bin/activate
-```
-
-#### Environment setup with Conda
-
-It may be easier to create an environment using Conda (or
-[Miniconda](https://docs.conda.io/en/latest/miniconda.html)) if you
-require a different version of Python than what's on the system and
-don't have `sudo` permissions.  In that case you can create an
-environment with a specific Python version with:
-
-```
-conda create -n align-system python=3.8
-```
-
-Then activate the environment with:
-```
-conda activate align-system
-```
-
-### Developer Installation
-
-If you're working directly on the `align-system` code, we recommend
-using [Poetry](https://python-poetry.org/) as that's what we use to
-manage dependencies.  Once poetry is installed, you can install the
-project (from inside a local clone of this repo) with `poetry
-install`.  By default poetry will create a virtual environment (with
-`venv`) for the project if one doesn't already exist.
-
-
 ## Running the system
 
 In the Python environment you have set up, a CLI application called `run_align_system` should now be available.  This single entrypoint supports interfacing with both local files on disk, and the TA3 web-based API.  Running the script with `--help` shows which interfaces are available:
@@ -155,3 +114,4 @@ algorithms / models*
 ## Quicklinks
 
 [Creating a custom system script](docs/creating_a_custom_system_script.md)
+[Developer environment setup](docs/developer_setup.md)
