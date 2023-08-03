@@ -53,7 +53,7 @@ class TA3CACIServiceInterface:
 
     @classmethod
     def cli_parser_description(cls):
-        return "Argument parser for TA3CACIServiceInterface"
+        return "Interface with CACI's TA3 web-based service"
 
     @classmethod
     def init_from_parsed_args(cls, parsed_args):

@@ -16,12 +16,14 @@ def build_interfaces(add_args_func,
 
         # https://docs.python.org/3.8/library/argparse.html?highlight=argparse#sub-commands
         subparsers = parser.add_subparsers(
-            help='Interface selection (TODO: Add more help text)',
+            help='Select interface.  Adding --help after interface selection '
+                 'will print interface and system specified arguments',
             required=True)
 
         for interface_name in supported_interfaces:
             interface_parser = subparsers.add_parser(
-                interface_name, help='a help')
+                interface_name,
+                help=INTERFACES[interface_name].cli_parser_description())
 
             interface_parser =\
                 INTERFACES[interface_name].cli_parser(interface_parser)

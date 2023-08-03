@@ -27,8 +27,7 @@ swagger-client = { git = "https://github.com/NextCenturyCorporation/itm-mvp.git"
 einops = "^0.6.1"
 
 [tool.poetry.scripts]
-align_baseline_system = 'align_system.cli.baseline_system:main'
-align_baseline_system_local_files = 'align_system.cli.baseline_system_local_files:main'
+run_align_system = 'align_system.cli.run_align_system:main'
 
 [build-system]
 requires = ["poetry-core"]

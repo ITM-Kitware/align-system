@@ -24,7 +24,7 @@ class LocalFilesInterface:
     def cli_parser(cls, parser=None):
         if parser is None:
             parser = argparse.ArgumentParser(
-                description="Argument parser for LocalFilesInterface")
+                description=cls.cli_parser_description())
 
         parser.add_argument('-s', '--scenario-filepath',
                             type=str,
@@ -40,6 +40,10 @@ class LocalFilesInterface:
                             help="File path to input probe JSON")
 
         return parser
+
+    @classmethod
+    def cli_parser_description(cls):
+        return "Interface with local scenario / probe JSON data on disk"
 
     @classmethod
     def init_from_parsed_args(cls, parsed_args):
