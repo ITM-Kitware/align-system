@@ -3,6 +3,27 @@
 This changelog follows the specifications detailed in: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html), although we have not yet reached a `1.0.0` release.
 
+## Version 0.1.0
+
+
+#### Added
+
+* Now using poetry to manage dependencies and added `pyproject.toml` and `poetry.lock` in support of this
+
+* Added example template CLI script for custom system interface development along with associated documentation
+
+
+#### Changed
+
+* Collapsed main CLI scripts into a single script `run_align_system`
+
+* Re-arranged codebase to be pip installable
+
+* Factored out interfaces, for TA3 and local files, into re-usable components
+
+#### Fixed
+
+
 ## Version 0.0.2
 
 
