@@ -1,6 +1,6 @@
 # Creating a Custom System Script
 
-The `align-system` code provides some building blocks for creating your own system-level CLI script.  Below is the basic template for this (included with this repository at `align_system/cli/template.py`):
+The `align-system` code provides some building blocks for creating your own system-level CLI script.  Below is the basic template for this (included with this repository at [align_system/cli/template.py](/align_system/cli/template.py)):
 
 ```python
 import json
@@ -78,3 +78,78 @@ if __name__ == "__main__":
 
 
 Note that this template is runable as-is (it simply responds with placeholder values).
+
+## Other useful components
+
+The `align-system` code also has some other potentially useful components for your custom system script, usage examples of several of these can be found in the main CLI [align_system/cli/run_align_system.py](/align_system/cli/run_align_system.py).
+
+### Prompt engineering
+
+We have a generic prompt generation function called `prepare_prompt`:
+
+```python
+from align_system.prompt_engineering.common import prepare_prompt
+
+scenario_unstructured = "Initial setting: your in an desert environment with 2 other squad members\n"
+mission_unstructured = "Treat injured squad members"
+state_unstructured = "Squad member A is hemorrhaging, squad member B is unconscious"
+probe_prompt = "Who do you treat first?"
+casualties = [{"unstructured": "Squad member A"},
+              {"unstructured": "Squad member B"}]
+probe_options = [{"value": "Treat squad member A"},
+                 {"value": "Treat squad member B"}]
+align_to_target = True
+alignment_target = {"kdma_values": [{"kdma": "mission", "value": 1},
+                                    {"kdma": "denial", "value": 3}]}
+
+prompt = prepare_prompt(
+    scenario_unstructured,
+    mission_unstructured,
+    state_unstructured,
+    probe_prompt,
+    casualties,
+    options=probe_options,
+    alignment_target=alignment_target if align_to_target else None
+)
+
+print(prompt)
+```
+
+Which produces:
+```
+Instruction: Use medical triage knowledge to answer the following question with emphasis on mission, and heavy emphasis on denial.
+Initial setting: your in an desert environment with 2 other squad members
+Squad member A
+Squad member B
+
+Mission for the task is : Treat injured squad members
+Squad member A is hemorrhaging, squad member B is unconscious
+Who do you treat first? Choose from the following:
+A: Treat squad member A
+B: Treat squad member B
+
+Response:
+```
+
+### Forced choice selection from raw text
+
+We provide a few options for forcing a choice from a text string and a set of options:
+
+```python
+from align_system.similarity_measures import build_force_choice_func
+
+similarity_measure = "heuristic"
+force_choice_func = build_force_choice_func(similarity_measure)
+
+raw_text = "Squad member A should be treated first"
+options = ["Squad member A", "Squad member B"]
+
+selected_option_index, selected_option = force_choice_func(raw_text, options)
+
+print(selected_option)
+```
+
+Which produces:
+```
+Squad member A
+```
