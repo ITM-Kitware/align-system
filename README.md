@@ -150,3 +150,8 @@ algorithms / models*
 |Algorithm|Model|RAM|GPU Memory|Disk Space|
 |---------|-----|---|----------|----------|
 |llama_index|falcon|>32GB|~18GB|~32GB|
+
+
+## Quicklinks
+
+[Creating a custom system script](docs/creating_a_custom_system_script.md)
