@@ -33,9 +33,10 @@ class LocalFilesInterface:
         parser.add_argument('--alignment-target-filepath',
                             type=str,
                             help="File path to input alignment target JSON")
-        parser.add_argument('probes_filepaths',
+        parser.add_argument('-p', '--probes_filepaths',
                             type=str,
                             nargs='*',
+                            default=[],
                             help="File path to input probe JSON")
 
         return parser
