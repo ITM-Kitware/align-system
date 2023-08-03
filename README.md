@@ -66,20 +66,37 @@ install`.  By default poetry will create a virtual environment (with
 
 ## Running the system
 
-In the Python environment you have set up, two CLI applications are available: `align_baseline_system` (interfaces with the TA3 server) and `align_baseline_system_local_files` (works with local files on disk).  They have similar command line arguments (can be shown with the `--help` argument), but we'll just demonstrate how to run the `align_baseline_system` script here:
+In the Python environment you have set up, a CLI application called `run_align_system` should now be available.  This single entrypoint supports interfacing with both local files on disk, and the TA3 web-based API.  Running the script with `--help` shows which interfaces are available:
 
 ```
-$ align_baseline_system --help
-usage: align_baseline_system [-h] [-e API_ENDPOINT] [-u USERNAME] [-m MODEL] [-t] [-a ALGORITHM] [-A ALGORITHM_KWARGS] [--similarity-measure SIMILARITY_MEASURE] [-s SESSION_TYPE]
+$ run_align_system --help
+usage: run_align_system [-h] {TA3,LocalFiles} ...
 
-Simple LLM baseline system
+ALIGN System CLI
+
+positional arguments:
+  {TA3,LocalFiles}  Select interface. Adding --help after interface selection will print interface and system specified arguments
+    TA3             Interface with CACI's TA3 web-based service
+    LocalFiles      Interface with local scenario / probe JSON data on disk
+
+optional arguments:
+  -h, --help        show this help message and exit
+```
+
+Running `--help` after the selected interface prints the full set of options for the interface and system.  E.g.:
+
+```
+$ run_align_system TA3 --help
+usage: run_align_system TA3 [-h] [-u USERNAME] [-s SESSION_TYPE] [-e API_ENDPOINT] [-m MODEL] [-t] [-a ALGORITHM] [-A ALGORITHM_KWARGS] [--similarity-measure SIMILARITY_MEASURE]
 
 optional arguments:
   -h, --help            show this help message and exit
-  -e API_ENDPOINT, --api_endpoint API_ENDPOINT
-                        Restful API endpoint for scenarios / probes (default: "http://127.0.0.1:8080")
   -u USERNAME, --username USERNAME
                         ADM Username (provided to TA3 API server, default: "ALIGN-ADM")
+  -s SESSION_TYPE, --session-type SESSION_TYPE
+                        TA3 API Session Type (default: "eval")
+  -e API_ENDPOINT, --api_endpoint API_ENDPOINT
+                        Restful API endpoint for scenarios / probes (default: "http://127.0.0.1:8080")
   -m MODEL, --model MODEL
                         LLM Baseline model to use
   -t, --align-to-target
@@ -90,13 +107,11 @@ optional arguments:
                         JSON encoded dictionary of kwargs for algorithm initialization
   --similarity-measure SIMILARITY_MEASURE
                         Similarity measure to use (default: 'bert')
-  -s SESSION_TYPE, --session-type SESSION_TYPE
-                        TA3 API Session Type (default: "eval")
 ```
 
-An example invocation of the system:
+Here's an example invocation of the system using the TA3 interface:
 ```
-$ align_baseline_system --model gpt-j
+$ run_align_system TA3 -s soartech --algorithm "llama_index" --model falcon --algorithm-kwargs '{"domain_docs_dir": "/data/shared/MVPData/DomainDocumentsPDF"}'
 ```
 
 *NOTE* - The first time you run the system it can take upwards of a
@@ -110,7 +125,7 @@ model is cached.
 
 Simple baseline (unaligned) system using the `falcon` model:
 ```
-    align_baseline_system \
+    run_align_system TA3 \
            --algorithm "llama_index" \
            --algorithm-kwargs '{"retrieval_enabled": false}' \
            --model falcon
@@ -120,7 +135,7 @@ Simple baseline (unaligned) system using the `falcon` model:
 
 Simple aligned system using the `falcon` model (requires domain document PDFs):
 ```
-    align_baseline_system \
+    run_align_system TA3 \
            --algorithm "llama_index" \
            --algorithm-kwargs '{"domain_docs_dir": "/path/to/DomainDocumentsPDF"}' \
            --model falcon \
