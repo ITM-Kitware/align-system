@@ -20,7 +20,7 @@ this repository, so ensure that you have this code cloned locally.
 
 ### Installation
 
-The `align-system` code can be installed as a Python module with `pip
+It's generally recommended to set up a virtual Python environment to neatly manage dependencies (e.g. using `venv` or `conda`).  The `align-system` code can be installed as a Python module with `pip
 install git+https://github.com/ITM-Kitware/align-system.git`.
 
 ## Running the system
