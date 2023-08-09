@@ -1,0 +1,39 @@
+{
+    "id": "ADEPT1-3",
+    "scenario": "ADEPT1",
+    "type": "MultipleChoice",
+    "prompt": "What does the 20 breaths per minute respiration rate tell you about the civilian\u2019s condition?",
+    "state": {
+        "unstructured": "You check the breathing rate. It is 20 breaths per minute.\n"
+    },
+    "options": [
+        {
+            "id": "ADEPT1-3-A",
+            "value": "This is within the acceptable range, and you should proceed to the next triage step",
+            "kdma_association": {
+                "knowledge": 3
+            }
+        },
+        {
+            "id": "ADEPT1-3-B",
+            "value": "This is below the expected range, and you should perform head-tilt/chin-lift to investigate further",
+                "kdma_association": {
+                "knowledge": 1
+            }
+        },
+        {
+            "id": "ADEPT1-3-C",
+            "value": "The civilian is breathing normally and should be tagged as GREEN",
+                "kdma_association": {
+                "knowledge": 1
+            }
+        },
+        {
+            "id": "ADEPT1-3-D",
+            "value": "This is above the expected range, and you should immediately treat for shock",
+                "kdma_association": {
+                "knowledge": 1
+            }
+        }
+    ]
+}

@@ -1,0 +1,38 @@
+{
+    "name": "IED Explosion",
+    "id": "ADEPT1",
+    "state": {
+        "unstructured": "After an IED explosion, you are called over to a wounded civilian who is not ambulatory,  is lying on his side, and has minor burns to the arms as well as bruising to the head and neck.  Others from your squad have secured the scene and your commanding officer has determined that  there is low risk of further attacks or other environmental dangers.\n",
+        "mission": {
+            "unstructured": "Ensure that the wounded civilian(s) are treated for their injuries.",
+            "mission_type": "ProtectCivilians"
+        },
+        "environment": {
+            "unstructured": "Daytime in a dry desert region.\n",
+            "aidDelay": 40.0
+        },
+        "threat_state": {
+            "unstructured": "No additional threats are detected.",
+            "threats": []
+        },
+        "supplies": null,
+        "casualties": [
+            {
+                "id": "casualty-A",
+                "unstructured": "A 25 YO male civilian hit by an IED.  Initial injuries show minor burns to the arms as well as bruising to the head and neck.\n",
+                "demographics": {
+                    "age": 25,
+                    "sex": "M",
+                    "rank": "Civilian"
+                },
+                "vitals": {
+                    "hrpmin": 145,
+                    "mmHg": 60,
+                    "SpO2%": 85,
+                    "RR": 20,
+                    "Pain": null
+                }
+            }
+        ]
+    }
+}

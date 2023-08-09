@@ -1,0 +1,37 @@
+{
+    "id": "ADEPT1-1",
+    "scenario": "ADEPT1",
+    "type": "MultipleChoice",
+    "prompt": "What is the first thing you would do upon arriving to the scene?",
+    "state": {},
+    "options": [
+        {
+            "id": "ADEPT1-1-A",
+            "value": "Check for consciousness",
+            "kdma_association": {
+                "Knowledge": 3
+            }
+        },
+        {
+            "id": "ADEPT1-1-B",
+            "value": "Look, listen, and feel for breathing",
+            "kdma_association": {
+                "Knowledge": 1
+            }
+        },
+        {
+            "id": "ADEPT1-1-C",
+            "value": "Tag civilian RED for Immediate",
+            "kdma_association": {
+                "Knowledge": 1
+            }
+        },
+        {
+            "id": "ADEPT1-1-D",
+            "value": "Check for mental status",
+            "kdma_association": {
+                "Knowledge": 1
+            }
+        }
+    ]
+}

@@ -1,0 +1,39 @@
+{
+    "id": "ADEPT1-2",
+    "scenario": "ADEPT1",
+    "type": "MultipleChoice",
+    "prompt": "How fast of a breathing rate (breaths per minute) would warrant a RED (IMMEDIATE) tag? More than ___ breaths per minute.",
+    "state": {
+        "unstructured": "The civilian is conscious and lying on his back with arms at his sides.  You look, listen, and feel for breathing and find that he is breathing.\n"
+    },
+    "options": [
+        {
+            "id": "ADEPT1-2-A",
+            "value": 20,
+            "kdma_association": {
+                "knowledge": 1
+            }
+        },
+        {
+            "id": "ADEPT1-2-B",
+            "value": 30,
+            "kdma_association": {
+                "knowledge": 3
+            }
+        },
+        {
+            "id": "ADEPT1-2-C",
+            "value": 40,
+            "kdma_association": {
+                "knowledge": 1
+            }
+        },
+        {
+            "id": "ADEPT1-2-D",
+            "value": 50,
+            "kdma_association": {
+                "knowledge": 1
+            }
+        }
+    ]
+}

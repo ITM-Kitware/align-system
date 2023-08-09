@@ -33,15 +33,15 @@ def add_cli_args(parser):
 
 
 def main():
-    run_test_driver(**build_interfaces(add_cli_args, "ALIGN System CLI"))
+    run_align_system(**build_interfaces(add_cli_args, "ALIGN System CLI"))
 
 
-def run_test_driver(interface,
-                    model,
-                    align_to_target=False,
-                    algorithm="llm_baseline",
-                    algorithm_kwargs=None,
-                    similarity_measure="bert"):
+def run_align_system(interface,
+                     model,
+                     align_to_target=False,
+                     algorithm="llm_baseline",
+                     algorithm_kwargs=None,
+                     similarity_measure="bert"):
     scenario = interface.start_scenario()
     scenario_dict = scenario.to_dict()
 
@@ -89,16 +89,23 @@ def run_test_driver(interface,
     for probe in scenario.iterate_probes():
         probe_dict = probe.to_dict()
 
-        if len(probe_dict['state']) > 0:
-            casualties_dicts = probe_dict['state'].get('casualties', [])
-            mission_unstructured =\
-                probe_dict['state']['mission']['unstructured']
-            state_unstructured = probe_dict['state']['unstructured']
-        else:
-            casualties_dicts = scenario_dict['state'].get('casualties', [])
-            mission_unstructured =\
-                scenario_dict['state']['mission']['unstructured']
-            state_unstructured = None
+        casualties_dicts = scenario_dict['state'].get('casualties', [])
+        mission_unstructured =\
+            scenario_dict['state']['mission']['unstructured']
+        state_unstructured = None
+
+        if 'state' in probe_dict:
+            probe_state = probe_dict['state']
+            if 'casualties' in probe_state:
+                casualties_dicts = probe_dict['state']['casualties']
+
+            if('mission' in probe_state and
+               'unstructured' in probe_state['mission']):
+                mission_unstructured =\
+                  probe_state['mission']['unstructured']
+
+            if 'unstructured' in probe_state:
+                state_unstructured = probe_state['unstructured']
 
         if probe_dict['type'] == ProbeType.MultipleChoice.value:
             probe_options_dicts = probe_dict['options']
@@ -121,7 +128,7 @@ def run_test_driver(interface,
 
         if probe_dict['type'] == ProbeType.MultipleChoice.value:
             selected_choice_idx, selected_choice = force_choice_func(
-                raw_response, [o['value'] for o in probe_dict['options']])
+                raw_response, [str(o['value']) for o in probe_dict['options']])
             print("* ADM Selected: '{}'".format(selected_choice))
 
             selected_choice_id =\

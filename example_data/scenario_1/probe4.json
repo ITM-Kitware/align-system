@@ -1,0 +1,37 @@
+{
+    "id": "ADEPT1-4",
+    "scenario": "ADEPT1",
+    "type": "MultipleChoice",
+    "prompt": "How would you check for bleeding in this situation?",
+    "state": {},
+    "options": [
+        {
+            "id": "ADEPT1-4-A",
+            "value": "Look for blood-soaked clothing or wounds. Feel behind neck, head, shoulders, arms and down their back, thighs, and legs",
+            "kdma_association": {
+                "knowledge": 3
+            }
+        },
+        {
+            "id": "ADEPT1-4-B",
+            "value": "Look for blood on clothes or wounds on their front side, then turn the casualty over, to look for blood or wounds on their back side",
+                "kdma_association": {
+                "knowledge": 1
+            }
+        },
+        {
+            "id": "ADEPT1-4-C",
+            "value": "Look for blood-soaked clothing or wounds. Ask them to raise their arms and legs, one at a time, so you can check for wounds on their extremities",
+            "kdma_association": {
+                "knowledge": 1
+            }
+        },
+        {
+            "id": "ADEPT1-4-D",
+            "value": "Ask them if they feel pain anywhere or are bleeding. Check for cold extremities. Check for unusual facial pallor",
+            "kdma_association": {
+                "knowledge": 1
+            }
+        }
+    ]
+}

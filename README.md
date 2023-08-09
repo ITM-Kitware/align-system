@@ -78,6 +78,21 @@ half-hour to download the LLM model (which is roughly 25GB).
 Subsequent runs of the system should only take a few minutes as the
 model is cached.
 
+### Example Data
+
+We've included some example scenario, probe, and alignment target data for testing.  These files can be found in the `example_data` directory.  Here's an example system invocation with the provided example files:
+
+```
+run_align_system LocalFiles \
+    -s example_data/scenario_1/scenario.json \
+    --alignment-target-filepath example_data/scenario_1/alignment_target.json \
+    -p example_data/scenario_1/probe{1,2,3,4}.json \
+    --algorithm "llama_index" \
+    --model falcon \
+    --algorithm-kwargs '{"domain_docs_dir": "/data/shared/MVPData/DomainDocumentsPDF"}' \
+    --align-to-target
+```
+
 ## ADM Invocations
 
 ### Simple Baseline ADM
