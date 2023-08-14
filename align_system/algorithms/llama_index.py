@@ -34,6 +34,8 @@ class LlamaIndex:
     def load_model(self):
         if self.model_name == 'falcon':
             self.model_name = 'tiiuae/falcon-7b-instruct'
+        elif self.model_name == 'llama-2':
+            self.model_name = 'meta-llama/Llama-2-7b-chat-hf'
 
         if self.device == 'cuda':
             model_kwargs = {"torch_dtype": torch.float16,
@@ -81,6 +83,6 @@ class LlamaIndex:
 
     def run_inference(self, prompt):
         if self.retrieval_enabled:
-            return self.query_engine.query(prompt)
+            return str(self.query_engine.query(prompt)).strip()
         else:
-            return self.hf_predictor.predict(prompt)[0]
+            return self.hf_predictor.predict(prompt)[0].strip()
