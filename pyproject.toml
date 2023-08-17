@@ -28,6 +28,7 @@ bert-score = "^0.3.13"
 [tool.poetry.scripts]
 run_align_system = 'align_system.cli.run_align_system:main'
 run_action_based_align_system = 'align_system.cli.run_action_based_align_system:main'
+run_chat_baseline = 'align_system.cli.run_chat_baseline:main'
 
 [build-system]
 requires = ["poetry-core"]
