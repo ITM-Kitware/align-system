@@ -7,8 +7,13 @@ from swagger_client import (
     ProbeResponse,
 )
 
+from align_system.interfaces.abstracts import (
+    Interface,
+    ScenarioInterface,
+    ProbeInterface)
 
-class TA3CACIServiceInterface:
+
+class TA3CACIServiceInterface(Interface):
     def __init__(self,
                  username='ALIGN-ADM',
                  api_endpoint='http://127.0.0.1:8080',
@@ -60,7 +65,7 @@ class TA3CACIServiceInterface:
         return cls(**vars(parsed_args))
 
 
-class TA3CACIScenario:
+class TA3CACIScenario(ScenarioInterface):
     def __init__(self, client, scenario):
         self._client = client
         self._scenario = scenario
@@ -107,7 +112,7 @@ class TA3CACIScenario:
                     "`.respond(response_data)` ")
 
 
-class TA3CACIProbe:
+class TA3CACIProbe(ProbeInterface):
     def __init__(self, probe_data, response_callback):
         self._probe_data = probe_data
         self._response_callback = response_callback

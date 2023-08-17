@@ -1,8 +1,13 @@
 import argparse
 import json
 
+from align_system.interfaces.abstracts import (
+    Interface,
+    ScenarioInterface,
+    ProbeInterface)
 
-class LocalFilesInterface:
+
+class LocalFilesInterface(Interface):
     def __init__(self,
                  probes_filepaths,
                  scenario_filepath,
@@ -50,7 +55,7 @@ class LocalFilesInterface:
         return cls(**vars(parsed_args))
 
 
-class LocalFilesScenario:
+class LocalFilesScenario(ScenarioInterface):
     def __init__(self,
                  scenario,
                  probes_filepaths=[],
@@ -90,7 +95,7 @@ class LocalFilesScenario:
             yield LocalFilesProbe(probe)
 
 
-class LocalFilesProbe:
+class LocalFilesProbe(ProbeInterface):
     def __init__(self, probe_data):
         self._probe_data = probe_data
 
