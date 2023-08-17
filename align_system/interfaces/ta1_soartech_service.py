@@ -2,8 +2,13 @@ import argparse
 
 import requests
 
+from align_system.interfaces.abstracts import (
+    Interface,
+    ScenarioInterfaceWithAlignment,
+    ProbeInterfaceWithAlignment)
 
-class TA1SoartechServiceInterface:
+
+class TA1SoartechServiceInterface(Interface):
     def __init__(self,
                  api_endpoint='http://127.0.0.1:8084',
                  scenarios=['kickoff-demo-scenario-1'],
@@ -67,7 +72,7 @@ class TA1SoartechServiceInterface:
         return cls(**vars(parsed_args))
 
 
-class TA1SoartechScenario:
+class TA1SoartechScenario(ScenarioInterfaceWithAlignment):
     def __init__(self, api_endpoint, session_id, scenario, alignment_target):
         self.api_endpoint = api_endpoint
         self.session_id = session_id
@@ -118,14 +123,14 @@ class TA1SoartechScenario:
 
             yield probe_obj
 
-    def get_alignment_score(self):
+    def get_alignment_results(self):
         return requests.get(
             f"{self.api_endpoint}/api/v1/alignment/session",
             params={'session_id': self.session_id,
                     'target_id': self.alignment_target_id}).json()
 
 
-class TA1SoartechProbe:
+class TA1SoartechProbe(ProbeInterfaceWithAlignment):
     def __init__(self,
                  probe_data,
                  response_callback,
@@ -143,7 +148,7 @@ class TA1SoartechProbe:
     def respond(self, response_data):
         self._response_callback(self._probe_data['id'], response_data)
 
-    def get_alignment_score(self):
+    def get_alignment_results(self):
         return self._probe_alignment_score_callback(self._probe_data['id'])
 
     def pretty_print_str(self):

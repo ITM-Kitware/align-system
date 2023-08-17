@@ -6,6 +6,9 @@ from align_system.algorithms.llama_index import LlamaIndex
 from align_system.similarity_measures import build_force_choice_func
 from align_system.prompt_engineering.common import prepare_prompt
 from align_system.utils.enums import ProbeType
+from align_system.interfaces.abstracts import (
+    ScenarioInterfaceWithAlignment,
+    ProbeInterfaceWithAlignment)
 
 
 def add_cli_args(parser):
@@ -137,6 +140,16 @@ def run_align_system(interface,
                            'choice': selected_choice_id})
         else:
             probe.respond({'justification': raw_response})
+
+        if isinstance(probe, ProbeInterfaceWithAlignment):
+            probe_alignment_results = probe.get_alignment_results()
+            print("* Probe alignment score: {}".format(
+                probe_alignment_results['score']))
+
+    if isinstance(scenario, ScenarioInterfaceWithAlignment):
+        scenario_alignment_results = scenario.get_alignment_results()
+        print("* Scenario alignment score: {}".format(
+            scenario_alignment_results['score']))
 
 
 if __name__ == "__main__":
