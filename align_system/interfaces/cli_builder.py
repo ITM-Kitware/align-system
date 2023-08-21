@@ -4,10 +4,14 @@ import sys
 from align_system.interfaces.ta3_caci_service import TA3CACIServiceInterface
 from align_system.interfaces.local_files import LocalFilesInterface
 from align_system.interfaces.ta1_soartech_service import TA1SoartechServiceInterface
+from align_system.interfaces.ta1_adept_service import TA1AdeptServiceInterface
 
-INTERFACES = {'TA3': TA3CACIServiceInterface,
-              'LocalFiles': LocalFilesInterface,
-              'TA1Soartech': TA1SoartechServiceInterface}
+INTERFACES = {
+    'TA3': TA3CACIServiceInterface,
+    'LocalFiles': LocalFilesInterface,
+    'TA1Soartech': TA1SoartechServiceInterface,
+    'TA1Adept': TA1AdeptServiceInterface,
+    }
 
 
 def build_interfaces(add_args_func,
