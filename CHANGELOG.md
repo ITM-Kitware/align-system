@@ -3,6 +3,21 @@
 This changelog follows the specifications detailed in: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html), although we have not yet reached a `1.0.0` release.
 
+## Unreleased
+
+#### Added
+
+* Added support for Soartech's TA1 web API
+
+* Added support for ADEPT's TA1 web API
+
+* Added Abstract Base Classes for interfaces to help distinguish between the TA3 and TA1 interfaces (which produce alignment scores)
+
+#### Changed
+
+#### Fixed
+
+
 ## Version 0.1.0
 
 
