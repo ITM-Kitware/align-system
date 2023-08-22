@@ -2,6 +2,9 @@ import json
 
 from align_system.interfaces.cli_builder import build_interfaces
 from align_system.utils.enums import ProbeType
+from align_system.interfaces.abstracts import (
+    ScenarioInterfaceWithAlignment,
+    ProbeInterfaceWithAlignment)
 
 
 def add_cli_args(parser):
@@ -64,6 +67,18 @@ def run_custom_system(interface,
         print()
 
         probe.respond(probe_response)
+
+        # Get KDMA Alignment scores for probe if the interface supports it
+        if isinstance(probe, ProbeInterfaceWithAlignment):
+            probe_alignment_results = probe.get_alignment_results()
+            print(json.dumps(probe_alignment_results, indent=2))
+            print()
+
+    # Get KDMA Alignment scores for scenario if the interface supports it
+    if isinstance(scenario, ScenarioInterfaceWithAlignment):
+        scenario_alignment_results = scenario.get_alignment_results()
+        print(json.dumps(scenario_alignment_results, indent=2))
+        print()
 
 
 if __name__ == "__main__":

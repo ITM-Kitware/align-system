@@ -3,20 +3,36 @@
 ## Setup
 
 ### System requirements
+
 It's recommended to run the system on a machine with at least 32GB of
 RAM and with a modern GPU with at least 12GB of memory.
 
-### TA3 API
-The ALIGN System interfaces with the TA3 ITM MVP web API
-(https://github.com/NextCenturyCorporation/itm-mvp), which is
-responsible for serving up scenarios and probes, and for handling our
-probe responses.  You'll want to have this service installed and
-running locally (or on a machine that you can access from wherever
-you're running this code).  Instructions for how to do that are
-included in that repository's README.
+### External Interfaces
+
+The ALIGN System can interface with a few difference services provided
+by other teams.  These interfaces may require additional setup
+assuming you need to run the services locally for testing / debugging.
+
+#### TA3 API
+
+The code for the TA3 service can be found at: [TA3 API
+Repository](https://github.com/NextCenturyCorporation/itm-mvp).
 
 You'll also need to install the client module that's included with
 this repository, so ensure that you have this code cloned locally.
+
+#### Soartech's TA1 API
+
+Soartech's TA1 service code can be found at: [Soartech's TA1
+API](https://github.com/ITM-Soartech/ta1-server-mvp).  This API
+provides alignment scores for answered probes and scenarios.
+
+#### ADEPT's TA1 API
+
+ADEPT's TA1 service code can be found at: [ADEPT's TA1
+API](https://gitlab.com/itm-ta1-adept-shared/mvp1/adept-api-mvp1).
+This API provides alignment scores for answered probes and scenarios.
+
 
 ### Installation
 
@@ -29,17 +45,20 @@ In the Python environment you have set up, a CLI application called `run_align_s
 
 ```
 $ run_align_system --help
-usage: run_align_system [-h] {TA3,LocalFiles} ...
+usage: run_align_system [-h] {TA3,LocalFiles,TA1Soartech,TA1Adept} ...
 
 ALIGN System CLI
 
 positional arguments:
-  {TA3,LocalFiles}  Select interface. Adding --help after interface selection will print interface and system specified arguments
-    TA3             Interface with CACI's TA3 web-based service
-    LocalFiles      Interface with local scenario / probe JSON data on disk
+  {TA3,LocalFiles,TA1Soartech,TA1Adept}
+                        Select interface. Adding --help after interface selection will print interface and system specified arguments
+    TA3                 Interface with CACI's TA3 web-based service
+    LocalFiles          Interface with local scenario / probe JSON data on disk
+    TA1Soartech         Interface with Soartech's TA1 web-based service
+    TA1Adept            Interface with Adept's TA1 web-based service
 
 optional arguments:
-  -h, --help        show this help message and exit
+  -h, --help            show this help message and exit
 ```
 
 Running `--help` after the selected interface prints the full set of options for the interface and system.  E.g.:
