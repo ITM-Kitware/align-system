@@ -26,6 +26,7 @@ pycryptodome = "^3.18.0"
 swagger-client = { git = "https://github.com/NextCenturyCorporation/itm-mvp.git", subdirectory = "itm_client" }
 einops = "^0.6.1"
 requests = "^2.31.0"
+bert-score = "^0.3.13"
 
 [tool.poetry.scripts]
 run_align_system = 'align_system.cli.run_align_system:main'
