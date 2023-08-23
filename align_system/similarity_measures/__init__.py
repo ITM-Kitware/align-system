@@ -24,7 +24,7 @@ def get_similarity_measure_func(measure_name):
         from align_system.similarity_measures.bert import (
             build_bert_similarity_measure_func)
         similarity_measure_func = build_bert_similarity_measure_func()
-    if measure_name == "bert_score":
+    elif measure_name == "bert_score":
         from align_system.similarity_measures.bert_score import (
             bert_score_similarity_f1)
         similarity_measure_func = bert_score_similarity_f1
