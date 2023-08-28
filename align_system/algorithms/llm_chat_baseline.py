@@ -27,9 +27,13 @@ def to_probabilities(logits):
 
 class LLMChatBaseline:
     
-    def __init__(self, device='cuda', hf_model='meta-llama/Llama-2-7b-chat-hf'):
+    def __init__(self, device='cuda', hf_model='meta-llama/Llama-2-7b-chat-hf', precision='full', temperature=0.7):
         self.device = device
         self.hf_model = hf_model
+        self.temperature = temperature
+        
+        assert precision in ['full', 'half'], "precision must be either 'full' or 'half'."
+        self.precision = torch.float32 if precision == 'full' else torch.float16
         
         self.model = None
         self.tokenizer = None
@@ -37,7 +41,7 @@ class LLMChatBaseline:
     
     def load_model(self):
         print('Loading model:', self.hf_model)
-        self.model = AutoModelForCausalLM.from_pretrained(self.hf_model, torch_dtype=torch.float16)
+        self.model = AutoModelForCausalLM.from_pretrained(self.hf_model, torch_dtype=self.precision)
         self.tokenizer = AutoTokenizer.from_pretrained(self.hf_model)
         
         self.model = self.model.to(self.device)
@@ -112,7 +116,7 @@ class LLMChatBaseline:
     
     
     
-    def answer_multiple_choice(self, question, options, system_message_id=0, verbose=True):
+    def answer_multiple_choice(self, question, options, system_message=None, verbose=True):
         medical_triage_system_message = (
             "You are an assistant specialized in answering multiple-choice questions related to "
             "medical triage. When a question is posed, carefully analyze the symptoms or conditions "
@@ -123,11 +127,8 @@ class LLMChatBaseline:
             "{\"Reasoning\": \"<Provide a reasoned explanation here>\", \"Answer\": <Integer index corresponding to your final answer>}\\n"
             "Ensure that you adhere to proper JSON syntax, and carefully note the index that corresponds to each answer."
         )
-
-        system_messages = [
-            medical_triage_system_message
-            # "You are an assistant capable of providing answers to multiple choice medical-related questions. When a question is asked, analyze the symptoms or conditions mentioned. Respond by providing your reasoning in a train-of-thought/process of elimination manner. Afterwards, provide the final answer in the form of the designated index. Your response should be factual based on established medical knowledge and aim to be helpful. However, format your response as a JSON object, containing a string and an integer, of the form:\n\n{\"Reasoning\": \"<Your reasoned explanation>\", \"Answer\": <Integer index of your final answer>}\n\nUse proper JSON syntax and pay close attention to which index corresponds to which answer."
-        ]
+        if system_message is None:
+            system_message = medical_triage_system_message
         
         formatted_options = [f'({i}) {option}' for i, option in enumerate(options)]
         
@@ -136,7 +137,7 @@ class LLMChatBaseline:
         dialog = [
             {
                 "role": "system",
-                "content": system_messages[system_message_id]
+                "content": system_message
             },
             {
                 "role": "user",
@@ -155,7 +156,7 @@ class LLMChatBaseline:
         prompt_tokens = torch.tensor(prompt_tokens)
         prompt_tokens = prompt_tokens.to(self.device)
                 
-        outputs = self.model.generate(prompt_tokens, return_dict_in_generate=True, output_scores=True, max_new_tokens=512)
+        outputs = self.model.generate(prompt_tokens, return_dict_in_generate=True, output_scores=True, max_new_tokens=512, temperature=self.temperature)
 
         # Print the generated model output
         generated_output = self.tokenizer.decode(outputs.sequences[0][prompt_length:])
@@ -164,11 +165,14 @@ class LLMChatBaseline:
         reasoning = None
         answer_idx = None
         try:
-            start_idx = generated_output.find('{')
-            end_idx = generated_output.rfind('}')
-            json_str = generated_output[start_idx:end_idx+1]
-            generated_data = json.loads(json_str)
-            
+            try:
+                start_idx = generated_output.find('{')
+                end_idx = generated_output.rfind('}')
+                json_str = generated_output[start_idx:end_idx+1]
+                generated_data = json.loads(json_str)
+            except Exception:
+                generated_data = self.correct_json(generated_output, verbose=verbose)
+                
             try:
                 reasoning = generated_data['Reasoning']
             except KeyError:
@@ -201,3 +205,54 @@ class LLMChatBaseline:
             if verbose:
                 print('Warning: could not find search sequence in generated output and was unable to calculate probabilities.')
             return generated_output, reasoning, answer_idx, None
+        
+    
+    def correct_json(self, invalid_json, verbose=True):
+        # Custom system message for correcting invalid JSON
+        system_message = (
+            "You are an assistant specialized in correcting malformed JSON strings. "
+            "Analyze the provided JSON string and correct any syntactical errors "
+            "to make it a valid JSON object. Ensure that your corrections adhere "
+            "to proper JSON syntax."
+            "Do not provide an explanation or output any text other than the corrected JSON object."
+        )
+        
+        # Dialog with the system message and the invalid JSON
+        dialog = [
+            {
+                "role": "system",
+                "content": system_message
+            },
+            {
+                "role": "user",
+                "content": invalid_json
+            }
+        ]
+
+        # Generate the prompt tokens similarly to the example function
+        prompt_tokens = self.chat_prompt_tokens([dialog], return_tensor=False)
+        
+        
+        prompt_length = len(prompt_tokens[0])
+        
+        prefix_tokens = self.tokenizer.encode('{"Reasoning": "', add_special_tokens=False) # TODO make this connected to the system message
+        prompt_tokens[0] += prefix_tokens
+        
+        prompt_tokens = torch.tensor(prompt_tokens)
+        prompt_tokens = prompt_tokens.to(self.device)
+                
+        outputs = self.model.generate(prompt_tokens, max_new_tokens=512)
+
+        corrected_json_str = self.tokenizer.decode(outputs[0][prompt_length:])
+        
+        print(corrected_json_str)
+        try:
+            start_idx = corrected_json_str.find('{')
+            end_idx = corrected_json_str.rfind('}')
+            corrected_json_str = corrected_json_str[start_idx:end_idx+1]
+            corrected_json_obj = json.loads(corrected_json_str)
+            return corrected_json_obj
+        except Exception as e:
+            if verbose:
+                print(f'Warning: could not parse corrected JSON from generated output. Error: {str(e)}')
+            return None

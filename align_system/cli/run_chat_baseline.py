@@ -45,7 +45,8 @@ def run_custom_system(interface):
 
     # DO ALGORITHM SETUP THINGS HERE
     print('Creating algorithm')
-    algorithm = LLMChatBaseline(hf_model='meta-llama/Llama-2-13b-chat-hf')
+    algorithm = LLMChatBaseline(hf_model='meta-llama/Llama-2-13b-chat-hf', precision='half')
+    # algorithm = LLMChatBaseline()
     algorithm.load_model()
 
     for probe in scenario.iterate_probes():
