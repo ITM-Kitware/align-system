@@ -21,10 +21,6 @@ def force_choice(similarity_measure_func, text: str, choices: List[str]):
 
 def get_similarity_measure_func(measure_name):
     if measure_name == "bert":
-        from align_system.similarity_measures.bert import (
-            build_bert_similarity_measure_func)
-        similarity_measure_func = build_bert_similarity_measure_func()
-    elif measure_name == "bert_score":
         from align_system.similarity_measures.bert_score import (
             bert_score_similarity_f1)
         similarity_measure_func = bert_score_similarity_f1

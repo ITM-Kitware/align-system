@@ -219,22 +219,6 @@ tqdm = ">=4.31.1"
 transformers = ">=3.0.0"
 
 [[package]]
-name = "bertsimilarity"
-version = "0.1"
-description = "A BERT embedding library for sentence semantic similarity measurement."
-optional = false
-python-versions = "*"
-files = [
-    {file = "BERTSimilarity-0.1.tar.gz", hash = "sha256:7686bdf9c7531f6ae6d1df7272536de72b9b9497db7457aeb297354dc114517b"},
-]
-
-[package.dependencies]
-numpy = "*"
-scipy = "*"
-torch = "*"
-transformers = "*"
-
-[[package]]
 name = "certifi"
 version = "2023.7.22"
 description = "Python package for providing Mozilla's CA Bundle."
@@ -2714,4 +2698,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.8.1,<3.9"
-content-hash = "85e689c31e008b0acec156fc85b661992211cc3142ce4e634fa8b506e783cbb4"
+content-hash = "e5a5311a56ce832b67681f540dc1705267e84a1fc83d0e66a4a7eb8ed26b12a3"
