@@ -128,7 +128,10 @@ def run_align_system(interface,
         raw_response = str(algorithm.run_inference(prompt))
         print("* ADM Raw response: {}".format(raw_response))
 
-        if probe_dict['type'] == ProbeType.MultipleChoice.value:
+        if probe_dict['type'] == ProbeType.FreeResponse.value:
+            probe.respond({'justification': raw_response})
+        else:
+            # Assume multiple-choice style
             selected_choice_idx, selected_choice = force_choice_func(
                 raw_response, [str(o['value']) for o in probe_dict['options']])
             print("* ADM Selected: '{}'".format(selected_choice))
@@ -138,8 +141,6 @@ def run_align_system(interface,
 
             probe.respond({'justification': raw_response,
                            'choice': selected_choice_id})
-        else:
-            probe.respond({'justification': raw_response})
 
         if isinstance(probe, ProbeInterfaceWithAlignment):
             probe_alignment_results = probe.get_alignment_results()
