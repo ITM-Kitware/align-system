@@ -150,3 +150,5 @@ algorithms / models*
 [Creating a custom system script](docs/creating_a_custom_system_script.md)
 
 [Developer environment setup](docs/developer_setup.md)
+
+[Accessing the Llama-2 models](docs/using_llama_2.md)
