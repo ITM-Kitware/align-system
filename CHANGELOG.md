@@ -8,6 +8,8 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 #### Added
 
+* Added support for new probe types "PatientOrdering", "SelectTag", and "SelectTreatment"
+
 #### Changed
 
 * Changed BERT implementation to `bert_score` package
