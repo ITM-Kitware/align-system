@@ -28,7 +28,11 @@ def main():
     # object based on the selected interface and interface arguments
     # provided at the command line and passes them to your run
     # function (`run_custom_system` in this case)
-    run_custom_system(**build_interfaces(add_cli_args, "My ALIGN System CLI"))
+    run_custom_system(
+        **build_interfaces(add_cli_args, "My ALIGN System CLI",
+                           supported_interfaces={'TA3',
+                                                 'TA1Soartech',
+                                                 'TA1Adept'}))
 
 
 def run_custom_system(interface,

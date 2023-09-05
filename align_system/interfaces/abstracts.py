@@ -46,6 +46,32 @@ class ScenarioInterfaceWithAlignment(ScenarioInterface):
         pass
 
 
+class ActionBasedScenarioInterface(ABC):
+    @abstractmethod
+    def get_alignment_target(self):
+        pass
+
+    @abstractmethod
+    def to_dict(self):
+        pass
+
+    @abstractmethod
+    def data(self):
+        pass
+
+    @abstractmethod
+    def get_available_actions(self):
+        pass
+
+    @abstractmethod
+    def take_action(self):
+        pass
+
+    @abstractmethod
+    def get_state(self):
+        pass
+
+
 class ProbeInterface(ABC):
     @abstractmethod
     def to_dict(self):

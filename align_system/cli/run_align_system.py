@@ -36,7 +36,11 @@ def add_cli_args(parser):
 
 
 def main():
-    run_align_system(**build_interfaces(add_cli_args, "ALIGN System CLI"))
+    run_align_system(
+        **build_interfaces(add_cli_args, "ALIGN System CLI",
+                           supported_interfaces={'TA3',
+                                                 'TA1Soartech',
+                                                 'TA1Adept'}))
 
 
 def run_align_system(interface,
