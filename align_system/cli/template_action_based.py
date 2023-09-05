@@ -45,6 +45,8 @@ def run_custom_action_based_system(interface,
     while not scenario_complete:
         available_actions = scenario.get_available_actions()
 
+        # DO ALGORITHM THINGS HERE
+
         print(json.dumps(available_actions, indent=2))
 
         action_to_take = available_actions[0]  # Just taking first action
