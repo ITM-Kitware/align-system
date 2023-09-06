@@ -111,6 +111,16 @@ class LLMBaseline:
                 "nlpcloud/instruct-gpt-j-fp16", torch_dtype=torch.float16)
             self.tokenizer = AutoTokenizer.from_pretrained(
                 "nlpcloud/instruct-gpt-j-fp16")
+        if self.model_use == 'falcon':
+            # self.model_name = 'tiiuae/falcon-7b-instruct'
+            self.model = AutoModelForCausalLM.from_pretrained(
+                "tiiuae/falcon-7b-instruct",
+                # torch_dtype=torch.float16,
+                trust_remote_code=True
+            )
+            self.tokenizer = AutoTokenizer.from_pretrained(
+                "tiiuae/falcon-7b-instruct"
+            )
 
         if self.distributed:
             self.model = _filtered_to_cuda(self.model.half())
@@ -120,17 +130,32 @@ class LLMBaseline:
         self.model_loaded = True
 
     def run_inference(self, prompt):
-        input_ids = self.tokenizer(
-            prompt, return_tensors="pt").input_ids.cuda()
+        # Check if the tokenizer has a pad token; if not, set it to the eos_token or add a new token
+        if not self.tokenizer.pad_token:
+            if self.tokenizer.eos_token:
+                self.tokenizer.pad_token = self.tokenizer.eos_token
+            else:
+                pad_token = '[PAD]'
+                self.tokenizer.add_special_tokens({'pad_token': pad_token})
 
-        len_context = input_ids.shape[-1] + 100
+        encoding = self.tokenizer(
+            prompt, return_tensors="pt", padding=True, truncation=True, max_length=1024
+        )
+        input_ids = encoding['input_ids'].cuda()
+        attention_mask = encoding['attention_mask'].cuda()
+
+        len_context = input_ids.shape[-1] + 256
 
         gen_tokens = self.model.generate(
             input_ids,
+            attention_mask=attention_mask,
             do_sample=True,
             temperature=0.001,
             max_length=len_context,
+            pad_token_id=self.tokenizer.pad_token_id
         )
-        gen_text = self.tokenizer.batch_decode(gen_tokens)[0]
+        gen_text = self.tokenizer.batch_decode(gen_tokens, skip_special_tokens=True)[0]
 
         return gen_text
+
+
