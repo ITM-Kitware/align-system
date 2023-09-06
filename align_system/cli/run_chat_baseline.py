@@ -13,9 +13,16 @@ run_chat_baseline LocalFiles -s example_data/scenario_1/scenario.json -p example
 def add_cli_args(parser):
     # Using argparse to add our system CLI specific arguments.  Can
     # modify or add your own custom CLI arguments here
-    # parser.add_argument('-m', '--model',
-    #                     type=str,
-    #                     help="Example command-line argument")
+    parser.add_argument('-m', '--model',
+        type=str,
+        help="Example command-line argument",
+        default='meta-llama/Llama-2-13b-chat-hf'
+    )
+    parser.add_argument('-r', '--precision',
+        type=str,
+        help="Example command-line argument",
+        default='meta-llama/Llama-2-13b-chat-hf'
+    )
     # parser.add_argument('-t', '--align-to-target',
     #                     action='store_true',
     #                     default=False,
@@ -35,7 +42,7 @@ def main():
     run_custom_system(**build_interfaces(add_cli_args, "ALIGN System CLI - Chat Model"))
 
 
-def run_custom_system(interface):
+def run_custom_system(interface, model, precision):
     scenario = interface.start_scenario()
     scenario_dict = scenario.to_dict()
 
@@ -45,7 +52,7 @@ def run_custom_system(interface):
 
     # DO ALGORITHM SETUP THINGS HERE
     print('Creating algorithm')
-    algorithm = LLMChatBaseline(hf_model='meta-llama/Llama-2-13b-chat-hf', precision='half')
+    algorithm = LLMChatBaseline(hf_model=model, precision=precision)
     # algorithm = LLMChatBaseline()
     algorithm.load_model()
 

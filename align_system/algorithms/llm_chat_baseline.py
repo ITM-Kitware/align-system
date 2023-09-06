@@ -116,7 +116,7 @@ class LLMChatBaseline:
     
     
     
-    def answer_multiple_choice(self, question, options, system_message=None, verbose=True):
+    def answer_multiple_choice(self, question, options, system_message=None, prefix=None, verbose=True):
         medical_triage_system_message = (
             "You are an assistant specialized in answering multiple-choice questions related to "
             "medical triage. When a question is posed, carefully analyze the symptoms or conditions "
@@ -129,6 +129,8 @@ class LLMChatBaseline:
         )
         if system_message is None:
             system_message = medical_triage_system_message
+            if prefix is None:
+                prefix = '{"Reasoning": "'
         
         formatted_options = [f'({i}) {option}' for i, option in enumerate(options)]
         
@@ -150,8 +152,9 @@ class LLMChatBaseline:
         
         prompt_length = len(prompt_tokens[0])
         
-        prefix_tokens = self.tokenizer.encode('{"Reasoning": "', add_special_tokens=False) # TODO make this connected to the system message
-        prompt_tokens[0] += prefix_tokens
+        if prefix is not None:
+            prefix_tokens = self.tokenizer.encode(prefix, add_special_tokens=False)
+            prompt_tokens[0] += prefix_tokens
         
         prompt_tokens = torch.tensor(prompt_tokens)
         prompt_tokens = prompt_tokens.to(self.device)
