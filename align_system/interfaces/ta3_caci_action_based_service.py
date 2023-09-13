@@ -115,6 +115,16 @@ class TA3CACIActionBasedScenario(ActionBasedScenarioInterface):
             params={'session_id': self.session_id},
             json=action_data)
 
+        if updated_state.status_code == 400:
+            raise RuntimeError("Bad client request, action_data is either in "
+                               "the wrong format, or doesn't include the "
+                               "required fields")
+        elif updated_state.status_code == 500:
+            raise RuntimeError("TA3 internal server error!")
+        elif updated_state.status_code != 200:
+            raise RuntimeError("'takeAction' didn't succeed (returned status "
+                               "code: {})".format(updated_state.status_code))
+
         return updated_state.json()
 
     def get_state(self):

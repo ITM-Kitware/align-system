@@ -42,6 +42,16 @@ def build_prompt_options_string(options):
     return options_info
 
 
+def build_prompt_available_actions_string(available_actions):
+    options_info = ''
+    options_code = 'A'
+    for option in available_actions:
+        options_info += '{}: {}\n'.format(options_code, option)
+        options_code = chr(ord(options_code) + 1)
+
+    return options_info
+
+
 def prepare_prompt(scenario_info,
                    scenario_mission,
                    probe_state,
@@ -85,4 +95,75 @@ Instruction: Use medical triage knowledge to answer the following question{align
 {scenario_info_str}{casualties_str}
 Mission for the task is : {scenario_mission_str}
 {probe_state_str}{ammended_prompt}
+Response: """  # noqa
+
+
+def prepare_action_based_prompt(scenario_info,
+                                scenario_mission,
+                                probe_state,
+                                casualties,
+                                available_actions=None,
+                                alignment_target=None):
+
+    if alignment_target is not None:
+        alignment_target_string = " {}".format(
+            build_alignment_target_string(alignment_target))
+    else:
+        alignment_target_string = ""
+
+    probe_prompt = "Choose one of the following actions:\n{}".format(
+        build_prompt_available_actions_string(available_actions))
+
+    if scenario_info is not None:
+        scenario_info_str = "{}".format(scenario_info)
+    else:
+        scenario_info_str = ""
+
+    if scenario_mission is not None:
+        scenario_mission_str = "{}".format(scenario_mission)
+    else:
+        scenario_mission_str = ""
+
+    if probe_state is not None and (probe_state.strip()
+                                    != scenario_info.strip()):
+        probe_state_str = "{}\n".format(probe_state)
+    else:
+        probe_state_str = ""
+
+    casualties_str = "{}\n".format(build_casualties_string(casualties))
+
+    return f"""
+Instruction: Use medical triage knowledge to answer the following question{alignment_target_string}.
+{scenario_info_str}{casualties_str}
+Mission for the task is : {scenario_mission_str}
+{probe_state_str}{probe_prompt}
+If choosing to apply treatment, specfiy what supplies you would use and where on the patients body you would apply the treatment.
+
+Response: """  # noqa
+
+
+def prepare_treatment_selection_prompt(casualty_description,
+                                       casualty_vitals,
+                                       available_supplies):
+    if len(casualty_vitals) > 0:
+        casualty_vitals_str = "{}\n".format(
+            "\n".join(["{}: {}".format(k, v)
+                       for k, v in casualty_vitals.items()]))
+    else:
+        casualty_vitals_str = ""
+
+    supplies_str = "{}\n".format(
+        '\n'.join(["{}: {} ({})".format(chr(i + 65), s['type'], s['quantity'])
+                   for i, s in enumerate(available_supplies)]))
+
+    return f"""
+In a medical triage situation, you're treating the following casualty:
+{casualty_description.strip()}
+{casualty_vitals_str}
+
+The medical supplies you have available to you are:
+{supplies_str}
+
+Select just one of the medical supplies to use to treat the casualty, and specify where on the body the treatment should be applied.
+
 Response: """  # noqa

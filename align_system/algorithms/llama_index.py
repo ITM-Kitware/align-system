@@ -7,8 +7,10 @@ from llama_index import (
     LangchainEmbedding,
     ServiceContext,
 )
-from llama_index.llm_predictor import HuggingFaceLLMPredictor
+from llama_index.llms import HuggingFaceLLM
 from llama_index.prompts.prompts import SimpleInputPrompt
+from llama_index.llm_predictor import LLMPredictor
+from llama_index.prompts import PromptTemplate
 import torch
 
 from transformers import AutoModelForCausalLM
@@ -37,20 +39,21 @@ class LlamaIndex:
 
         if self.device == 'cuda':
             model_kwargs = {"torch_dtype": torch.float16,
-                            "device_map": "auto",
-                            "trust_remote_code": True}
+                            "device_map": "auto"}
             predictor_kwargs = {"device_map": "auto"}
         else:
-            model_kwargs = {"trust_remote_code": True}
+            model_kwargs = {}
             predictor_kwargs = {}
 
         self.embed_model = LangchainEmbedding(HuggingFaceEmbeddings())
 
+        # FalconForCausalLM
+        # https://github.com/huggingface/transformers/blob/0188739a74dca8a9cf3f646a9a417af7f136f1aa/src/transformers/models/falcon/convert_custom_code_checkpoint.py#L37
         model = AutoModelForCausalLM.from_pretrained(
             self.model_name, **model_kwargs)
 
-        self.hf_predictor = HuggingFaceLLMPredictor(
-            max_input_size=2048,
+        self.hf_llm = HuggingFaceLLM(
+            context_window=2048,
             max_new_tokens=256,
             generate_kwargs={"temperature": 0.25, "do_sample": False},
             query_wrapper_prompt=query_wrapper_prompt,
@@ -63,7 +66,7 @@ class LlamaIndex:
         self.service_context = ServiceContext.from_defaults(
             embed_model=self.embed_model,
             chunk_size=512,
-            llm_predictor=self.hf_predictor)
+            llm=self.hf_llm)
 
         if self.retrieval_enabled:
             documents = SimpleDirectoryReader(self.domain_docs_dir).load_data()
@@ -75,7 +78,7 @@ class LlamaIndex:
             self.query_engine = new_index.as_query_engine(streaming=True)
         else:
             print("Retrieval disabled", file=sys.stderr)
-            self.query_engine = self.hf_predictor
+            self.query_engine = LLMPredictor(self.hf_llm)
 
         self.model_loaded = True
 
@@ -83,4 +86,6 @@ class LlamaIndex:
         if self.retrieval_enabled:
             return self.query_engine.query(prompt)
         else:
-            return self.hf_predictor.predict(prompt)[0]
+            bare_template = PromptTemplate("{query_str}")
+
+            return self.query_engine.predict(bare_template, query_str=prompt)
