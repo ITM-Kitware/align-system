@@ -1,7 +1,6 @@
 import argparse
 import sys
 
-from align_system.interfaces.ta3_caci_service import TA3CACIServiceInterface
 from align_system.interfaces.ta3_caci_action_based_service import (
     TA3CACIActionBasedServiceInterface)
 from align_system.interfaces.local_files import LocalFilesInterface
@@ -10,7 +9,6 @@ from align_system.interfaces.ta1_soartech_service import (
 from align_system.interfaces.ta1_adept_service import TA1AdeptServiceInterface
 
 INTERFACES = {
-    'TA3': TA3CACIServiceInterface,
     'TA3ActionBased': TA3CACIActionBasedServiceInterface,
     'LocalFiles': LocalFilesInterface,
     'TA1Soartech': TA1SoartechServiceInterface,

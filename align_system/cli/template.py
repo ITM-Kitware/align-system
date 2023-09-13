@@ -30,7 +30,7 @@ def main():
     # function (`run_custom_system` in this case)
     run_custom_system(
         **build_interfaces(add_cli_args, "My ALIGN System CLI",
-                           supported_interfaces={'TA3',
+                           supported_interfaces={'LocalFiles',
                                                  'TA1Soartech',
                                                  'TA1Adept'}))
 
