@@ -59,6 +59,15 @@ def run_custom_action_based_system(interface,
             action_to_take['parameters'] = {
                 'treatment': current_state['supplies'][0]['type'],
                 'location': 'right forearm'}
+        # 'TAG_CASUALTY' actions require additional parameters to be
+        # provided, i.e. the casualty to tag, as well as which tag to
+        # apply
+        elif action_to_take['action_type'] == 'TAG_CASUALTY':
+            untagged_casualties = [c for c in current_state['casualties']
+                                   if 'tag' not in c]
+
+            action_to_take['casualty_id'] = untagged_casualties[0]['id']
+            action_to_take['parameters'] = {'category': 'IMMEDIATE'}
 
         print("** TAKING ACTION: **")
         print(json.dumps(action_to_take))
