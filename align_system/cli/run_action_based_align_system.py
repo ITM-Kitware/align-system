@@ -232,9 +232,7 @@ def run_action_based_align_system(interface,
             action_to_take['casualty_id'] = casualty_to_tag_id
             action_to_take['parameters'] = {'category': tag}
 
-        import xdev
-        with xdev.EmbedOnException():
-            current_state = scenario.take_action(action_to_take)
+        current_state = scenario.take_action(action_to_take)
 
         scenario_complete = current_state.get('scenario_complete', False)
 
