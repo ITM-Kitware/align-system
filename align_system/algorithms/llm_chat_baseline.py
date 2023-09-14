@@ -164,50 +164,104 @@ class LLMChatBaseline:
         # Print the generated model output
         generated_output = self.tokenizer.decode(outputs.sequences[0][prompt_length:])
         
-        # try to parse out the reasoning string
+        return generated_output
+        
+        # # try to parse out the reasoning string
+        # reasoning = None
+        # answer_idx = None
+        # try:
+        #     try:
+        #         start_idx = generated_output.find('{')
+        #         end_idx = generated_output.rfind('}')
+        #         json_str = generated_output[start_idx:end_idx+1]
+        #         generated_data = json.loads(json_str)
+        #     except Exception:
+        #         generated_data = self.correct_json(generated_output, verbose=verbose)
+                
+        #     try:
+        #         reasoning = generated_data['Reasoning']
+        #     except KeyError:
+        #         if verbose:
+        #             print('Warning: could not parse reasoning from generated output. Missing key: "Reasoning"')
+            
+        #     try:
+        #         answer_idx = generated_data['Answer']
+        #     except KeyError:
+        #         if verbose:
+        #             print('Warning: could not parse answer index from generated output. Missing key: "Answer"')
+        # except Exception as e:
+        #     if verbose:
+        #         print('Warning: could not parse reasoning or answer index from generated output.')
+
+        # # Find sequence
+        # output_ids = np.array(outputs.sequences[0].cpu())[len(prompt_tokens[0]):]
+        # search_sequence = self.get_search_sequence()
+        # start_idx = find_sequence(output_ids, search_sequence)
+
+        # if start_idx is not None:
+        #     # Get answer letters and logits
+        #     answer_character_ids = self.get_character_ids('0123')
+        #     logits = get_logits(outputs.scores, start_idx, answer_character_ids)
+
+        #     # Print probabilities
+        #     probabilities = to_probabilities(logits)
+        #     return generated_output, reasoning, answer_idx, probabilities.tolist()
+        # else:
+        #     if verbose:
+        #         print('Warning: could not find search sequence in generated output and was unable to calculate probabilities.')
+        #     return generated_output, reasoning, answer_idx, None
+    
+    @staticmethod
+    def parse_generated_output(generated_output):
+
+        # initialize variables
         reasoning = None
         answer_idx = None
+
+        # Remove trailing characters
+        output = generated_output.replace('</s>', '')
+        end_idx = output.rfind('}')+1
+        start_id = output.find('{')
+        if end_idx != -1:
+            output = output[:end_idx]
+        if start_id != -1:
+            output = output[start_id:]
+
+        # Parse json output
         try:
-            try:
-                start_idx = generated_output.find('{')
-                end_idx = generated_output.rfind('}')
-                json_str = generated_output[start_idx:end_idx+1]
-                generated_data = json.loads(json_str)
-            except Exception:
-                generated_data = self.correct_json(generated_output, verbose=verbose)
-                
-            try:
-                reasoning = generated_data['Reasoning']
-            except KeyError:
-                if verbose:
-                    print('Warning: could not parse reasoning from generated output. Missing key: "Reasoning"')
-            
-            try:
-                answer_idx = generated_data['Answer']
-            except KeyError:
-                if verbose:
-                    print('Warning: could not parse answer index from generated output. Missing key: "Answer"')
-        except Exception as e:
-            if verbose:
-                print('Warning: could not parse reasoning or answer index from generated output.')
+            parsed = json.loads(output)
+            if 'Reasoning' in parsed:
+                reasoning = parsed['Reasoning']
 
-        # Find sequence
-        output_ids = np.array(outputs.sequences[0].cpu())[len(prompt_tokens[0]):]
-        search_sequence = self.get_search_sequence()
-        start_idx = find_sequence(output_ids, search_sequence)
+            if 'Answer' in parsed:
+                answer_idx = parsed['Answer']
 
-        if start_idx is not None:
-            # Get answer letters and logits
-            answer_character_ids = self.get_character_ids('0123')
-            logits = get_logits(outputs.scores, start_idx, answer_character_ids)
+        except json.JSONDecodeError:
+            pass
+        
+        if answer_idx is None:
+            # If json parsing fails, do string parsing
+            start_idx = generated_output.find('"Reasoning":')
+            end_idx = generated_output.find('",', start_idx)
+            if start_idx != -1 and end_idx != -1:
+                reasoning = generated_output[start_idx + len('"Reasoning":'):end_idx]
 
-            # Print probabilities
-            probabilities = to_probabilities(logits)
-            return generated_output, reasoning, answer_idx, probabilities.tolist()
-        else:
-            if verbose:
-                print('Warning: could not find search sequence in generated output and was unable to calculate probabilities.')
-            return generated_output, reasoning, answer_idx, None
+            search_strings = ['Answer":', 'Answer:', 'Answer\\":', 'answer is', 'index']
+            for string in search_strings:
+                # try to parse the string "Answer": ... ",
+                start_idx = generated_output.lower().rfind(string.lower())
+                if start_idx != -1:
+                    # find the next numeric character
+                    chars = generated_output[start_idx + len(string):]
+                    for char in chars:
+                        if char.isnumeric():
+                            answer_idx = int(char)
+                            break
+
+                if answer_idx is not None:
+                    break
+
+        return reasoning, answer_idx
         
     
     def correct_json(self, invalid_json, verbose=True):
