@@ -55,7 +55,9 @@ class LlamaIndex:
         self.hf_llm = HuggingFaceLLM(
             context_window=2048,
             max_new_tokens=256,
-            generate_kwargs={"temperature": 0.25, "do_sample": False},
+            # generate_kwargs={"temperature": 0.25, "do_sample": False},
+            # "temperature" parameter is not used if "do_sample" is False
+            generate_kwargs={"do_sample": False},
             query_wrapper_prompt=query_wrapper_prompt,
             tokenizer_name=self.model_name,
             model=model,
