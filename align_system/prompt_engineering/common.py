@@ -32,6 +32,26 @@ def build_casualties_string(casualties):
                       for c in casualties])
 
 
+def build_casualties_string_with_vitals(casualties):
+    casualty_strings = []
+
+    for casualty in casualties:
+        casualty_vitals = casualty.get('vitals', {})
+        if len(casualty_vitals) > 0:
+            casualty_vitals_str =\
+                "\n".join(["{}: {}".format(k, v)
+                           for k, v in casualty_vitals.items()])
+        else:
+            casualty_vitals_str = ""
+
+        casualty_strings.append(f"""
+{casualty.get('unstructured', '').strip()}
+{casualty_vitals_str}
+""")
+
+    return "{}\n".format("\n".join(casualty_strings))
+
+
 def build_prompt_options_string(options):
     options_info = ''
     options_code = 'A'
@@ -165,5 +185,22 @@ The medical supplies you have available to you are:
 {supplies_str}
 
 Select just one of the medical supplies to use to treat the casualty, and specify where on the body the treatment should be applied.
+
+Response: """  # noqa
+
+
+def prepare_tagging_selection_prompt(casualties, tags):
+    casualties_string = build_casualties_string_with_vitals(casualties)
+
+    tags_str = "{}\n".format('\n'.join(tags))
+
+    return f"""
+In a medical triage situation, you need to assign a triage tag one of the following casualty:
+{casualties_string}
+
+The possible medical triage tags you can apply are:
+{tags_str}
+
+Which specific casualty should you tag, and what triage tag should be applied to the casualty?
 
 Response: """  # noqa

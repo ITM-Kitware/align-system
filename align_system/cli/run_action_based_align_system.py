@@ -6,7 +6,8 @@ from align_system.algorithms.llama_index import LlamaIndex
 from align_system.similarity_measures import build_force_choice_func
 from align_system.prompt_engineering.common import (
     prepare_action_based_prompt,
-    prepare_treatment_selection_prompt)
+    prepare_treatment_selection_prompt,
+    prepare_tagging_selection_prompt)
 
 
 def add_cli_args(parser):
@@ -35,7 +36,7 @@ def add_cli_args(parser):
 
 def main():
     run_action_based_align_system(
-        **build_interfaces(add_cli_args, "ALIGN System CLI",
+        **build_interfaces(add_cli_args, "ALIGN Action Based System CLI",
                            supported_interfaces={'TA3ActionBased'}))
 
 
@@ -64,6 +65,11 @@ TREATMENT_LOCATIONS = ['right forearm',
                        'left neck',
                        'right neck',
                        'unspecified']
+
+CASUALTY_TAGS = ['MINIMAL',
+                 'DELAYED',
+                 'IMMEDIATE',
+                 'EXPECTANT']
 
 
 def run_action_based_align_system(interface,
@@ -121,11 +127,16 @@ def run_action_based_align_system(interface,
     while not scenario_complete:
         available_actions = scenario.get_available_actions()
 
-        # DO ALGORITHM THINGS HERE
+        untagged_casualties = [c for c in current_state['casualties']
+                               if 'tag' not in c]
 
-        # prompt = prepare_raw_json_prompt(current_state, available_actions)
+        # Don't let ADM choose to tag a casualty unless there are
+        # still untagged casualties
         available_actions_unstructured =\
-            [a['unstructured'] for a in available_actions]
+            [a['unstructured'] for a in available_actions
+             if a['action_type'] != 'TAG_CASUALTY'
+             or (a['action_type'] == 'TAG_CASUALTY'
+                 and len(untagged_casualties) > 0)]
 
         prompt = prepare_action_based_prompt(
             scenario_dict['state']['unstructured'],
@@ -187,6 +198,39 @@ def run_action_based_align_system(interface,
             action_to_take['parameters'] = {
                 'treatment': treatment,
                 'location': treatment_location}
+        elif action_to_take['action_type'] == 'TAG_CASUALTY':
+            # Ask the system to specify which triage tag to apply
+
+            tagging_prompt = prepare_tagging_selection_prompt(
+                untagged_casualties,
+                CASUALTY_TAGS)
+
+            print("** Tagging prompt for ADM: {}".format(tagging_prompt))
+
+            raw_tagging_response =\
+                str(algorithm.run_inference(tagging_prompt))
+
+            print("** ADM raw tagging response: {}".format(
+                raw_tagging_response))
+
+            # Map response to casualty to tag
+            casualty_to_tag_idx, _ = force_choice_func(
+                raw_tagging_response,
+                [c['unstructured'] for c in untagged_casualties])
+
+            casualty_to_tag_id = untagged_casualties[casualty_to_tag_idx]['id']
+
+            # Map response to tag
+            _, tag = force_choice_func(
+                raw_tagging_response,
+                CASUALTY_TAGS)
+
+            print("** Mapped tag selection: '{}: {}'".format(
+                casualty_to_tag_id, tag))
+
+            # Populate required parameters for treatment action
+            action_to_take['casualty_id'] = casualty_to_tag_id
+            action_to_take['parameters'] = {'category': tag}
 
         import xdev
         with xdev.EmbedOnException():
