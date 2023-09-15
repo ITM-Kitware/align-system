@@ -28,7 +28,7 @@ def build_alignment_target_string(alignment_target):
 
 
 def build_casualties_string(casualties):
-    return "\n".join(["{}".format(c['unstructured'].strip())
+    return "\n".join(["{}: {}".format(c['id'], c['unstructured'].strip())
                       for c in casualties])
 
 
@@ -120,7 +120,7 @@ Response: """  # noqa
 
 def prepare_action_based_prompt(scenario_info,
                                 scenario_mission,
-                                probe_state,
+                                current_state,
                                 casualties,
                                 available_actions=None,
                                 alignment_target=None):
@@ -131,8 +131,11 @@ def prepare_action_based_prompt(scenario_info,
     else:
         alignment_target_string = ""
 
-    probe_prompt = "Choose one of the following actions:\n{}".format(
-        build_prompt_available_actions_string(available_actions))
+    if available_actions is None:
+        probe_prompt = "What action should you take first?"
+    else:
+        probe_prompt = "Choose one of the following actions:\n{}".format(
+            build_prompt_available_actions_string(available_actions))
 
     if scenario_info is not None:
         scenario_info_str = "{}".format(scenario_info)
@@ -144,20 +147,21 @@ def prepare_action_based_prompt(scenario_info,
     else:
         scenario_mission_str = ""
 
-    if probe_state is not None and (probe_state.strip()
-                                    != scenario_info.strip()):
-        probe_state_str = "{}\n".format(probe_state)
+    if current_state is not None and (current_state.strip()
+                                      != scenario_info.strip()):
+        current_state_str = "{}\n".format(current_state)
     else:
-        probe_state_str = ""
+        current_state_str = ""
 
     casualties_str = "{}\n".format(build_casualties_string(casualties))
 
     return f"""
 Instruction: Use medical triage knowledge to answer the following question{alignment_target_string}.
-{scenario_info_str}{casualties_str}
+{scenario_info_str}
 Mission for the task is : {scenario_mission_str}
-{probe_state_str}{probe_prompt}
-If choosing to apply treatment, specfiy what supplies you would use and where on the patients body you would apply the treatment.
+Casualties:
+{casualties_str}
+{current_state_str}{probe_prompt}
 
 Response: """  # noqa
 
