@@ -320,7 +320,7 @@ class LLMChatBaseline:
             else:
                 # Special handling of common "Index" field (should be
                 # an integer)
-                if field == 'Index':
+                if field == 'Answer':
                     if m := re.search(r'\d+', parsed_field):  # noqa
                         parsed_field = m.group(0)
 
