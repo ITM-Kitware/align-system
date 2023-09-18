@@ -95,40 +95,50 @@ def run_action_based_chat_system(interface,
         )
         print("* Prompt for ADM: {}".format(prompt))
 
-        # TODO: More elegant failure case if we don't find an answer
-        # within answer_attempts; currently just passing along bad
-        # values
-        for _ in range(answer_attempts):
-            # TODO a possible improvement would be to use a separate
-            # prompt to parse mis-formatted JSON instead of simply
-            # trying again
-            # generated_output, justification_str, selected_choice_id, probs =\
-            #     algorithm.answer_multiple_choice(
-            #         prompt, available_actions_unstructured)
+        if len(available_actions_filtered) == 0:
+            raise RuntimeError("No available actions from filtered list!")
+        elif len(available_actions_filtered) == 1:
+            print("** Choosing only available (filtered) action")
+            action_idx = 0
+        else:
+            # TODO: More elegant failure case if we don't find an answer
+            # within answer_attempts; currently just passing along bad
+            # values
+            for _ in range(answer_attempts):
+                # TODO a possible improvement would be to use a separate
+                # prompt to parse mis-formatted JSON instead of simply
+                # trying again
+                raw_response = algorithm.answer_multiple_choice(
+                    prompt,
+                    [a['unstructured'] for a in available_actions_filtered])
 
-            raw_response = algorithm.answer_multiple_choice(
-                prompt,
-                [a['unstructured'] for a in available_actions_filtered])
+                print("* ADM raw response: {}".format(raw_response))
 
-            print("* ADM raw response: {}".format(raw_response))
+                parsed_output = LLMChatBaseline.attempt_generic_parse(
+                    raw_response, ['Reasoning', 'Answer'])
 
-            parsed_output = LLMChatBaseline.attempt_generic_parse(
-                raw_response, ['Reasoning', 'Answer'])
+                if parsed_output is None:
+                    explanation, action_idx =\
+                        LLMChatBaseline.parse_generated_output(raw_response)
+                else:
+                    explanation = parsed_output['Reasoning']
+                    action_idx = parsed_output['Answer']
 
-            if parsed_output is None:
-                explanation, action_idx =\
-                    LLMChatBaseline.parse_generated_output(raw_response)
-            else:
-                explanation = parsed_output['Reasoning']
-                action_idx = parsed_output['Answer']
+                if(explanation is not None
+                   and action_idx is not None):
+                    if len(available_actions_filtered) > action_idx:
+                        break
+                    else:
+                        print('** Selected action_idx out of range of '
+                              'available actions, retrying!')
+                        continue
 
-            if(explanation is not None
-               and action_idx is not None):
-                break
-
-            print('** Failed to parse')
+                print('** Failed to parse')
 
         action_to_take = available_actions_filtered[int(action_idx)]
+
+        if explanation is not None:
+            action_to_take['justification'] = explanation
 
         if action_to_take['action_type'] == 'APPLY_TREATMENT':
             # Ask the system to specify the treatment to use and where
@@ -161,6 +171,12 @@ def run_action_based_chat_system(interface,
 
                 if parsed_treatment_output is not None:
                     treatment_idx = parsed_treatment_output['Answer']
+
+                    if len(current_state['supplies']) <= treatment_idx:
+                        print('** Selected treatment_idx out of range of '
+                              'available treatment options, retrying!')
+                        continue
+
                     treatment = current_state['supplies'][treatment_idx]['type']  # noqa
 
                     treatment_location = parsed_treatment_output['Location']
@@ -195,6 +211,12 @@ def run_action_based_chat_system(interface,
 
                 if parsed_tagging_output is not None:
                     casualty_idx = parsed_tagging_output['Answer']
+
+                    if len(untagged_casualties) <= casualty_idx:
+                        print('** Selected casualty_idx out of range of '
+                              'available treatment options, retrying!')
+                        continue
+
                     casualty_to_tag_id = untagged_casualties[casualty_idx]['id']  # noqa
 
                     tag = parsed_tagging_output['Tag']
