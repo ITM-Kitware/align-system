@@ -4,15 +4,25 @@ This changelog follows the specifications detailed in: [Keep a Changelog](https:
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html), although we have not yet reached a `1.0.0` release.
 
 
-## Unreleased
+## Version 0.2.0
 
 #### Added
+
+* Added llama 2 chat action-based ADM (via new CLI script `run_action_based_chat_baseline`)
+
+* Added llama-index falcon action-based ADM (via new CLI script `run_action_based_align_system`)
 
 * Added support for CACI's new action-based TA3 interface; along with new action-based template CLI script
 
 * Added support for new probe types "PatientOrdering", "SelectTag", and "SelectTreatment"
 
 #### Changed
+
+* Environment now expects Python version >=3.9 (rather than exactly 3.8)
+
+* Deprecated support for old TA3 interface (code not fully removed yet)
+
+* Updated several depedency versions
 
 * Changed BERT implementation to `bert_score` package
 

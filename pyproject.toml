@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "align-system"
-version = "0.1.1"
+version = "0.2.0"
 description = ""
 authors = ["David Joy <10147749+dmjoy@users.noreply.github.com>"]
 readme = "README.md"
@@ -16,7 +16,7 @@ python = ">=3.9,<4.0"
 torch = { version = "^2.0.1", source = "pytorch" }
 transformers = "^4.33.1"
 llama-index = "^0.8.21"
-langchain = ">0.0.283"
+langchain = "^0.0.283"
 sentence-transformers = "^2.2.2"
 accelerate = "^0.22.0"
 pypdf = "^3.15.5"
@@ -29,6 +29,7 @@ bert-score = "^0.3.13"
 run_align_system = 'align_system.cli.run_align_system:main'
 run_action_based_align_system = 'align_system.cli.run_action_based_align_system:main'
 run_chat_baseline = 'align_system.cli.run_chat_baseline:main'
+run_action_based_chat_baseline = 'align_system.cli.run_action_based_chat_baseline:main'
 
 [build-system]
 requires = ["poetry-core"]
