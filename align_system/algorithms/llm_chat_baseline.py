@@ -1,10 +1,8 @@
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
-import numpy as np
 import json
 import re
 import random
-import os
 
 
 kdmas = [
@@ -15,11 +13,11 @@ kdmas = [
     'utilitarianism',
 ]
 
-def load_system_message(kdma, alignment, system_messages_path='align_system/prompt_engineering/bbn_alignment_system_messages_v1'):
-    file_name = f'{kdma}.txt' if alignment is None else f'{kdma}-{alignment}.txt'
-    with open(os.path.join(system_messages_path, file_name), 'r') as f:
-        system_message = f.read()
-    return system_message
+# def load_system_message(kdma, alignment, system_messages_path='align_system/prompt_engineering/bbn_alignment_system_messages_v1'):
+#     file_name = f'{kdma}.txt' if alignment is None else f'{kdma}-{alignment}.txt'
+#     with open(os.path.join(system_messages_path, file_name), 'r') as f:
+#         system_message = f.read()
+#     return system_message
 
 
 def find_sequence(arr, seq):
@@ -63,14 +61,12 @@ class LLMChatBaseline:
         self.model = None
         self.tokenizer = None
 
-
     def load_model(self):
         print('Loading model:', self.hf_model)
         self.model = AutoModelForCausalLM.from_pretrained(self.hf_model, torch_dtype=self.precision)
         self.tokenizer = AutoTokenizer.from_pretrained(self.hf_model)
 
         self.model = self.model.to(self.device)
-
 
     def get_character_ids(self, character_str):
         assert 'llama-2' in self.hf_model.lower(), "This function is only compatible with llama-2 models."
@@ -80,13 +76,11 @@ class LLMChatBaseline:
             '1': 29896,
             '2': 29906,
             '3': 29941,
-        } # TODO use the tokenizer to find the ids
-
+        }  # TODO use the tokenizer to find the ids
 
     def get_search_sequence(self):
         assert 'llama-2' in self.hf_model.lower(), "This function is only compatible with llama-2 models."
-        return [22550, 1115, 29871] # TODO use the tokenizer to calculate this
-
+        return [22550, 1115, 29871]  # TODO use the tokenizer to calculate this
 
     def chat_prompt_tokens(self, dialogs, return_tensor=True):
         # Define instance and system borders
@@ -101,8 +95,10 @@ class LLMChatBaseline:
             # If the role of the first message is system
             if dialog[0]["role"] == "system":
                 # Create an initial dialog entry combining system and user messages
-                system_dialog = {"role": dialog[1]["role"],
-                                "content": B_SYS + dialog[0]["content"] + E_SYS + dialog[1]["content"]}
+                system_dialog = {
+                    "role": dialog[1]["role"],
+                    "content": B_SYS + dialog[0]["content"] + E_SYS + dialog[1]["content"]
+                }
                 # Update dialog to start with system_dialog and followed by the rest of the dialog
                 dialog = [system_dialog] + dialog[2:]
 
@@ -191,7 +187,7 @@ class LLMChatBaseline:
         return generated_output
 
     
-    def answer_multiple_choice_batched(self, questions, option_lists, system_messages, prefixes=None):
+    def answer_multiple_choice_batched(self, questions, option_lists, system_messages, prefixes=None, max_new_tokens=512):
 
         formatted_option_lists = [[f'({i}) {option}' for i, option in enumerate(options)] for options in option_lists]
 
@@ -250,7 +246,7 @@ class LLMChatBaseline:
             stacked_prompt_tokens, 
             return_dict_in_generate=True, 
             output_scores=True, 
-            max_new_tokens=512, 
+            max_new_tokens=max_new_tokens,
             temperature=self.temperature
         )
 
@@ -272,7 +268,7 @@ class LLMChatBaseline:
         return generated_outputs
         
     
-    def aligned_decision_maker(self, question, choices, target_kdmas, n_samples=5, inverse_misaligned=True, shuffle=True, baseline=False):
+    def aligned_decision_maker(self, question, choices, target_kdmas, system_message_provider, n_samples=5, inverse_misaligned=True, shuffle=True, baseline=False):
         assert len(target_kdmas) == 1, "Only one KDMA can be targeted at a time, but received: {}".format(target_kdmas)
         
         kdma = list(target_kdmas.keys())[0]
@@ -292,10 +288,11 @@ class LLMChatBaseline:
             shuffled_choices = [choices[i] for i in indecies]
             
             # system_message = system_messages[system_message_keys[0]][system_message_keys[1]]
-            system_message = load_system_message(system_message_keys[0], system_message_keys[1])
+            # system_message = load_system_message(system_message_keys[0], system_message_keys[1])
+            system_message = system_message_provider(system_message_keys[0], system_message_keys[1])
             
             if baseline:
-                system_message = load_system_message('baseline', None)
+                system_message = system_message_provider('baseline', None)
                 system_message_keys[1] = 'baseline'
             
             high_response = self.answer_multiple_choice(
@@ -327,7 +324,7 @@ class LLMChatBaseline:
                 low_response = self.answer_multiple_choice(
                     question,
                     shuffled_choices,
-                    system_message=load_system_message(system_message_keys[0], system_message_keys[1]),
+                    system_message=system_message_provider(system_message_keys[0], system_message_keys[1]),
                     prefix=prefix
                 )
                 
@@ -345,14 +342,12 @@ class LLMChatBaseline:
         return responses
 
 
-    def aligned_decision_maker_batched(self, question, choices, target_kdmas, n_samples=5, inverse_misaligned=True, shuffle=True, baseline=False, batch_size=5):
+    def aligned_decision_maker_batched(self, question, choices, target_kdmas, system_message_provider, prefix='{"Reasoning": "Because', n_samples=5, inverse_misaligned=True, shuffle=True, baseline=False, batch_size=5, max_new_tokens=512):
         assert len(target_kdmas) == 1, "Only one KDMA can be targeted at a time, but received: {}".format(target_kdmas)
         
         kdma = list(target_kdmas.keys())[0]
         
         assert kdma in kdmas, f"KDMA {kdma} not supported."
-        
-        prefix = '{"Reasoning": "Because'
         
         results = []
         
@@ -366,10 +361,10 @@ class LLMChatBaseline:
                 random.shuffle(indecies)
             shuffled_choices = [choices[i] for i in indecies]
 
-            system_message = load_system_message(system_message_keys[0], system_message_keys[1])
+            system_message = system_message_provider(system_message_keys[0], system_message_keys[1])
             
             if baseline:
-                system_message = load_system_message('baseline', None)
+                system_message = system_message_provider('baseline', None)
                 system_message_keys[1] = 'baseline'
             
             def callback(high_response):
@@ -415,7 +410,7 @@ class LLMChatBaseline:
                 inputs.append({
                     'question': question,
                     'shuffled_choices': shuffled_choices,
-                    'system_message': load_system_message(system_message_keys[0], system_message_keys[1]),
+                    'system_message': system_message_provider(system_message_keys[0], system_message_keys[1]),
                     'prefix': prefix,
                     'callback': callback,
                 })
@@ -425,7 +420,8 @@ class LLMChatBaseline:
                 questions=[sample['question'] for sample in inputs[i:i+batch_size]],
                 option_lists=[sample['shuffled_choices'] for sample in inputs[i:i+batch_size]],
                 system_messages=[sample['system_message'] for sample in inputs[i:i+batch_size]],
-                prefixes = [sample['prefix'] for sample in inputs[i:i+batch_size]]
+                prefixes = [sample['prefix'] for sample in inputs[i:i+batch_size]],
+                max_new_tokens=max_new_tokens
             )
             
             callbacks = [sample['callback'] for sample in inputs[i:i+batch_size]]
