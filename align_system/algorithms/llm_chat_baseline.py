@@ -13,10 +13,11 @@ kdmas = [
     'protocol_focus',
     'risk_aversion',
     'utilitarianism',
+    'mission',
 ]
 
 def load_system_message(kdma, alignment, system_messages_path='align_system/prompt_engineering/bbn_alignment_system_messages_v1'):
-    file_name = f'{kdma}.txt' if alignment is None else f'{kdma}-{alignment}.txt'
+    file_name = f'{kdma}.txt' if alignment is None else f'{alignment}-{kdma}.txt'
     with open(os.path.join(system_messages_path, file_name), 'r') as f:
         system_message = f.read()
     return system_message
@@ -190,7 +191,7 @@ class LLMChatBaseline:
 
         return generated_output
 
-    
+
     def answer_multiple_choice_batched(self, questions, option_lists, system_messages, prefixes=None):
 
         formatted_option_lists = [[f'({i}) {option}' for i, option in enumerate(options)] for options in option_lists]
@@ -232,7 +233,7 @@ class LLMChatBaseline:
             torch.tensor(prompt_tokens).to(self.device)
             for prompt_tokens in prompt_token_lists
         ]
-        
+
         max_length = max([prompt_tokens.size(1) for prompt_tokens in prompt_token_lists])
 
         pad_token_id = self.tokenizer.pad_token_id
@@ -247,14 +248,14 @@ class LLMChatBaseline:
 
         # Generate outputs for all dialogs in a batch
         outputs = self.model.generate(
-            stacked_prompt_tokens, 
-            return_dict_in_generate=True, 
-            output_scores=True, 
-            max_new_tokens=512, 
+            stacked_prompt_tokens,
+            return_dict_in_generate=True,
+            output_scores=True,
+            max_new_tokens=512,
             temperature=self.temperature
         )
 
-        # Split the sequences based on prompt lengths 
+        # Split the sequences based on prompt lengths
         split_outputs = torch.split(outputs.sequences, 1, dim=0)
 
         # Decode each output based on its corresponding prompt length
@@ -270,41 +271,41 @@ class LLMChatBaseline:
         ]
 
         return generated_outputs
-        
-    
+
+
     def aligned_decision_maker(self, question, choices, target_kdmas, n_samples=5, inverse_misaligned=True, shuffle=True, baseline=False):
         assert len(target_kdmas) == 1, "Only one KDMA can be targeted at a time, but received: {}".format(target_kdmas)
-        
+
         kdma = list(target_kdmas.keys())[0]
-        
+
         assert kdma in kdmas, f"KDMA {kdma} not supported."
-        
+
         prefix = '{"Reasoning": "Because'
-        
+
         responses = []
-        
+
         for _ in range(n_samples):
             system_message_keys = [kdma, 'high' if target_kdmas[kdma] > 5 else 'low']
-            
+
             indecies = list(range(len(choices)))
             if shuffle:
                 random.shuffle(indecies)
             shuffled_choices = [choices[i] for i in indecies]
-            
+
             # system_message = system_messages[system_message_keys[0]][system_message_keys[1]]
             system_message = load_system_message(system_message_keys[0], system_message_keys[1])
-            
+
             if baseline:
                 system_message = load_system_message('baseline', None)
                 system_message_keys[1] = 'baseline'
-            
+
             high_response = self.answer_multiple_choice(
                 question,
                 shuffled_choices,
                 system_message=system_message,
                 prefix=prefix
             )
-            
+
             reasoning, answer_idx = LLMChatBaseline.parse_generated_output(high_response)
             responses.append({
                 'response': high_response,
@@ -315,22 +316,22 @@ class LLMChatBaseline:
                 'alignment': system_message_keys[1],
                 'aligned': True,
             })
-            
+
             if inverse_misaligned:
                 system_message_keys = (kdma, 'high' if not target_kdmas[kdma] > 5 else 'low')
-                
+
                 indecies = list(range(len(choices)))
                 if shuffle:
                     random.shuffle(indecies)
                 shuffled_choices = [choices[i] for i in indecies]
-                
+
                 low_response = self.answer_multiple_choice(
                     question,
                     shuffled_choices,
                     system_message=load_system_message(system_message_keys[0], system_message_keys[1]),
                     prefix=prefix
                 )
-                
+
                 reasoning, answer_idx = LLMChatBaseline.parse_generated_output(low_response)
                 responses.append({
                     'response': low_response,
@@ -341,37 +342,37 @@ class LLMChatBaseline:
                     'alignment': system_message_keys[1],
                     'aligned': False,
                 })
-        
+
         return responses
 
 
     def aligned_decision_maker_batched(self, question, choices, target_kdmas, n_samples=5, inverse_misaligned=True, shuffle=True, baseline=False, batch_size=5):
         assert len(target_kdmas) == 1, "Only one KDMA can be targeted at a time, but received: {}".format(target_kdmas)
-        
+
         kdma = list(target_kdmas.keys())[0]
-        
+
         assert kdma in kdmas, f"KDMA {kdma} not supported."
-        
+
         prefix = '{"Reasoning": "Because'
-        
+
         results = []
-        
+
         inputs = []
-        
+
         for _ in range(n_samples):
             system_message_keys = [kdma, 'high' if target_kdmas[kdma] > 5 else 'low']
-            
+
             indecies = list(range(len(choices)))
             if shuffle:
                 random.shuffle(indecies)
             shuffled_choices = [choices[i] for i in indecies]
 
             system_message = load_system_message(system_message_keys[0], system_message_keys[1])
-            
+
             if baseline:
                 system_message = load_system_message('baseline', None)
                 system_message_keys[1] = 'baseline'
-            
+
             def callback(high_response):
                 reasoning, answer_idx = LLMChatBaseline.parse_generated_output(high_response)
                 results.append({
@@ -383,7 +384,7 @@ class LLMChatBaseline:
                     'alignment': system_message_keys[1],
                     'aligned': True,
                 })
-                
+
             inputs.append({
                 'question': question,
                 'shuffled_choices': shuffled_choices,
@@ -391,15 +392,15 @@ class LLMChatBaseline:
                 'prefix': prefix,
                 'callback': callback,
             })
-            
+
             if inverse_misaligned:
                 system_message_keys = [kdma, 'high' if not target_kdmas[kdma] > 5 else 'low']
-                
+
                 indecies = list(range(len(choices)))
                 if shuffle:
                     random.shuffle(indecies)
                 shuffled_choices = [choices[i] for i in indecies]
-                
+
                 def callback(low_response):
                     reasoning, answer_idx = LLMChatBaseline.parse_generated_output(low_response)
                     results.append({
@@ -411,7 +412,7 @@ class LLMChatBaseline:
                         'alignment': system_message_keys[1],
                         'aligned': False,
                     })
-                
+
                 inputs.append({
                     'question': question,
                     'shuffled_choices': shuffled_choices,
@@ -419,7 +420,7 @@ class LLMChatBaseline:
                     'prefix': prefix,
                     'callback': callback,
                 })
-        
+
         for i in range(0, len(inputs), batch_size):
             responses = self.answer_multiple_choice_batched(
                 questions=[sample['question'] for sample in inputs[i:i+batch_size]],
@@ -427,12 +428,12 @@ class LLMChatBaseline:
                 system_messages=[sample['system_message'] for sample in inputs[i:i+batch_size]],
                 prefixes = [sample['prefix'] for sample in inputs[i:i+batch_size]]
             )
-            
+
             callbacks = [sample['callback'] for sample in inputs[i:i+batch_size]]
-            
+
             for response, callback in zip(responses, callbacks):
                 callback(response)
-        
+
         return results
 
     @staticmethod
@@ -440,15 +441,19 @@ class LLMChatBaseline:
         choice_votes = [0] * len(choices)
         for response in responses:
             answer_idx = response['answer_idx']
-            if answer_idx is None or answer_idx > len(choices):
+            if answer_idx is None:
                 continue
-            
+
+            answer_idx = int(answer_idx)
+            if answer_idx >= len(choices):
+                continue
+
             if 'shuffle_indecies' in response:
-                answer_idx = response['shuffle_indecies'][answer_idx]
-            
+                answer_idx = response['shuffle_indecies'][int(answer_idx)]
+
             aligned = response['aligned']
-            
-            if aligned: 
+
+            if aligned:
                 choice_votes[answer_idx] += 1
             else:
                 for i in range(len(choices)):
@@ -456,14 +461,14 @@ class LLMChatBaseline:
                         choice_votes[i] += 1/len(choices)
                     else:
                         choice_votes[i] -= 1/len(choices)
-        
+
         min_score = min(choice_votes) + 1e-6
         choice_votes = [score - min_score for score in choice_votes]
         total = sum(choice_votes)
         choice_votes = [round(score / total, 6) for score in choice_votes]
-        
+
         return choice_votes
-    
+
 
     @staticmethod
     def parse_generated_output(generated_output):
@@ -606,7 +611,6 @@ class LLMChatBaseline:
         # Generate the prompt tokens similarly to the example function
         prompt_tokens = self.chat_prompt_tokens([dialog], return_tensor=False)
 
-
         prompt_length = len(prompt_tokens[0])
 
         prefix_tokens = self.tokenizer.encode('{"Reasoning": "', add_special_tokens=False) # TODO make this connected to the system message
@@ -630,3 +634,42 @@ class LLMChatBaseline:
             if verbose:
                 print(f'Warning: could not parse corrected JSON from generated output. Error: {str(e)}')
             return None
+
+    def run_aligned_decision_maker_with_voting(
+            self, prompt, choices, alignment_target):
+        kdma = list(alignment_target.keys())[0]
+        responses = self.aligned_decision_maker(
+            prompt,
+            choices,
+            alignment_target,
+            inverse_misaligned=True,
+            baseline=False,
+        )
+
+        try:
+            choice_scores = LLMChatBaseline.calculate_votes(responses, choices)
+        except Exception as e:
+            print(f"Error calculating votes {sample['probe_id']}: {e}")
+            choice_scores = None
+
+        results = {
+            'prompt': prompt,
+            'choice_scores': choice_scores,
+            'responses': responses,
+        }
+
+        answer_idx = np.argmax(results['choice_scores'])
+        reasoning = None
+
+        for r in responses:
+            if r['answer_idx'] is None:
+                continue
+
+            if int(r['answer_idx']) >= len(r['shuffle_indecies']):
+                continue
+
+            if r['shuffle_indecies'][int(r['answer_idx'])] == answer_idx:
+                reasoning = r['reasoning']
+                break
+
+        return reasoning, answer_idx

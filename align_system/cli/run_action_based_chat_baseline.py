@@ -108,21 +108,39 @@ def run_action_based_chat_system(interface,
                 # TODO a possible improvement would be to use a separate
                 # prompt to parse mis-formatted JSON instead of simply
                 # trying again
-                raw_response = algorithm.answer_multiple_choice(
-                    prompt,
-                    [a['unstructured'] for a in available_actions_filtered])
-
-                print("* ADM raw response: {}".format(raw_response))
-
-                parsed_output = LLMChatBaseline.attempt_generic_parse(
-                    raw_response, ['Reasoning', 'Answer'])
-
-                if parsed_output is None:
+                if align_to_target:
+                    target = {kdma['kdma'].lower(): kdma['value']
+                              for kdma in alignment_target_dict['kdma_values']}
                     explanation, action_idx =\
-                        LLMChatBaseline.parse_generated_output(raw_response)
+                        algorithm.run_aligned_decision_maker_with_voting(
+                            prompt,
+                            [a['unstructured'] for a
+                             in available_actions_filtered],
+                            target)
+
+                    print("* ADM Selected: {}".format(
+                        [a['unstructured'] for a
+                         in available_actions_filtered][action_idx]))
+
+                    print("* ADM Explanation: {}".format(explanation))
                 else:
-                    explanation = parsed_output['Reasoning']
-                    action_idx = parsed_output['Answer']
+                    raw_response = algorithm.answer_multiple_choice(
+                        prompt,
+                        [a['unstructured'] for a
+                         in available_actions_filtered])
+
+                    print("* ADM raw response: {}".format(raw_response))
+
+                    parsed_output = LLMChatBaseline.attempt_generic_parse(
+                        raw_response, ['Reasoning', 'Answer'])
+
+                    if parsed_output is None:
+                        explanation, action_idx =\
+                            LLMChatBaseline.parse_generated_output(
+                                raw_response)
+                    else:
+                        explanation = parsed_output['Reasoning']
+                        action_idx = parsed_output['Answer']
 
                 if(explanation is not None
                    and action_idx is not None):
