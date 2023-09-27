@@ -2,6 +2,9 @@ import json
 
 from align_system.interfaces.cli_builder import build_interfaces
 from align_system.utils.enums import ProbeType
+from align_system.interfaces.abstracts import (
+    ScenarioInterfaceWithAlignment,
+    ProbeInterfaceWithAlignment)
 
 from align_system.algorithms.llm_chat_baseline import LLMChatBaseline
 
@@ -19,10 +22,10 @@ def add_cli_args(parser):
         default='meta-llama/Llama-2-13b-chat-hf'
     )
     parser.add_argument('-r', '--precision',
-        type=str,
-        help="Example command-line argument",
-        default='meta-llama/Llama-2-13b-chat-hf'
-    )
+                        type=str,
+                        help="Precision, must be 'full' or 'half' "
+                             "(default: 'full')",
+                        default='full')
     # parser.add_argument('-t', '--align-to-target',
     #                     action='store_true',
     #                     default=False,
@@ -62,11 +65,10 @@ def run_custom_system(interface, model, precision):
 
         probe_dict = probe.to_dict()
 
-        # DO ALGORITHM THINGS HERE
-        
         casualties_dicts = scenario_dict['state'].get('casualties', [])
+
         mission_unstructured =\
-            scenario_dict['state']['mission']['unstructured']
+            scenario_dict['state']['mission'].get('unstructured', '')
         state_unstructured = None
 
         if 'state' in probe_dict:
@@ -82,38 +84,80 @@ def run_custom_system(interface, model, precision):
             if 'unstructured' in probe_state:
                 state_unstructured = probe_state['unstructured']
 
-        if probe_dict['type'] == ProbeType.MultipleChoice.value:
-            probe_options_dicts = probe_dict['options']
-        else:
-            probe_options_dicts = None
+        # Seems like the probe 'type' is incorrect for at least some
+        # probes, always assuming multiple choice here
+        # if probe_dict['type'] == ProbeType.MultipleChoice.value:
+        #     probe_options_dicts = probe_dict['options']
+        # else:
+        #     probe_options_dicts = None
+
+        probe_options_dicts = probe_dict['options']
         
         # TODO extract this prompt-building logic into a separate function/file
-        casualties_str = ''
-        for casulaty in casualties_dicts:
-            casualties_str += casulaty["unstructured"] + " " + str(casulaty["vitals"])
+        # For the MVP2 ADEPT scenarios, the casualties don't have 'unstructured' text
+        # casualties_str = ''
+        # for casulaty in casualties_dicts:
+        #     casualties_str += casulaty["unstructured"] + " " + str(casulaty["vitals"])
         
-        question = f"# Scenario:\n{scenario_dict['state']['unstructured']}\n{mission_unstructured}\n# Casualties:\n{casualties_str}\n# Question:\n{probe_dict['prompt']}"
+        # question = f"# Scenario:\n{scenario_dict['state']['unstructured']}\n{mission_unstructured}\n# Casualties:\n{casualties_str}\n# Question:\n{probe_dict['prompt']}"
+        question = f"# Scenario:\n{scenario_dict['state']['unstructured']}\n{mission_unstructured}\n# Question:\n{probe_dict['prompt']}"
         options = [option['value'] for option in probe_options_dicts]
         
         for _ in range(5): # TODO make this a parameter
             # TODO a possible improvement would be to use a separate prompt to parse mis-formatted JSON instead of simply trying again
-            generated_output, justification_str, selected_choice_id, probabilities = algorithm.answer_multiple_choice(question, options)
-            if justification_str is not None and selected_choice_id is not None:
-                break
-            print('Failed to parse:', generated_output)
+            raw_response = algorithm.answer_multiple_choice(
+                question,
+                options)
+
+            print("* ADM raw response: {}".format(raw_response))
+
+            parsed_output = LLMChatBaseline.attempt_generic_parse(
+                raw_response, ['Reasoning', 'Answer'])
+
+            if parsed_output is None:
+                explanation, action_idx =\
+                    LLMChatBaseline.parse_generated_output(
+                        raw_response)
+            else:
+                explanation = parsed_output['Reasoning']
+                action_idx = parsed_output['Answer']
+
+            if(explanation is not None
+               and action_idx is not None):
+                if len(options) > action_idx:
+                    break
+                else:
+                    print('** Selected action_idx out of range of '
+                          'available actions, retrying!')
+                    continue
+
+            print('** Failed to parse')
         
 
-        if probe_dict['type'] == ProbeType.MultipleChoice.value:
+        # if probe_dict['type'] == ProbeType.MultipleChoice.value:
+        #     probe_response = {'justification': explanation,
+        #                       'choice': probe_options_dicts[action_idx]['id']}
+        # else:
+        #     probe_response = {'justification': explanation}
 
-            probe_response = {'justification': justification_str,
-                              'choice': probe_options_dicts[selected_choice_id]}
-        else:
-            probe_response = {'justification': justification_str}
+        probe_response = {'justification': explanation,
+                          'choice': probe_options_dicts[action_idx]['id']}
 
         print(json.dumps(probe_response, indent=2))
         print()
 
         probe.respond(probe_response)
+
+        if isinstance(probe, ProbeInterfaceWithAlignment):
+            probe_alignment_results = probe.get_alignment_results()
+            print("* Probe alignment score: {}".format(
+                probe_alignment_results['score']))
+
+    if isinstance(scenario, ScenarioInterfaceWithAlignment):
+        scenario_alignment_results = scenario.get_alignment_results()
+        print("* Scenario alignment score: {}".format(
+            scenario_alignment_results['score']))
+
 
 
 if __name__ == "__main__":
