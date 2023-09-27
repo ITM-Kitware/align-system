@@ -7,17 +7,27 @@ import random
 import os
 
 
-kdmas = [
+kdmas = {
     'basic_knowledge',
     'fairness',
     'protocol_focus',
     'risk_aversion',
     'utilitarianism',
     'mission',
-]
+    'denial',
+}
 
-def load_system_message(kdma, alignment, system_messages_path='align_system/prompt_engineering/bbn_alignment_system_messages_v1'):
-    file_name = f'{kdma}.txt' if alignment is None else f'{alignment}-{kdma}.txt'
+def load_system_message(alignment=None,
+                        system_messages_path='align_system/prompt_engineering/bbn_alignment_system_messages_v1'):
+    if alignment is None:
+        file_name = 'baseline.txt'
+    else:
+        sorted_kdmas = sorted(alignment.keys())
+
+        alignment_string = '-'.join('{}-{}'.format(alignment[k], k) for k in sorted_kdmas)
+
+        file_name = f'{alignment_string}.txt'
+
     with open(os.path.join(system_messages_path, file_name), 'r') as f:
         system_message = f.read()
     return system_message
@@ -274,30 +284,26 @@ class LLMChatBaseline:
 
 
     def aligned_decision_maker(self, question, choices, target_kdmas, n_samples=5, inverse_misaligned=True, shuffle=True, baseline=False):
-        assert len(target_kdmas) == 1, "Only one KDMA can be targeted at a time, but received: {}".format(target_kdmas)
-
-        kdma = list(target_kdmas.keys())[0]
-
-        assert kdma in kdmas, f"KDMA {kdma} not supported."
+        assert kdmas.issuperset(target_kdmas.keys()), f"KDMA {target_kdmas.keys() - kdmas} not supported."
 
         prefix = '{"Reasoning": "Because'
 
         responses = []
 
         for _ in range(n_samples):
-            system_message_keys = [kdma, 'high' if target_kdmas[kdma] > 5 else 'low']
+            system_message_keys = {kdma: 'high' if value > 5 else 'low'
+                                   for kdma, value in target_kdmas.items()}
 
             indecies = list(range(len(choices)))
             if shuffle:
                 random.shuffle(indecies)
             shuffled_choices = [choices[i] for i in indecies]
 
-            # system_message = system_messages[system_message_keys[0]][system_message_keys[1]]
-            system_message = load_system_message(system_message_keys[0], system_message_keys[1])
+            system_message = load_system_message(system_message_keys)
 
             if baseline:
-                system_message = load_system_message('baseline', None)
-                system_message_keys[1] = 'baseline'
+                system_message = load_system_message()
+                system_message_keys = 'baseline'
 
             high_response = self.answer_multiple_choice(
                 question,
@@ -312,13 +318,13 @@ class LLMChatBaseline:
                 'reasoning': reasoning,
                 'answer_idx': answer_idx,
                 'shuffle_indecies': indecies,
-                'kdma': kdma,
-                'alignment': system_message_keys[1],
+                'alignment': system_message_keys,
                 'aligned': True,
             })
 
             if inverse_misaligned:
-                system_message_keys = (kdma, 'high' if not target_kdmas[kdma] > 5 else 'low')
+                system_message_keys = {kdma: 'high' if not value > 5 else 'low'
+                                       for kdma, value in target_kdmas.items()}
 
                 indecies = list(range(len(choices)))
                 if shuffle:
@@ -328,7 +334,7 @@ class LLMChatBaseline:
                 low_response = self.answer_multiple_choice(
                     question,
                     shuffled_choices,
-                    system_message=load_system_message(system_message_keys[0], system_message_keys[1]),
+                    system_message=load_system_message(system_message_keys),
                     prefix=prefix
                 )
 
@@ -338,8 +344,7 @@ class LLMChatBaseline:
                     'reasoning': reasoning,
                     'answer_idx': answer_idx,
                     'shuffle_indecies': indecies,
-                    'kdma': kdma,
-                    'alignment': system_message_keys[1],
+                    'alignment': system_message_keys,
                     'aligned': False,
                 })
 
@@ -347,11 +352,7 @@ class LLMChatBaseline:
 
 
     def aligned_decision_maker_batched(self, question, choices, target_kdmas, n_samples=5, inverse_misaligned=True, shuffle=True, baseline=False, batch_size=5):
-        assert len(target_kdmas) == 1, "Only one KDMA can be targeted at a time, but received: {}".format(target_kdmas)
-
-        kdma = list(target_kdmas.keys())[0]
-
-        assert kdma in kdmas, f"KDMA {kdma} not supported."
+        assert kdmas.issuperset(target_kdmas.keys()), f"KDMA {target_kdmas.keys() - kdmas} not supported."
 
         prefix = '{"Reasoning": "Because'
 
@@ -360,18 +361,19 @@ class LLMChatBaseline:
         inputs = []
 
         for _ in range(n_samples):
-            system_message_keys = [kdma, 'high' if target_kdmas[kdma] > 5 else 'low']
+            system_message_keys = {kdma: 'high' if value > 5 else 'low'
+                                   for kdma, value in target_kdmas.items()}
 
             indecies = list(range(len(choices)))
             if shuffle:
                 random.shuffle(indecies)
             shuffled_choices = [choices[i] for i in indecies]
 
-            system_message = load_system_message(system_message_keys[0], system_message_keys[1])
+            system_message = load_system_message(system_message_keys)
 
             if baseline:
-                system_message = load_system_message('baseline', None)
-                system_message_keys[1] = 'baseline'
+                system_message = load_system_message()
+                system_message_keys = 'baseline'
 
             def callback(high_response):
                 reasoning, answer_idx = LLMChatBaseline.parse_generated_output(high_response)
@@ -380,8 +382,7 @@ class LLMChatBaseline:
                     'reasoning': reasoning,
                     'answer_idx': answer_idx,
                     'shuffle_indecies': indecies,
-                    'kdma': kdma,
-                    'alignment': system_message_keys[1],
+                    'alignment': system_message_keys,
                     'aligned': True,
                 })
 
@@ -394,7 +395,8 @@ class LLMChatBaseline:
             })
 
             if inverse_misaligned:
-                system_message_keys = [kdma, 'high' if not target_kdmas[kdma] > 5 else 'low']
+                system_message_keys = {kdma: 'high' if not value > 5 else 'low'
+                                       for kdma, value in target_kdmas.items()}
 
                 indecies = list(range(len(choices)))
                 if shuffle:
@@ -408,15 +410,14 @@ class LLMChatBaseline:
                         'reasoning': reasoning,
                         'answer_idx': answer_idx,
                         'shuffle_indecies': indecies,
-                        'kdma': kdma,
-                        'alignment': system_message_keys[1],
+                        'alignment': system_message_keys,
                         'aligned': False,
                     })
 
                 inputs.append({
                     'question': question,
                     'shuffled_choices': shuffled_choices,
-                    'system_message': load_system_message(system_message_keys[0], system_message_keys[1]),
+                    'system_message': load_system_message(system_message_keys),
                     'prefix': prefix,
                     'callback': callback,
                 })
@@ -637,7 +638,6 @@ class LLMChatBaseline:
 
     def run_aligned_decision_maker_with_voting(
             self, prompt, choices, alignment_target):
-        kdma = list(alignment_target.keys())[0]
         responses = self.aligned_decision_maker(
             prompt,
             choices,

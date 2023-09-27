@@ -3,7 +3,7 @@ def _bin_kdma_value(value):
     # prompt
     if value <= 0:
         return "no "
-    elif value >= 3:
+    elif value > 5:
         return "heavy "
     else:
         return ""
