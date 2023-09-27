@@ -26,11 +26,10 @@ def add_cli_args(parser):
                         help="Precision, must be 'full' or 'half' "
                              "(default: 'full')",
                         default='full')
-    # parser.add_argument('-t', '--align-to-target',
-    #                     action='store_true',
-    #                     default=False,
-    #                     help="Align algorithm to target KDMAs")
-    pass
+    parser.add_argument('-t', '--align-to-target',
+                        action='store_true',
+                        default=False,
+                        help="Align algorithm to target KDMAs")
 
 
 def main():
@@ -45,18 +44,16 @@ def main():
     run_custom_system(**build_interfaces(add_cli_args, "ALIGN System CLI - Chat Model"))
 
 
-def run_custom_system(interface, model, precision):
+def run_custom_system(interface, model, precision, align_to_target):
     scenario = interface.start_scenario()
     scenario_dict = scenario.to_dict()
 
-    # if align_to_target:
-    #     alignment_target = scenario.get_alignment_target()
-    #     alignment_target_dict = alignment_target.dict()
+    if align_to_target:
+        alignment_target_dict = scenario.get_alignment_target()
 
-    # DO ALGORITHM SETUP THINGS HERE
     print('Creating algorithm')
     algorithm = LLMChatBaseline(hf_model=model, precision=precision)
-    # algorithm = LLMChatBaseline()
+
     algorithm.load_model()
 
     for probe in scenario.iterate_probes():
@@ -105,22 +102,36 @@ def run_custom_system(interface, model, precision):
         
         for _ in range(5): # TODO make this a parameter
             # TODO a possible improvement would be to use a separate prompt to parse mis-formatted JSON instead of simply trying again
-            raw_response = algorithm.answer_multiple_choice(
-                question,
-                options)
-
-            print("* ADM raw response: {}".format(raw_response))
-
-            parsed_output = LLMChatBaseline.attempt_generic_parse(
-                raw_response, ['Reasoning', 'Answer'])
-
-            if parsed_output is None:
+            if align_to_target:
+                target = {kdma['kdma'].lower(): kdma['value']
+                          for kdma in alignment_target_dict['kdma_values']}
                 explanation, action_idx =\
-                    LLMChatBaseline.parse_generated_output(
-                        raw_response)
+                    algorithm.run_aligned_decision_maker_with_voting(
+                        question,
+                        options,
+                        target)
+
+                print("* ADM Selected: {}".format(
+                    options[action_idx]))
+
+                print("* ADM Explanation: {}".format(explanation))
             else:
-                explanation = parsed_output['Reasoning']
-                action_idx = parsed_output['Answer']
+                raw_response = algorithm.answer_multiple_choice(
+                    question,
+                    options)
+
+                print("* ADM raw response: {}".format(raw_response))
+
+                parsed_output = LLMChatBaseline.attempt_generic_parse(
+                    raw_response, ['Reasoning', 'Answer'])
+
+                if parsed_output is None:
+                    explanation, action_idx =\
+                        LLMChatBaseline.parse_generated_output(
+                            raw_response)
+                else:
+                    explanation = parsed_output['Reasoning']
+                    action_idx = parsed_output['Answer']
 
             if(explanation is not None
                and action_idx is not None):
