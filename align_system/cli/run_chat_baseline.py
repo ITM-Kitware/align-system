@@ -45,129 +45,129 @@ def main():
 
 
 def run_custom_system(interface, model, precision, align_to_target):
-    scenario = interface.start_scenario()
-    scenario_dict = scenario.to_dict()
-
-    if align_to_target:
-        alignment_target_dict = scenario.get_alignment_target()
-
     print('Creating algorithm')
     algorithm = LLMChatBaseline(hf_model=model, precision=precision)
 
     algorithm.load_model()
 
-    for probe in scenario.iterate_probes():
-        print(probe.pretty_print_str())
-        print()
+    while scenario := interface.start_scenario():
+        scenario_dict = scenario.to_dict()
 
-        probe_dict = probe.to_dict()
+        if align_to_target:
+            alignment_target_dict = scenario.get_alignment_target()
 
-        casualties_dicts = scenario_dict['state'].get('casualties', [])
+        for probe in scenario.iterate_probes():
+            print(probe.pretty_print_str())
+            print()
 
-        mission_unstructured =\
-            scenario_dict['state']['mission'].get('unstructured', '')
-        state_unstructured = None
+            probe_dict = probe.to_dict()
 
-        if 'state' in probe_dict:
-            probe_state = probe_dict['state']
-            if 'casualties' in probe_state:
-                casualties_dicts = probe_dict['state']['casualties']
+            casualties_dicts = scenario_dict['state'].get('casualties', [])
 
-            if('mission' in probe_state and
-               'unstructured' in probe_state['mission']):
-                mission_unstructured =\
-                  probe_state['mission']['unstructured']
+            mission_unstructured =\
+                scenario_dict['state']['mission'].get('unstructured', '')
+            state_unstructured = None
 
-            if 'unstructured' in probe_state:
-                state_unstructured = probe_state['unstructured']
+            if 'state' in probe_dict:
+                probe_state = probe_dict['state']
+                if 'casualties' in probe_state:
+                    casualties_dicts = probe_dict['state']['casualties']
 
-        # Seems like the probe 'type' is incorrect for at least some
-        # probes, always assuming multiple choice here
-        # if probe_dict['type'] == ProbeType.MultipleChoice.value:
-        #     probe_options_dicts = probe_dict['options']
-        # else:
-        #     probe_options_dicts = None
+                if('mission' in probe_state and
+                   'unstructured' in probe_state['mission']):
+                    mission_unstructured =\
+                      probe_state['mission']['unstructured']
 
-        probe_options_dicts = probe_dict['options']
-        
-        # TODO extract this prompt-building logic into a separate function/file
-        # For the MVP2 ADEPT scenarios, the casualties don't have 'unstructured' text
-        # casualties_str = ''
-        # for casulaty in casualties_dicts:
-        #     casualties_str += casulaty["unstructured"] + " " + str(casulaty["vitals"])
-        
-        # question = f"# Scenario:\n{scenario_dict['state']['unstructured']}\n{mission_unstructured}\n# Casualties:\n{casualties_str}\n# Question:\n{probe_dict['prompt']}"
-        question = f"# Scenario:\n{scenario_dict['state']['unstructured']}\n{mission_unstructured}\n# Question:\n{probe_dict['prompt']}"
-        options = [option['value'] for option in probe_options_dicts]
-        
-        for _ in range(5): # TODO make this a parameter
-            # TODO a possible improvement would be to use a separate prompt to parse mis-formatted JSON instead of simply trying again
-            if align_to_target:
-                target = {kdma['kdma'].lower(): kdma['value']
-                          for kdma in alignment_target_dict['kdma_values']}
-                explanation, action_idx =\
-                    algorithm.run_aligned_decision_maker_with_voting(
-                        question,
-                        options,
-                        target)
+                if 'unstructured' in probe_state:
+                    state_unstructured = probe_state['unstructured']
 
-                print("* ADM Selected: {}".format(
-                    options[action_idx]))
+            # Seems like the probe 'type' is incorrect for at least some
+            # probes, always assuming multiple choice here
+            # if probe_dict['type'] == ProbeType.MultipleChoice.value:
+            #     probe_options_dicts = probe_dict['options']
+            # else:
+            #     probe_options_dicts = None
 
-                print("* ADM Explanation: {}".format(explanation))
-            else:
-                raw_response = algorithm.answer_multiple_choice(
-                    question,
-                    options)
+            probe_options_dicts = probe_dict['options']
 
-                print("* ADM raw response: {}".format(raw_response))
+            # TODO extract this prompt-building logic into a separate function/file
+            # For the MVP2 ADEPT scenarios, the casualties don't have 'unstructured' text
+            # casualties_str = ''
+            # for casulaty in casualties_dicts:
+            #     casualties_str += casulaty["unstructured"] + " " + str(casulaty["vitals"])
 
-                parsed_output = LLMChatBaseline.attempt_generic_parse(
-                    raw_response, ['Reasoning', 'Answer'])
+            # question = f"#     Scenario:\n{scenario_dict['state']['unstructured']}\n{mission_unstructured}\n#     Casualties:\n{casualties_str}\n# Question:\n{probe_dict['prompt']}"
+            question = f"#     Scenario:\n{scenario_dict['state']['unstructured']}\n{mission_unstructured}\n#     Question:\n{probe_dict['prompt']}"
+            options = [option['value'] for option in probe_options_dicts]
 
-                if parsed_output is None:
+            for _ in range(5): # TODO make this a parameter
+                # TODO a possible improvement would be to use a separate prompt to parse     mis-formatted JSON instead of simply trying again
+                if align_to_target:
+                    target = {kdma['kdma'].lower(): kdma['value']
+                              for kdma in alignment_target_dict['kdma_values']}
                     explanation, action_idx =\
-                        LLMChatBaseline.parse_generated_output(
-                            raw_response)
+                        algorithm.run_aligned_decision_maker_with_voting(
+                            question,
+                            options,
+                            target)
+
+                    print("* ADM Selected: {}".format(
+                        options[action_idx]))
+
+                    print("* ADM Explanation: {}".format(explanation))
                 else:
-                    explanation = parsed_output['Reasoning']
-                    action_idx = parsed_output['Answer']
+                    raw_response = algorithm.answer_multiple_choice(
+                        question,
+                        options)
 
-            if(explanation is not None
-               and action_idx is not None):
-                if len(options) > action_idx:
-                    break
-                else:
-                    print('** Selected action_idx out of range of '
-                          'available actions, retrying!')
-                    continue
+                    print("* ADM raw response: {}".format(raw_response))
 
-            print('** Failed to parse')
-        
+                    parsed_output = LLMChatBaseline.attempt_generic_parse(
+                        raw_response, ['Reasoning', 'Answer'])
 
-        # if probe_dict['type'] == ProbeType.MultipleChoice.value:
-        #     probe_response = {'justification': explanation,
-        #                       'choice': probe_options_dicts[action_idx]['id']}
-        # else:
-        #     probe_response = {'justification': explanation}
+                    if parsed_output is None:
+                        explanation, action_idx =\
+                            LLMChatBaseline.parse_generated_output(
+                                raw_response)
+                    else:
+                        explanation = parsed_output['Reasoning']
+                        action_idx = parsed_output['Answer']
 
-        probe_response = {'justification': explanation,
-                          'choice': probe_options_dicts[action_idx]['id']}
+                if(explanation is not None
+                   and action_idx is not None):
+                    if len(options) > action_idx:
+                        break
+                    else:
+                        print('** Selected action_idx out of range of '
+                              'available actions, retrying!')
+                        continue
 
-        print(json.dumps(probe_response, indent=2))
-        print()
+                print('** Failed to parse')
 
-        probe.respond(probe_response)
 
-        if isinstance(probe, ProbeInterfaceWithAlignment):
-            probe_alignment_results = probe.get_alignment_results()
-            print("* Probe alignment score: {}".format(
-                probe_alignment_results['score']))
+            # if probe_dict['type'] == ProbeType.MultipleChoice.value:
+            #     probe_response = {'justification': explanation,
+            #                       'choice': probe_options_dicts[action_idx]['id']}
+            # else:
+            #     probe_response = {'justification': explanation}
 
-    if isinstance(scenario, ScenarioInterfaceWithAlignment):
-        scenario_alignment_results = scenario.get_alignment_results()
-        print("* Scenario alignment score: {}".format(
-            scenario_alignment_results['score']))
+            probe_response = {'justification': explanation,
+                              'choice': probe_options_dicts[action_idx]['id']}
+
+            print(json.dumps(probe_response, indent=2))
+            print()
+
+            probe.respond(probe_response)
+
+            if isinstance(probe, ProbeInterfaceWithAlignment):
+                probe_alignment_results = probe.get_alignment_results()
+                print("* Probe alignment score: {}".format(
+                    probe_alignment_results['score']))
+
+        if isinstance(scenario, ScenarioInterfaceWithAlignment):
+            scenario_alignment_results = scenario.get_alignment_results()
+            print("* Scenario alignment score: {}".format(
+                scenario_alignment_results['score']))
 
 
 

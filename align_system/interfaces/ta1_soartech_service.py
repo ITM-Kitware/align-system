@@ -30,12 +30,15 @@ class TA1SoartechServiceInterface(Interface):
         self.remaining_scenarios = zip(self.scenarios, self.alignment_targets)
 
     def start_scenario(self):
-        scenario_id, alignment_target_id = next(self.remaining_scenarios)
-
-        return TA1SoartechScenario(
-            self.api_endpoint,
-            self.session_id,
-            scenario_id, alignment_target_id)
+        try:
+            scenario_id, alignment_target_id = next(self.remaining_scenarios)
+        except StopIteration:
+            return None
+        else:
+            return TA1SoartechScenario(
+                self.api_endpoint,
+                self.session_id,
+                scenario_id, alignment_target_id)
 
     @classmethod
     def cli_parser(cls, parser=None):
