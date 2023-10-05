@@ -5,6 +5,7 @@ import json
 import re
 import random
 import os
+import pathlib
 
 
 kdmas = {
@@ -17,14 +18,26 @@ kdmas = {
     'denial',
 }
 
+kdma_remapping = {
+    'basicknowledge': 'basic_knowledge',
+    'protocolfocus': 'protocol_focus',
+    'riskaversion': 'risk_aversion',
+}
+
+default_system_messages_path=os.path.join(
+    pathlib.Path(__file__).parent.absolute(), '..',
+    'prompt_engineering/bbn_alignment_system_messages_v1')
+
 def load_system_message(alignment=None,
-                        system_messages_path='align_system/prompt_engineering/bbn_alignment_system_messages_v1'):
+                        system_messages_path=default_system_messages_path):
     if alignment is None:
         file_name = 'baseline.txt'
     else:
         sorted_kdmas = sorted(alignment.keys())
 
-        alignment_string = '-'.join('{}-{}'.format(alignment[k], k) for k in sorted_kdmas)
+        alignment_string = '-'.join(
+            '{}-{}'.format(alignment[k], kdma_remapping.get(k, k))
+            for k in sorted_kdmas)
 
         file_name = f'{alignment_string}.txt'
 
@@ -284,7 +297,10 @@ class LLMChatBaseline:
 
 
     def aligned_decision_maker(self, question, choices, target_kdmas, n_samples=5, inverse_misaligned=True, shuffle=True, baseline=False):
-        assert kdmas.issuperset(target_kdmas.keys()), f"KDMA {target_kdmas.keys() - kdmas} not supported."
+        unsupported_kdmas = {kdma_remapping.get(k, k)
+                             for k in target_kdmas.keys()} - kdmas
+        if len(unsupported_kdmas) > 0:
+            raise RuntimeError(f"KDMA(s) {unsupported_kdmas} not supported.")
 
         prefix = '{"Reasoning": "Because'
 
@@ -352,7 +368,10 @@ class LLMChatBaseline:
 
 
     def aligned_decision_maker_batched(self, question, choices, target_kdmas, n_samples=5, inverse_misaligned=True, shuffle=True, baseline=False, batch_size=5):
-        assert kdmas.issuperset(target_kdmas.keys()), f"KDMA {target_kdmas.keys() - kdmas} not supported."
+        unsupported_kdmas = {kdma_remapping.get(k, k)
+                             for k in target_kdmas.keys()} - kdmas
+        if len(unsupported_kdmas) > 0:
+            raise RuntimeError(f"KDMA(s) {unsupported_kdmas} not supported.")
 
         prefix = '{"Reasoning": "Because'
 
@@ -445,7 +464,11 @@ class LLMChatBaseline:
             if answer_idx is None:
                 continue
 
-            answer_idx = int(answer_idx)
+            try:
+                answer_idx = int(answer_idx)
+            except ValueError:
+                continue
+
             if answer_idx >= len(choices):
                 continue
 
