@@ -13,12 +13,6 @@ kdmas = [
     'utilitarianism',
 ]
 
-# def load_system_message(kdma, alignment, system_messages_path='align_system/prompt_engineering/bbn_alignment_system_messages_v1'):
-#     file_name = f'{kdma}.txt' if alignment is None else f'{kdma}-{alignment}.txt'
-#     with open(os.path.join(system_messages_path, file_name), 'r') as f:
-#         system_message = f.read()
-#     return system_message
-
 
 def find_sequence(arr, seq):
     seq_len = len(seq)
@@ -186,6 +180,68 @@ class LLMChatBaseline:
 
         return generated_output
 
+
+    def respond_to_dialog_batched(self, dialogs, prefixes=None, max_new_tokens=512):
+        prompt_token_lists = [
+            self.chat_prompt_tokens([dialog], return_tensor=False)
+            for dialog in dialogs
+        ]
+
+
+        prompt_lengths = [
+            len(prompt_tokens[0])
+            for prompt_tokens in prompt_token_lists
+        ]
+
+        if prefixes is not None:
+            for prompt_tokens, prefix in zip(prompt_token_lists, prefixes):
+                prefix_tokens = self.tokenizer.encode(prefix, add_special_tokens=False)
+                prompt_tokens[0] += prefix_tokens
+
+
+        prompt_token_lists = [
+            torch.tensor(prompt_tokens).to(self.device)
+            for prompt_tokens in prompt_token_lists
+        ]
+        
+        max_length = max([prompt_tokens.size(1) for prompt_tokens in prompt_token_lists])
+
+        pad_token_id = self.tokenizer.pad_token_id
+        # Pad each sequence to the max length
+        padded_prompt_token_lists = [
+            torch.nn.functional.pad(prompt_tokens, (max_length - prompt_tokens.size(1), 0), value=pad_token_id)
+            for prompt_tokens in prompt_token_lists
+        ]
+
+        # Stack the padded sequences
+        stacked_prompt_tokens = torch.cat(padded_prompt_token_lists, dim=0)
+
+        # Generate outputs for all dialogs in a batch
+        outputs = self.model.generate(
+            stacked_prompt_tokens, 
+            return_dict_in_generate=True, 
+            output_scores=True, 
+            max_new_tokens=max_new_tokens,
+            temperature=self.temperature
+        )
+
+        # Split the sequences based on prompt lengths 
+        split_outputs = torch.split(outputs.sequences, 1, dim=0)
+
+        # Decode each output based on its corresponding prompt length
+        generated_outputs = [
+            self.tokenizer.decode(output[0][max(prompt_lengths):])
+            for output in split_outputs
+        ]
+
+        # split on </s> and remove trailing characters
+        generated_outputs = [
+            generated_output.split('</s>')[0].strip()
+            for generated_output in generated_outputs
+        ]
+
+        return generated_outputs
+
     
     def answer_multiple_choice_batched(self, questions, option_lists, system_messages, prefixes=None, max_new_tokens=512):
 
@@ -268,7 +324,7 @@ class LLMChatBaseline:
         return generated_outputs
         
     
-    def aligned_decision_maker(self, question, choices, target_kdmas, system_message_provider, n_samples=5, inverse_misaligned=True, shuffle=True, baseline=False):
+    def aligned_decision_maker(self, question, choices, target_kdmas, system_message_provider, n_samples=5, inverse_misaligned=True, shuffle=True, baseline=False, include_prompt=False):
         assert len(target_kdmas) == 1, "Only one KDMA can be targeted at a time, but received: {}".format(target_kdmas)
         
         kdma = list(target_kdmas.keys())[0]
@@ -303,7 +359,7 @@ class LLMChatBaseline:
             )
             
             reasoning, answer_idx = LLMChatBaseline.parse_generated_output(high_response)
-            responses.append({
+            response = {
                 'response': high_response,
                 'reasoning': reasoning,
                 'answer_idx': answer_idx,
@@ -311,7 +367,15 @@ class LLMChatBaseline:
                 'kdma': kdma,
                 'alignment': system_message_keys[1],
                 'aligned': True,
-            })
+            }
+            if include_prompt:
+                response['prompt'] = {
+                    'system_message': system_message,
+                    'question': question,
+                    'shuffled_choices': shuffled_choices,
+                    'prefix': prefix,
+                }
+            responses.append(response)
             
             if inverse_misaligned:
                 system_message_keys = (kdma, 'high' if not target_kdmas[kdma] > 5 else 'low')
@@ -341,8 +405,8 @@ class LLMChatBaseline:
         
         return responses
 
-
-    def aligned_decision_maker_batched(self, question, choices, target_kdmas, system_message_provider, prefix='{"Reasoning": "Because', n_samples=5, inverse_misaligned=True, shuffle=True, baseline=False, batch_size=5, max_new_tokens=512):
+    
+    def aligned_decision_maker_batched(self, question, choices, target_kdmas, system_message_provider, prefix='{"Reasoning": "Because', n_samples=5, inverse_misaligned=True, shuffle=True, baseline=False, batch_size=5, max_new_tokens=512, include_prompt=False):
         assert len(target_kdmas) == 1, "Only one KDMA can be targeted at a time, but received: {}".format(target_kdmas)
         
         kdma = list(target_kdmas.keys())[0]
@@ -352,7 +416,7 @@ class LLMChatBaseline:
         results = []
         
         inputs = []
-        
+
         for _ in range(n_samples):
             system_message_keys = [kdma, 'high' if target_kdmas[kdma] > 5 else 'low']
             
@@ -367,17 +431,34 @@ class LLMChatBaseline:
                 system_message = system_message_provider('baseline', None)
                 system_message_keys[1] = 'baseline'
             
-            def callback(high_response):
+            assert not (baseline and inverse_misaligned), "Baseline and inverse misaligned cannot be used together."
+            
+            def callback(high_response, 
+                    kdma=kdma,
+                    system_message=system_message,
+                    alignment=system_message_keys[1],
+                    shuffled_choices=shuffled_choices,
+                    indecies=indecies,
+                ):
                 reasoning, answer_idx = LLMChatBaseline.parse_generated_output(high_response)
-                results.append({
+                result = {
                     'response': high_response,
                     'reasoning': reasoning,
                     'answer_idx': answer_idx,
                     'shuffle_indecies': indecies,
                     'kdma': kdma,
-                    'alignment': system_message_keys[1],
+                    'alignment': alignment,
                     'aligned': True,
-                })
+                }
+                if include_prompt:
+                    result['prompt'] = {
+                        'system_message': system_message,
+                        'question': question,
+                        'shuffled_choices': shuffled_choices,
+                        'prefix': prefix,
+                    }
+
+                results.append(result)
                 
             inputs.append({
                 'question': question,
@@ -389,23 +470,38 @@ class LLMChatBaseline:
             
             if inverse_misaligned:
                 system_message_keys = [kdma, 'high' if not target_kdmas[kdma] > 5 else 'low']
-                
+
                 indecies = list(range(len(choices)))
                 if shuffle:
                     random.shuffle(indecies)
                 shuffled_choices = [choices[i] for i in indecies]
-                
-                def callback(low_response):
+
+                def callback(
+                    low_response,
+                    kdma=kdma,
+                    system_message=system_message,
+                    alignment=system_message_keys[1],
+                    shuffled_choices=shuffled_choices,
+                    indecies=indecies,
+                ):
                     reasoning, answer_idx = LLMChatBaseline.parse_generated_output(low_response)
-                    results.append({
+                    result = {
                         'response': low_response,
                         'reasoning': reasoning,
                         'answer_idx': answer_idx,
                         'shuffle_indecies': indecies,
                         'kdma': kdma,
-                        'alignment': system_message_keys[1],
+                        'alignment': alignment,
                         'aligned': False,
-                    })
+                    }
+                    if include_prompt:
+                        result['prompt'] = {
+                            'system_message': system_message,
+                            'question': question,
+                            'shuffled_choices': shuffled_choices,
+                            'prefix': prefix,
+                        }
+                    results.append(result)
                 
                 inputs.append({
                     'question': question,
@@ -414,7 +510,7 @@ class LLMChatBaseline:
                     'prefix': prefix,
                     'callback': callback,
                 })
-        
+            
         for i in range(0, len(inputs), batch_size):
             responses = self.answer_multiple_choice_batched(
                 questions=[sample['question'] for sample in inputs[i:i+batch_size]],
@@ -432,7 +528,7 @@ class LLMChatBaseline:
         return results
 
     @staticmethod
-    def calculate_votes(responses, choices):
+    def calculate_votes(responses, choices, flip_alignment=False):
         choice_votes = [0] * len(choices)
         for response in responses:
             answer_idx = response['answer_idx']
@@ -443,6 +539,9 @@ class LLMChatBaseline:
                 answer_idx = response['shuffle_indecies'][answer_idx]
             
             aligned = response['aligned']
+            
+            if flip_alignment:
+                aligned = not aligned
             
             if aligned: 
                 choice_votes[answer_idx] += 1
