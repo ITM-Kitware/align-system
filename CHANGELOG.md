@@ -3,6 +3,25 @@
 This changelog follows the specifications detailed in: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html), although we have not yet reached a `1.0.0` release.
 
+## Version 0.2.1
+
+#### Added
+
+* Added aligned decision making capabilities to `llm_chat_baseline.py` algorithm
+
+* Added multiple sampling along with a voting scheme for aligned decision making with the `llm_chat_baseline.py` algorithm
+
+* Added several alignment prompts for MVP2 KDMAs
+
+
+#### Changed
+
+* Updated action-based chat baseline CLI to use new alignment capabilities
+
+* Changed simple alignment prompt engineering approach to consider a heavy emphasis on a given KDMA when the value is `> 5` (rather than `>= 3`).  This is consistent with how to consider KDMAs with the more sophisticated prompt engineering approach
+
+#### Fixed
+
 
 ## Version 0.2.0
 
