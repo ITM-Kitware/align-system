@@ -3,6 +3,24 @@
 This changelog follows the specifications detailed in: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html), although we have not yet reached a `1.0.0` release.
 
+## Unreleased
+
+#### Added
+
+* Added capability to loop over several scenarios in one system run for `run_chat_baseline.py` CLI script
+
+* Added alignment capabilities to `run_chat_baseline.py` CLI script
+
+#### Changed
+
+
+#### Fixed
+
+* Fixed iteration over scenarios / alignment targets with TA1 APIs
+
+* Fixed `--precision` argument in `run_chat_baseline.py` CLI script
+
+
 ## Version 0.2.1
 
 #### Added
