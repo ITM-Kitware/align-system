@@ -1,3 +1,7 @@
+import logging
+
+from rich.logging import RichHandler
+
 from align_system.interfaces.cli_builder import build_interfaces
 from align_system.algorithms.llm_chat_baseline import (
     LLMChatBaseline,
@@ -7,6 +11,16 @@ from align_system.prompt_engineering.common import (
     prepare_action_based_prompt,
     prepare_treatment_selection_prompt,
     prepare_tagging_selection_prompt)
+
+
+LOGGING_FORMAT = "%(message)s"
+logging.basicConfig(
+    level="NOTSET",
+    format=LOGGING_FORMAT,
+    datefmt="[%X]",
+    handlers=[RichHandler()])
+
+log = logging.getLogger(__name__)
 
 
 def add_cli_args(parser):

@@ -1,3 +1,5 @@
+import logging
+
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 import numpy as np
@@ -7,6 +9,8 @@ import random
 import os
 import pathlib
 
+
+log = logging.getLogger(__name__)
 
 kdmas = {
     'basic_knowledge',
@@ -164,7 +168,11 @@ class LLMChatBaseline:
         return prompt_tokens
 
 
-    def answer_multiple_choice(self, question, options, system_message=None, prefix=None, json_format=STANDARD_MULTIPLE_CHOICE_JSON_FORMAT):
+    def build_multiple_choice_dialog(self,
+                                     question,
+                                     options,
+                                     system_message=None,
+                                     json_format=STANDARD_MULTIPLE_CHOICE_JSON_FORMAT):
         medical_triage_system_message = (
             "You are an assistant specialized in answering multiple-choice questions related to "
             "medical triage. When a question is posed, carefully analyze the symptoms or conditions "
@@ -177,8 +185,6 @@ class LLMChatBaseline:
         )
         if system_message is None:
             system_message = medical_triage_system_message
-            if prefix is None:
-                prefix = '{"Reasoning": "'
 
         formatted_options = [f'({i}) {option}' for i, option in enumerate(options)]
 
@@ -195,8 +201,25 @@ class LLMChatBaseline:
             }
         ]
 
-        prompt_tokens = self.chat_prompt_tokens([dialog], return_tensor=False)
+        return dialog
 
+    def log_dialog(self, dialog):
+        for e in dialog:
+            if e.get('role') == 'system':
+                color = 'yellow'
+            else:
+                color = 'blue'
+
+            log.debug(f"[bold {color}]**{e.get('role')}**[/bold {color}]",
+                      extra={"markup": True})
+            log.debug(f"[{color}]{e.get('content')}[/{color}]",
+                      extra={"markup": True, "highlighter": None})
+
+    def respond_to_dialog(self, dialog, prefix=None):
+        if prefix is None:
+            prefix = '{"Reasoning": "'
+
+        prompt_tokens = self.chat_prompt_tokens([dialog], return_tensor=False)
 
         prompt_length = len(prompt_tokens[0])
 
@@ -214,32 +237,14 @@ class LLMChatBaseline:
 
         return generated_output
 
-
-    def answer_multiple_choice_batched(self, questions, option_lists, system_messages, prefixes=None):
-
-        formatted_option_lists = [[f'({i}) {option}' for i, option in enumerate(options)] for options in option_lists]
-
-        contents = [f'{question} {formatted_options}' for question, formatted_options in zip(questions, formatted_option_lists)]
-
-        dialogs = [
-            [
-                {
-                    "role": "system",
-                    "content": system_message
-                },
-                {
-                    "role": "user",
-                    "content": content
-                }
-            ]
-            for system_message, content in zip(system_messages, contents)
-        ]
+    def respond_to_dialogs_batched(self, dialogs, prefixes=None):
+        # dialogs = [self.build_multiple_choice_dialog(*args) for args
+        #            in zip(questions, option_lists, system_messages)]
 
         prompt_token_lists = [
             self.chat_prompt_tokens([dialog], return_tensor=False)
             for dialog in dialogs
         ]
-
 
         prompt_lengths = [
             len(prompt_tokens[0])
@@ -250,7 +255,6 @@ class LLMChatBaseline:
             for prompt_tokens, prefix in zip(prompt_token_lists, prefixes):
                 prefix_tokens = self.tokenizer.encode(prefix, add_special_tokens=False)
                 prompt_tokens[0] += prefix_tokens
-
 
         prompt_token_lists = [
             torch.tensor(prompt_tokens).to(self.device)
@@ -295,7 +299,6 @@ class LLMChatBaseline:
 
         return generated_outputs
 
-
     def aligned_decision_maker(self, question, choices, target_kdmas, n_samples=5, inverse_misaligned=True, shuffle=True, baseline=False):
         unsupported_kdmas = {kdma_remapping.get(k, k)
                              for k in target_kdmas.keys()} - kdmas
@@ -306,6 +309,8 @@ class LLMChatBaseline:
 
         responses = []
 
+        logged_aligned_dialog = False
+        logged_inverse_misaligned_dialog = False
         for _ in range(n_samples):
             system_message_keys = {kdma: 'high' if value > 5 else 'low'
                                    for kdma, value in target_kdmas.items()}
@@ -321,12 +326,18 @@ class LLMChatBaseline:
                 system_message = load_system_message()
                 system_message_keys = 'baseline'
 
-            high_response = self.answer_multiple_choice(
+            dialog = self.build_multiple_choice_dialog(
                 question,
                 shuffled_choices,
-                system_message=system_message,
-                prefix=prefix
-            )
+                system_message=system_message)
+
+            if not logged_aligned_dialog:
+                log.debug("[bold]*ALIGNED DIALOG*[/bold]",
+                          extra={"markup": True})
+                self.log_dialog(dialog)
+                logged_aligned_dialog = True
+
+            high_response = self.respond_to_dialog(dialog, prefix=prefix)
 
             reasoning, answer_idx = LLMChatBaseline.parse_generated_output(high_response)
             responses.append({
@@ -347,12 +358,19 @@ class LLMChatBaseline:
                     random.shuffle(indecies)
                 shuffled_choices = [choices[i] for i in indecies]
 
-                low_response = self.answer_multiple_choice(
+                inverse_misaligned_dialog = self.build_multiple_choice_dialog(
                     question,
                     shuffled_choices,
-                    system_message=load_system_message(system_message_keys),
-                    prefix=prefix
-                )
+                    system_message=load_system_message(system_message_keys))
+
+                if not logged_inverse_misaligned_dialog:
+                    log.debug("[bold]*INVERSE MISALIGNED DIALOG*[/bold]",
+                              extra={"markup": True})
+                    self.log_dialog(inverse_misaligned_dialog)
+                    logged_inverse_misaligned_dialog = True
+
+                low_response = self.respond_to_dialog(
+                    inverse_misaligned_dialog, prefix=prefix)
 
                 reasoning, answer_idx = LLMChatBaseline.parse_generated_output(low_response)
                 responses.append({

@@ -1,4 +1,8 @@
+import sys
 import json
+import logging
+
+from rich.logging import RichHandler
 
 from align_system.interfaces.cli_builder import build_interfaces
 from align_system.utils.enums import ProbeType
@@ -12,6 +16,17 @@ from align_system.algorithms.llm_chat_baseline import LLMChatBaseline
 '''
 run_chat_baseline LocalFiles -s example_data/scenario_1/scenario.json -p example_data/scenario_1/probe{1,2,3,4}.json
 '''
+
+
+LOGGING_FORMAT = "%(message)s"
+logging.basicConfig(
+    level="NOTSET",
+    format=LOGGING_FORMAT,
+    datefmt="[%X]",
+    handlers=[RichHandler()])
+
+log = logging.getLogger(__name__)
+
 
 def add_cli_args(parser):
     # Using argparse to add our system CLI specific arguments.  Can
@@ -41,11 +56,13 @@ def main():
     # object based on the selected interface and interface arguments
     # provided at the command line and passes them to your run
     # function (`run_custom_system` in this case)
+    log.debug(f"[bright_black]CMD: {' '.join(sys.argv)}[/bright_black]",
+              extra={'markup': True, 'highlighter': None})
     run_custom_system(**build_interfaces(add_cli_args, "ALIGN System CLI - Chat Model"))
 
 
 def run_custom_system(interface, model, precision, align_to_target):
-    print('Creating algorithm')
+    log.info('Creating algorithm')
     algorithm = LLMChatBaseline(hf_model=model, precision=precision)
 
     algorithm.load_model()
@@ -57,8 +74,7 @@ def run_custom_system(interface, model, precision, align_to_target):
             alignment_target_dict = scenario.get_alignment_target()
 
         for probe in scenario.iterate_probes():
-            print(probe.pretty_print_str())
-            print()
+            log.info(probe.pretty_print_str())
 
             probe_dict = probe.to_dict()
 
@@ -111,16 +127,16 @@ def run_custom_system(interface, model, precision, align_to_target):
                             options,
                             target)
 
-                    print("* ADM Selected: {}".format(
+                    log.info("* ADM Selected: {}".format(
                         options[action_idx]))
 
-                    print("* ADM Explanation: {}".format(explanation))
+                    log.info("* ADM Explanation: {}".format(explanation))
                 else:
                     raw_response = algorithm.answer_multiple_choice(
                         question,
                         options)
 
-                    print("* ADM raw response: {}".format(raw_response))
+                    log.info("* ADM raw response: {}".format(raw_response))
 
                     parsed_output = LLMChatBaseline.attempt_generic_parse(
                         raw_response, ['Reasoning', 'Answer'])
@@ -138,11 +154,11 @@ def run_custom_system(interface, model, precision, align_to_target):
                     if len(options) > action_idx:
                         break
                     else:
-                        print('** Selected action_idx out of range of '
-                              'available actions, retrying!')
+                        log.info('** Selected action_idx out of range of '
+                                 'available actions, retrying!')
                         continue
 
-                print('** Failed to parse')
+                log.info('** Failed to parse')
 
 
             # if probe_dict['type'] == ProbeType.MultipleChoice.value:
@@ -154,19 +170,18 @@ def run_custom_system(interface, model, precision, align_to_target):
             probe_response = {'justification': explanation,
                               'choice': probe_options_dicts[action_idx]['id']}
 
-            print(json.dumps(probe_response, indent=2))
-            print()
+            log.info(json.dumps(probe_response, indent=2))
 
             probe.respond(probe_response)
 
             if isinstance(probe, ProbeInterfaceWithAlignment):
                 probe_alignment_results = probe.get_alignment_results()
-                print("* Probe alignment score: {}".format(
+                log.info("* Probe alignment score: {}".format(
                     probe_alignment_results['score']))
 
         if isinstance(scenario, ScenarioInterfaceWithAlignment):
             scenario_alignment_results = scenario.get_alignment_results()
-            print("* Scenario alignment score: {}".format(
+            log.info("* Scenario alignment score: {}".format(
                 scenario_alignment_results['score']))
 
 
