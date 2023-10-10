@@ -3,9 +3,10 @@ import json
 import logging
 
 from rich.logging import RichHandler
+from rich.highlighter import JSONHighlighter
 
 from align_system.interfaces.cli_builder import build_interfaces
-from align_system.utils.enums import ProbeType
+# from align_system.utils.enums import ProbeType
 from align_system.interfaces.abstracts import (
     ScenarioInterfaceWithAlignment,
     ProbeInterfaceWithAlignment)
@@ -24,6 +25,7 @@ logging.basicConfig(
     format=LOGGING_FORMAT,
     datefmt="[%X]",
     handlers=[RichHandler()])
+JSON_HIGHLIGHTER = JSONHighlighter()
 
 log = logging.getLogger(__name__)
 
@@ -32,10 +34,9 @@ def add_cli_args(parser):
     # Using argparse to add our system CLI specific arguments.  Can
     # modify or add your own custom CLI arguments here
     parser.add_argument('-m', '--model',
-        type=str,
-        help="Example command-line argument",
-        default='meta-llama/Llama-2-13b-chat-hf'
-    )
+                        type=str,
+                        help="Example command-line argument",
+                        default='meta-llama/Llama-2-13b-chat-hf')
     parser.add_argument('-r', '--precision',
                         type=str,
                         help="Precision, must be 'full' or 'half' "
@@ -149,8 +150,7 @@ def run_custom_system(interface, model, precision, align_to_target):
                         explanation = parsed_output['Reasoning']
                         action_idx = parsed_output['Answer']
 
-                if(explanation is not None
-                   and action_idx is not None):
+                if explanation is not None and action_idx is not None:
                     if len(options) > action_idx:
                         break
                     else:
@@ -159,7 +159,6 @@ def run_custom_system(interface, model, precision, align_to_target):
                         continue
 
                 log.info('** Failed to parse')
-
 
             # if probe_dict['type'] == ProbeType.MultipleChoice.value:
             #     probe_response = {'justification': explanation,
@@ -170,7 +169,10 @@ def run_custom_system(interface, model, precision, align_to_target):
             probe_response = {'justification': explanation,
                               'choice': probe_options_dicts[action_idx]['id']}
 
-            log.info(json.dumps(probe_response, indent=2))
+            log.debug("[bold]*PROBE RESPONSE*[/bold]",
+                      extra={"markup": True})
+            log.debug(json.dumps(probe_response, indent=4),
+                      extra={"highlighter": JSON_HIGHLIGHTER})
 
             probe.respond(probe_response)
 

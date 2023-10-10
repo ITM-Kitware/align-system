@@ -1,5 +1,7 @@
 import logging
 
+from rich.highlighter import JSONHighlighter
+
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 import numpy as np
@@ -9,6 +11,8 @@ import random
 import os
 import pathlib
 
+
+JSON_HIGHLIGHTER = JSONHighlighter()
 
 log = logging.getLogger(__name__)
 
@@ -692,6 +696,12 @@ class LLMChatBaseline:
         except Exception as e:
             print(f"Error calculating votes {sample['probe_id']}: {e}")
             choice_scores = None
+
+        log.debug("[bold]*CHOICE SCORES*[/bold]",
+                  extra={"markup": True})
+        log.debug(json.dumps({c: s for c, s in zip(choices, choice_scores)},
+                             indent=4),
+                  extra={"highlighter": JSON_HIGHLIGHTER})
 
         results = {
             'prompt': prompt,
