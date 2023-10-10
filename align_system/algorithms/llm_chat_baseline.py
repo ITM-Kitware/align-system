@@ -14,27 +14,6 @@ kdmas = [
 ]
 
 
-def find_sequence(arr, seq):
-    seq_len = len(seq)
-    matches = [i+seq_len for i in range(len(arr)) if list(arr[i:i+seq_len]) == list(seq)]
-    if matches:
-        return matches[0]
-    else:
-        return None
-
-
-def get_logits(output_scores, start_idx, letter_ids):
-    logits = []
-    for _, id_ in letter_ids.items():
-        logit = output_scores[start_idx][0, id_].item()
-        logits.append(logit)
-    return logits
-
-
-def to_probabilities(logits):
-    return torch.nn.functional.softmax(torch.tensor(logits), dim=0)  # Apply softmax
-
-
 STANDARD_MULTIPLE_CHOICE_JSON_FORMAT = "{\"Reasoning\": \"<Provide a reasoned explanation here>\", \"Answer\": <Integer index corresponding to your final answer>}\\n"
 
 TREATMENT_MULTIPLE_CHOICE_JSON_FORMAT = "{\"Reasoning\": \"<Provide a reasoned explanation here>\", \"Answer\": <Integer index corresponding to your final answer>, \"Location\": \"<Specific location on the body where the treatment should be applied, one of: 'right forearm', 'left forearm', 'right calf', 'left calf', 'right thigh', 'left thigh', 'right stomach', 'left stomach', 'right bicep', 'left bicep', 'right shoulder', 'left shoulder', 'right side', 'left side', 'right chest', 'left chest', 'right wrist', 'left wrist', 'left face', 'right face', 'left neck', 'right neck', 'unspecified'>\"}\\n"
@@ -61,20 +40,6 @@ class LLMChatBaseline:
         self.tokenizer = AutoTokenizer.from_pretrained(self.hf_model)
 
         self.model = self.model.to(self.device)
-
-    def get_character_ids(self, character_str):
-        assert 'llama-2' in self.hf_model.lower(), "This function is only compatible with llama-2 models."
-        assert list(character_str) == ['0', '1', '2', '3'], "character_str must be a string of the characters '0', '1', '2', '3'."
-        return {
-            '0': 29900,
-            '1': 29896,
-            '2': 29906,
-            '3': 29941,
-        }  # TODO use the tokenizer to find the ids
-
-    def get_search_sequence(self):
-        assert 'llama-2' in self.hf_model.lower(), "This function is only compatible with llama-2 models."
-        return [22550, 1115, 29871]  # TODO use the tokenizer to calculate this
 
     def chat_prompt_tokens(self, dialogs, return_tensor=True):
         # Define instance and system borders
@@ -243,7 +208,28 @@ class LLMChatBaseline:
         return generated_outputs
 
     
-    def answer_multiple_choice_batched(self, questions, option_lists, system_messages, prefixes=None, max_new_tokens=512):
+    # answer_multiple_choice(self, question, options, system_message=None, prefix=None, json_format=STANDARD_MULTIPLE_CHOICE_JSON_FORMAT):
+        
+    def answer_multiple_choice(self, question, options, system_message, prefix=None, max_new_tokens=512):
+        batched_question = type(question) is list
+        batched_options = type(options[0]) is list
+        batched_system_message = type(system_message) is list
+        batched_prefix = type(prefix) is list or prefix is None
+        
+        assert batched_question == batched_options == batched_system_message == batched_prefix, "All inputs must be batched or not batched."
+        
+        all_batched = batched_question and batched_options and batched_system_message and batched_prefix
+        
+        if not all_batched:
+            questions = [question]
+            option_lists = [options]
+            system_messages = [system_message]
+            prefixes = [prefix] if prefix is not None else None
+        else:
+            questions = question
+            option_lists = options
+            system_messages = system_message
+            prefixes = prefix
 
         formatted_option_lists = [[f'({i}) {option}' for i, option in enumerate(options)] for options in option_lists]
 
@@ -263,150 +249,15 @@ class LLMChatBaseline:
             for system_message, content in zip(system_messages, contents)
         ]
 
-        prompt_token_lists = [
-            self.chat_prompt_tokens([dialog], return_tensor=False)
-            for dialog in dialogs
-        ]
-
-
-        prompt_lengths = [
-            len(prompt_tokens[0])
-            for prompt_tokens in prompt_token_lists
-        ]
-
-        if prefixes is not None:
-            for prompt_tokens, prefix in zip(prompt_token_lists, prefixes):
-                prefix_tokens = self.tokenizer.encode(prefix, add_special_tokens=False)
-                prompt_tokens[0] += prefix_tokens
-
-
-        prompt_token_lists = [
-            torch.tensor(prompt_tokens).to(self.device)
-            for prompt_tokens in prompt_token_lists
-        ]
+        generated_outputs = self.respond_to_dialog_batched(dialogs, prefixes=prefixes, max_new_tokens=max_new_tokens)
         
-        max_length = max([prompt_tokens.size(1) for prompt_tokens in prompt_token_lists])
-
-        pad_token_id = self.tokenizer.pad_token_id
-        # Pad each sequence to the max length
-        padded_prompt_token_lists = [
-            torch.nn.functional.pad(prompt_tokens, (max_length - prompt_tokens.size(1), 0), value=pad_token_id)
-            for prompt_tokens in prompt_token_lists
-        ]
-
-        # Stack the padded sequences
-        stacked_prompt_tokens = torch.cat(padded_prompt_token_lists, dim=0)
-
-        # Generate outputs for all dialogs in a batch
-        outputs = self.model.generate(
-            stacked_prompt_tokens, 
-            return_dict_in_generate=True, 
-            output_scores=True, 
-            max_new_tokens=max_new_tokens,
-            temperature=self.temperature
-        )
-
-        # Split the sequences based on prompt lengths 
-        split_outputs = torch.split(outputs.sequences, 1, dim=0)
-
-        # Decode each output based on its corresponding prompt length
-        generated_outputs = [
-            self.tokenizer.decode(output[0][max(prompt_lengths):])
-            for output in split_outputs
-        ]
-
-        # split on </s> and remove trailing characters
-        generated_outputs = [
-            generated_output.split('</s>')[0].strip()
-            for generated_output in generated_outputs
-        ]
-
+        if not all_batched:
+            return generated_outputs[0]
         return generated_outputs
-        
-    
-    def aligned_decision_maker(self, question, choices, target_kdmas, system_message_provider, n_samples=5, inverse_misaligned=True, shuffle=True, baseline=False, include_prompt=False):
-        assert len(target_kdmas) == 1, "Only one KDMA can be targeted at a time, but received: {}".format(target_kdmas)
-        
-        kdma = list(target_kdmas.keys())[0]
-        
-        assert kdma in kdmas, f"KDMA {kdma} not supported."
-        
-        prefix = '{"Reasoning": "Because'
-        
-        responses = []
-        
-        for _ in range(n_samples):
-            system_message_keys = [kdma, 'high' if target_kdmas[kdma] > 5 else 'low']
-            
-            indecies = list(range(len(choices)))
-            if shuffle:
-                random.shuffle(indecies)
-            shuffled_choices = [choices[i] for i in indecies]
-            
-            # system_message = system_messages[system_message_keys[0]][system_message_keys[1]]
-            # system_message = load_system_message(system_message_keys[0], system_message_keys[1])
-            system_message = system_message_provider(system_message_keys[0], system_message_keys[1])
-            
-            if baseline:
-                system_message = system_message_provider('baseline', None)
-                system_message_keys[1] = 'baseline'
-            
-            high_response = self.answer_multiple_choice(
-                question,
-                shuffled_choices,
-                system_message=system_message,
-                prefix=prefix
-            )
-            
-            reasoning, answer_idx = LLMChatBaseline.parse_generated_output(high_response)
-            response = {
-                'response': high_response,
-                'reasoning': reasoning,
-                'answer_idx': answer_idx,
-                'shuffle_indecies': indecies,
-                'kdma': kdma,
-                'alignment': system_message_keys[1],
-                'aligned': True,
-            }
-            if include_prompt:
-                response['prompt'] = {
-                    'system_message': system_message,
-                    'question': question,
-                    'shuffled_choices': shuffled_choices,
-                    'prefix': prefix,
-                }
-            responses.append(response)
-            
-            if inverse_misaligned:
-                system_message_keys = (kdma, 'high' if not target_kdmas[kdma] > 5 else 'low')
-                
-                indecies = list(range(len(choices)))
-                if shuffle:
-                    random.shuffle(indecies)
-                shuffled_choices = [choices[i] for i in indecies]
-                
-                low_response = self.answer_multiple_choice(
-                    question,
-                    shuffled_choices,
-                    system_message=system_message_provider(system_message_keys[0], system_message_keys[1]),
-                    prefix=prefix
-                )
-                
-                reasoning, answer_idx = LLMChatBaseline.parse_generated_output(low_response)
-                responses.append({
-                    'response': low_response,
-                    'reasoning': reasoning,
-                    'answer_idx': answer_idx,
-                    'shuffle_indecies': indecies,
-                    'kdma': kdma,
-                    'alignment': system_message_keys[1],
-                    'aligned': False,
-                })
-        
-        return responses
 
-    
-    def aligned_decision_maker_batched(self, question, choices, target_kdmas, system_message_provider, prefix='{"Reasoning": "Because', n_samples=5, inverse_misaligned=True, shuffle=True, baseline=False, batch_size=5, max_new_tokens=512, include_prompt=False):
+
+
+    def aligned_decision_maker(self, question, choices, target_kdmas, system_message_provider, prefix='{"Reasoning": "Because', n_samples=5, inverse_misaligned=True, shuffle=True, baseline=False, batch_size=5, max_new_tokens=512, include_prompt=False):
         assert len(target_kdmas) == 1, "Only one KDMA can be targeted at a time, but received: {}".format(target_kdmas)
         
         kdma = list(target_kdmas.keys())[0]
@@ -512,7 +363,7 @@ class LLMChatBaseline:
                 })
             
         for i in range(0, len(inputs), batch_size):
-            responses = self.answer_multiple_choice_batched(
+            responses = self.answer_multiple_choice(
                 questions=[sample['question'] for sample in inputs[i:i+batch_size]],
                 option_lists=[sample['shuffled_choices'] for sample in inputs[i:i+batch_size]],
                 system_messages=[sample['system_message'] for sample in inputs[i:i+batch_size]],
@@ -675,53 +526,3 @@ class LLMChatBaseline:
             parsed_output[field] = parsed_field
 
         return parsed_output
-
-    def correct_json(self, invalid_json, verbose=True):
-        # Custom system message for correcting invalid JSON
-        system_message = (
-            "You are an assistant specialized in correcting malformed JSON strings. "
-            "Analyze the provided JSON string and correct any syntactical errors "
-            "to make it a valid JSON object. Ensure that your corrections adhere "
-            "to proper JSON syntax."
-            "Do not provide an explanation or output any text other than the corrected JSON object."
-        )
-
-        # Dialog with the system message and the invalid JSON
-        dialog = [
-            {
-                "role": "system",
-                "content": system_message
-            },
-            {
-                "role": "user",
-                "content": invalid_json
-            }
-        ]
-
-        # Generate the prompt tokens similarly to the example function
-        prompt_tokens = self.chat_prompt_tokens([dialog], return_tensor=False)
-
-
-        prompt_length = len(prompt_tokens[0])
-
-        prefix_tokens = self.tokenizer.encode('{"Reasoning": "', add_special_tokens=False) # TODO make this connected to the system message
-        prompt_tokens[0] += prefix_tokens
-
-        prompt_tokens = torch.tensor(prompt_tokens)
-        prompt_tokens = prompt_tokens.to(self.device)
-
-        outputs = self.model.generate(prompt_tokens, max_new_tokens=512)
-
-        corrected_json_str = self.tokenizer.decode(outputs[0][prompt_length:])
-
-        print(corrected_json_str)
-        try:
-            start_idx = corrected_json_str.find('{')
-            end_idx = corrected_json_str.rfind('}')
-            corrected_json_str = corrected_json_str[start_idx:end_idx+1]
-            corrected_json_obj = json.loads(corrected_json_str)
-            return corrected_json_obj
-        except Exception as e:
-            if verbose:
-                print(f'Warning: could not parse corrected JSON from generated output. Error: {str(e)}')
-            return None
