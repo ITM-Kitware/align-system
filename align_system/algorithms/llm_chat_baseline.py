@@ -96,12 +96,17 @@ class LLMChatBaseline:
         self.tokenizer = None
 
 
-    def load_model(self):
-        log.debug('Loading model:', self.hf_model)
-        self.model = AutoModelForCausalLM.from_pretrained(self.hf_model, torch_dtype=self.precision)
-        self.tokenizer = AutoTokenizer.from_pretrained(self.hf_model)
-
-        self.model = self.model.to(self.device)
+    def load_model(self, model=None, tokenizer=None):
+        assert (model is None) == (tokenizer is None), "model and tokenizer must both be None or both be not None."
+        if model is not None:
+            print('Loading model and tokenizer from provided objects.')
+            self.model = model
+            self.tokenizer = tokenizer
+        else:
+            print('Loading model:', self.hf_model)
+            self.model = AutoModelForCausalLM.from_pretrained(self.hf_model, torch_dtype=self.precision)
+            self.tokenizer = AutoTokenizer.from_pretrained(self.hf_model)
+            self.model = self.model.to(self.device)
 
 
     def get_character_ids(self, character_str):
