@@ -1,6 +1,6 @@
 import pytest
 
-from chat_langauge_model import ChatLanguageModel
+from align_system.language_model_lib.chat_language_model import ChatLanguageModel
 
 MODEL_TO_TEST = 'meta-llama/Llama-2-7b-chat-hf'
 

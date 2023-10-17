@@ -1,19 +1,42 @@
 from abc import abstractmethod
+from typing import List, Dict
+from transformers import PreTrainedTokenizerBase
 
 class DialogTokenizer:
-    
-    def __init__(self, tokenizer):
+    """
+    Abstract base class for dialog tokenizers.
+    """
+    def __init__(self, tokenizer: PreTrainedTokenizerBase):
+        """
+        Initializes the dialog tokenizer.
+
+        :param tokenizer: Pretrained tokenizer.
+        """
         self.tokenizer = tokenizer
     
     @abstractmethod
-    def dialog_to_tokens(self, dialog_messages):
+    def dialog_to_tokens(self, dialog_messages: List[Dict[str, str]]) -> List[int]:
+        """
+        Transforms a dialog to tokens.
+
+        :param dialog_messages: List of dialogs.
+        :returns: List of tokens representing the dialog.
+        """
         pass
     
 
 class Llama2DialogTokenizer(DialogTokenizer):
+    """
+    Dialog tokenizer for Llama-2.
+    """
     
-    
-    def dialog_to_tokens(self, dialog_messages):
+    def dialog_to_tokens(self, dialog_messages: List[Dict[str, str]]) -> List[int]:
+        """
+        Transforms a dialog to tokens. Llama communicates using system, user and assistant roles.
+
+        :param dialog_messages: List of dialogs.
+        :returns: List of tokens representing the dialog.
+        """
         # Define instance and system borders
         B_INST, E_INST = "[INST]", "[/INST]"
         B_SYS, E_SYS = "<<SYS>>\n", "\n<</SYS>>\n\n"
@@ -52,6 +75,7 @@ class Llama2DialogTokenizer(DialogTokenizer):
         return dialog_tokens
     
     
+# This mapping should ideally be updated when adding any new tokenizer classes to the project
 dialog_tokenizers = {
     'meta-llama/Llama-2-7b-chat-hf': Llama2DialogTokenizer,
     'meta-llama/Llama-2-13b-chat-hf': Llama2DialogTokenizer,
