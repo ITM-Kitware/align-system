@@ -133,9 +133,13 @@ def run_custom_system(interface, model, precision, align_to_target):
 
                     log.info("* ADM Explanation: {}".format(explanation))
                 else:
-                    raw_response = algorithm.answer_multiple_choice(
-                        question,
-                        options)
+                    dialog = algorithm.build_multiple_choice_dialog(
+                        question, options)
+
+                    log.debug("[bold]*DIALOG*[/bold]", extra={"markup": True})
+                    algorithm.log_dialog(dialog)
+
+                    raw_response = algorithm.respond_to_dialog(dialog)
 
                     log.info("* ADM raw response: {}".format(raw_response))
 

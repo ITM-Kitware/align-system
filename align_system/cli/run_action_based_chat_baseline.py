@@ -148,8 +148,7 @@ def run_action_based_chat_system(interface,
                         [a['unstructured'] for a
                          in available_actions_filtered])
 
-                    log.debug("[bold]*DIALOG*[/bold]",
-                              extra={"markup": True})
+                    log.debug("[bold]*DIALOG*[/bold]", extra={"markup": True})
                     algorithm.log_dialog(dialog)
 
                     raw_response = algorithm.respond_to_dialog(dialog)
