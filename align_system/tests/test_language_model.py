@@ -1,7 +1,7 @@
 import pytest
 import torch
 
-from align_system.language_model_lib.language_model import LanguageModel
+from align_system.algorithms.lib.language_model import LanguageModel
 
 MODEL_TO_TEST = 'gpt2'  # Use a smaller model for testing
 
