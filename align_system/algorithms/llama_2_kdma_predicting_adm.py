@@ -1,7 +1,8 @@
 import json
+import yaml
+import os
 from typing import Union, List, Dict, Tuple, Optional, TextIO
-from align_system.language_model_lib.chat_language_model import ChatLanguageModel
-from align_system.language_model_lib.util import extract_kdma_description
+from align_system.algorithms.lib.chat.chat_language_model import ChatLanguageModel
 
 class Llama2KDMAPredictingADM(ChatLanguageModel):
     
@@ -12,7 +13,7 @@ class Llama2KDMAPredictingADM(ChatLanguageModel):
                          log_file: Optional[TextIO] = None,
                          max_tokens: int = 512,
                          temperature: float = 0.6,
-                         outcome_template_file: str = 'templates/predict_outcomes.md') -> List[str]:
+                         outcome_template_file: str = 'pred_outcome.txt') -> List[str]:
         """
         Predicts outcomes for given scenario, probe and choices.
 
@@ -50,8 +51,8 @@ class Llama2KDMAPredictingADM(ChatLanguageModel):
                             log_file: Optional[TextIO] = None,
                             max_new_tokens: int = 512,
                             temperature: float = 0.6,
-                            kdma_template_file: str = 'templates/kdma.md',
-                            kdma_descriptions_file: str = 'templates/bbn_kdma_descriptions.md') -> Union[List[Dict[str, float]], Tuple[List[Dict[str, float]], List[Dict[str, str]]]]:
+                            kdma_template_file: str = 'pred_kdma_RO.txt',
+                            kdma_descriptions_file: str = 'lib/templates/bbn_kdma_descriptions.yml') -> Union[List[Dict[str, float]], Tuple[List[Dict[str, float]], List[Dict[str, str]]]]:
         """
         Predicts KDMA scores each choice text under the given scenario and probe.
 
@@ -70,15 +71,21 @@ class Llama2KDMAPredictingADM(ChatLanguageModel):
         choice_ids = [f'choice_{i}' for i in range(len(choice_texts))]
         substitutions = []
         info = []
-        kdma_descriptions = extract_kdma_description(kdma_descriptions_file)
+        
+        relative_dir = os.path.dirname(__file__)
+        kdma_descriptions_file_path = os.path.join(relative_dir, kdma_descriptions_file)
+        
+        with open(kdma_descriptions_file_path, 'r') as f:
+            kdma_descriptions = yaml.load(f, Loader=yaml.FullLoader)
+        
         if predicted_outcomes is None:
             predicted_outcomes = [None] * len(choice_texts)
         
         for choice_id, choice, outcome in zip(choice_ids, choice_texts, predicted_outcomes):
-            for kdma, kdma_description in kdma_descriptions.items():
+            for kdma, kdma_info in kdma_descriptions.items():
                 substitution = {
-                    'kdma': kdma,
-                    'kdma_description': kdma_description,
+                    'kdma': kdma_info['name'],
+                    'kdma_description': kdma_info['description'],
                     'scenario': scenario_text,
                     'probe': probe_text,
                     'choice': choice,

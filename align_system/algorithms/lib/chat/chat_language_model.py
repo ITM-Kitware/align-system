@@ -1,8 +1,8 @@
 from typing import List, Dict, Optional, Callable, Union, TextIO
 
-from align_system.language_model_lib.language_model import LanguageModel
-from align_system.language_model_lib.dialog_tokenizer import dialog_tokenizers
-from align_system.language_model_lib.util import read_file, format_template, dialog_from_string, dialog_to_string
+from align_system.algorithms.lib.language_model import LanguageModel
+from align_system.algorithms.lib.chat.dialog_tokenizer import dialog_tokenizers
+from align_system.algorithms.lib.util import read_template, format_template, dialog_from_string, dialog_to_string
 
 class ChatLanguageModel(LanguageModel):
 
@@ -115,7 +115,7 @@ class ChatLanguageModel(LanguageModel):
 
         # Create a dialogue for each template/substitution pair
         dialogs = {
-            i: dialog_from_string(format_template(read_file(template_file), **substitutions))
+            i: dialog_from_string(format_template(read_template(template_file), **substitutions))
             for i, (template_file, substitutions) in enumerate(zip(template_files, substitution_dicts))
         }
 

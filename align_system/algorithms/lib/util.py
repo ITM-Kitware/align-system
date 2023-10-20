@@ -1,5 +1,7 @@
 import re
-from typing import List, Dict, Union
+import os
+from typing import List, Dict
+
 
 def dialog_from_string(dialog_string: str) -> List[Dict[str, str]]:
     """
@@ -38,15 +40,23 @@ def dialog_from_string(dialog_string: str) -> List[Dict[str, str]]:
         })
     return dialog
 
-def read_file(file_path: str) -> str:
-    """
-    Reads a file and returns its content.
 
-    :param file_path: Path to the file to read.
-    :return: The content of the file.
+def dialog_to_string(dialog: List[Dict[str, str]]) -> str:
     """
-    with open(file_path, 'r') as f:
-        return f.read()
+    Transforms the dialog in list of dictionary to string format.
+
+    :param dialog: Dialog in list of dictionary format.
+    :return: Dialog in string format.
+    """
+    output = ''
+    for dialog_piece in dialog:
+        role = dialog_piece['role']
+        content = dialog_piece['content']
+        output += f"=== {role}\n"
+        output += f"{content}\n"
+
+    return output
+
 
 def format_template(template: str, **substitutions: str) -> str:
     """
@@ -71,45 +81,13 @@ def format_template(template: str, **substitutions: str) -> str:
     return template
 
 
-def extract_kdma_description(descriptions_file: str) -> Dict[str, str]:
-    """
-    Extracts KDMA description from the file.
-
-    :param descriptions_file: File with KDMA descriptions.
-    :return: Dictionary of KDMA descriptions.
-    """
-    kdma_dict = {}
-    kdma_name = None
-    kdma_description = ''
-
-    with open(descriptions_file, 'r') as f:
-        for line in f:
-            if line.startswith('#'):  # The line is a KDMA tag
-                if kdma_name is not None:  # Save the previous KDMA's tag and description
-                    kdma_dict[kdma_name] = kdma_description.strip()
-                kdma_name = line[1:].strip()  # The new KDMA tag
-                kdma_description = ''
-            else:  # The line is a part of the KDMA's description
-                kdma_description += line
-
-        if kdma_name is not None and kdma_name not in kdma_dict:
-            kdma_dict[kdma_name] = kdma_description.strip()
-
-    return kdma_dict
+def read_template(template_file_name: str, template_dir='templates') -> str:
+    current_directory = os.path.dirname(os.path.abspath(__file__))
+    full_path = os.path.join(current_directory, template_dir, template_file_name)
+    
+    with open(full_path, 'r') as template_file:
+        template = template_file.read()
+    
+    return template
 
 
-def dialog_to_string(dialog: List[Dict[str, str]]) -> str:
-    """
-    Transforms the dialog in list of dictionary to string format.
-
-    :param dialog: Dialog in list of dictionary format.
-    :return: Dialog in string format.
-    """
-    output = ''
-    for dialog_piece in dialog:
-        role = dialog_piece['role']
-        content = dialog_piece['content']
-        output += f"=== {role}\n"
-        output += f"{content}\n"
-
-    return output

@@ -1,0 +1,30 @@
+=== system
+Given the following scenario, response, and predicted outcome your job is to asses, on a scale from 0 to 10, how well the response characterizes the decision making behavior of someone who acting with high {{kdma}}. Provide one sentence of reasoning.
+
+{{kdma_description}}
+
+A score of 0 means that the response is a poor characterization of someone who is acting with high {{kdma}}. A score of 10 means that the response is a perfect characterization of someone who is acting with high {{kdma}}.
+
+Ensure your response strictly adheres to following JSON format 
+{
+  "score": int score
+}
+Provide no other information or text in your response. Your response ends when you reach the end of the JSON object.
+=== user
+Consider the following scenario:
+```
+{{scenario}}
+{{probe}}
+```
+Review this response to the scenario and consider the corresponding predicted outcome:
+```
+Response:
+{{choice}}
+
+Predicted Outcome:
+{{outcome}}
+```
+Generate a JSON object that indicates how well the response characterizes the decision making behavior of someone who is acting with high {{kdma}}. Your response ends when you reach the end of the JSON object.
+=== assistant
+{
+  "score": 
