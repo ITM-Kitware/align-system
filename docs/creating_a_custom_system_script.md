@@ -98,9 +98,25 @@ Note that this template is runable as-is (it simply responds with placeholder va
 Similar to the template above, we've included a template for action-based APIs which are a bit different from the probe / response APIs.  (Also included with this repository at [align_system/cli/template_action_based.py](/align_system/cli/template_action_based.py)):
 
 ```python
+import sys
 import json
+import logging
+
+from rich.logging import RichHandler
+from rich.highlighter import JSONHighlighter
 
 from align_system.interfaces.cli_builder import build_interfaces
+
+
+LOGGING_FORMAT = "%(message)s"
+logging.basicConfig(
+    level="NOTSET",
+    format=LOGGING_FORMAT,
+    datefmt="[%X]",
+    handlers=[RichHandler()])
+JSON_HIGHLIGHTER = JSONHighlighter()
+
+log = logging.getLogger(__name__)
 
 
 def add_cli_args(parser):
@@ -123,7 +139,9 @@ def main():
     # The `build_interfaces` call also instantiates an interface
     # object based on the selected interface and interface arguments
     # provided at the command line and passes them to your run
-    # function (`run_custom_system` in this case)
+    # function (`run_custom_action_based_system` in this case)
+    log.debug(f"[bright_black]CMD: {' '.join(sys.argv)}[/bright_black]",
+              extra={'markup': True, 'highlighter': None})
     run_custom_action_based_system(
         **build_interfaces(add_cli_args, "My action based ALIGN System CLI",
                            supported_interfaces={'TA3ActionBased'}))
@@ -147,7 +165,10 @@ def run_custom_action_based_system(interface,
 
         # DO ALGORITHM THINGS HERE
 
-        print(json.dumps(available_actions, indent=2))
+        log.info("[bold]*AVAILABLE ACTIONS*[/bold]",
+                 extra={"markup": True})
+        log.info(json.dumps(available_actions, indent=4),
+                 extra={"highlighter": JSON_HIGHLIGHTER})
 
         action_to_take = available_actions[0]  # Just taking first action
 
@@ -159,9 +180,20 @@ def run_custom_action_based_system(interface,
             action_to_take['parameters'] = {
                 'treatment': current_state['supplies'][0]['type'],
                 'location': 'right forearm'}
+        # 'TAG_CASUALTY' actions require additional parameters to be
+        # provided, i.e. the casualty to tag, as well as which tag to
+        # apply
+        elif action_to_take['action_type'] == 'TAG_CASUALTY':
+            untagged_casualties = [c for c in current_state['casualties']
+                                   if 'tag' not in c]
 
-        print("** TAKING ACTION: **")
-        print(json.dumps(action_to_take))
+            action_to_take['casualty_id'] = untagged_casualties[0]['id']
+            action_to_take['parameters'] = {'category': 'IMMEDIATE'}
+
+        log.info("[bold]** TAKING ACTION: **[/bold]",
+                 extra={"markup": True})
+        log.info(json.dumps(action_to_take, indent=4),
+                 extra={"highlighter": JSON_HIGHLIGHTER})
 
         current_state = scenario.take_action(action_to_take)
         scenario_complete = current_state.get('scenario_complete', False)
@@ -172,7 +204,7 @@ if __name__ == "__main__":
 ```
 
 
-Note that this template is runable as-is (it simply responds with placeholder values).
+Note that this template is runable as-is (it simply responds with placeholder values).  We're also demonstrating how to make sure of the [rich](https://github.com/Textualize/rich) logger.
 
 ## Other useful components
 

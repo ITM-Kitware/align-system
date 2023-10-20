@@ -1,6 +1,22 @@
+import sys
 import json
+import logging
+
+from rich.logging import RichHandler
+from rich.highlighter import JSONHighlighter
 
 from align_system.interfaces.cli_builder import build_interfaces
+
+
+LOGGING_FORMAT = "%(message)s"
+logging.basicConfig(
+    level="NOTSET",
+    format=LOGGING_FORMAT,
+    datefmt="[%X]",
+    handlers=[RichHandler()])
+JSON_HIGHLIGHTER = JSONHighlighter()
+
+log = logging.getLogger(__name__)
 
 
 def add_cli_args(parser):
@@ -23,7 +39,9 @@ def main():
     # The `build_interfaces` call also instantiates an interface
     # object based on the selected interface and interface arguments
     # provided at the command line and passes them to your run
-    # function (`run_custom_system` in this case)
+    # function (`run_custom_action_based_system` in this case)
+    log.debug(f"[bright_black]CMD: {' '.join(sys.argv)}[/bright_black]",
+              extra={'markup': True, 'highlighter': None})
     run_custom_action_based_system(
         **build_interfaces(add_cli_args, "My action based ALIGN System CLI",
                            supported_interfaces={'TA3ActionBased'}))
@@ -47,7 +65,10 @@ def run_custom_action_based_system(interface,
 
         # DO ALGORITHM THINGS HERE
 
-        print(json.dumps(available_actions, indent=2))
+        log.info("[bold]*AVAILABLE ACTIONS*[/bold]",
+                 extra={"markup": True})
+        log.info(json.dumps(available_actions, indent=4),
+                 extra={"highlighter": JSON_HIGHLIGHTER})
 
         action_to_take = available_actions[0]  # Just taking first action
 
@@ -69,8 +90,10 @@ def run_custom_action_based_system(interface,
             action_to_take['casualty_id'] = untagged_casualties[0]['id']
             action_to_take['parameters'] = {'category': 'IMMEDIATE'}
 
-        print("** TAKING ACTION: **")
-        print(json.dumps(action_to_take))
+        log.info("[bold]** TAKING ACTION: **[/bold]",
+                 extra={"markup": True})
+        log.info(json.dumps(action_to_take, indent=4),
+                 extra={"highlighter": JSON_HIGHLIGHTER})
 
         current_state = scenario.take_action(action_to_take)
         scenario_complete = current_state.get('scenario_complete', False)
