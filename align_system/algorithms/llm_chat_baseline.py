@@ -97,7 +97,7 @@ class LLMChatBaseline:
 
 
     def load_model(self):
-        print('Loading model:', self.hf_model)
+        log.debug('Loading model:', self.hf_model)
         self.model = AutoModelForCausalLM.from_pretrained(self.hf_model, torch_dtype=self.precision)
         self.tokenizer = AutoTokenizer.from_pretrained(self.hf_model)
 
@@ -669,7 +669,7 @@ class LLMChatBaseline:
 
         corrected_json_str = self.tokenizer.decode(outputs[0][prompt_length:])
 
-        print(corrected_json_str)
+        log.debug(corrected_json_str, extra={"highlighter": JSON_HIGHLIGHTER})
         try:
             start_idx = corrected_json_str.find('{')
             end_idx = corrected_json_str.rfind('}')
@@ -678,7 +678,7 @@ class LLMChatBaseline:
             return corrected_json_obj
         except Exception as e:
             if verbose:
-                print(f'Warning: could not parse corrected JSON from generated output. Error: {str(e)}')
+                log.warning(f'Warning: could not parse corrected JSON from generated output. Error: {str(e)}')
             return None
 
     def run_aligned_decision_maker_with_voting(
@@ -694,7 +694,7 @@ class LLMChatBaseline:
         try:
             choice_scores = LLMChatBaseline.calculate_votes(responses, choices)
         except Exception as e:
-            print(f"Error calculating votes {sample['probe_id']}: {e}")
+            log.warning(f"Error calculating votes {sample['probe_id']}: {e}")
             choice_scores = None
 
         log.debug("[bold]*CHOICE SCORES*[/bold]",

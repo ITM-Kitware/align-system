@@ -1,4 +1,4 @@
-import sys
+import logging
 
 from langchain.embeddings.huggingface import HuggingFaceEmbeddings
 from llama_index import (
@@ -14,6 +14,8 @@ from llama_index.prompts import PromptTemplate
 import torch
 
 from transformers import AutoModelForCausalLM
+
+log = logging.getLogger(__name__)
 
 query_wrapper_prompt = SimpleInputPrompt(
     "Below is an instruction that describes a task. "
@@ -79,7 +81,7 @@ class LlamaIndex:
             # query with embed_model specified
             self.query_engine = new_index.as_query_engine(streaming=True)
         else:
-            print("Retrieval disabled", file=sys.stderr)
+            log.info("Retrieval disabled")
             self.query_engine = LLMPredictor(self.hf_llm)
 
         self.model_loaded = True
