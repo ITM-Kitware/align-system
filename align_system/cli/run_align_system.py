@@ -1,4 +1,9 @@
+import logging
+import sys
 import json
+
+from rich.logging import RichHandler
+from rich.highlighter import JSONHighlighter
 
 from align_system.interfaces.cli_builder import build_interfaces
 from align_system.algorithms.llm_baseline import LLMBaseline
@@ -9,6 +14,17 @@ from align_system.utils.enums import ProbeType
 from align_system.interfaces.abstracts import (
     ScenarioInterfaceWithAlignment,
     ProbeInterfaceWithAlignment)
+
+
+LOGGING_FORMAT = "%(message)s"
+logging.basicConfig(
+    level="NOTSET",
+    format=LOGGING_FORMAT,
+    datefmt="[%X]",
+    handlers=[RichHandler()])
+JSON_HIGHLIGHTER = JSONHighlighter()
+
+log = logging.getLogger(__name__)
 
 
 def add_cli_args(parser):
@@ -36,6 +52,8 @@ def add_cli_args(parser):
 
 
 def main():
+    log.debug(f"[bright_black]CMD: {' '.join(sys.argv)}[/bright_black]",
+              extra={'markup': True, 'highlighter': None})
     run_align_system(
         **build_interfaces(add_cli_args, "ALIGN System CLI",
                            supported_interfaces={'LocalFiles',
@@ -74,13 +92,13 @@ def run_align_system(interface,
             for kdma_dict in alignment_target_dict.get('kdma_values', ()):
                 if kdma_dict['kdma'].lower() == 'knowledge':
                     if kdma_dict['value'] > 1:
-                        print("** Setting 'retrieval_enabled' to True based "
-                              "on 'Knowledge' KDMA value ({})".format(
-                                  kdma_dict['value']))
+                        log.info("** Setting 'retrieval_enabled' to True "
+                                 "based on 'Knowledge' KDMA value ({})".format(
+                                     kdma_dict['value']))
                         algorithm_kwargs_parsed['retrieval_enabled'] = True
                     else:
-                        print("** Setting 'retrieval_enabled' to False based "
-                              "on 'Knowledge' KDMA value ({})".format(
+                        log.info("** Setting 'retrieval_enabled' to False "
+                                 "based on 'Knowledge' KDMA value ({})".format(
                                   kdma_dict['value']))
                         algorithm_kwargs_parsed['retrieval_enabled'] = False
 
@@ -127,10 +145,14 @@ def run_align_system(interface,
             options=probe_options_dicts,
             alignment_target=alignment_target_dict if align_to_target else None
         )
-        print("* Prompt for ADM: {}".format(prompt))
+        log.info("[bold]* Prompt for ADM *[/bold]",
+                 extra={"markup": True})
+        log.info(prompt)
 
         raw_response = str(algorithm.run_inference(prompt))
-        print("* ADM Raw response: {}".format(raw_response))
+        log.info("[bold]* ADM raw response *[/bold]",
+                 extra={"markup": True})
+        log.info(raw_response)
 
         if probe_dict['type'] == ProbeType.FreeResponse.value:
             probe.respond({'justification': raw_response})
@@ -138,7 +160,9 @@ def run_align_system(interface,
             # Assume multiple-choice style
             selected_choice_idx, selected_choice = force_choice_func(
                 raw_response, [str(o['value']) for o in probe_dict['options']])
-            print("* ADM Selected: '{}'".format(selected_choice))
+            log.info("[bold]* Mapped selection *[/bold]",
+                     extra={"markup": True})
+            log.info(selected_choice)
 
             selected_choice_id =\
                 probe_dict['options'][selected_choice_idx]['id']
@@ -148,12 +172,12 @@ def run_align_system(interface,
 
         if isinstance(probe, ProbeInterfaceWithAlignment):
             probe_alignment_results = probe.get_alignment_results()
-            print("* Probe alignment score: {}".format(
-                probe_alignment_results['score']))
+            log.info("* Probe alignment score: {}".format(
+                    probe_alignment_results['score']))
 
     if isinstance(scenario, ScenarioInterfaceWithAlignment):
         scenario_alignment_results = scenario.get_alignment_results()
-        print("* Scenario alignment score: {}".format(
+        log.info("* Scenario alignment score: {}".format(
             scenario_alignment_results['score']))
 
 
