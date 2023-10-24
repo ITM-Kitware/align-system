@@ -697,11 +697,11 @@ class LLMChatBaseline:
             log.warning(f"Error calculating votes {sample['probe_id']}: {e}")
             choice_scores = None
 
-        log.debug("[bold]*CHOICE SCORES*[/bold]",
-                  extra={"markup": True})
-        log.debug(json.dumps({c: s for c, s in zip(choices, choice_scores)},
-                             indent=4),
-                  extra={"highlighter": JSON_HIGHLIGHTER})
+        log.explain("[bold]*CHOICE SCORES*[/bold]",
+                    extra={"markup": True})
+        log.explain(json.dumps({c: s for c, s in zip(choices, choice_scores)},
+                               indent=4),
+                    extra={"highlighter": JSON_HIGHLIGHTER})
 
         results = {
             'prompt': prompt,
