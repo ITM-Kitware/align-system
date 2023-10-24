@@ -1,10 +1,9 @@
-import logging
 import sys
 import json
 
-from rich.logging import RichHandler
 from rich.highlighter import JSONHighlighter
 
+from align_system.utils import logging
 from align_system.interfaces.cli_builder import build_interfaces
 from align_system.algorithms.llm_baseline import LLMBaseline
 from align_system.algorithms.llama_index import LlamaIndex
@@ -16,15 +15,8 @@ from align_system.interfaces.abstracts import (
     ProbeInterfaceWithAlignment)
 
 
-LOGGING_FORMAT = "%(message)s"
-logging.basicConfig(
-    level="NOTSET",
-    format=LOGGING_FORMAT,
-    datefmt="[%X]",
-    handlers=[RichHandler()])
-JSON_HIGHLIGHTER = JSONHighlighter()
-
 log = logging.getLogger(__name__)
+JSON_HIGHLIGHTER = JSONHighlighter()
 
 
 def add_cli_args(parser):
@@ -49,6 +41,9 @@ def add_cli_args(parser):
                         type=str,
                         default="bert",
                         help="Similarity measure to use (default: 'bert')")
+    parser.add_argument('-l', '--loglevel',
+                        type=str,
+                        default='INFO')
 
 
 def main():
@@ -66,7 +61,10 @@ def run_align_system(interface,
                      align_to_target=False,
                      algorithm="llm_baseline",
                      algorithm_kwargs=None,
-                     similarity_measure="bert"):
+                     similarity_measure="bert",
+                     loglevel="INFO"):
+    log.setLevel(loglevel)
+
     scenario = interface.start_scenario()
     scenario_dict = scenario.to_dict()
 
@@ -92,13 +90,13 @@ def run_align_system(interface,
             for kdma_dict in alignment_target_dict.get('kdma_values', ()):
                 if kdma_dict['kdma'].lower() == 'knowledge':
                     if kdma_dict['value'] > 1:
-                        log.info("** Setting 'retrieval_enabled' to True "
-                                 "based on 'Knowledge' KDMA value ({})".format(
+                        log.debug("** Setting 'retrieval_enabled' to True "
+                                  "based on 'Knowledge' KDMA value ({})".format(
                                      kdma_dict['value']))
                         algorithm_kwargs_parsed['retrieval_enabled'] = True
                     else:
-                        log.info("** Setting 'retrieval_enabled' to False "
-                                 "based on 'Knowledge' KDMA value ({})".format(
+                        log.debug("** Setting 'retrieval_enabled' to False "
+                                  "based on 'Knowledge' KDMA value ({})".format(
                                   kdma_dict['value']))
                         algorithm_kwargs_parsed['retrieval_enabled'] = False
 

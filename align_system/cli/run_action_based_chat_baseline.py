@@ -1,10 +1,9 @@
-import logging
 import sys
 import json
 
-from rich.logging import RichHandler
 from rich.highlighter import JSONHighlighter
 
+from align_system.utils import logging
 from align_system.interfaces.cli_builder import build_interfaces
 from align_system.algorithms.llm_chat_baseline import (
     LLMChatBaseline,
@@ -16,15 +15,8 @@ from align_system.prompt_engineering.common import (
     prepare_tagging_selection_prompt)
 
 
-LOGGING_FORMAT = "%(message)s"
-logging.basicConfig(
-    level="NOTSET",
-    format=LOGGING_FORMAT,
-    datefmt="[%X]",
-    handlers=[RichHandler()])
-JSON_HIGHLIGHTER = JSONHighlighter()
-
 log = logging.getLogger(__name__)
+JSON_HIGHLIGHTER = JSONHighlighter()
 
 
 def add_cli_args(parser):

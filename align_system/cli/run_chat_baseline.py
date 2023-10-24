@@ -1,10 +1,9 @@
 import sys
 import json
-import logging
 
-from rich.logging import RichHandler
 from rich.highlighter import JSONHighlighter
 
+from align_system.utils import logging
 from align_system.interfaces.cli_builder import build_interfaces
 # from align_system.utils.enums import ProbeType
 from align_system.interfaces.abstracts import (
@@ -18,16 +17,8 @@ from align_system.algorithms.llm_chat_baseline import LLMChatBaseline
 run_chat_baseline LocalFiles -s example_data/scenario_1/scenario.json -p example_data/scenario_1/probe{1,2,3,4}.json
 '''
 
-
-LOGGING_FORMAT = "%(message)s"
-logging.basicConfig(
-    level="NOTSET",
-    format=LOGGING_FORMAT,
-    datefmt="[%X]",
-    handlers=[RichHandler()])
-JSON_HIGHLIGHTER = JSONHighlighter()
-
 log = logging.getLogger(__name__)
+JSON_HIGHLIGHTER = JSONHighlighter()
 
 
 def add_cli_args(parser):
@@ -46,6 +37,9 @@ def add_cli_args(parser):
                         action='store_true',
                         default=False,
                         help="Align algorithm to target KDMAs")
+    parser.add_argument('-l', '--loglevel',
+                        type=str,
+                        default='INFO')
 
 
 def main():
@@ -62,7 +56,13 @@ def main():
     run_custom_system(**build_interfaces(add_cli_args, "ALIGN System CLI - Chat Model"))
 
 
-def run_custom_system(interface, model, precision, align_to_target):
+def run_custom_system(interface,
+                      model,
+                      precision,
+                      align_to_target,
+                      loglevel="INFO"):
+    log.setLevel(loglevel)
+
     log.info('Creating algorithm')
     algorithm = LLMChatBaseline(hf_model=model, precision=precision)
 

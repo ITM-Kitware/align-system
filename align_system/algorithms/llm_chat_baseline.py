@@ -1,20 +1,20 @@
-import logging
-
-from rich.highlighter import JSONHighlighter
-
-import torch
-from transformers import AutoModelForCausalLM, AutoTokenizer
-import numpy as np
 import json
 import re
 import random
 import os
 import pathlib
 
+from rich.highlighter import JSONHighlighter
+import torch
+from transformers import AutoModelForCausalLM, AutoTokenizer
+import numpy as np
 
-JSON_HIGHLIGHTER = JSONHighlighter()
+from align_system.utils import logging
+
 
 log = logging.getLogger(__name__)
+JSON_HIGHLIGHTER = JSONHighlighter()
+
 
 kdmas = {
     'basic_knowledge',
