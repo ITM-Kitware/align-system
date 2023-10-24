@@ -1,5 +1,3 @@
-import logging
-
 from langchain.embeddings.huggingface import HuggingFaceEmbeddings
 from llama_index import (
     VectorStoreIndex,
@@ -12,8 +10,10 @@ from llama_index.prompts.prompts import SimpleInputPrompt
 from llama_index.llm_predictor import LLMPredictor
 from llama_index.prompts import PromptTemplate
 import torch
-
 from transformers import AutoModelForCausalLM
+
+from align_system.utils import logging
+
 
 log = logging.getLogger(__name__)
 
