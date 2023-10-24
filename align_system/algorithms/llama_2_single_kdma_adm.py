@@ -3,6 +3,7 @@ import re
 import random
 import os
 import pathlib
+from align_system.evaluation.automated_decision_maker import AutomatedDecisionMaker
 
 from rich.highlighter import JSONHighlighter
 import torch
@@ -82,7 +83,7 @@ TREATMENT_MULTIPLE_CHOICE_JSON_FORMAT = "{\"Reasoning\": \"<Provide a reasoned e
 TAGGING_MULTIPLE_CHOICE_JSON_FORMAT = "{\"Reasoning\": \"<Provide a reasoned explanation here>\", \"Answer\": <Integer index corresponding to your final answer>, \"Tag\": \"<Specific medical triage tag to apply, one of: 'MINIMAL', 'DELAYED', 'IMMEDIATE', 'EXPECTANT'>\"}\\n"
 
 
-class LLMChatBaseline:
+class Llama2SingleKDMAADM(AutomatedDecisionMaker):
 
     def __init__(self, device='cuda', hf_model='meta-llama/Llama-2-7b-chat-hf', precision='full', temperature=0.7):
         self.device = device
@@ -348,7 +349,7 @@ class LLMChatBaseline:
 
             high_response = self.respond_to_dialog(dialog, prefix=prefix)
 
-            reasoning, answer_idx = LLMChatBaseline.parse_generated_output(high_response)
+            reasoning, answer_idx = Llama2SingleKDMAADM.parse_generated_output(high_response)
             responses.append({
                 'response': high_response,
                 'reasoning': reasoning,
@@ -381,7 +382,7 @@ class LLMChatBaseline:
                 low_response = self.respond_to_dialog(
                     inverse_misaligned_dialog, prefix=prefix)
 
-                reasoning, answer_idx = LLMChatBaseline.parse_generated_output(low_response)
+                reasoning, answer_idx = Llama2SingleKDMAADM.parse_generated_output(low_response)
                 responses.append({
                     'response': low_response,
                     'reasoning': reasoning,
@@ -422,7 +423,7 @@ class LLMChatBaseline:
                 system_message_keys = 'baseline'
 
             def callback(high_response):
-                reasoning, answer_idx = LLMChatBaseline.parse_generated_output(high_response)
+                reasoning, answer_idx = Llama2SingleKDMAADM.parse_generated_output(high_response)
                 results.append({
                     'response': high_response,
                     'reasoning': reasoning,
@@ -450,7 +451,7 @@ class LLMChatBaseline:
                 shuffled_choices = [choices[i] for i in indecies]
 
                 def callback(low_response):
-                    reasoning, answer_idx = LLMChatBaseline.parse_generated_output(low_response)
+                    reasoning, answer_idx = Llama2SingleKDMAADM.parse_generated_output(low_response)
                     results.append({
                         'response': low_response,
                         'reasoning': reasoning,
@@ -697,9 +698,9 @@ class LLMChatBaseline:
         )
 
         try:
-            choice_scores = LLMChatBaseline.calculate_votes(responses, choices)
+            choice_scores = Llama2SingleKDMAADM.calculate_votes(responses, choices)
         except Exception as e:
-            log.warning(f"Error calculating votes {sample['probe_id']}: {e}")
+            log.warning(f"Error calculating votes: {e}")
             choice_scores = None
 
         log.explain("[bold]*CHOICE SCORES*[/bold]",
@@ -729,3 +730,24 @@ class LLMChatBaseline:
                 break
 
         return reasoning, answer_idx
+
+
+    def __call__(self, sample, **kwargs):
+        target_kdmas = sample['target_kdmas']
+        prompt = sample['scenario']
+        if sample['state'] is not None:
+            prompt += f'\n{sample["state"]}'
+
+        prompt += f'\n{sample["probe"]}'
+
+        choices = sample['choices']
+
+        reasoning, answer_idx = self.run_aligned_decision_maker_with_voting(
+            prompt,
+            choices,
+            target_kdmas,
+        )
+
+        return {
+            'choice': answer_idx
+        }
