@@ -3,8 +3,9 @@ import yaml
 import os
 from typing import Union, List, Dict, Tuple, Optional, TextIO
 from align_system.algorithms.lib.chat.chat_language_model import ChatLanguageModel
+from align_system.evaluation.automated_decision_maker import AutomatedDecisionMaker
 
-class Llama2KDMAPredictingADM(ChatLanguageModel):
+class Llama2KDMAPredictingADM(ChatLanguageModel, AutomatedDecisionMaker):
     
     def predict_outcomes(self,
                          scenario_text: str,
@@ -160,3 +161,51 @@ class Llama2KDMAPredictingADM(ChatLanguageModel):
             return predicted_kdmas, reasonings
         else:
             return predicted_kdmas
+    
+    
+    def __call__(self, sample, **kwargs):
+        target_kdmas = sample['target_kdmas']
+        scenario_text = sample['scenario']
+        if sample['state'] is not None:
+            scenario_text += f'\n{sample["state"]}'
+            
+        predicted_outcomes = self.predict_outcomes(
+            scenario_text,
+            sample['probe'],
+            sample['choices'],
+            **kwargs
+        )
+            
+        predicted_kdmas, generated_reasoning = self.predict_kdma_scores(
+            scenario_text,
+            sample['probe'],
+            sample['choices'],
+            predicted_outcomes=predicted_outcomes,
+            **kwargs
+        )
+        
+        def mse(target_kdmas, predicted_kdmas):
+            kdmas = set(target_kdmas.keys()) & set(predicted_kdmas.keys())
+            
+            if len(kdmas) == 0:
+                return 0
+        
+            return sum([(target_kdmas[kdma] - predicted_kdmas[kdma])**2 for kdma in kdmas]) / len(kdmas)
+
+        # find index of min mse
+        choice_idx = 0
+        min_mse = float('inf')
+        for i, choice in enumerate(sample['choices']):
+            mse_ = mse(target_kdmas, predicted_kdmas[i])
+            if mse_ < min_mse:
+                min_mse = mse_
+                choice_idx = i
+        
+        return {
+            'choice': choice_idx,
+            'predicted_kdmas': predicted_kdmas,
+            'info': {
+                'predicted_outcomes': predicted_outcomes,
+                'generated_reasoning': generated_reasoning,
+            }
+        }
