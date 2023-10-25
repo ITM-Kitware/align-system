@@ -1,22 +1,23 @@
 from typing import List, Dict, Optional, Callable, Union, TextIO
 
 from align_system.algorithms.lib.language_model import LanguageModel
-from align_system.algorithms.lib.chat.dialog_tokenizer import dialog_tokenizers
+# from align_system.algorithms.lib.chat.dialog_tokenizer import DialogTokenizer
 from align_system.algorithms.lib.util import read_template, format_template, dialog_from_string, dialog_to_string
+from jinja2.exceptions import TemplateError
 
 class ChatLanguageModel(LanguageModel):
 
-    def __init__(self, model: LanguageModel, tokenizer: Callable[[str], List[str]]):
-        """
-        Initializes the chat language model.
+    # def __init__(self, model: LanguageModel, tokenizer: Callable[[str], List[str]]):
+    #     """
+    #     Initializes the chat language model.
 
-        :param model: Pretrained language model.
-        :param tokenizer: Tokenizer function.
-        """
-        super().__init__(model, tokenizer)
-        model_name = model.name_or_path
-        assert model_name in dialog_tokenizers, f'No dialog tokenizer found for model {model_name}'
-        self.dialog_tokenizer = dialog_tokenizers[model_name](tokenizer)
+    #     :param model: Pretrained language model.
+    #     :param tokenizer: Tokenizer function.
+    #     """
+    #     super().__init__(model, tokenizer)
+    #     # model_name = model.name_or_path
+    #     # assert model_name in dialog_tokenizers, f'No dialog tokenizer found for model {model_name}'
+    #     # self.dialog_tokenizer = dialog_tokenizers[model_name](tokenizer)
 
     def generate_responses(self, 
                            dialogs: List[Dict[str, str]], 
@@ -52,10 +53,27 @@ class ChatLanguageModel(LanguageModel):
             prefixes.append(prefix)
 
         # Tokenization step
-        prompt_token_lists = [
-            [self.dialog_tokenizer.dialog_to_tokens(dialog)]
-            for dialog in user_last_dialogs
-        ]
+        try:
+            prompt_token_lists = [
+                [self.tokenizer.apply_chat_template(dialog, tokenize=True)]
+                for dialog in user_last_dialogs
+            ]
+        except TemplateError as e:
+            systemless_dialogs = []
+            for dialog in user_last_dialogs:
+                if dialog[0]['role'] == 'system':
+                    dialog[0]['role'] = 'user'
+                if dialog[1]['role'] == 'user':
+                    dialog[0]['content'] = f"{dialog[0]['content']}\n\n{dialog[1]['content']}"
+                    del dialog[1]
+                systemless_dialogs.append(dialog)
+            
+            prompt_token_lists = [
+                [self.tokenizer.apply_chat_template(dialog, tokenize=True)]
+                for dialog in systemless_dialogs
+            ]
+                
+            
 
         # Add the prefix tokens to the prompt tokens
         for prompt_tokens, prefix in zip(prompt_token_lists, prefixes):
