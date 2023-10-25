@@ -6,7 +6,7 @@ from align_system.interfaces.abstracts import (
     ScenarioInterfaceWithAlignment,
     ProbeInterfaceWithAlignment)
 
-from align_system.algorithms.llm_chat_baseline import LLMChatBaseline
+from align_system.algorithms.llama_2_single_kdma_adm import Llama2SingleKDMAADM
 
 
 '''
@@ -46,7 +46,7 @@ def main():
 
 def run_custom_system(interface, model, precision, align_to_target):
     print('Creating algorithm')
-    algorithm = LLMChatBaseline(hf_model=model, precision=precision)
+    algorithm = Llama2SingleKDMAADM(hf_model=model, precision=precision)
 
     algorithm.load_model()
 
@@ -122,12 +122,12 @@ def run_custom_system(interface, model, precision, align_to_target):
 
                     print("* ADM raw response: {}".format(raw_response))
 
-                    parsed_output = LLMChatBaseline.attempt_generic_parse(
+                    parsed_output = Llama2SingleKDMAADM.attempt_generic_parse(
                         raw_response, ['Reasoning', 'Answer'])
 
                     if parsed_output is None:
                         explanation, action_idx =\
-                            LLMChatBaseline.parse_generated_output(
+                            Llama2SingleKDMAADM.parse_generated_output(
                                 raw_response)
                     else:
                         explanation = parsed_output['Reasoning']

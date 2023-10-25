@@ -13,7 +13,7 @@ def reload_all():
     from align_system.evaluation import adm_evaluator as adme
     from align_system.evaluation import bbn_evaluator as bbne
     
-    from align_system.algorithms import llama_2_kdma_predicting_adm as kpa
+    from align_system.algorithms import chat_kdma_predicting_adm as kpa
     from align_system.algorithms import llama_2_single_kdma_adm as ska
 
 

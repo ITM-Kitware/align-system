@@ -5,7 +5,7 @@ from typing import Union, List, Dict, Tuple, Optional, TextIO
 from align_system.algorithms.lib.chat.chat_language_model import ChatLanguageModel
 from align_system.evaluation.automated_decision_maker import AutomatedDecisionMaker
 
-class Llama2KDMAPredictingADM(ChatLanguageModel, AutomatedDecisionMaker):
+class ChatKDMAPredictingADM(ChatLanguageModel, AutomatedDecisionMaker):
     
     def predict_outcomes(self,
                          scenario_text: str,
