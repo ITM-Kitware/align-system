@@ -17,7 +17,7 @@ class TA3CACIActionBasedServiceInterface(Interface):
         self.api_endpoint = api_endpoint
         self.username = username
         self.scenario_id = scenario_id
-        self.training_session = False
+        self.training_session = training_session
 
         start_session_params = {'adm_name': username,
                                 'session_type':  session_type}

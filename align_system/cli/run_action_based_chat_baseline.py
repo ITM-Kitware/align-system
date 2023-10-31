@@ -40,6 +40,9 @@ def add_cli_args(parser):
                         default=5,
                         help="Max number of attempts at generating a "
                              "parseable response (default: 5)")
+    parser.add_argument('-l', '--loglevel',
+                        type=str,
+                        default='INFO')
 
 
 def main():
@@ -69,7 +72,10 @@ def run_action_based_chat_system(interface,
                                  model,
                                  precision,
                                  align_to_target=False,
-                                 answer_attempts=5):
+                                 answer_attempts=5,
+                                 loglevel="INFO"):
+    log.setLevel(loglevel)
+
     scenario = interface.start_scenario()
     scenario_dict = scenario.to_dict()
 
@@ -85,6 +91,11 @@ def run_action_based_chat_system(interface,
 
     while not scenario_complete:
         available_actions = scenario.get_available_actions()
+
+        log.debug("[bold]*AVAILABLE ACTIONS*[/bold]",
+                  extra={"markup": True})
+        log.debug(json.dumps(available_actions, indent=4),
+                  extra={"highlighter": JSON_HIGHLIGHTER})
 
         untagged_casualties = [c for c in current_state['casualties']
                                if 'tag' not in c]
@@ -169,6 +180,10 @@ def run_action_based_chat_system(interface,
                 log.info('** Failed to parse')
 
         action_to_take = available_actions_filtered[int(action_idx)]
+        # We may have this additional field for training runs, need to
+        # remove it before passing back to the server
+        if 'kdma_association' in action_to_take:
+            del action_to_take['kdma_association']
 
         if explanation is not None:
             action_to_take['justification'] = explanation
