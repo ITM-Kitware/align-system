@@ -3,7 +3,7 @@ import re
 import random
 import os
 import pathlib
-from align_system.evaluation.automated_decision_maker import AutomatedDecisionMaker
+from align_system.algorithms.lib.algorithmic_decision_maker import AlgorithmicDecisionMaker
 
 from rich.highlighter import JSONHighlighter
 import torch
@@ -83,7 +83,7 @@ TREATMENT_MULTIPLE_CHOICE_JSON_FORMAT = "{\"Reasoning\": \"<Provide a reasoned e
 TAGGING_MULTIPLE_CHOICE_JSON_FORMAT = "{\"Reasoning\": \"<Provide a reasoned explanation here>\", \"Answer\": <Integer index corresponding to your final answer>, \"Tag\": \"<Specific medical triage tag to apply, one of: 'MINIMAL', 'DELAYED', 'IMMEDIATE', 'EXPECTANT'>\"}\\n"
 
 
-class Llama2SingleKDMAADM(AutomatedDecisionMaker):
+class Llama2SingleKDMAADM(AlgorithmicDecisionMaker):
 
     def __init__(self, device='cuda', hf_model='meta-llama/Llama-2-7b-chat-hf', precision='full', temperature=0.7):
         self.device = device
