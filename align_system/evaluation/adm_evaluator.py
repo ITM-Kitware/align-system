@@ -1,12 +1,11 @@
 
 
-def generate_outputs(dataset, adm, target_kdmas, **kwargs):
+def generate_outputs(dataset, adm, target_kdma_values, **kwargs):
+    print('kwargs', kwargs)
     outputs = []
     for input_, label in dataset:
         # add target kdmas to input without changing the dataset
-        input_ = input_.copy()
-        input_['target_kdmas'] = target_kdmas
-        outputs.append(adm(input_, **kwargs))
+        outputs.append(adm(input_, target_kdma_values, labels=label, **kwargs))
     
     return outputs
 
@@ -29,24 +28,24 @@ def get_avg_system_kdmas(dataset, outputs):
     return avg_kdmas
 
 
-def adept_similarity_score(target_kdmas, system_kdmas):
-    if len(target_kdmas) == 0:
+def adept_similarity_score(target_kdma_values, system_kdmas):
+    if len(target_kdma_values) == 0:
         return 0
     
     distance = 0
-    for kdma, target_value in target_kdmas.items():
+    for kdma, target_value in target_kdma_values.items():
         system_value = system_kdmas[kdma] if kdma in system_kdmas else 5
         distance += (target_value - system_value) ** 2
     
     return 1 / (distance + 1)
 
 
-def adept_similarity_score_by_kdma(target_kdmas, system_kdmas):
-    if len(target_kdmas) == 0:
+def adept_similarity_score_by_kdma(target_kdma_values, system_kdmas):
+    if len(target_kdma_values) == 0:
         return {}
     
     scores = {}
-    for kdma, target_value in target_kdmas.items():
+    for kdma, target_value in target_kdma_values.items():
         system_value = system_kdmas[kdma] if kdma in system_kdmas else 5
         distance = (target_value - system_value) ** 2
         scores[kdma] = 1 / (distance + 1)
@@ -54,13 +53,13 @@ def adept_similarity_score_by_kdma(target_kdmas, system_kdmas):
     return scores
 
 
-def soartech_similarity_score(target_kdmas, system_kdmas, p=2):
-    kdmas = set(target_kdmas.keys()) & set(system_kdmas.keys())
+def soartech_similarity_score(target_kdma_values, system_kdmas, p=2):
+    kdmas = set(target_kdma_values.keys()) & set(system_kdmas.keys())
     
     if len(kdmas) == 0:
         return 0
     
-    a = [target_kdmas[kdma]/10 for kdma in kdmas]
+    a = [target_kdma_values[kdma]/10 for kdma in kdmas]
     b = [system_kdmas[kdma]/10 for kdma in kdmas]
     
     for vec in (a,b):
@@ -70,13 +69,13 @@ def soartech_similarity_score(target_kdmas, system_kdmas, p=2):
     return 1 - sum([(abs(ai - bi)**p)   for ai, bi in zip(a,b)])/len(kdmas)
 
 
-def soartech_similarity_score_by_kdma(target_kdmas, system_kdmas, p=2):
-    kdmas = set(target_kdmas.keys()) & set(system_kdmas.keys())
+def soartech_similarity_score_by_kdma(target_kdma_values, system_kdmas, p=2):
+    kdmas = set(target_kdma_values.keys()) & set(system_kdmas.keys())
     
     if len(kdmas) == 0:
         return {}
     
-    a = [target_kdmas[kdma]/10 for kdma in kdmas]
+    a = [target_kdma_values[kdma]/10 for kdma in kdmas]
     b = [system_kdmas[kdma]/10 for kdma in kdmas]
     
     for vec in (a,b):
@@ -86,31 +85,31 @@ def soartech_similarity_score_by_kdma(target_kdmas, system_kdmas, p=2):
     return {kdma: 1 - (abs(ai - bi)**p) for kdma, ai, bi in zip(kdmas, a, b)}
 
 
-def mean_absolute_error(target_kdmas, system_kdmas):
-    kdmas = set(target_kdmas.keys()) & set(system_kdmas.keys())
+def mean_absolute_error(target_kdma_values, system_kdmas):
+    kdmas = set(target_kdma_values.keys()) & set(system_kdmas.keys())
     
     if len(kdmas) == 0:
         return 0
     
-    a = [target_kdmas[kdma] for kdma in kdmas]
+    a = [target_kdma_values[kdma] for kdma in kdmas]
     b = [system_kdmas[kdma] for kdma in kdmas]
     
     return sum([abs(ai - bi)   for ai, bi in zip(a,b)])/len(kdmas)
 
 
-def mean_squared_error(target_kdmas, system_kdmas):
-    kdmas = set(target_kdmas.keys()) & set(system_kdmas.keys())
+def mean_squared_error(target_kdma_values, system_kdmas):
+    kdmas = set(target_kdma_values.keys()) & set(system_kdmas.keys())
     
     if len(kdmas) == 0:
         return 0
     
-    a = [target_kdmas[kdma] for kdma in kdmas]
+    a = [target_kdma_values[kdma] for kdma in kdmas]
     b = [system_kdmas[kdma] for kdma in kdmas]
     
     return sum([(ai - bi)**2   for ai, bi in zip(a,b)])/len(kdmas)
 
 
-def evaluate(dataset, generated_outputs, target_kdmas):
+def evaluate(dataset, generated_outputs, target_kdma_values):
         
     system_kdmas = get_avg_system_kdmas(dataset, generated_outputs)
     
@@ -131,7 +130,7 @@ def evaluate(dataset, generated_outputs, target_kdmas):
     
     for metric in metrics:
         metric_name = metric.__name__
-        results['choice_metrics'][metric_name] = metric(target_kdmas, system_kdmas)
+        results['choice_metrics'][metric_name] = metric(target_kdma_values, system_kdmas)
         
     metrics = [
         mean_absolute_error,
@@ -143,15 +142,14 @@ def evaluate(dataset, generated_outputs, target_kdmas):
     per_choice_metrics = []
         
     for output, (input_, label) in zip(generated_outputs, dataset):
-        if not 'predicted_kdmas' in output:
+        if not 'predicted_kdma_values' in output:
             continue
         
-        
-        for label_kdmas, predicted_kdmas in zip(label, output['predicted_kdmas']):
+        for label_kdmas, predicted_kdma_values in zip(label, output['predicted_kdma_values']):
             choice_metrics = {}
             for metric in metrics:
                 metric_name = metric.__name__
-                choice_metrics[metric_name] = metric(label_kdmas, predicted_kdmas)
+                choice_metrics[metric_name] = metric(label_kdmas, predicted_kdma_values)
         
             per_choice_metrics.append(choice_metrics)
     

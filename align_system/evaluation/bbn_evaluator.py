@@ -1,7 +1,7 @@
 import pandas as pd
 
-
 from align_system.evaluation.itm_dataset import ITMDataset
+
 
 def load_samples(bbn_csv_file):
     '''
@@ -16,12 +16,7 @@ def load_samples(bbn_csv_file):
                 {
                     text,
                     kdmas: {
-                        basic_knowledge,
-                        time_pressure,
-                        risk_aversion,
-                        fairness,
-                        protocol_focus,
-                        utilitarianism
+                        kdma_name: kdma_value
                     }
                 }
             ]

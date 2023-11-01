@@ -4,18 +4,24 @@ from abc import abstractmethod
 class AutomatedDecisionMaker:
     
     @abstractmethod
-    def __call__(self, sample, **kwargs):
+    def __call__(self, sample, target_kdma_values, **kwargs):
+        
         '''
+        target_kdma_values: {
+            kdma_name: kdma_value,
+            ...
+        }
+        
         sample = {
-                target_kdmas: { ... }
-                scenario,
-                state,
-                probe,
-                choices: [
-                    choice_text,
-                    ...
-                ]
-            }
+            scenario,
+            state,
+            probe,
+            choices: [
+                choice_text,
+                ...
+            ]
+        }
+        
         returns {
             choice: idx, [required]
             predicted_kdmas: { [optional]
