@@ -53,7 +53,7 @@ def adept_similarity_score_by_kdma(target_kdma_values, system_kdmas):
     return scores
 
 
-def soartech_similarity_score(target_kdma_values, system_kdmas, p=2):
+def soartech_similarity_score(target_kdma_values, system_kdmas, p=0.75):
     kdmas = set(target_kdma_values.keys()) & set(system_kdmas.keys())
     
     if len(kdmas) == 0:
@@ -69,7 +69,45 @@ def soartech_similarity_score(target_kdma_values, system_kdmas, p=2):
     return 1 - sum([(abs(ai - bi)**p)   for ai, bi in zip(a,b)])/len(kdmas)
 
 
-def soartech_similarity_score_by_kdma(target_kdma_values, system_kdmas, p=2):
+def kitware_similarity_score(target_kdma_values, system_kdmas):
+    kdmas = set(target_kdma_values.keys()) & set(system_kdmas.keys())
+    
+    if len(kdmas) == 0:
+        return 0
+    
+    a = [target_kdma_values[kdma] for kdma in kdmas]
+    b = [system_kdmas[kdma] for kdma in kdmas]
+    
+    for vec in (a,b):
+        assert min(vec) >= 0
+        assert max(vec) <= 10
+    
+    return sum([
+        10**(1 - (ai - bi)**2/25)/10
+        for ai, bi in zip(a,b)
+    ])/len(kdmas)
+
+
+def kitware_similarity_score_by_kdma(target_kdma_values, system_kdmas):
+    kdmas = set(target_kdma_values.keys()) & set(system_kdmas.keys())
+    
+    if len(kdmas) == 0:
+        return 0
+    
+    a = [target_kdma_values[kdma] for kdma in kdmas]
+    b = [system_kdmas[kdma] for kdma in kdmas]
+    
+    for vec in (a,b):
+        assert min(vec) >= 0
+        assert max(vec) <= 10
+    
+    return {
+        kdma: 10**(1 - (ai - bi)**2/25)/10
+        for kdma, ai, bi in zip(kdmas, a, b)
+    }
+
+
+def soartech_similarity_score_by_kdma(target_kdma_values, system_kdmas, p=0.75):
     kdmas = set(target_kdma_values.keys()) & set(system_kdmas.keys())
     
     if len(kdmas) == 0:
@@ -120,6 +158,8 @@ def evaluate(dataset, generated_outputs, target_kdma_values):
         soartech_similarity_score_by_kdma,
         adept_similarity_score,
         adept_similarity_score_by_kdma,
+        kitware_similarity_score,
+        kitware_similarity_score_by_kdma
     ]
     
     results = {
@@ -137,6 +177,7 @@ def evaluate(dataset, generated_outputs, target_kdma_values):
         mean_squared_error,
         soartech_similarity_score,
         adept_similarity_score,
+        kitware_similarity_score
     ]
     
     per_choice_metrics = []
