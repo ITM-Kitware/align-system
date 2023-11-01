@@ -12,9 +12,9 @@ class ChatKDMAPredictingADM(ChatLanguageModel, AutomatedDecisionMaker):
                          probe_text: str,
                          choices: List[str],
                          log_file: Optional[TextIO] = None,
-                         max_tokens: int = 512,
+                         max_new_tokens: int = 512,
                          temperature: float = 0.6,
-                         outcome_template_file: str = 'pred_outcome.txt') -> List[str]:
+                         template: str = 'pred_outcome.txt') -> List[str]:
         """
         Predicts outcomes for given scenario, probe and choices.
 
@@ -28,7 +28,7 @@ class ChatKDMAPredictingADM(ChatLanguageModel, AutomatedDecisionMaker):
         :return: List of generated predictions.
         """
         return self.generate_from_template(
-            outcome_template_file,
+            template,
             [
                 {
                     'scenario': scenario_text,
@@ -38,12 +38,12 @@ class ChatKDMAPredictingADM(ChatLanguageModel, AutomatedDecisionMaker):
                 for choice in choices 
             ],
             log_file=log_file,
-            max_tokens=max_tokens,
+            max_tokens=max_new_tokens,
             temperature=temperature
         )
 
     
-    def predict_kdma_scores(self,
+    def predict_kdma_values(self,
                             scenario_text: str,
                             probe_text: str,
                             choice_texts: List[str],
@@ -52,7 +52,7 @@ class ChatKDMAPredictingADM(ChatLanguageModel, AutomatedDecisionMaker):
                             log_file: Optional[TextIO] = None,
                             max_new_tokens: int = 512,
                             temperature: float = 0.6,
-                            kdma_template_file: str = 'pred_kdma_RO.txt',
+                            template: str = 'pred_kdma_RO.txt',
                             kdma_descriptions_file: str = 'lib/templates/bbn_kdma_descriptions.yml') -> Union[List[Dict[str, float]], Tuple[List[Dict[str, float]], List[Dict[str, str]]]]:
         """
         Predicts KDMA scores each choice text under the given scenario and probe.
@@ -65,7 +65,7 @@ class ChatKDMAPredictingADM(ChatLanguageModel, AutomatedDecisionMaker):
         :param log_file: Optional log file.
         :param max_new_tokens: Maximum number of new tokens to generate.
         :param temperature: Temperature for sampling.
-        :param kdma_template_file: Template file for KDMA prediction.
+        :param template: Template file for KDMA prediction.
         :param kdma_descriptions_file: Template file for KDMA descriptions.
         :return: KDMA predictions. If generate_reasoning is True, return predictions and reasonings.
         """
@@ -125,7 +125,7 @@ class ChatKDMAPredictingADM(ChatLanguageModel, AutomatedDecisionMaker):
             return response_json
             
         generations = self.generate_from_template(
-            kdma_template_file,
+            template,
             substitutions,
             parse_kdma_score_response,
             log_file=log_file,
@@ -133,11 +133,11 @@ class ChatKDMAPredictingADM(ChatLanguageModel, AutomatedDecisionMaker):
             temperature=temperature,
         )
         
-        predicted_kdmas = {}
+        predicted_kdma_values = {}
         reasonings = {}
         for (choice_id, kdma), generation in zip(info, generations):
-            predicted_choice_kdmas = predicted_kdmas.get(choice_id, {})
-            predicted_kdmas[choice_id] = predicted_choice_kdmas
+            predicted_choice_kdmas = predicted_kdma_values.get(choice_id, {})
+            predicted_kdma_values[choice_id] = predicted_choice_kdmas
             
             choice_reasonings = reasonings.get(choice_id, {})
             reasonings[choice_id] = choice_reasonings
@@ -147,8 +147,8 @@ class ChatKDMAPredictingADM(ChatLanguageModel, AutomatedDecisionMaker):
             if generate_reasoning:
                 choice_reasonings[kdma] = generation['reasoning']
         
-        predicted_kdmas = [
-            predicted_kdmas[choice_id]
+        predicted_kdma_values = [
+            predicted_kdma_values[choice_id]
             for choice_id in choice_ids
         ]
         if generate_reasoning:
@@ -158,52 +158,53 @@ class ChatKDMAPredictingADM(ChatLanguageModel, AutomatedDecisionMaker):
             ]
         
         if generate_reasoning:
-            return predicted_kdmas, reasonings
+            return predicted_kdma_values, reasonings
         else:
-            return predicted_kdmas
+            return predicted_kdma_values
     
     
-    def __call__(self, sample, **kwargs):
-        target_kdmas = sample['target_kdmas']
+    def __call__(self, sample, target_kdma_values, **kwargs):
         scenario_text = sample['scenario']
         if sample['state'] is not None:
             scenario_text += f'\n{sample["state"]}'
-            
-        predicted_outcomes = self.predict_outcomes(
-            scenario_text,
-            sample['probe'],
-            sample['choices'],
-            **kwargs
-        )
-            
-        predicted_kdmas, generated_reasoning = self.predict_kdma_scores(
+        
+        predicted_outcomes = None
+        if 'predict_outcomes'in kwargs:
+            predicted_outcomes = self.predict_outcomes(
+                scenario_text,
+                sample['probe'],
+                sample['choices'],
+                **kwargs['predict_outcomes']
+            )
+        
+        predicted_kdma_values, generated_reasoning = self.predict_kdma_values(
             scenario_text,
             sample['probe'],
             sample['choices'],
             predicted_outcomes=predicted_outcomes,
-            **kwargs
+            **kwargs['predict_kdma_values']
         )
         
-        def mse(target_kdmas, predicted_kdmas):
-            kdmas = set(target_kdmas.keys()) & set(predicted_kdmas.keys())
+        def mse(target_kdma_values, predicted_kdma_values):
+            kdmas = set(target_kdma_values.keys()) & set(predicted_kdma_values.keys())
             
             if len(kdmas) == 0:
                 return 0
         
-            return sum([(target_kdmas[kdma] - predicted_kdmas[kdma])**2 for kdma in kdmas]) / len(kdmas)
+            return sum([(target_kdma_values[kdma] - predicted_kdma_values[kdma])**2 for kdma in kdmas]) / len(kdmas)
 
         # find index of min mse
         choice_idx = 0
         min_mse = float('inf')
         for i, choice in enumerate(sample['choices']):
-            mse_ = mse(target_kdmas, predicted_kdmas[i])
+            mse_ = mse(target_kdma_values, predicted_kdma_values[i])
             if mse_ < min_mse:
                 min_mse = mse_
                 choice_idx = i
         
         return {
             'choice': choice_idx,
-            'predicted_kdmas': predicted_kdmas,
+            'predicted_kdmas': predicted_kdma_values,
             'info': {
                 'predicted_outcomes': predicted_outcomes,
                 'generated_reasoning': generated_reasoning,
