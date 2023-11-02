@@ -1,7 +1,7 @@
 from abc import abstractmethod
 
 # ADM sub-classes implement all the algorithm-specific logic
-class AlgorithmicDecisionMaker:
+class AlignedDecisionMaker:
     
     @abstractmethod
     def __call__(self, sample, target_kdma_values, **kwargs):
