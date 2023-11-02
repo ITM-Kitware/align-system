@@ -18,6 +18,18 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 * Removing training session data info from "action to take" passed to TA3 API
 
 
+## Version 0.2.3
+
+#### Added
+
+* Added LanguageModel, ChatLanguageModel classes for ADMs to inherit from
+* Added AlignedDecisionMaker interface for ADMs to implement
+* Added template system for ADMs to use
+* Added evaluation library code to measure ADM performance
+* Added ChatKDMAPredictingADM ADM
+* Added a few tests for LanguageModel and ChatLanguageModel classes
+
+
 ## Version 0.2.2
 
 #### Added
