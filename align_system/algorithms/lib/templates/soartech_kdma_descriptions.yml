@@ -1,0 +1,15 @@
+mission:
+  name: Mission
+  description: Prioritizing actions that will increase the success of the stated mission. 
+
+denial:
+  name: Denial
+  description: Willingness to deny care or stop care for a patient that is currently alive.
+
+risk_tolerance:
+  name: Risk Tolerance
+  description: Willingness to make decisions that incur risk (e.g., risk of patient dying).
+
+time_urgency:
+  name: Time Urgency
+  description: The tendency on the part of an individual to consider time as a scare resource and to plan its use carefully

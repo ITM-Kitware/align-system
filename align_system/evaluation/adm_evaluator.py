@@ -1,7 +1,6 @@
 
 
 def generate_outputs(dataset, adm, target_kdma_values, **kwargs):
-    print('kwargs', kwargs)
     outputs = []
     for input_, label in dataset:
         # add target kdmas to input without changing the dataset

@@ -3,9 +3,9 @@ import yaml
 import os
 from typing import Union, List, Dict, Tuple, Optional, TextIO
 from align_system.algorithms.lib.chat.chat_language_model import ChatLanguageModel
-from align_system.evaluation.automated_decision_maker import AutomatedDecisionMaker
+from align_system.algorithms.lib.algorithmic_decision_maker import AlgorithmicDecisionMaker
 
-class ChatKDMAPredictingADM(ChatLanguageModel, AutomatedDecisionMaker):
+class ChatKDMAPredictingADM(ChatLanguageModel, AlgorithmicDecisionMaker):
     
     def predict_outcomes(self,
                          scenario_text: str,

@@ -107,7 +107,7 @@ class ChatLanguageModel(LanguageModel):
         log_file: Optional[TextIO] = None,
         max_tokens: int = 512,
         temperature: float = 0.6,
-        max_retry: int = 10,
+        max_retry: int = 100,
         verbose: bool = False) -> List[str]:
         """
         Generates responses for given templates with substitutions.
