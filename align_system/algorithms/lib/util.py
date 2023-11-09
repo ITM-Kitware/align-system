@@ -58,36 +58,42 @@ def dialog_to_string(dialog: List[Dict[str, str]]) -> str:
     return output
 
 
-def format_template(template: str, **substitutions: str) -> str:
+def format_template(template: str,
+                    partial: bool = False,
+                    allow_extraneous: bool = False,
+                    **substitutions: str) -> str:
     """
     Replaces placeholders in a template with provided substitutions.
 
     :param template: The template with placeholders indicated as {{placeholder}}.
+    :param partial: Allow partial substituion of template (don't throw
+                    an error if there are unsubstituted keys)
+    :param allow_extraneous: Don't throw an error if a substituion is
+                             provided that's not in the template
     :param substitutions: The substitutions to replace in the template.
     :return: The template with all placeholders substituted.
     """
     for key, value in substitutions.items():
         key = '{{%s}}' % key
-        if not key in template:
+        if not allow_extraneous and key not in template:
             raise Exception(f'Could not find key {key} in template')
         template = template.replace(key, value)
-    
-    # ensure there are no strings surrounded by {{ }}
-    matches = re.findall(r'{{.*?}}', template)
-    # if there are any matches, raise an exception
-    if len(matches) > 0:
-        raise Exception(f'Unsubstituited key(s) in template: {matches}')
-    
+
+    if not partial:
+        # ensure there are no strings surrounded by {{ }}
+        matches = re.findall(r'{{.*?}}', template)
+        # if there are any matches, raise an exception
+        if len(matches) > 0:
+            raise Exception(f'Unsubstituited key(s) in template: {matches}')
+
     return template
 
 
 def read_template(template_file_name: str, template_dir='templates') -> str:
     current_directory = os.path.dirname(os.path.abspath(__file__))
     full_path = os.path.join(current_directory, template_dir, template_file_name)
-    
+
     with open(full_path, 'r') as template_file:
         template = template_file.read()
-    
+
     return template
-
-

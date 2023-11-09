@@ -11,6 +11,12 @@ import torch.nn.functional as F
 
 # from transformers import RobertaTokenizer, RobertaForSequenceClassification
 
+from align_system.algorithms.lib.util import format_template
+from align_system.utils import logging
+
+
+log = logging.getLogger(__name__)
+
 
 class KaleidoSys:
     def __init__(self, model_name='tsor13/kaleido-small', embed_model_name='sentence-transformers/all-mpnet-base-v2', device="cuda" if torch.cuda.is_available() else "cpu", use_tqdm=True):
@@ -135,7 +141,7 @@ class KaleidoSys:
         if not self.embed_model or not self.embed_tokenizer:
             self.load_embedder()
 
-        encoded_input = self.embed_tokenizer(texts, padding=True, truncation=True, return_tensors='pt').to(self.device)
+        encoded_input = self.embed_tokenizer(texts, padding=True, truncation=False, return_tensors='pt').to(self.device)
 
         with torch.no_grad():
             model_output = self.embed_model(**encoded_input)
@@ -406,7 +412,7 @@ class KaleidoSys:
                 [self.gen_template(action) for action in batch_actions],
                 return_tensors='pt',
                 padding=True,
-                truncation=True,
+                truncation=False,
                 max_length=128).to(self.device).input_ids
             with torch.no_grad():
                 gens = self.model.generate(encoded_batch, num_beams=n_gens, num_return_sequences=n_gens, max_new_tokens=30)
@@ -451,7 +457,7 @@ class KaleidoSys:
                 [self.explanation_template(action, vrd, text) for action, vrd, text in zip(batch_actions, batch_vrds, batch_texts)],
                 return_tensors='pt',
                 padding=True,
-                truncation=True,
+                truncation=False,
                 max_length=128).to(self.device).input_ids
             with torch.no_grad():
                 exps = self.model.generate(encoded_batch, **explanation_decoding_params)
@@ -487,7 +493,7 @@ class KaleidoSys:
                 inds = list(range(i*batch_size, min((i+1)*batch_size, len(inputs))))
                 encoded_batch = self.tokenizer.batch_encode_plus(
                     inputs[inds].tolist(),
-                    return_tensors='pt', padding=True, truncation=True, max_length=128,
+                    return_tensors='pt', padding=True, truncation=False, max_length=128,
                 ).to(self.device).input_ids
                 # batch_inputs = encoded_batch[i*batch_size:(i+1)*batch_size]
                 # Run through model, get last logits
@@ -548,3 +554,85 @@ class KaleidoSys:
         if single:
             probs = probs[0]
         return probs
+
+    def simple_kdma_weights_fn(results_df):
+        return results_df['relevant'] * results_df['supports']
+
+    def heuristic_kdma_weights_fn(results_df):
+        # TODO: Maybe some more heuristics here, e.g. if either is
+        # higher than supports or opposes, just assign a value of '5'.
+        # Could also just consider thresholding on relevance, e.g. if
+        # < 0.8; don't consider that KDMA
+
+        # Could also do something like "either" * 5 + (("supports" / ("opposes" + "supports")) * 10) - 5
+        pass
+
+    def default_kdma_weights_fn(results_df):
+        return results_df['either'] * 5 + results_df['supports'] * 10
+
+    def default_distance_fn(group_records):
+        # (1.0 / relevant) as a weight could be too punitive?
+        return sum((1.0 / group_records['relevant']) * abs(group_records['weight'] - group_records['target']))
+
+    def predict_kdma_weights(self,
+                             prompt_template,
+                             choices,
+                             target_kdmas,
+                             compute_weight_fn=default_kdma_weights_fn,
+                             distance_fn=default_distance_fn):
+        kdma_descriptions = {k: k for k in target_kdmas.keys()}
+
+        rows = []
+        for choice in choices:
+            other_choices_str = ', '.join(['"{}"'.format(c) for c in (set(choices) - {choice})])
+            choice_prompt = format_template(
+                prompt_template,
+                allow_extraneous=True,
+                choice=choice, other_choices=other_choices_str)
+
+            log.debug("[bold] ** Kaleido Prompt ** [/bold]",
+                      extra={"markup": True})
+            log.debug(choice_prompt)
+
+            for kdma, target in target_kdmas.items():
+                relevance = self.get_relevance(
+                    choice_prompt, 'Value', kdma_descriptions[kdma])
+                valence = self.get_valence(
+                    choice_prompt, 'Value', kdma_descriptions[kdma])
+
+                # relevant, not_relevant = relevance
+                # supports, opposes, either = valence
+
+                rows.append((choice, kdma_descriptions[kdma], *relevance, *valence, target))
+
+        results = pd.DataFrame(
+            rows, columns=["choice", "KDMA", "relevant", "not_relevant", "supports", "opposes", "either", "target"])
+
+        results['weight'] = compute_weight_fn(results)
+
+        log.explain("[bold] ** Kaleido Computed Weights ** [/bold]",
+                    extra={"markup": True})
+        log.explain(results)
+
+        choice_rows = []
+        for group_key, group_records in results.groupby(['choice']):
+            # group_key is a single element tuple in this case
+            choice, = group_key
+
+            sum_distance = distance_fn(group_records)
+
+            choice_rows.append((choice, sum_distance))
+
+        choice_results = pd.DataFrame(
+            choice_rows, columns=["choice", "distance"])
+
+        log.explain("[bold] ** Kaleido Choice Distances from Alignment Target (sorted) ** [/bold]",
+                    extra={"markup": True})
+        log.explain(choice_results.sort_values(by=['distance']))
+
+        most_aligned_choice_idx = choice_results.idxmax()['distance']
+        most_aligned_choice = choice_results.iloc[most_aligned_choice_idx]['choice']
+
+        output_choice_idx = choices.index(most_aligned_choice)
+
+        return output_choice_idx
