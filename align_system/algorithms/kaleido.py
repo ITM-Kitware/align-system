@@ -11,6 +11,7 @@ import torch.nn.functional as F
 
 # from transformers import RobertaTokenizer, RobertaForSequenceClassification
 
+from align_system.algorithms.lib.aligned_decision_maker import AlignedDecisionMaker
 from align_system.algorithms.lib.util import format_template
 from align_system.utils import logging
 
@@ -18,7 +19,7 @@ from align_system.utils import logging
 log = logging.getLogger(__name__)
 
 
-class KaleidoSys:
+class KaleidoSys(AlignedDecisionMaker):
     def __init__(self, model_name='tsor13/kaleido-small', embed_model_name='sentence-transformers/all-mpnet-base-v2', device="cuda" if torch.cuda.is_available() else "cpu", use_tqdm=True):
         self.model_name = model_name
         self.embed_model_name = embed_model_name
@@ -630,9 +631,50 @@ class KaleidoSys:
                     extra={"markup": True})
         log.explain(choice_results.sort_values(by=['distance']))
 
-        most_aligned_choice_idx = choice_results.idxmax()['distance']
+        most_aligned_choice_idx = choice_results.idxmin()['distance']
         most_aligned_choice = choice_results.iloc[most_aligned_choice_idx]['choice']
 
         output_choice_idx = choices.index(most_aligned_choice)
 
-        return output_choice_idx
+        return output_choice_idx, results
+
+    def __call__(self, sample, target_kdma_values, labels, **kwargs):
+        import yaml
+
+        from align_system.algorithms.lib.util import format_template
+
+        # scenario_data = yaml.safe_load(sample['scenario'])
+        scenario_data = sample['scenario']
+
+        if isinstance(scenario_data, str):
+            template = '{{probe}} "{{choice}}" instead of {{other_choices}}.  In the context of the following scenario: {{scenario_data}}'
+            partial_template = format_template(
+                template,
+                partial=True,
+                probe=sample['probe'],
+                scenario_data=scenario_data)
+        elif isinstance(scenario_data, dict):
+            template = '{{probe}} "{{choice}}" instead of {{other_choices}}.  In the context of the following scenario: {{initial_setting}} {{casualty_setting}} With the following casualties: {{casualties_str}}'
+            casualties_str = '\n'.join([f'{k}: {v}' for k, v in scenario_data['Casualties'].items()])
+            partial_template = format_template(
+                template,
+                partial=True,
+                probe=sample['probe'],
+                initial_setting=scenario_data['Initial setting'],
+                casualty_setting=scenario_data['Casualty setting'],
+                casualties_str=casualties_str)
+        else:
+            raise RuntimeError('Unexpected scenario_data type: {}'.format(type(scenario_data)))
+
+        selected_choice_idx, results = self.predict_kdma_weights(
+            partial_template,
+            sample['choices'],
+            target_kdma_values)
+
+        choice = sample['choices'][selected_choice_idx]
+        predicted_kdma_values =\
+            {r['KDMA']: float(r['weight']) for _, r
+             in results[results['choice'] == choice].iterrows()}
+
+        return {'choice': selected_choice_idx,
+                'predicted_kdmas': predicted_kdma_values}

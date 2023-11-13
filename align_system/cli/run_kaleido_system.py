@@ -96,7 +96,7 @@ def run_align_system(interface,
             probe_prompt=probe_dict['prompt'],
             scenario_state_unstructured=scenario_dict['state']['unstructured'])
 
-        selected_choice_idx =\
+        selected_choice_idx, _ =\
             kaleido.predict_kdma_weights(prompt_template_partial,
                                          [str(o['value']) for o in probe_dict['options']],
                                          {k['kdma']: k['value'] for k in alignment_target_dict.get('kdma_values', ())})
