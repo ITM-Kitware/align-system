@@ -13,6 +13,9 @@ def get_avg_system_kdmas(dataset, outputs):
     chosen_kdmas = {}
     for output, (input_, label) in zip(outputs, dataset):
         choice_idx = output['choice']
+        if choice_idx is None:
+            continue
+        
         label_kdmas = label[choice_idx]
         for kdma_name, kdma_value in label_kdmas.items():
             if kdma_name not in chosen_kdmas:
@@ -104,7 +107,9 @@ def kitware_similarity_score_by_kdma(target_kdma_values, system_kdmas):
         kdma: 10**(1 - (ai - bi)**2/25)/10
         for kdma, ai, bi in zip(kdmas, a, b)
     }
+    
 
+    
 
 def soartech_similarity_score_by_kdma(target_kdma_values, system_kdmas, p=0.75):
     kdmas = set(target_kdma_values.keys()) & set(system_kdmas.keys())
@@ -146,6 +151,48 @@ def mean_squared_error(target_kdma_values, system_kdmas):
     return sum([(ai - bi)**2   for ai, bi in zip(a,b)])/len(kdmas)
 
 
+def oracle_accuracy(target_kdma_values, label_kdma_values, choice_indecies, alignment_metric=kitware_similarity_score, maximize=True):
+    '''
+    target_kdma_values: {
+        kdma_name: kdma_value,
+        ...
+    }
+    label_kdma_values:[
+        [
+            {
+                kdma_name: kdma_value,
+                ...
+            },
+            ...
+        ],
+        ...
+    ]
+    choice_indecies: [
+        choice_index,
+        ...
+    ]
+    alignment_metric: function(target_kdma_values, system_kdmas)
+    maximize: boolean - whether to maximize or minimize the alignment metric
+    '''
+    
+    oracle_choice_indecies = []
+    for label_kdma_value_list in label_kdma_values:
+        optimization_fn = max if maximize else min
+        oracle_choice_indecies.append(optimization_fn(
+            range(len(label_kdma_value_list)),
+            key=lambda choice_index: alignment_metric(target_kdma_values, label_kdma_value_list[choice_index])
+        ))
+    
+    correct = 0
+    total = 0
+    for choice_index, oracle_choice_index in zip(choice_indecies, oracle_choice_indecies):
+        total += 1
+        if choice_index == oracle_choice_index:
+            correct += 1
+        
+    return correct / total
+
+
 def evaluate(dataset, generated_outputs, target_kdma_values):
         
     system_kdmas = get_avg_system_kdmas(dataset, generated_outputs)
@@ -163,6 +210,7 @@ def evaluate(dataset, generated_outputs, target_kdma_values):
     
     results = {
         'choice_metrics': {
+            'target_kdmas': target_kdma_values,
             'system_kdmas': system_kdmas,
         },
     }
@@ -170,6 +218,14 @@ def evaluate(dataset, generated_outputs, target_kdma_values):
     for metric in metrics:
         metric_name = metric.__name__
         results['choice_metrics'][metric_name] = metric(target_kdma_values, system_kdmas)
+    
+    oracle_accuracy_value = oracle_accuracy( 
+        target_kdma_values,
+        [label for _, label in dataset],
+        [output['choice'] for output in generated_outputs]
+    )
+    
+    
         
     metrics = [
         mean_absolute_error,
