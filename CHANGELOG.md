@@ -3,11 +3,23 @@
 This changelog follows the specifications detailed in: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html), although we have not yet reached a `1.0.0` release.
 
-## Unreleased
+## Version 0.2.3
 
 ### Added
 
 * Added --loglevel CLI argument for `run_action_based_chat_baseline.py` script
+
+* Added LanguageModel, ChatLanguageModel classes for ADMs to inherit from
+
+* Added AlignedDecisionMaker interface for ADMs to implement
+
+* Added template system for ADMs to use
+
+* Added evaluation library code to measure ADM performance
+
+* Added ChatKDMAPredictingADM ADM
+
+* Added a few tests for LanguageModel and ChatLanguageModel classes
 
 ### Changed
 
@@ -16,18 +28,6 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 * Fixed issue where TA3 training session flag wasn't being passed to the TA3 API
 
 * Removing training session data info from "action to take" passed to TA3 API
-
-
-## Version 0.2.3
-
-#### Added
-
-* Added LanguageModel, ChatLanguageModel classes for ADMs to inherit from
-* Added AlignedDecisionMaker interface for ADMs to implement
-* Added template system for ADMs to use
-* Added evaluation library code to measure ADM performance
-* Added ChatKDMAPredictingADM ADM
-* Added a few tests for LanguageModel and ChatLanguageModel classes
 
 
 ## Version 0.2.2

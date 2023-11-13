@@ -5,8 +5,8 @@ from rich.highlighter import JSONHighlighter
 
 from align_system.utils import logging
 from align_system.interfaces.cli_builder import build_interfaces
-from align_system.algorithms.llm_chat_baseline import (
-    LLMChatBaseline,
+from align_system.algorithms.llama_2_single_kdma_adm import (
+    Llama2SingleKDMAADM,
     TREATMENT_MULTIPLE_CHOICE_JSON_FORMAT,
     TAGGING_MULTIPLE_CHOICE_JSON_FORMAT)
 from align_system.prompt_engineering.common import (
@@ -83,7 +83,7 @@ def run_action_based_chat_system(interface,
         alignment_target_dict = scenario.get_alignment_target()
 
     log.info('Creating algorithm')
-    algorithm = LLMChatBaseline(hf_model=model, precision=precision)
+    algorithm = Llama2SingleKDMAADM(hf_model=model, precision=precision)
     algorithm.load_model()
 
     current_state = scenario.get_state()
@@ -158,12 +158,12 @@ def run_action_based_chat_system(interface,
 
                     log.info("* ADM raw response: {}".format(raw_response))
 
-                    parsed_output = LLMChatBaseline.attempt_generic_parse(
+                    parsed_output = Llama2SingleKDMAADM.attempt_generic_parse(
                         raw_response, ['Reasoning', 'Answer'])
 
                     if parsed_output is None:
                         explanation, action_idx =\
-                            LLMChatBaseline.parse_generated_output(
+                            Llama2SingleKDMAADM.parse_generated_output(
                                 raw_response)
                     else:
                         explanation = parsed_output['Reasoning']
@@ -221,7 +221,7 @@ def run_action_based_chat_system(interface,
                 log.info("** ADM raw treatment response: {}".format(
                     raw_treatment_response))
 
-                parsed_treatment_output = LLMChatBaseline.attempt_generic_parse(  # noqa
+                parsed_treatment_output = Llama2SingleKDMAADM.attempt_generic_parse(  # noqa
                     raw_treatment_response, ['Reasoning', 'Answer', 'Location'])  # noqa
 
                 if parsed_treatment_output is not None:
@@ -267,7 +267,7 @@ def run_action_based_chat_system(interface,
                 log.info("** ADM raw tagging response: {}".format(
                     raw_tagging_response))
 
-                parsed_tagging_output = LLMChatBaseline.attempt_generic_parse(  # noqa
+                parsed_tagging_output = Llama2SingleKDMAADM.attempt_generic_parse(  # noqa
                     raw_tagging_response, ['Reasoning', 'Answer', 'Tag'])  # noqa
 
                 if parsed_tagging_output is not None:
