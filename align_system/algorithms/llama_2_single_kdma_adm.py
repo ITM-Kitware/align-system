@@ -46,7 +46,8 @@ def load_system_message(alignment=None,
 
         alignment_string = '-'.join(
             '{}-{}'.format(alignment[k], kdma_remapping.get(k, k))
-            for k in sorted_kdmas)
+            for k in sorted_kdmas
+        )
 
         file_name = f'{alignment_string}.txt'
 
@@ -314,6 +315,8 @@ class Llama2SingleKDMAADM(AlignedDecisionMaker):
                              for k in target_kdmas.keys()} - kdmas
         if len(unsupported_kdmas) > 0:
             raise RuntimeError(f"KDMA(s) {unsupported_kdmas} not supported.")
+        
+        assert len(target_kdmas) == 1, "Only one target KDMA is supported at with this algorith."
 
         prefix = '{"Reasoning": "Because'
 
@@ -732,8 +735,7 @@ class Llama2SingleKDMAADM(AlignedDecisionMaker):
         return reasoning, answer_idx
 
 
-    def __call__(self, sample, **kwargs):
-        target_kdmas = sample['target_kdmas']
+    def __call__(self, sample, target_kdma_values, labels, **kwargs):
         prompt = sample['scenario']
         if sample['state'] is not None:
             prompt += f'\n{sample["state"]}'
@@ -741,13 +743,36 @@ class Llama2SingleKDMAADM(AlignedDecisionMaker):
         prompt += f'\n{sample["probe"]}'
 
         choices = sample['choices']
-
-        reasoning, answer_idx = self.run_aligned_decision_maker_with_voting(
-            prompt,
-            choices,
-            target_kdmas,
-        )
+        
+        label_kdmas = [] # this is a set not a dict
+        for label in labels:
+            for key in label:
+                label_kdmas.append(key)
+        
+        if len(label_kdmas) == 0:
+            target = random.choice(list(target_kdma_values.keys()))
+        else:
+            # find the most common label_kdma
+            target = max(set(label_kdmas), key = label_kdmas.count)
+        
+        try:
+            print(labels, target_kdma_values)
+            reasoning, answer_idx = self.run_aligned_decision_maker_with_voting(
+                prompt,
+                choices,
+                {target: target_kdma_values[target]},
+            )
+        except RuntimeError as e:
+            return {
+                'choice': None,
+                # make info exception information
+                'info': str(e),
+            }
 
         return {
-            'choice': answer_idx
+            'choice': int(answer_idx),
+            'info': {
+                'reasoning': str(reasoning),
+                'alignment_target': str(target),
+            }
         }

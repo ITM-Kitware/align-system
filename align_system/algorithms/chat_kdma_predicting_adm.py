@@ -113,14 +113,15 @@ class ChatKDMAPredictingADM(ChatLanguageModel, AlignedDecisionMaker):
                 assert 'reasoning' in response_json, 'reasoning not found in response'
             else:
                 # find the first numeric character
-                char = None
+                choice = None
                 for c in response:
-                    if c.isnumeric():
-                        char = c
-                        break
-                assert char is not None, 'Could not find numeric character in response'
+                    try:
+                        choice = int(c)
+                    except ValueError:
+                        pass
+                assert choice is not None, 'Could not find numeric character in response'
                 response_json = {
-                    'score': float(response[response.find(char):])
+                    'score': choice
                 }                
             return response_json
             
@@ -160,7 +161,7 @@ class ChatKDMAPredictingADM(ChatLanguageModel, AlignedDecisionMaker):
         if generate_reasoning:
             return predicted_kdma_values, reasonings
         else:
-            return predicted_kdma_values
+            return predicted_kdma_values, ''
     
     
     def __call__(self, sample, target_kdma_values, **kwargs):
@@ -169,11 +170,12 @@ class ChatKDMAPredictingADM(ChatLanguageModel, AlignedDecisionMaker):
             scenario_text += f'\n{sample["state"]}'
         
         predicted_outcomes = None
-        if 'predict_outcomes'in kwargs:
+        if 'predict_outcomes' in kwargs:
             predicted_outcomes = self.predict_outcomes(
                 scenario_text,
                 sample['probe'],
                 sample['choices'],
+                log_file=kwargs['log_file'],
                 **kwargs['predict_outcomes']
             )
         
@@ -182,6 +184,7 @@ class ChatKDMAPredictingADM(ChatLanguageModel, AlignedDecisionMaker):
             sample['probe'],
             sample['choices'],
             predicted_outcomes=predicted_outcomes,
+            log_file=kwargs['log_file'],
             **kwargs['predict_kdma_values']
         )
         
@@ -204,7 +207,7 @@ class ChatKDMAPredictingADM(ChatLanguageModel, AlignedDecisionMaker):
         
         return {
             'choice': choice_idx,
-            'predicted_kdmas': predicted_kdma_values,
+            'predicted_kdma_values': predicted_kdma_values,
             'info': {
                 'predicted_outcomes': predicted_outcomes,
                 'generated_reasoning': generated_reasoning,

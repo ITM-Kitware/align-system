@@ -29,7 +29,8 @@ class AlignedDecisionMaker:
                    kdma_name: kdma_value,
                 },
                 1: { ... }
-            }
+            },
+            info: { ... } [optional]
         }
         '''
         pass

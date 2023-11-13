@@ -12,6 +12,7 @@ from llama_index.prompts import PromptTemplate
 import torch
 from transformers import AutoModelForCausalLM
 
+from align_system.algorithms.lib.aligned_decision_maker import AlignedDecisionMaker
 from align_system.utils import logging
 
 
@@ -24,7 +25,7 @@ query_wrapper_prompt = SimpleInputPrompt(
 )
 
 
-class LlamaIndex:
+class LlamaIndex(AlignedDecisionMaker):
     def __init__(self, domain_docs_dir=None, device="cuda", model_name="falcon", retrieval_enabled=True):  # noqa
         if retrieval_enabled and domain_docs_dir is None:
             raise RuntimeError(
@@ -91,5 +92,39 @@ class LlamaIndex:
             return self.query_engine.query(prompt)
         else:
             bare_template = PromptTemplate("{query_str}")
+            # bare_template = prompt
 
             return self.query_engine.predict(bare_template, query_str=prompt)
+
+
+    def __call__(self, sample, target_kdma_values, **kwargs):
+        prompt = sample['scenario']
+        if sample['state'] is not None:
+            prompt += f'\n{sample["state"]}'
+        prompt += f'\n{sample["probe"]}'
+        
+        prompt += 'Identify the integer index of the choice that best completes the request.\n'
+        prompt += 'Choices:\n'
+        
+        choice_strs = [
+            f'{idx}: {choice}'
+            for idx, choice in enumerate(sample['choices'])
+        ]
+        
+        prompt += '\n'.join(choice_strs)
+        
+        response = str(self.run_inference(prompt))
+        
+        # find the first integer in the response
+        choice = 0
+        for char in response:
+            try:
+                choice = int(char)
+                break
+            except ValueError:
+                pass
+        
+        return {
+            'choice': choice,
+            'info': response
+        }
