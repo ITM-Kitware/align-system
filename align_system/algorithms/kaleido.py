@@ -18,6 +18,9 @@ from align_system.utils import logging
 
 log = logging.getLogger(__name__)
 
+pd.set_option('display.max_colwidth', None)
+pd.set_option('display.max_columns', None)
+
 
 class KaleidoSys(AlignedDecisionMaker):
     def __init__(self, model_name='tsor13/kaleido-small', embed_model_name='sentence-transformers/all-mpnet-base-v2', device="cuda" if torch.cuda.is_available() else "cpu", use_tqdm=True):
@@ -571,17 +574,26 @@ class KaleidoSys(AlignedDecisionMaker):
     def default_kdma_weights_fn(results_df):
         return results_df['either'] * 5 + results_df['supports'] * 10
 
-    def default_distance_fn(group_records):
+    def relevance_weighted_distance_fn(group_records):
         # (1.0 / relevant) as a weight could be too punitive?
         return sum((1.0 / group_records['relevant']) * abs(group_records['weight'] - group_records['target']))
+
+    def mean_distance_fn(group_records):
+        return sum(group_records['relevant'] * abs(group_records['weight'] - group_records['target'])) / len(group_records)
+
+    # default_distance_fn = mean_distance_fn
+    default_distance_fn = relevance_weighted_distance_fn
 
     def predict_kdma_weights(self,
                              prompt_template,
                              choices,
                              target_kdmas,
                              compute_weight_fn=default_kdma_weights_fn,
-                             distance_fn=default_distance_fn):
-        kdma_descriptions = {k: k for k in target_kdmas.keys()}
+                             distance_fn=default_distance_fn,
+                             kdma_descriptions_map=None):
+
+        if kdma_descriptions_map is None:
+            kdma_descriptions_map = {k: k for k in target_kdmas.keys()}
 
         rows = []
         for choice in choices:
@@ -597,14 +609,14 @@ class KaleidoSys(AlignedDecisionMaker):
 
             for kdma, target in target_kdmas.items():
                 relevance = self.get_relevance(
-                    choice_prompt, 'Value', kdma_descriptions[kdma])
+                    choice_prompt, 'Value', kdma_descriptions_map.get(kdma, kdma))
                 valence = self.get_valence(
-                    choice_prompt, 'Value', kdma_descriptions[kdma])
+                    choice_prompt, 'Value', kdma_descriptions_map.get(kdma, kdma))
 
                 # relevant, not_relevant = relevance
                 # supports, opposes, either = valence
 
-                rows.append((choice, kdma_descriptions[kdma], *relevance, *valence, target))
+                rows.append((choice, kdma_descriptions_map.get(kdma, kdma), *relevance, *valence, target))
 
         results = pd.DataFrame(
             rows, columns=["choice", "KDMA", "relevant", "not_relevant", "supports", "opposes", "either", "target"])
@@ -643,8 +655,21 @@ class KaleidoSys(AlignedDecisionMaker):
 
         from align_system.algorithms.lib.util import format_template
 
-        # scenario_data = yaml.safe_load(sample['scenario'])
-        scenario_data = sample['scenario']
+        kdma_descriptions_map = None
+        if 'kdma_descriptions_map' in kwargs:
+            if isinstance(kwargs['kdma_descriptions_map'], str):
+                with open(kwargs['kdma_descriptions_map']) as f:
+                    kdma_descriptions = yaml.safe_load(f)
+            elif isinstance(kwargs['kdma_descriptions_map'], dict):
+                kdma_descriptions = kwargs['kdma_descriptions_map']
+
+            kdma_descriptions_map = {k: v['description'] for k, v
+                                     in kdma_descriptions.items()}
+
+        if kwargs.get('sample_scenario_is_yaml', False):
+            scenario_data = yaml.safe_load(sample['scenario'])
+        else:
+            scenario_data = sample['scenario']
 
         if isinstance(scenario_data, str):
             template = '{{probe}} "{{choice}}" instead of {{other_choices}}.  In the context of the following scenario: {{scenario_data}}'
@@ -669,7 +694,8 @@ class KaleidoSys(AlignedDecisionMaker):
         selected_choice_idx, results = self.predict_kdma_weights(
             partial_template,
             sample['choices'],
-            target_kdma_values)
+            target_kdma_values,
+            kdma_descriptions_map=kdma_descriptions_map)
 
         choice = sample['choices'][selected_choice_idx]
         predicted_kdma_values =\

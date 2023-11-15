@@ -1,4 +1,5 @@
 import sys
+import yaml
 
 from rich.highlighter import JSONHighlighter
 
@@ -21,6 +22,9 @@ def add_cli_args(parser):
     parser.add_argument('-l', '--loglevel',
                         type=str,
                         default='INFO')
+    parser.add_argument('-k', '--kdma-descriptions',
+                        type=str,
+                        help="Filepath to YAML of KDMA descriptions")
 
 
 def main():
@@ -34,7 +38,8 @@ def main():
 
 
 def run_align_system(interface,
-                     loglevel="INFO"):
+                     loglevel="INFO",
+                     kdma_descriptions=None):
     log.setLevel(loglevel)
 
     scenario = interface.start_scenario()
@@ -43,6 +48,15 @@ def run_align_system(interface,
     alignment_target_dict = scenario.get_alignment_target()
 
     kaleido = KaleidoSys(model_name='allenai/kaleido-large', use_tqdm=False)
+
+    if kdma_descriptions is not None:
+        with open(kdma_descriptions) as f:
+            kdma_descriptions_data = yaml.safe_load(f)
+
+        kdma_descriptions_map = {k: v['description'] for k, v
+                                 in kdma_descriptions_data.items()}
+    else:
+        kdma_descriptions_map = None
 
     for probe in scenario.iterate_probes():
         probe_dict = probe.to_dict()
@@ -99,7 +113,8 @@ def run_align_system(interface,
         selected_choice_idx, _ =\
             kaleido.predict_kdma_weights(prompt_template_partial,
                                          [str(o['value']) for o in probe_dict['options']],
-                                         {k['kdma']: k['value'] for k in alignment_target_dict.get('kdma_values', ())})
+                                         {k['kdma'].lower(): k['value'] for k in alignment_target_dict.get('kdma_values', ())},
+                                         kdma_descriptions_map=kdma_descriptions_map)
 
         selected_choice_id =\
             probe_dict['options'][selected_choice_idx]['id']
