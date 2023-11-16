@@ -697,10 +697,11 @@ class KaleidoSys(AlignedDecisionMaker):
             target_kdma_values,
             kdma_descriptions_map=kdma_descriptions_map)
 
-        choice = sample['choices'][selected_choice_idx]
-        predicted_kdma_values =\
-            {r['KDMA']: float(r['weight']) for _, r
-             in results[results['choice'] == choice].iterrows()}
+        predicted_kdma_values = []
+        for choice in sample['choices']:
+            predicted_kdma_values.append(
+                {r['KDMA']: float(r['weight']) for _, r
+                 in results[results['choice'] == choice].iterrows()})
 
         return {'choice': selected_choice_idx,
-                'predicted_kdmas': predicted_kdma_values}
+                'predicted_kdma_values': predicted_kdma_values}
