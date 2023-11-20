@@ -22,6 +22,37 @@ pd.set_option('display.max_colwidth', None)
 pd.set_option('display.max_columns', None)
 
 
+def simple_kdma_weights_fn(results_df):
+    return results_df['relevant'] * results_df['supports']
+
+
+def heuristic_kdma_weights_fn(results_df):
+    # TODO: Maybe some more heuristics here, e.g. if either is
+    # higher than supports or opposes, just assign a value of '5'.
+    # Could also just consider thresholding on relevance, e.g. if
+    # < 0.8; don't consider that KDMA
+
+    # Could also do something like "either" * 5 + (("supports" / ("opposes" + "supports")) * 10) - 5
+    pass
+
+
+def default_kdma_weights_fn(results_df):
+    return results_df['either'] * 5 + results_df['supports'] * 10
+
+
+def relevance_weighted_distance_fn(group_records):
+    # (1.0 / relevant) as a weight could be too punitive?
+    return sum((1.0 / group_records['relevant']) * abs(group_records['weight'] - group_records['target']))
+
+
+def mean_distance_fn(group_records):
+    return sum(group_records['relevant'] * abs(group_records['weight'] - group_records['target'])) / len(group_records)
+
+
+# default_distance_fn = mean_distance_fn
+default_distance_fn = relevance_weighted_distance_fn
+
+
 class KaleidoSys(AlignedDecisionMaker):
     def __init__(self, model_name='tsor13/kaleido-small', embed_model_name='sentence-transformers/all-mpnet-base-v2', device="cuda" if torch.cuda.is_available() else "cpu", use_tqdm=True):
         self.model_name = model_name
@@ -559,31 +590,6 @@ class KaleidoSys(AlignedDecisionMaker):
             probs = probs[0]
         return probs
 
-    def simple_kdma_weights_fn(results_df):
-        return results_df['relevant'] * results_df['supports']
-
-    def heuristic_kdma_weights_fn(results_df):
-        # TODO: Maybe some more heuristics here, e.g. if either is
-        # higher than supports or opposes, just assign a value of '5'.
-        # Could also just consider thresholding on relevance, e.g. if
-        # < 0.8; don't consider that KDMA
-
-        # Could also do something like "either" * 5 + (("supports" / ("opposes" + "supports")) * 10) - 5
-        pass
-
-    def default_kdma_weights_fn(results_df):
-        return results_df['either'] * 5 + results_df['supports'] * 10
-
-    def relevance_weighted_distance_fn(group_records):
-        # (1.0 / relevant) as a weight could be too punitive?
-        return sum((1.0 / group_records['relevant']) * abs(group_records['weight'] - group_records['target']))
-
-    def mean_distance_fn(group_records):
-        return sum(group_records['relevant'] * abs(group_records['weight'] - group_records['target'])) / len(group_records)
-
-    # default_distance_fn = mean_distance_fn
-    default_distance_fn = relevance_weighted_distance_fn
-
     def predict_kdma_weights(self,
                              prompt_template,
                              choices,
@@ -671,6 +677,15 @@ class KaleidoSys(AlignedDecisionMaker):
         else:
             scenario_data = sample['scenario']
 
+        distance_fn = relevance_weighted_distance_fn
+        if 'distance_fn' in kwargs:
+            if kwargs['distance_fn'] == 'mean':
+                distance_fn = mean_distance_fn
+            elif kwargs['distance_fn'] == 'relevance':
+                distance_fn = relevance_weighted_distance_fn
+            else:
+                raise NotImplementedError("Unsupported distance_fn: '{}'".format(kwargs['distance_fn']))
+
         if isinstance(scenario_data, str):
             template = '{{probe}} "{{choice}}" instead of {{other_choices}}.  In the context of the following scenario: {{scenario_data}}'
             partial_template = format_template(
@@ -695,6 +710,7 @@ class KaleidoSys(AlignedDecisionMaker):
             partial_template,
             sample['choices'],
             target_kdma_values,
+            distance_fn=distance_fn,
             kdma_descriptions_map=kdma_descriptions_map)
 
         predicted_kdma_values = []
