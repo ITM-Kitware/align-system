@@ -45,6 +45,10 @@ def relevance_weighted_distance_fn(group_records):
     return sum((1.0 / group_records['relevant']) * abs(group_records['weight'] - group_records['target']))
 
 
+# TODO: DMJ: I think this isn't quite right.  Probably want to divide
+# by the sum(group_records['relevant']) instead of len(group_records)
+# so that we don't reward having only a few relevant KDMAs (vs. having
+# more relevant but stronger supporting KDMAs)
 def mean_distance_fn(group_records):
     return sum(group_records['relevant'] * abs(group_records['weight'] - group_records['target'])) / len(group_records)
 
@@ -651,6 +655,19 @@ class KaleidoSys(AlignedDecisionMaker):
 
         most_aligned_choice_idx = choice_results.idxmin()['distance']
         most_aligned_choice = choice_results.iloc[most_aligned_choice_idx]['choice']
+
+        per_kdma_explanations_rows = []
+        for _, r in results[results['choice'] == most_aligned_choice].iterrows():
+            explanation = self.get_explanation(r['choice'], 'Value', r['KDMA'])
+            per_kdma_explanations_rows.append(
+                (r['choice'], 'Value', r['KDMA'], explanation))
+
+        per_kdma_explanations = pd.DataFrame(
+            per_kdma_explanations_rows, columns=["choice", "VRD", "KDMA", "explanation"])
+
+        log.explain("[bold] ** Kaleido KDMA Explanations for Choice ** [/bold]",
+                    extra={"markup": True})
+        log.explain(per_kdma_explanations)
 
         output_choice_idx = choices.index(most_aligned_choice)
 
