@@ -53,6 +53,10 @@ def mean_distance_fn(group_records):
     return sum(group_records['relevant'] * abs(group_records['weight'] - group_records['target'])) / len(group_records)
 
 
+def mean_distance_2_fn(group_records):
+    return sum(group_records['relevant'] * abs(group_records['weight'] - group_records['target'])) / sum(group_records['relevant'])
+
+
 # default_distance_fn = mean_distance_fn
 default_distance_fn = relevance_weighted_distance_fn
 
@@ -698,6 +702,8 @@ class KaleidoSys(AlignedDecisionMaker):
         if 'distance_fn' in kwargs:
             if kwargs['distance_fn'] == 'mean':
                 distance_fn = mean_distance_fn
+            elif kwargs['distance_fn'] == 'mean2':
+                distance_fn = mean_distance_2_fn
             elif kwargs['distance_fn'] == 'relevance':
                 distance_fn = relevance_weighted_distance_fn
             else:
