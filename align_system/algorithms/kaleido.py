@@ -610,12 +610,14 @@ class KaleidoSys(AlignedDecisionMaker):
             kdma_descriptions_map = {k: k for k in target_kdmas.keys()}
 
         rows = []
+        choice_prompts = {}
         for choice in choices:
             other_choices_str = ', '.join(['"{}"'.format(c) for c in (set(choices) - {choice})])
             choice_prompt = format_template(
                 prompt_template,
                 allow_extraneous=True,
                 choice=choice, other_choices=other_choices_str)
+            choice_prompts[choice] = choice_prompt
 
             log.debug("[bold] ** Kaleido Prompt ** [/bold]",
                       extra={"markup": True})
@@ -664,7 +666,7 @@ class KaleidoSys(AlignedDecisionMaker):
         for _, r in results[results['choice'] == most_aligned_choice].iterrows():
             explanation = self.get_explanation(r['choice'], 'Value', r['KDMA'])
             per_kdma_explanations_rows.append(
-                (r['choice'], 'Value', r['KDMA'], explanation))
+                (choice_prompts[r['choice']], 'Value', r['KDMA'], explanation))
 
         per_kdma_explanations = pd.DataFrame(
             per_kdma_explanations_rows, columns=["choice", "VRD", "KDMA", "explanation"])
