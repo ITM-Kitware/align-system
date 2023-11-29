@@ -607,7 +607,7 @@ class KaleidoSys(AlignedDecisionMaker):
                              kdma_descriptions_map=None):
 
         if kdma_descriptions_map is None:
-            kdma_descriptions_map = {k: k for k in target_kdmas.keys()}
+            kdma_descriptions_map = {k: {'description': k} for k in target_kdmas.keys()}
 
         rows = []
         choice_prompts = {}
@@ -624,18 +624,21 @@ class KaleidoSys(AlignedDecisionMaker):
             log.debug(choice_prompt)
 
             for kdma, target in target_kdmas.items():
-                relevance = self.get_relevance(
-                    choice_prompt, 'Value', kdma_descriptions_map.get(kdma, kdma))
-                valence = self.get_valence(
-                    choice_prompt, 'Value', kdma_descriptions_map.get(kdma, kdma))
+                mapped_kdma = kdma_descriptions_map[kdma]
+
+                vrd = mapped_kdma.get('vrd', 'Value')
+                description = mapped_kdma['description']
+
+                relevance = self.get_relevance(choice_prompt, vrd, description)
+                valence = self.get_valence(choice_prompt, vrd, description)
 
                 # relevant, not_relevant = relevance
                 # supports, opposes, either = valence
 
-                rows.append((choice, kdma_descriptions_map.get(kdma, kdma), *relevance, *valence, target))
+                rows.append((choice, vrd, description, *relevance, *valence, target))
 
         results = pd.DataFrame(
-            rows, columns=["choice", "KDMA", "relevant", "not_relevant", "supports", "opposes", "either", "target"])
+            rows, columns=["choice", "VRD", "KDMA", "relevant", "not_relevant", "supports", "opposes", "either", "target"])
 
         results['weight'] = compute_weight_fn(results)
 
@@ -664,9 +667,9 @@ class KaleidoSys(AlignedDecisionMaker):
 
         per_kdma_explanations_rows = []
         for _, r in results[results['choice'] == most_aligned_choice].iterrows():
-            explanation = self.get_explanation(r['choice'], 'Value', r['KDMA'])
+            explanation = self.get_explanation(r['choice'], r['VRD'], r['KDMA'])
             per_kdma_explanations_rows.append(
-                (choice_prompts[r['choice']], 'Value', r['KDMA'], explanation))
+                (choice_prompts[r['choice']], r['VRD'], r['KDMA'], explanation))
 
         per_kdma_explanations = pd.DataFrame(
             per_kdma_explanations_rows, columns=["choice", "VRD", "KDMA", "explanation"])
@@ -688,12 +691,9 @@ class KaleidoSys(AlignedDecisionMaker):
         if 'kdma_descriptions_map' in kwargs:
             if isinstance(kwargs['kdma_descriptions_map'], str):
                 with open(kwargs['kdma_descriptions_map']) as f:
-                    kdma_descriptions = yaml.safe_load(f)
+                    kdma_descriptions_map = yaml.safe_load(f)
             elif isinstance(kwargs['kdma_descriptions_map'], dict):
-                kdma_descriptions = kwargs['kdma_descriptions_map']
-
-            kdma_descriptions_map = {k: v['description'] for k, v
-                                     in kdma_descriptions.items()}
+                kdma_descriptions_map = kwargs['kdma_descriptions_map']
 
         if kwargs.get('sample_scenario_is_yaml', False):
             scenario_data = yaml.safe_load(sample['scenario'])
