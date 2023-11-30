@@ -40,7 +40,9 @@ def main():
 def run_align_system(interface,
                      loglevel="INFO",
                      kdma_descriptions=None):
-    log.setLevel(loglevel)
+    # Set log level on root logger (such that child loggers respect
+    # the set log level)
+    logging.getLogger().setLevel(loglevel)
 
     scenario = interface.start_scenario()
     scenario_dict = scenario.to_dict()
