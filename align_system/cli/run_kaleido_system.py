@@ -5,7 +5,7 @@ from rich.highlighter import JSONHighlighter
 
 from align_system.utils import logging
 from align_system.interfaces.cli_builder import build_interfaces
-from align_system.algorithms.kaleido import KaleidoSys
+from align_system.algorithms.kaleido_adm import KaleidoADM
 from align_system.prompt_engineering.common import prepare_prompt
 from align_system.utils.enums import ProbeType
 from align_system.interfaces.abstracts import (
@@ -49,7 +49,7 @@ def run_align_system(interface,
 
     alignment_target_dict = scenario.get_alignment_target()
 
-    kaleido = KaleidoSys(model_name='allenai/kaleido-large', use_tqdm=False)
+    kaleido = KaleidoADM(model_name='allenai/kaleido-large', use_tqdm=False)
 
     if kdma_descriptions is not None:
         with open(kdma_descriptions) as f:
@@ -112,11 +112,17 @@ def run_align_system(interface,
             probe_prompt=probe_dict['prompt'],
             scenario_state_unstructured=scenario_dict['state']['unstructured'])
 
-        selected_choice_idx, _ =\
-            kaleido.predict_kdma_weights(prompt_template_partial,
-                                         [str(o['value']) for o in probe_dict['options']],
-                                         {k['kdma'].lower(): k['value'] for k in alignment_target_dict.get('kdma_values', ())},
-                                         kdma_descriptions_map=kdma_descriptions_map)
+        choices = [str(o['value']) for o in probe_dict['options']]
+
+        kaleido_results = kaleido.estimate_kdma_values(
+            prompt_template_partial,
+            choices,
+            {k['kdma'].lower(): k['value'] for k in alignment_target_dict.get('kdma_values', ())},
+            kdma_descriptions_map=kdma_descriptions_map)
+
+        selected_choice_idx = kaleido.force_choice(
+            kaleido_results,
+            choices)
 
         selected_choice_id =\
             probe_dict['options'][selected_choice_idx]['id']
@@ -125,12 +131,12 @@ def run_align_system(interface,
 
         if isinstance(probe, ProbeInterfaceWithAlignment):
             probe_alignment_results = probe.get_alignment_results()
-            log.info("* Probe alignment score: {}".format(
+            log.info("* Probe alignment score: {:0.5f}".format(
                     probe_alignment_results['score']))
 
     if isinstance(scenario, ScenarioInterfaceWithAlignment):
         scenario_alignment_results = scenario.get_alignment_results()
-        log.info("* Scenario alignment score: {}".format(
+        log.info("* Scenario alignment score: {:0.5f}".format(
             scenario_alignment_results['score']))
 
 

@@ -40,7 +40,7 @@ class KaleidoSys():
         '''
         Load Kaleido model and initialize templates
         '''
-        print('Loading model...')
+        # print('Loading model...')
         self.model = AutoModelForSeq2SeqLM.from_pretrained(self.model_name)
         if torch.cuda.device_count() > 1:
             self.model.parallelize()
@@ -427,7 +427,7 @@ class KaleidoSys():
         # if max_length isn't present in explanation_decoding_params, set it to 128
         if 'max_length' not in explanation_decoding_params:
             explanation_decoding_params['max_length'] = 128
-        print(explanation_decoding_params)
+        # print(explanation_decoding_params)
         # if one action, make it a list
         is_single = False
         if isinstance(actions, str):
