@@ -3,6 +3,17 @@
 This changelog follows the specifications detailed in: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html), although we have not yet reached a `1.0.0` release.
 
+## Version 0.2.4
+
+### Added
+
+* Added Kaleido ADM and dedicated Kaleido CLI script
+
+* Added `partial` option to `format_template` function for partial template completion
+
+* Added `allow_extraneous` option to `format_template` function to ignore extraneous kwargs
+
+
 ## Version 0.2.3
 
 ### Added
