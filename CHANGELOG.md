@@ -13,6 +13,10 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 * Added `allow_extraneous` option to `format_template` function to ignore extraneous kwargs
 
+### Fixed
+
+* Fixed setting the `loglevel` in CLI scripts
+
 
 ## Version 0.2.3
 

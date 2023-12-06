@@ -74,7 +74,9 @@ def run_action_based_chat_system(interface,
                                  align_to_target=False,
                                  answer_attempts=5,
                                  loglevel="INFO"):
-    log.setLevel(loglevel)
+    # Set log level on root logger (such that child loggers respect
+    # the set log level)
+    logging.getLogger().setLevel(loglevel)
 
     scenario = interface.start_scenario()
     scenario_dict = scenario.to_dict()

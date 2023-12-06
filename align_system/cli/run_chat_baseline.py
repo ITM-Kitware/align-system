@@ -61,7 +61,9 @@ def run_custom_system(interface,
                       precision,
                       align_to_target,
                       loglevel="INFO"):
-    log.setLevel(loglevel)
+    # Set log level on root logger (such that child loggers respect
+    # the set log level)
+    logging.getLogger().setLevel(loglevel)
 
     log.info('Creating algorithm')
     algorithm = Llama2SingleKDMAADM(hf_model=model, precision=precision)
