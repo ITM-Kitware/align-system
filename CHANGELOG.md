@@ -9,6 +9,10 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 * Fixed issue with configurable KDMA Estimator and Distance functions for Kaleido ADM
 
+### Changed
+
+* Better error message on TA3 API action taken failure
+
 
 ## Version 0.2.5
 

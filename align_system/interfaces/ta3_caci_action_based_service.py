@@ -116,9 +116,8 @@ class TA3CACIActionBasedScenario(ActionBasedScenarioInterface):
             json=action_data)
 
         if updated_state.status_code == 400:
-            raise RuntimeError("Bad client request, action_data is either in "
-                               "the wrong format, or doesn't include the "
-                               "required fields")
+            raise RuntimeError(
+                "Bad client request: {}".format(updated_state.text))
         elif updated_state.status_code == 500:
             raise RuntimeError("TA3 internal server error!")
         elif updated_state.status_code != 200:
