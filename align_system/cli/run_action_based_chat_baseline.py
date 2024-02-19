@@ -62,10 +62,10 @@ def main():
             supported_interfaces={'TA3ActionBased'}))
 
 
-CASUALTY_TAGS = ['MINIMAL',
-                 'DELAYED',
-                 'IMMEDIATE',
-                 'EXPECTANT']
+TRIAGE_TAGS = ['MINIMAL',
+               'DELAYED',
+               'IMMEDIATE',
+               'EXPECTANT']
 
 
 def run_action_based_chat_system(interface,
@@ -99,22 +99,22 @@ def run_action_based_chat_system(interface,
         log.debug(json.dumps(available_actions, indent=4),
                   extra={"highlighter": JSON_HIGHLIGHTER})
 
-        untagged_casualties = [c for c in current_state['casualties']
+        untagged_characters = [c for c in current_state['characters']
                                if 'tag' not in c]
 
-        # Don't let ADM choose to tag a casualty unless there are
-        # still untagged casualties
+        # Don't let ADM choose to tag a character unless there are
+        # still untagged characters
         available_actions_filtered =\
             [a for a in available_actions
-             if a['action_type'] != 'TAG_CASUALTY'
-             or (a['action_type'] == 'TAG_CASUALTY'
-                 and len(untagged_casualties) > 0)]
+             if a['action_type'] != 'TAG_CHARACTER'
+             or (a['action_type'] == 'TAG_CHARACTER'
+                 and len(untagged_characters) > 0)]
 
         prompt = prepare_action_based_prompt(
             scenario_dict['state']['unstructured'],
-            current_state['mission'].get('unstructured'),
+            current_state['mission'].get('unstructured') if 'mission' in current_state else None,
             current_state['unstructured'],
-            current_state['casualties'],
+            current_state['characters'],
             available_actions=None,  # Available actions passed in later
             alignment_target=alignment_target_dict if align_to_target else None
         )
@@ -193,17 +193,17 @@ def run_action_based_chat_system(interface,
         if action_to_take['action_type'] == 'APPLY_TREATMENT':
             # Ask the system to specify the treatment to use and where
 
-            # First casualty with the matching ID (should only be one)
-            casualty_id = action_to_take['casualty_id']
-            matching_casualties = [c for c in current_state['casualties']
-                                   if c['id'] == casualty_id]
+            # First character with the matching ID (should only be one)
+            character_id = action_to_take['character_id']
+            matching_characters = [c for c in current_state['characters']
+                                   if c['id'] == character_id]
 
-            assert len(matching_casualties) == 1
-            casualty_to_treat = matching_casualties[0]
+            assert len(matching_characters) == 1
+            character_to_treat = matching_characters[0]
 
             treatment_prompt = prepare_treatment_selection_prompt(
-                casualty_to_treat['unstructured'],
-                casualty_to_treat['vitals'],
+                character_to_treat['unstructured'],
+                character_to_treat['vitals'],
                 current_state['supplies'])
 
             for _ in range(answer_attempts):
@@ -245,18 +245,18 @@ def run_action_based_chat_system(interface,
                     break
                 else:
                     log.info('** Failed to parse treatment')
-        elif action_to_take['action_type'] == 'TAG_CASUALTY':
+        elif action_to_take['action_type'] == 'TAG_CHARACTER':
             # Ask the system to specify which triage tag to apply
 
             tagging_prompt = prepare_tagging_selection_prompt(
-                untagged_casualties,
-                CASUALTY_TAGS)
+                untagged_characters,
+                TRIAGE_TAGS)
 
             for _ in range(answer_attempts):
                 tagging_dialog = algorithm.build_multiple_choice_dialog(
                     tagging_prompt,
                     [c['unstructured'].strip()
-                     for c in untagged_casualties],
+                     for c in untagged_characters],
                     json_format=TAGGING_MULTIPLE_CHOICE_JSON_FORMAT)
 
                 log.debug("[bold]*TAGGING DIALOG*[/bold]",
@@ -273,19 +273,19 @@ def run_action_based_chat_system(interface,
                     raw_tagging_response, ['Reasoning', 'Answer', 'Tag'])  # noqa
 
                 if parsed_tagging_output is not None:
-                    casualty_idx = parsed_tagging_output['Answer']
+                    character_idx = parsed_tagging_output['Answer']
 
-                    if len(untagged_casualties) <= casualty_idx:
-                        log.info('** Selected casualty_idx out of range of '
+                    if len(untagged_characters) <= character_idx:
+                        log.info('** Selected character_idx out of range of '
                                  'available treatment options, retrying!')
                         continue
 
-                    casualty_to_tag_id = untagged_casualties[casualty_idx]['id']  # noqa
+                    character_to_tag_id = untagged_characters[character_idx]['id']  # noqa
 
                     tag = parsed_tagging_output['Tag']
 
                     # Populate required parameters for tagging action
-                    action_to_take['casualty_id'] = casualty_to_tag_id
+                    action_to_take['character_id'] = character_to_tag_id
                     action_to_take['parameters'] = {'category': tag}
 
                     break
