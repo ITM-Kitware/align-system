@@ -26,6 +26,7 @@ requests = "^2.31.0"
 bert-score = "^0.3.13"
 rich = "^13.6.0"
 rouge-score = "^0.1.2"
+swagger-client = {git = "https://github.com/NextCenturyCorporation/itm-evaluation-client.git", rev = "development"}
 
 [tool.poetry.scripts]
 run_align_system = 'align_system.cli.run_align_system:main'
