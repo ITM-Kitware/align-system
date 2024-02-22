@@ -139,29 +139,30 @@ def run_action_based_align_system(interface,
 
         algorithm.load_model()
 
-    current_state = scenario.get_state()
+    current_state = scenario.get_state().to_dict()
+
     scenario_complete = current_state.get('scenario_complete', False)
 
     while not scenario_complete:
-        available_actions = scenario.get_available_actions()
+        available_actions = [a.to_dict() for a in scenario.get_available_actions()]
 
         untagged_characters = [c for c in current_state['characters']
                                if 'tag' not in c]
 
         # Don't let ADM choose to tag a character unless there are
         # still untagged characters
-        available_actions_unstructured =\
-            [a['unstructured'] for a in available_actions
+        available_actions_filtered =\
+            [a for a in available_actions
              if a['action_type'] != 'TAG_CHARACTER'
              or (a['action_type'] == 'TAG_CHARACTER'
                  and len(untagged_characters) > 0)]
 
         prompt = prepare_action_based_prompt(
-            scenario_dict['state']['unstructured'],
+            scenario_dict['_state'].to_dict()['unstructured'],
             current_state['mission'].get('unstructured'),
             current_state['unstructured'],
             current_state['characters'],
-            available_actions_unstructured,
+            [a['unstructured'] for a in available_actions_filtered],
             alignment_target=alignment_target_dict if align_to_target else None
         )
         log.info("[bold]* Action prompt for ADM *[/bold]",
@@ -174,13 +175,14 @@ def run_action_based_align_system(interface,
         log.info(raw_response)
 
         selected_action_idx, selected_action = force_choice_func(
-            raw_response, available_actions_unstructured)
+            raw_response,
+            [a['unstructured'] for a in available_actions_filtered])
 
         log.info("[bold]* Mapped selection *[/bold]",
                  extra={"markup": True})
         log.info(selected_action)
 
-        action_to_take = available_actions[selected_action_idx]
+        action_to_take = available_actions_filtered[selected_action_idx]
 
         if action_to_take['action_type'] == 'APPLY_TREATMENT':
             # Ask the system to specify the treatment to use and where
@@ -226,6 +228,8 @@ def run_action_based_align_system(interface,
             action_to_take['parameters'] = {
                 'treatment': treatment,
                 'location': treatment_location}
+            action_to_take['justification'] = raw_treatment_response.strip()
+
         elif action_to_take['action_type'] == 'TAG_CHARACTER':
             # Ask the system to specify which triage tag to apply
 
@@ -263,13 +267,14 @@ def run_action_based_align_system(interface,
             # Populate required parameters for treatment action
             action_to_take['character_id'] = character_to_tag_id
             action_to_take['parameters'] = {'category': tag}
+            action_to_take['justification'] = raw_tagging_response.strip()
 
         log.debug("[bold]*ACTION BEING TAKEN*[/bold]",
                   extra={"markup": True})
         log.debug(json.dumps(action_to_take, indent=4),
                   extra={"highlighter": JSON_HIGHLIGHTER})
 
-        current_state = scenario.take_action(action_to_take)
+        current_state = scenario.take_action(action_to_take).to_dict()
 
         scenario_complete = current_state.get('scenario_complete', False)
 

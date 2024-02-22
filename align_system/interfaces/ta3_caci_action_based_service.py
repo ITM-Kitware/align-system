@@ -1,6 +1,9 @@
 import argparse
 
-import requests
+import swagger_client
+from swagger_client.configuration import Configuration
+from swagger_client.api_client import ApiClient
+from swagger_client.models import Action
 
 from align_system.interfaces.abstracts import (
     Interface,
@@ -19,29 +22,30 @@ class TA3CACIActionBasedServiceInterface(Interface):
         self.scenario_id = scenario_id
         self.training_session = training_session
 
+        config = Configuration()
+        config.host = self.api_endpoint
+        api_client = ApiClient(configuration=config)
+        self.connection = swagger_client.ItmTa2EvalApi(api_client=api_client)
+
         start_session_params = {'adm_name': username,
                                 'session_type':  session_type}
 
         if self.training_session:
             start_session_params['kdma_training'] = True
 
-        session = requests.get(
-            f"{self.api_endpoint}/ta2/startSession",
-            params=start_session_params)
-
-        self.session_id = session.json()  # Should be single string response
+        self.session_id = self.connection.start_session(
+            **start_session_params)
 
     def start_scenario(self):
         scenario_request_params = {'session_id': self.session_id}
         if self.scenario_id is not None:
             scenario_request_params['scenario_id'] = self.scenario_id
 
-        scenario = requests.get(
-            f"{self.api_endpoint}/ta2/scenario",
-            params=scenario_request_params)
+        scenario = self.connection.start_scenario(
+            **scenario_request_params)
 
         return TA3CACIActionBasedScenario(
-            self.api_endpoint, self.session_id, scenario.json())
+            self.connection, self.session_id, scenario)
 
     @classmethod
     def cli_parser(cls, parser=None):
@@ -81,54 +85,37 @@ class TA3CACIActionBasedServiceInterface(Interface):
 
 
 class TA3CACIActionBasedScenario(ActionBasedScenarioInterface):
-    def __init__(self, api_endpoint, session_id, scenario):
-        self.api_endpoint = api_endpoint
+    def __init__(self, connection, session_id, scenario):
+        self.connection = connection
         self.session_id = session_id
 
-        self._scenario = scenario
-        self.scenario_id = scenario['id']
+        self.scenario = scenario
 
     def get_alignment_target(self):
-        alignment_target = requests.get(
-            f"{self.api_endpoint}/ta2/getAlignmentTarget",
-            params={'session_id': self.session_id,
-                    'scenario_id': self.scenario_id})
-
-        return alignment_target.json()
+        return self.connection.get_alignment_target(
+            self.session_id, self.scenario.id)
 
     def to_dict(self):
-        return self._scenario
+        return self.scenario.__dict__
 
     def data(self):
-        return self._scenario
+        return self.scenario
 
     def get_available_actions(self):
-        available_actions = requests.get(
-            f"{self.api_endpoint}/ta2/{self.scenario_id}/getAvailableActions",
-            params={'session_id': self.session_id})
+        return self.connection.get_available_actions(
+            session_id=self.session_id, scenario_id=self.scenario.id)
 
-        return available_actions.json()
+    def take_action(self, action):
+        # Convert to proper 'Action' object prior to submission
+        if isinstance(action, dict):
+            action = Action(**action)
 
-    def take_action(self, action_data):
-        updated_state = requests.post(
-            f"{self.api_endpoint}/ta2/takeAction",
-            params={'session_id': self.session_id},
-            json=action_data)
+        updated_state = self.connection.take_action(
+            session_id=self.session_id,
+            body=action)
 
-        if updated_state.status_code == 400:
-            raise RuntimeError(
-                "Bad client request: {}".format(updated_state.text))
-        elif updated_state.status_code == 500:
-            raise RuntimeError("TA3 internal server error!")
-        elif updated_state.status_code != 200:
-            raise RuntimeError("'takeAction' didn't succeed (returned status "
-                               "code: {})".format(updated_state.status_code))
-
-        return updated_state.json()
+        return updated_state
 
     def get_state(self):
-        state = requests.get(
-            f"{self.api_endpoint}/ta2/{self.scenario_id}/getState",
-            params={'session_id': self.session_id})
-
-        return state.json()
+        return self.connection.get_scenario_state(
+            session_id=self.session_id, scenario_id=self.scenario.id)

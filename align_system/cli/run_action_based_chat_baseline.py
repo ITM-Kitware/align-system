@@ -88,11 +88,11 @@ def run_action_based_chat_system(interface,
     algorithm = Llama2SingleKDMAADM(hf_model=model, precision=precision)
     algorithm.load_model()
 
-    current_state = scenario.get_state()
+    current_state = scenario.get_state().to_dict()
     scenario_complete = current_state.get('scenario_complete', False)
 
     while not scenario_complete:
-        available_actions = scenario.get_available_actions()
+        available_actions = [a.to_dict() for a in scenario.get_available_actions()]
 
         log.debug("[bold]*AVAILABLE ACTIONS*[/bold]",
                   extra={"markup": True})
@@ -111,7 +111,7 @@ def run_action_based_chat_system(interface,
                  and len(untagged_characters) > 0)]
 
         prompt = prepare_action_based_prompt(
-            scenario_dict['state']['unstructured'],
+            scenario_dict['_state'].to_dict()['unstructured'],
             current_state['mission'].get('unstructured') if 'mission' in current_state else None,
             current_state['unstructured'],
             current_state['characters'],
@@ -297,7 +297,7 @@ def run_action_based_chat_system(interface,
         log.debug(json.dumps(action_to_take, indent=4),
                   extra={"highlighter": JSON_HIGHLIGHTER})
 
-        current_state = scenario.take_action(action_to_take)
+        current_state = scenario.take_action(action_to_take).to_dict()
 
         scenario_complete = current_state.get('scenario_complete', False)
 
