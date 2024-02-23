@@ -4,6 +4,7 @@ import inspect
 
 import pandas as pd
 
+from align_system.algorithms.abstracts import ActionBasedADM
 from align_system.algorithms.lib.kaleido import KaleidoSys
 from align_system.algorithms.lib.aligned_decision_maker import AlignedDecisionMaker
 from align_system.algorithms.lib.util import format_template
@@ -68,7 +69,7 @@ KnownDistanceFunctions = [RelevanceWeightedDistance,
                           MeanDistance2]
 
 
-class KaleidoADM(AlignedDecisionMaker):
+class KaleidoADM(AlignedDecisionMaker, ActionBasedADM):
     def __init__(self, **kwargs):
         log.info('Initializing Kaleido..')
         self.kaleido = KaleidoSys(**kwargs)
@@ -247,3 +248,43 @@ class KaleidoADM(AlignedDecisionMaker):
 
         return {'choice': selected_choice_idx,
                 'predicted_kdma_values': predicted_kdma_values}
+
+    def choose_action(self, scenario_state, available_actions, alignment_target, **kwargs):
+        import yaml
+        from align_system.algorithms.lib.util import format_template
+
+        kdma_descriptions_map = None
+        if 'kdma_descriptions_map' in kwargs:
+            if isinstance(kwargs['kdma_descriptions_map'], str):
+                with open(kwargs['kdma_descriptions_map']) as f:
+                    kdma_descriptions_map = yaml.safe_load(f)
+            elif isinstance(kwargs['kdma_descriptions_map'], dict):
+                kdma_descriptions_map = kwargs['kdma_descriptions_map']
+
+        template = 'What action do you take? "{{choice}}" instead of {{other_choices}}.  In the context of the following scenario: {{scene_state}} {{mission}} {{decision_environment}} With the following casualties:\n{{characters_str}}'
+        characters_str = '\n'.join(['{} ({}): {}'.format(c.name, c.id, c.unstructured) for c in scenario_state.characters])
+        partial_template = format_template(
+            template,
+            partial=True,
+            scene_state=scenario_state.unstructured,
+            mission=scenario_state.mission.unstructured,
+            decision_environment=scenario_state.environment.decision_environment.unstructured.strip(),
+            characters_str=characters_str)
+
+        # Scaling KDMA values by 10 (range should be 0-10)
+        target_kdma_values = {t.kdma: t.value * 10 for t in alignment_target.kdma_values}
+
+        choices_unstructured = [a.unstructured for a in available_actions]
+
+        kaleido_results = self.estimate_kdma_values(
+            partial_template,
+            choices_unstructured,
+            target_kdma_values,
+            kdma_descriptions_map=kdma_descriptions_map)
+
+        selected_choice_idx = self.force_choice(
+            kaleido_results,
+            choices_unstructured,
+            distance_fn=kwargs.get('distance_fn', DefaultDistanceFunction))
+
+        return available_actions[selected_choice_idx]
