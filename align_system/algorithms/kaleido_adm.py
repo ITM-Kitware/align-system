@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from functools import reduce
 import inspect
+import yaml
 
 import pandas as pd
 
@@ -189,10 +190,6 @@ class KaleidoADM(AlignedDecisionMaker, ActionBasedADM):
         return output_choice_idx
 
     def __call__(self, sample, target_kdma_values, labels, **kwargs):
-        import yaml
-
-        from align_system.algorithms.lib.util import format_template
-
         kdma_descriptions_map = None
         if 'kdma_descriptions_map' in kwargs:
             if isinstance(kwargs['kdma_descriptions_map'], str):
@@ -250,9 +247,6 @@ class KaleidoADM(AlignedDecisionMaker, ActionBasedADM):
                 'predicted_kdma_values': predicted_kdma_values}
 
     def choose_action(self, scenario_state, available_actions, alignment_target, **kwargs):
-        import yaml
-        from align_system.algorithms.lib.util import format_template
-
         kdma_descriptions_map = None
         if 'kdma_descriptions_map' in kwargs:
             if isinstance(kwargs['kdma_descriptions_map'], str):
