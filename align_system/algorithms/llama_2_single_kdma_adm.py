@@ -825,3 +825,41 @@ class Llama2SingleKDMAADM(AlignedDecisionMaker):
                 'raw_data': raw_data,
             }
         }
+
+    def choose_action(self, scenario_state, available_actions, alignment_target, **kwargs):
+        
+        kdma_name_map = {
+            'MoralDesert': 'moral_deservingness',
+        }
+        
+        target_kdma_values = {
+            kdma_name_map[k.kdma]: k.value * 10
+            for k in alignment_target.kdma_values
+        }
+        
+        scenario = '\nCHARACTERS:\n'
+        
+        for character in scenario_state.characters:
+            scenario += f'{character.name}: {character.unstructured}\n'
+            scenario += f'{character.name}\'s intent: {character.intent}\n\n'
+            
+        scenario += f'\nSITUATION:\n{scenario_state.unstructured}'
+        
+        state = None
+        
+        probe = ''
+        
+        choices = [
+            action.unstructured
+            for action in available_actions
+        ]
+        
+        response = self.__call__({
+            'scenario': scenario,
+            'state': state,
+            'probe': probe,
+            'choices': choices,
+        }, target_kdma_values, labels=[target_kdma_values]*len(choices))
+        
+        
+        return available_actions[response['choice']]
