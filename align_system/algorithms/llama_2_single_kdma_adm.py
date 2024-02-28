@@ -124,11 +124,11 @@ class Llama2SingleKDMAADM(AlignedDecisionMaker):
     def load_model(self, model=None, tokenizer=None):
         assert (model is None) == (tokenizer is None), "model and tokenizer must both be None or both be not None."
         if model is not None:
-            print('Loading model and tokenizer from provided objects.')
+            log.info('Loading model and tokenizer from provided objects.')
             self.model = model
             self.tokenizer = tokenizer
         else:
-            print('Loading model:', self.hf_model)
+            log.info('Loading model: %s', self.hf_model)
             if self.device == 'auto':
                 self.model = AutoModelForCausalLM.from_pretrained(self.hf_model, torch_dtype=self.precision, device_map='auto')
             else:
@@ -282,7 +282,7 @@ class Llama2SingleKDMAADM(AlignedDecisionMaker):
                 else:
                     new_dialog.append(message)
             dialog = new_dialog
-            print('INPUT\n', dialog)
+            log.info('INPUT\n %s', dialog)
             prompt_tokens = [self.tokenizer.apply_chat_template(dialog, tokenize=True)]
             inference_pair['input'] = self.tokenizer.apply_chat_template(dialog, tokenize=False)
 
@@ -298,11 +298,11 @@ class Llama2SingleKDMAADM(AlignedDecisionMaker):
 
         outputs = self.model.generate(prompt_tokens, return_dict_in_generate=True, output_scores=True, max_new_tokens=512, temperature=self.temperature, do_sample=True)
 
-        # Print the generated model output
+        # log.info the generated model output
         generated_output = self.tokenizer.decode(outputs.sequences[0][prompt_length:])
         inference_pair['output'] = generated_output
         
-        print('INFERENCE PAIR\n', inference_pair)
+        log.info('INFERENCE PAIR\n %s', inference_pair)
 
         return generated_output, inference_pair
 
@@ -422,7 +422,7 @@ class Llama2SingleKDMAADM(AlignedDecisionMaker):
             if not good_parse:
                 reasoning, answer_idx, parse_method = Llama2SingleKDMAADM.bert_similarity_parse(high_response, shuffled_choices)
             
-            print('CHOSEN ANSWER IDX', answer_idx, shuffled_choices)
+            log.info('CHOSEN ANSWER IDX %s %s', answer_idx, shuffled_choices)
             assert answer_idx is not None, f'Failed to parse answer index from generated output: {low_response}'
                 
             responses.append({
@@ -594,10 +594,10 @@ class Llama2SingleKDMAADM(AlignedDecisionMaker):
     
     @staticmethod
     def bert_similarity_parse(generated_output, choices):
-        print('BERT SIMILARITY PARSE')
+        log.info('BERT SIMILARITY PARSE')
         force_choice_func = build_force_choice_func('bert')
         answer_idx, _ = force_choice_func(generated_output, choices)
-        print('ANSWER IDX', answer_idx, type(answer_idx))
+        log.info('ANSWER IDX %s %s', answer_idx, type(answer_idx))
         return generated_output, answer_idx, 'bert_similarity'
 
     @staticmethod
