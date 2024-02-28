@@ -5,6 +5,8 @@ import os
 import pathlib
 from align_system.algorithms.lib.aligned_decision_maker import AlignedDecisionMaker
 
+from jinja2.exceptions import TemplateError
+
 from rich.highlighter import JSONHighlighter
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
@@ -13,29 +15,50 @@ import numpy as np
 from align_system.utils import logging
 
 
+from align_system.similarity_measures import build_force_choice_func
+
+
 log = logging.getLogger(__name__)
 JSON_HIGHLIGHTER = JSONHighlighter()
 
-
+# TODO make this configurable from the config
 kdmas = {
     'basic_knowledge',
     'fairness',
     'protocol_focus',
+    'time_pressure',
     'risk_aversion',
     'utilitarianism',
     'mission',
     'denial',
+    'moral_deservingness',
+    'lives_saved',
+    'continuation_of_care'
 }
 
 kdma_remapping = {
     'basicknowledge': 'basic_knowledge',
     'protocolfocus': 'protocol_focus',
     'riskaversion': 'risk_aversion',
+    'moraldeservingness': 'moral_deservingness',
+    'continuationofcare': 'continuation_of_care',
+    'livesaved': 'lives_saved',
+    'timepressure': 'time_pressure',
 }
 
+# default_system_messages_path=os.path.join(
+#     pathlib.Path(__file__).parent.absolute(), '..',
+#     'prompt_engineering/bbn_alignment_system_messages_v1')
+
+# NOTE temporary way to change which system messages are used
+# TODO make this configurable from the config
 default_system_messages_path=os.path.join(
     pathlib.Path(__file__).parent.absolute(), '..',
-    'prompt_engineering/bbn_alignment_system_messages_v1')
+    'prompt_engineering/single_kdma_adm_system_messges')
+
+chat_template_path = os.path.join(
+    pathlib.Path(__file__).parent.absolute(), '..',
+    'prompt_engineering/chat_templates')
 
 def load_system_message(alignment=None,
                         system_messages_path=default_system_messages_path):
@@ -85,10 +108,11 @@ TAGGING_MULTIPLE_CHOICE_JSON_FORMAT = "{\"Reasoning\": \"<Provide a reasoned exp
 
 class Llama2SingleKDMAADM(AlignedDecisionMaker):
 
-    def __init__(self, device='cuda', hf_model='meta-llama/Llama-2-7b-chat-hf', precision='full', temperature=0.7):
+    def __init__(self, device='cuda', hf_model='meta-llama/Llama-2-7b-chat-hf', precision='full', temperature=0.7, **kwargs):
         self.device = device
         self.hf_model = hf_model
         self.temperature = temperature
+        self.chat_template = kwargs.get('chat_template', None)
 
         assert precision in ['full', 'half'], "precision must be either 'full' or 'half'."
         self.precision = torch.float32 if precision == 'full' else torch.float16
@@ -105,9 +129,18 @@ class Llama2SingleKDMAADM(AlignedDecisionMaker):
             self.tokenizer = tokenizer
         else:
             print('Loading model:', self.hf_model)
-            self.model = AutoModelForCausalLM.from_pretrained(self.hf_model, torch_dtype=self.precision)
+            if self.device == 'auto':
+                self.model = AutoModelForCausalLM.from_pretrained(self.hf_model, torch_dtype=self.precision, device_map='auto')
+            else:
+                self.model = AutoModelForCausalLM.from_pretrained(self.hf_model, torch_dtype=self.precision)
+                self.model = self.model.to(self.device)
+            
             self.tokenizer = AutoTokenizer.from_pretrained(self.hf_model)
-            self.model = self.model.to(self.device)
+            
+            if self.chat_template is not None:
+                with open(os.path.join(chat_template_path, self.chat_template), 'r') as f:
+                    self.tokenizer.chat_template = f.read().replace('    ', '').replace('\n', '')
+            
 
 
     def get_character_ids(self, character_str):
@@ -226,10 +259,32 @@ class Llama2SingleKDMAADM(AlignedDecisionMaker):
                       extra={"markup": True, "highlighter": None})
 
     def respond_to_dialog(self, dialog, prefix=None):
+        inference_pair = {}
         if prefix is None:
             prefix = '{"Reasoning": "'
+        # prompt_tokens = self.chat_prompt_tokens([dialog], return_tensor=False)
+        try:
+            prompt_tokens = [self.tokenizer.apply_chat_template(dialog, tokenize=True)]
+            inference_pair['input'] = self.tokenizer.apply_chat_template(dialog, tokenize=False)
+        except TemplateError:
+            new_dialog = []
+            for message in dialog:
+                if message['role'] == 'system':
+                    message['role'] = 'user'
+                
+                if len(new_dialog) == 0:
+                    new_dialog.append(message)
+                    continue
 
-        prompt_tokens = self.chat_prompt_tokens([dialog], return_tensor=False)
+                last_message = new_dialog[-1]
+                if last_message['role'] == message['role']:
+                    last_message['content'] += '\n\n' + message['content']
+                else:
+                    new_dialog.append(message)
+            dialog = new_dialog
+            print('INPUT\n', dialog)
+            prompt_tokens = [self.tokenizer.apply_chat_template(dialog, tokenize=True)]
+            inference_pair['input'] = self.tokenizer.apply_chat_template(dialog, tokenize=False)
 
         prompt_length = len(prompt_tokens[0])
 
@@ -238,14 +293,18 @@ class Llama2SingleKDMAADM(AlignedDecisionMaker):
             prompt_tokens[0] += prefix_tokens
 
         prompt_tokens = torch.tensor(prompt_tokens)
-        prompt_tokens = prompt_tokens.to(self.device)
+        if self.device != 'auto':
+            prompt_tokens = prompt_tokens.to(self.device)
 
-        outputs = self.model.generate(prompt_tokens, return_dict_in_generate=True, output_scores=True, max_new_tokens=512, temperature=self.temperature)
+        outputs = self.model.generate(prompt_tokens, return_dict_in_generate=True, output_scores=True, max_new_tokens=512, temperature=self.temperature, do_sample=True)
 
         # Print the generated model output
         generated_output = self.tokenizer.decode(outputs.sequences[0][prompt_length:])
+        inference_pair['output'] = generated_output
+        
+        print('INFERENCE PAIR\n', inference_pair)
 
-        return generated_output
+        return generated_output, inference_pair
 
     def respond_to_dialogs_batched(self, dialogs, prefixes=None):
         # dialogs = [self.build_multiple_choice_dialog(*args) for args
@@ -309,11 +368,13 @@ class Llama2SingleKDMAADM(AlignedDecisionMaker):
 
         return generated_outputs
 
-    def aligned_decision_maker(self, question, choices, target_kdmas, n_samples=5, inverse_misaligned=True, shuffle=True, baseline=False):
-        unsupported_kdmas = {kdma_remapping.get(k, k)
-                             for k in target_kdmas.keys()} - kdmas
-        if len(unsupported_kdmas) > 0:
-            raise RuntimeError(f"KDMA(s) {unsupported_kdmas} not supported.")
+    def aligned_decision_maker(self, question, choices, target_kdmas, n_positive_samples=5, n_negative_sampels=5, shuffle=True, baseline=False, n_retries=3):
+        inference_pairs = []
+        if not baseline:
+            unsupported_kdmas = {kdma_remapping.get(k, k)
+                                for k in target_kdmas.keys()} - kdmas
+            if len(unsupported_kdmas) > 0:
+                raise RuntimeError(f"KDMA(s) {unsupported_kdmas} not supported.")
 
         prefix = '{"Reasoning": "Because'
 
@@ -321,20 +382,20 @@ class Llama2SingleKDMAADM(AlignedDecisionMaker):
 
         logged_aligned_dialog = False
         logged_inverse_misaligned_dialog = False
-        for _ in range(n_samples):
-            system_message_keys = {kdma: 'high' if value > 5 else 'low'
-                                   for kdma, value in target_kdmas.items()}
+        for _ in range(n_positive_samples):
+            if baseline:
+                system_message = load_system_message()
+                system_message_keys = 'baseline'
+                
+            else:
+                system_message_keys = {kdma: 'high' if value > 5 else 'low'
+                                    for kdma, value in target_kdmas.items()}
+                system_message = load_system_message(system_message_keys)
 
             indecies = list(range(len(choices)))
             if shuffle:
                 random.shuffle(indecies)
             shuffled_choices = [choices[i] for i in indecies]
-
-            system_message = load_system_message(system_message_keys)
-
-            if baseline:
-                system_message = load_system_message()
-                system_message_keys = 'baseline'
 
             dialog = self.build_multiple_choice_dialog(
                 question,
@@ -347,9 +408,23 @@ class Llama2SingleKDMAADM(AlignedDecisionMaker):
                 self.log_dialog(dialog)
                 logged_aligned_dialog = True
 
-            high_response = self.respond_to_dialog(dialog, prefix=prefix)
-
-            reasoning, answer_idx = Llama2SingleKDMAADM.parse_generated_output(high_response)
+            good_parse = False
+            for i in range(n_retries):
+                high_response, inference_pair = self.respond_to_dialog(dialog, prefix=prefix)
+                inference_pairs.append({**inference_pair, **{'aligned': True, 'attempt': i}})
+                try:
+                    reasoning, answer_idx, parse_method = Llama2SingleKDMAADM.parse_generated_output(high_response, len(choices))
+                    good_parse = True
+                    break
+                except RuntimeError as e:
+                    pass
+            
+            if not good_parse:
+                reasoning, answer_idx, parse_method = Llama2SingleKDMAADM.bert_similarity_parse(high_response, shuffled_choices)
+            
+            print('CHOSEN ANSWER IDX', answer_idx, shuffled_choices)
+            assert answer_idx is not None, f'Failed to parse answer index from generated output: {low_response}'
+                
             responses.append({
                 'response': high_response,
                 'reasoning': reasoning,
@@ -357,132 +432,57 @@ class Llama2SingleKDMAADM(AlignedDecisionMaker):
                 'shuffle_indecies': indecies,
                 'alignment': system_message_keys,
                 'aligned': True,
+                'parse_method': parse_method,
             })
-
-            if inverse_misaligned:
-                system_message_keys = {kdma: 'high' if not value > 5 else 'low'
-                                       for kdma, value in target_kdmas.items()}
-
-                indecies = list(range(len(choices)))
-                if shuffle:
-                    random.shuffle(indecies)
-                shuffled_choices = [choices[i] for i in indecies]
-
-                inverse_misaligned_dialog = self.build_multiple_choice_dialog(
-                    question,
-                    shuffled_choices,
-                    system_message=load_system_message(system_message_keys))
-
-                if not logged_inverse_misaligned_dialog:
-                    log.debug("[bold]*INVERSE MISALIGNED DIALOG*[/bold]",
-                              extra={"markup": True})
-                    self.log_dialog(inverse_misaligned_dialog)
-                    logged_inverse_misaligned_dialog = True
-
-                low_response = self.respond_to_dialog(
-                    inverse_misaligned_dialog, prefix=prefix)
-
-                reasoning, answer_idx = Llama2SingleKDMAADM.parse_generated_output(low_response)
-                responses.append({
-                    'response': low_response,
-                    'reasoning': reasoning,
-                    'answer_idx': answer_idx,
-                    'shuffle_indecies': indecies,
-                    'alignment': system_message_keys,
-                    'aligned': False,
-                })
-
-        return responses
-
-
-    def aligned_decision_maker_batched(self, question, choices, target_kdmas, n_samples=5, inverse_misaligned=True, shuffle=True, baseline=False, batch_size=5):
-        unsupported_kdmas = {kdma_remapping.get(k, k)
-                             for k in target_kdmas.keys()} - kdmas
-        if len(unsupported_kdmas) > 0:
-            raise RuntimeError(f"KDMA(s) {unsupported_kdmas} not supported.")
-
-        prefix = '{"Reasoning": "Because'
-
-        results = []
-
-        inputs = []
-
-        for _ in range(n_samples):
-            system_message_keys = {kdma: 'high' if value > 5 else 'low'
-                                   for kdma, value in target_kdmas.items()}
+        
+        for _ in range(n_negative_sampels):
+            system_message_keys = {kdma: 'high' if not value > 5 else 'low'
+                                    for kdma, value in target_kdmas.items()}
 
             indecies = list(range(len(choices)))
             if shuffle:
                 random.shuffle(indecies)
             shuffled_choices = [choices[i] for i in indecies]
 
-            system_message = load_system_message(system_message_keys)
+            inverse_misaligned_dialog = self.build_multiple_choice_dialog(
+                question,
+                shuffled_choices,
+                system_message=load_system_message(system_message_keys))
 
-            if baseline:
-                system_message = load_system_message()
-                system_message_keys = 'baseline'
+            if not logged_inverse_misaligned_dialog:
+                log.debug("[bold]*INVERSE MISALIGNED DIALOG*[/bold]",
+                            extra={"markup": True})
+                self.log_dialog(inverse_misaligned_dialog)
+                logged_inverse_misaligned_dialog = True
 
-            def callback(high_response):
-                reasoning, answer_idx = Llama2SingleKDMAADM.parse_generated_output(high_response)
-                results.append({
-                    'response': high_response,
-                    'reasoning': reasoning,
-                    'answer_idx': answer_idx,
-                    'shuffle_indecies': indecies,
-                    'alignment': system_message_keys,
-                    'aligned': True,
-                })
+            good_parse = False
+            for i in range(n_retries):
+                low_response, inference_pair = self.respond_to_dialog(inverse_misaligned_dialog, prefix=prefix)
+                inference_pairs.append({**inference_pair, **{'aligned': True, 'attempt': i}})
+                try:
+                    reasoning, answer_idx, parse_method = Llama2SingleKDMAADM.parse_generated_output(low_response, len(choices))
+                    good_parse = True
+                    break
+                except RuntimeError as e:
+                    pass
+                    
+            if not good_parse:
+                reasoning, answer_idx, parse_method = Llama2SingleKDMAADM.bert_similarity_parse(low_response, shuffled_choices)
 
-            inputs.append({
-                'question': question,
-                'shuffled_choices': shuffled_choices,
-                'system_message': system_message,
-                'prefix': prefix,
-                'callback': callback,
+            assert answer_idx is not None, f'Failed to parse answer index from generated output: {low_response}'
+                
+            responses.append({
+                'response': low_response,
+                'reasoning': reasoning,
+                'answer_idx': answer_idx,
+                'shuffle_indecies': indecies,
+                'alignment': system_message_keys,
+                'aligned': False,
+                'parse_method': parse_method,
             })
 
-            if inverse_misaligned:
-                system_message_keys = {kdma: 'high' if not value > 5 else 'low'
-                                       for kdma, value in target_kdmas.items()}
+        return responses, inference_pairs
 
-                indecies = list(range(len(choices)))
-                if shuffle:
-                    random.shuffle(indecies)
-                shuffled_choices = [choices[i] for i in indecies]
-
-                def callback(low_response):
-                    reasoning, answer_idx = Llama2SingleKDMAADM.parse_generated_output(low_response)
-                    results.append({
-                        'response': low_response,
-                        'reasoning': reasoning,
-                        'answer_idx': answer_idx,
-                        'shuffle_indecies': indecies,
-                        'alignment': system_message_keys,
-                        'aligned': False,
-                    })
-
-                inputs.append({
-                    'question': question,
-                    'shuffled_choices': shuffled_choices,
-                    'system_message': load_system_message(system_message_keys),
-                    'prefix': prefix,
-                    'callback': callback,
-                })
-
-        for i in range(0, len(inputs), batch_size):
-            responses = self.answer_multiple_choice_batched(
-                questions=[sample['question'] for sample in inputs[i:i+batch_size]],
-                option_lists=[sample['shuffled_choices'] for sample in inputs[i:i+batch_size]],
-                system_messages=[sample['system_message'] for sample in inputs[i:i+batch_size]],
-                prefixes = [sample['prefix'] for sample in inputs[i:i+batch_size]]
-            )
-
-            callbacks = [sample['callback'] for sample in inputs[i:i+batch_size]]
-
-            for response, callback in zip(responses, callbacks):
-                callback(response)
-
-        return results
 
     @staticmethod
     def calculate_votes(responses, choices):
@@ -523,7 +523,8 @@ class Llama2SingleKDMAADM(AlignedDecisionMaker):
 
 
     @staticmethod
-    def parse_generated_output(generated_output):
+    def parse_generated_output(generated_output, n_choices):
+        parse_method = 'json'
 
         # initialize variables
         reasoning = None
@@ -551,12 +552,17 @@ class Llama2SingleKDMAADM(AlignedDecisionMaker):
                 reasoning = parsed['Reasoning']
 
             if 'Answer' in parsed:
-                answer_idx = parsed['Answer']
-
+                try:
+                    answer_idx = int(str(parsed['Answer']))
+                except ValueError:
+                    pass
         except json.JSONDecodeError:
             pass
+        
 
+                
         if answer_idx is None:
+            parse_method = 'string'
             # If json parsing fails, do string parsing
             start_idx = generated_output.find('"Reasoning":')
             end_idx = generated_output.find('",', start_idx)
@@ -577,8 +583,22 @@ class Llama2SingleKDMAADM(AlignedDecisionMaker):
 
                 if answer_idx is not None:
                     break
+        
+        if reasoning is None:
+            reasoning = generated_output
+        
+        if answer_idx is None or answer_idx >= n_choices:
+            raise RuntimeError(f'Failed to parse answer index < {n_choices} from generated output: {generated_output}')
 
-        return reasoning, answer_idx
+        return reasoning, answer_idx, parse_method
+    
+    @staticmethod
+    def bert_similarity_parse(generated_output, choices):
+        print('BERT SIMILARITY PARSE')
+        force_choice_func = build_force_choice_func('bert')
+        answer_idx, _ = force_choice_func(generated_output, choices)
+        print('ANSWER IDX', answer_idx, type(answer_idx))
+        return generated_output, answer_idx, 'bert_similarity'
 
     @staticmethod
     def attempt_generic_parse(generated_output, fields_of_interest):
@@ -688,13 +708,15 @@ class Llama2SingleKDMAADM(AlignedDecisionMaker):
             return None
 
     def run_aligned_decision_maker_with_voting(
-            self, prompt, choices, alignment_target):
-        responses = self.aligned_decision_maker(
+            self, prompt, choices, alignment_target, n_positive_samples=5, n_negative_samples=5, baseline=False, shuffle=False):
+        responses, inference_pairs = self.aligned_decision_maker(
             prompt,
             choices,
             alignment_target,
-            inverse_misaligned=True,
-            baseline=False,
+            baseline=baseline,
+            n_positive_samples=n_positive_samples,
+            n_negative_sampels=n_negative_samples,
+            shuffle=shuffle
         )
 
         try:
@@ -719,17 +741,14 @@ class Llama2SingleKDMAADM(AlignedDecisionMaker):
         reasoning = None
 
         for r in responses:
-            if r['answer_idx'] is None:
-                continue
-
-            if int(r['answer_idx']) >= len(r['shuffle_indecies']):
-                continue
+            assert r['answer_idx'] is not None
+            assert int(r['answer_idx']) < len(r['shuffle_indecies'])
 
             if r['shuffle_indecies'][int(r['answer_idx'])] == answer_idx:
                 reasoning = r['reasoning']
                 break
 
-        return reasoning, answer_idx
+        return reasoning, answer_idx, responses, inference_pairs
 
     def __call__(self, sample, target_kdma_values, **kwargs):
         prompt = sample['scenario']
@@ -762,13 +781,47 @@ class Llama2SingleKDMAADM(AlignedDecisionMaker):
             prompt += f'\n{sample["probe"]}'
 
         choices = sample['choices']
+        
+        labels = kwargs.get('labels', {})
+        
+        alignment_target = None
+        if target_kdma_values is not None:
+            target_kdma = next(iter(next(iter(filter(lambda x: len(x) > 0, labels))))) # get the frist key of the first label that is not empty
+            
+            for label in labels:
+                assert len(label) == 0 or (target_kdma in label and len(label) == 1), f'All labels must have the same KDMA: labels={labels}'
+                
+            alignment_target = {
+                target_kdma: target_kdma_values[target_kdma]
+            }
 
-        reasoning, answer_idx = self.run_aligned_decision_maker_with_voting(
+        reasoning, answer_idx, responses, inference_pairs = self.run_aligned_decision_maker_with_voting(
             prompt,
             choices,
-            target_kdma_values,
+            alignment_target,
+            n_positive_samples=kwargs.get('n_positive_samples', 5),
+            n_negative_samples=kwargs.get('n_negative_samples', 5),
+            baseline=kwargs.get('baseline', False),
+            shuffle=kwargs.get('shuffle', False)
         )
+        
+        raw_data = {
+            'params': {
+                'model': self.hf_model,
+                'temperature': self.temperature,
+                'n_positive_samples': kwargs.get('n_positive_samples', 5),
+                'n_negative_samples': kwargs.get('n_negative_samples', 5),
+                'baseline': kwargs.get('baseline', False),
+                'shuffle': kwargs.get('shuffle', False),
+            },
+            'inference_pairs': inference_pairs
+        }
 
         return {
-            'choice': answer_idx
+            'choice': int(answer_idx),
+            'info': {
+                'reasoning': reasoning,
+                'responses': responses,
+                'raw_data': raw_data,
+            }
         }

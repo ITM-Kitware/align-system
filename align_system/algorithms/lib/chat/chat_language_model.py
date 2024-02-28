@@ -6,18 +6,30 @@ from align_system.algorithms.lib.util import read_template, format_template, dia
 from jinja2.exceptions import TemplateError
 
 class ChatLanguageModel(LanguageModel):
+    
+    def dialogs_to_token_lists(self, dialogs):
+        try:
+            prompt_token_lists = [
+                [self.tokenizer.apply_chat_template(dialog, tokenize=True)]
+                for dialog in dialogs
+            ]
+        except TemplateError as e:
+            systemless_dialogs = []
+            for dialog in dialogs:
+                if dialog[0]['role'] == 'system':
+                    dialog[0]['role'] = 'user'
+                if dialog[1]['role'] == 'user':
+                    dialog[0]['content'] = f"{dialog[0]['content']}\n\n{dialog[1]['content']}"
+                    del dialog[1]
+                systemless_dialogs.append(dialog)
+            
+            prompt_token_lists = [
+                [self.tokenizer.apply_chat_template(dialog, tokenize=True)]
+                for dialog in systemless_dialogs
+            ]
+        
+        return prompt_token_lists
 
-    # def __init__(self, model: LanguageModel, tokenizer: Callable[[str], List[str]]):
-    #     """
-    #     Initializes the chat language model.
-
-    #     :param model: Pretrained language model.
-    #     :param tokenizer: Tokenizer function.
-    #     """
-    #     super().__init__(model, tokenizer)
-    #     # model_name = model.name_or_path
-    #     # assert model_name in dialog_tokenizers, f'No dialog tokenizer found for model {model_name}'
-    #     # self.dialog_tokenizer = dialog_tokenizers[model_name](tokenizer)
 
     def generate_responses(self, 
                            dialogs: List[List[Dict[str, str]]], 
@@ -53,26 +65,7 @@ class ChatLanguageModel(LanguageModel):
             prefixes.append(prefix)
 
         # Tokenization step
-        try:
-            prompt_token_lists = [
-                [self.tokenizer.apply_chat_template(dialog, tokenize=True)]
-                for dialog in user_last_dialogs
-            ]
-        except TemplateError as e:
-            systemless_dialogs = []
-            for dialog in user_last_dialogs:
-                if dialog[0]['role'] == 'system':
-                    dialog[0]['role'] = 'user'
-                if dialog[1]['role'] == 'user':
-                    dialog[0]['content'] = f"{dialog[0]['content']}\n\n{dialog[1]['content']}"
-                    del dialog[1]
-                systemless_dialogs.append(dialog)
-            
-            prompt_token_lists = [
-                [self.tokenizer.apply_chat_template(dialog, tokenize=True)]
-                for dialog in systemless_dialogs
-            ]
-                
+        prompt_token_lists = self.dialogs_to_token_lists(user_last_dialogs)
             
 
         # Add the prefix tokens to the prompt tokens
@@ -123,10 +116,13 @@ class ChatLanguageModel(LanguageModel):
         :param verbose: If True, verbose logging is enabled.
         :return: Generated responses.
         """
+        single_mode = False
         if isinstance(substitution_dicts, dict):
+            single_mode = True
             substitution_dicts = [substitution_dicts]
 
         if isinstance(templates, str):
+            single_mode = True
             templates = [templates] * len(substitution_dicts)
 
         assert len(templates) == len(substitution_dicts), 'Number of templates and substitutions do not match'
@@ -168,7 +164,12 @@ class ChatLanguageModel(LanguageModel):
 
         assert len(outputs) == len(substitution_dicts), 'Unexpected state: number of outputs and substitutions do not match'
 
-        return [
+        outputs = [
             outputs[i]
             for i in range(len(outputs))
         ]
+        
+        if single_mode:
+            outputs = outputs[0]
+        
+        return outputs

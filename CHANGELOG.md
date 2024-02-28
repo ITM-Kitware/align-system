@@ -5,6 +5,21 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## Unreleased
 
+### Added
+* Added alignment accuracy metric in self-evaluation framework
+
+## 0.2.6
+
+### Added
+
+* Added bbn pilot data alignability to Single KDMA ADM
+* Added compatability for Single KDMA ADM to work with other language models
+
+### Changed
+
+* Moved all system messages into the same directory
+* Made number of positive and negative self-consistency votes configurable
+
 ### Fixed
 
 * Fixed issue with configurable KDMA Estimator and Distance functions for Kaleido ADM

@@ -38,10 +38,12 @@ class LanguageModel:
                 raise ValueError(f'Precision must be one of {list(precisions.keys())}, got {precision}')
             
             precision = precisions[precision]
-        
-        model = AutoModelForCausalLM.from_pretrained(hf_model_name, torch_dtype=precision)
+        if device == 'auto':
+            model = AutoModelForCausalLM.from_pretrained(hf_model_name, torch_dtype=precision, device_map='auto')
+        else:
+            model = AutoModelForCausalLM.from_pretrained(hf_model_name, torch_dtype=precision)
+            model = model.to(device)
         tokenizer = AutoTokenizer.from_pretrained(hf_model_name)
-        model = model.to(device)
         return cls(model, tokenizer)
 
     def __init__(self, 
@@ -130,6 +132,7 @@ class LanguageModel:
             return_dict_in_generate=True, 
             output_scores=True, 
             max_new_tokens=max_new_tokens,
+            do_sample=True,
             temperature=temperature
         )
         
