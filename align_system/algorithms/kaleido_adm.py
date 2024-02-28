@@ -7,7 +7,7 @@ import pandas as pd
 
 from align_system.algorithms.abstracts import ActionBasedADM
 from align_system.algorithms.lib.kaleido import KaleidoSys
-from align_system.algorithms.lib.aligned_decision_maker import AlignedDecisionMaker
+from align_system.algorithms.abstracts import AlignedDecisionMaker
 from align_system.algorithms.lib.util import format_template
 from align_system.utils import logging
 

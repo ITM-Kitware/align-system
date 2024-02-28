@@ -3,7 +3,7 @@ import re
 import random
 import os
 import pathlib
-from align_system.algorithms.lib.aligned_decision_maker import AlignedDecisionMaker
+from align_system.algorithms.abstracts import AlignedDecisionMaker
 
 from jinja2.exceptions import TemplateError
 
