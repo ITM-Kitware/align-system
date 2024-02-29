@@ -2,7 +2,7 @@ import json
 import yaml
 import os
 
-from align_system.algorithms.lib.aligned_decision_maker import AlignedDecisionMaker
+from align_system.algorithms.abstracts import AlignedDecisionMaker
 from align_system.algorithms.lib.chat.chat_language_model import ChatLanguageModel
 
 

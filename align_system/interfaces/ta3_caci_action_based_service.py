@@ -72,6 +72,10 @@ class TA3CACIActionBasedServiceInterface(Interface):
                             default=False,
                             help='Return training related information from '
                                  'API requests')
+        parser.add_argument('--scenario-id',
+                            required=False,
+                            default=None,
+                            help='Specific scenario to run')
 
         return parser
 
