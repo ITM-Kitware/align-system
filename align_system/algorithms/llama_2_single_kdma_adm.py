@@ -33,7 +33,8 @@ kdmas = {
     'denial',
     'moral_deservingness',
     'lives_saved',
-    'continuation_of_care'
+    'continuation_of_care',
+    'maximization'
 }
 
 kdma_remapping = {
@@ -134,13 +135,13 @@ class Llama2SingleKDMAADM(AlignedDecisionMaker):
             else:
                 self.model = AutoModelForCausalLM.from_pretrained(self.hf_model, torch_dtype=self.precision)
                 self.model = self.model.to(self.device)
-            
+
             self.tokenizer = AutoTokenizer.from_pretrained(self.hf_model)
-            
+
             if self.chat_template is not None:
                 with open(os.path.join(chat_template_path, self.chat_template), 'r') as f:
                     self.tokenizer.chat_template = f.read().replace('    ', '').replace('\n', '')
-            
+
 
 
     def get_character_ids(self, character_str):
@@ -271,7 +272,7 @@ class Llama2SingleKDMAADM(AlignedDecisionMaker):
             for message in dialog:
                 if message['role'] == 'system':
                     message['role'] = 'user'
-                
+
                 if len(new_dialog) == 0:
                     new_dialog.append(message)
                     continue
@@ -301,7 +302,7 @@ class Llama2SingleKDMAADM(AlignedDecisionMaker):
         # Print the generated model output
         generated_output = self.tokenizer.decode(outputs.sequences[0][prompt_length:])
         inference_pair['output'] = generated_output
-        
+
         print('INFERENCE PAIR\n', inference_pair)
 
         return generated_output, inference_pair
@@ -386,7 +387,7 @@ class Llama2SingleKDMAADM(AlignedDecisionMaker):
             if baseline:
                 system_message = load_system_message()
                 system_message_keys = 'baseline'
-                
+
             else:
                 system_message_keys = {kdma: 'high' if value > 5 else 'low'
                                     for kdma, value in target_kdmas.items()}
@@ -418,13 +419,13 @@ class Llama2SingleKDMAADM(AlignedDecisionMaker):
                     break
                 except RuntimeError as e:
                     pass
-            
+
             if not good_parse:
                 reasoning, answer_idx, parse_method = Llama2SingleKDMAADM.bert_similarity_parse(high_response, shuffled_choices)
-            
+
             print('CHOSEN ANSWER IDX', answer_idx, shuffled_choices)
             assert answer_idx is not None, f'Failed to parse answer index from generated output: {low_response}'
-                
+
             responses.append({
                 'response': high_response,
                 'reasoning': reasoning,
@@ -434,7 +435,7 @@ class Llama2SingleKDMAADM(AlignedDecisionMaker):
                 'aligned': True,
                 'parse_method': parse_method,
             })
-        
+
         for _ in range(n_negative_sampels):
             system_message_keys = {kdma: 'high' if not value > 5 else 'low'
                                     for kdma, value in target_kdmas.items()}
@@ -465,12 +466,12 @@ class Llama2SingleKDMAADM(AlignedDecisionMaker):
                     break
                 except RuntimeError as e:
                     pass
-                    
+
             if not good_parse:
                 reasoning, answer_idx, parse_method = Llama2SingleKDMAADM.bert_similarity_parse(low_response, shuffled_choices)
 
             assert answer_idx is not None, f'Failed to parse answer index from generated output: {low_response}'
-                
+
             responses.append({
                 'response': low_response,
                 'reasoning': reasoning,
@@ -558,9 +559,9 @@ class Llama2SingleKDMAADM(AlignedDecisionMaker):
                     pass
         except json.JSONDecodeError:
             pass
-        
 
-                
+
+
         if answer_idx is None:
             parse_method = 'string'
             # If json parsing fails, do string parsing
@@ -583,15 +584,15 @@ class Llama2SingleKDMAADM(AlignedDecisionMaker):
 
                 if answer_idx is not None:
                     break
-        
+
         if reasoning is None:
             reasoning = generated_output
-        
+
         if answer_idx is None or answer_idx >= n_choices:
             raise RuntimeError(f'Failed to parse answer index < {n_choices} from generated output: {generated_output}')
 
         return reasoning, answer_idx, parse_method
-    
+
     @staticmethod
     def bert_similarity_parse(generated_output, choices):
         print('BERT SIMILARITY PARSE')
@@ -781,16 +782,16 @@ class Llama2SingleKDMAADM(AlignedDecisionMaker):
             prompt += f'\n{sample["probe"]}'
 
         choices = sample['choices']
-        
+
         labels = kwargs.get('labels', {})
-        
+
         alignment_target = None
         if target_kdma_values is not None:
             target_kdma = next(iter(next(iter(filter(lambda x: len(x) > 0, labels))))) # get the frist key of the first label that is not empty
-            
+
             for label in labels:
                 assert len(label) == 0 or (target_kdma in label and len(label) == 1), f'All labels must have the same KDMA: labels={labels}'
-                
+
             alignment_target = {
                 target_kdma: target_kdma_values[target_kdma]
             }
@@ -804,7 +805,7 @@ class Llama2SingleKDMAADM(AlignedDecisionMaker):
             baseline=kwargs.get('baseline', False),
             shuffle=kwargs.get('shuffle', False)
         )
-        
+
         raw_data = {
             'params': {
                 'model': self.hf_model,
