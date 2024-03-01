@@ -3,6 +3,7 @@ import re
 import random
 import os
 import pathlib
+import random
 from align_system.algorithms.lib.aligned_decision_maker import AlignedDecisionMaker
 
 from jinja2.exceptions import TemplateError
@@ -422,7 +423,7 @@ class Llama2SingleKDMAADM(AlignedDecisionMaker):
             if not good_parse:
                 reasoning, answer_idx, parse_method = Llama2SingleKDMAADM.bert_similarity_parse(high_response, shuffled_choices)
             
-            log.info('CHOSEN ANSWER IDX %s %s', answer_idx, shuffled_choices)
+            log.explain('CHOSEN ANSWER IDX %s %s', answer_idx, shuffled_choices)
             assert answer_idx is not None, f'Failed to parse answer index from generated output: {low_response}'
                 
             responses.append({
@@ -749,11 +750,58 @@ class Llama2SingleKDMAADM(AlignedDecisionMaker):
                 break
 
         return reasoning, answer_idx, responses, inference_pairs
-
-    def __call__(self, sample, target_kdma_values, **kwargs):
+    
+    def format_single_incontext_prompt(self, sample):
         prompt = sample['scenario']
         if sample['state'] is not None:
             prompt += f'\n{sample["state"]}'
+
+        choices = sample['choices']
+        
+        labels = kwargs.get('labels', {})
+        
+        alignment_target = None
+        if target_kdma_values is not None:
+            target_kdma = next(iter(next(iter(filter(lambda x: len(x) > 0, labels))))) # get the frist key of the first label that is not empty
+            
+            for label in labels:
+                assert len(label) == 0 or (target_kdma in label and len(label) == 1), f'All labels must have the same KDMA: labels={labels}'
+                
+            alignment_target = {
+                target_kdma: target_kdma_values[target_kdma]
+            }
+
+
+        #TODO: add prompt completetion here for choices as well.  
+
+
+    def __call__(self, sample, target_kdma_values, **kwargs):
+        """ Build the prompt and send to the LLM to ask for a single KDMA
+
+
+        """
+        prompt = sample['scenario']
+        if sample['state'] is not None:
+            prompt += f'\n{sample["state"]}'
+
+        if 'incontext' in kwargs:
+            possible_samples = []
+            
+            for sam in kwargs['dataset']:
+                if sam['probe_id'] != sample['probe_id']:
+                    possible_samples.append(sam)
+
+                if len(possible_samples) < kwargs['incontext']['number']:
+                    raise(f'Not enough possible incontext samples to learn from here.  
+                          Only {len(possible_samples)} samples while asking for 
+                          {kwargs['incontext']['number']} in context samples')
+                
+                if kwargs['incontext']['method'] == 'random':
+                    chosen_sample = random.sample(possible_samples, kwargs['incontext']['number'])
+                else:
+                    raise(f'"{kwargs['incontext']['method']}" is not a valid incontext method.  Please use "random", ')
+                
+            
 
         if 'retriever' in kwargs:
             # retriever_prompt = "How would you treat the following injuries: {}".format(prompt)
