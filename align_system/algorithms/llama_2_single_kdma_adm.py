@@ -114,6 +114,7 @@ class Llama2SingleKDMAADM(AlignedDecisionMaker):
         self.temperature = temperature
         self.do_sample = do_sample
         self.chat_template = kwargs.get('chat_template', None)
+        self.dataset = []
 
         assert precision in ['full', 'half'], "precision must be either 'full' or 'half'."
         self.precision = torch.float32 if precision == 'full' else torch.float16
@@ -406,6 +407,7 @@ class Llama2SingleKDMAADM(AlignedDecisionMaker):
                 question,
                 shuffled_choices,
                 system_message=system_message)
+
 
             if not logged_aligned_dialog:
                 log.debug("[bold]*ALIGNED DIALOG*[/bold]",
@@ -759,25 +761,17 @@ class Llama2SingleKDMAADM(AlignedDecisionMaker):
 
         return reasoning, answer_idx, responses, inference_pairs
 
-    def format_single_incontext_prompt(self, sample):
+    def format_single_incontext_prompt(self, sample, labels):
         prompt = sample['scenario']
         if sample['state'] is not None:
             prompt += f'\n{sample["state"]}'
 
-        choices = sample['choices']
+        for choice, label in zip(sample['choices'],labels):
+            level = 'high' if list(label.values())[0] > 5 else 'low'
+            attribute = list(label.keys())[0].replace('_', ' ')
+            prompt += f'  If you had a {level} {attribute}, you would select {choice}.'
 
-        labels = kwargs.get('labels', {})
-
-        alignment_target = None
-        if target_kdma_values is not None:
-            target_kdma = next(iter(next(iter(filter(lambda x: len(x) > 0, labels))))) # get the frist key of the first label that is not empty
-
-            for label in labels:
-                assert len(label) == 0 or (target_kdma in label and len(label) == 1), f'All labels must have the same KDMA: labels={labels}'
-
-            alignment_target = {
-                target_kdma: target_kdma_values[target_kdma]
-            }
+        return prompt
 
 
         #TODO: add prompt completetion here for choices as well.
@@ -795,21 +789,33 @@ class Llama2SingleKDMAADM(AlignedDecisionMaker):
         if 'incontext' in kwargs:
             possible_samples = []
 
+            #sam has both info in first element and labels in second element
             for sam in kwargs['dataset']:
-                if sam['probe_id'] != sample['probe_id']:
+                if sam[0]['probe_id'] != sample['probe_id']:
+
                     possible_samples.append(sam)
 
-                if len(possible_samples) < kwargs['incontext']['number']:
-                    raise(f'Not enough possible incontext samples to learn from here.
-                          Only {len(possible_samples)} samples while asking for
-                          {kwargs['incontext']['number']} in context samples')
+            if len(possible_samples) < kwargs['incontext']['number']:
+                raise RuntimeError(f'Not enough possible incontext samples to learn from here.'
+                        f'Only {len(possible_samples)} samples while asking for'
+                        f'{kwargs["incontext"]["number"]} in context samples')
 
-                if kwargs['incontext']['method'] == 'random':
-                    chosen_sample = random.sample(possible_samples, kwargs['incontext']['number'])
-                else:
-                    raise(f'"{kwargs['incontext']['method']}" is not a valid incontext method.  Please use "random", ')
+            if kwargs['incontext']['method'] == 'random':
+                chosen_sample = random.sample(possible_samples, kwargs['incontext']['number'])
+            else:
+                raise(f'"{kwargs["incontext"]["method"]}" is not a valid incontext method.  Please use "random", ')
+
+            incontext_prompt_start = '  Here are some examples of similar problems with their attributes. '
 
 
+            extra_prompts = [incontext_prompt_start]
+            for cs, cl in chosen_sample:
+                extra_prompts.append(self.format_single_incontext_prompt(cs, cl))
+
+            extra_prompts.append('  Given these similar examples, please answer the question for the following scenario. ')
+
+            extra_prompts = ''.join(extra_prompts)
+            prompt = extra_prompts + prompt
 
         if 'retriever' in kwargs:
             # retriever_prompt = "How would you treat the following injuries: {}".format(prompt)
