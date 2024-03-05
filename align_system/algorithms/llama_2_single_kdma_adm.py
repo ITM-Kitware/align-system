@@ -119,6 +119,8 @@ class Llama2SingleKDMAADM(AlignedDecisionMaker):
 
         self.model = None
         self.tokenizer = None
+        
+        self.load_model()
 
 
     def load_model(self, model=None, tokenizer=None):
@@ -378,24 +380,26 @@ class Llama2SingleKDMAADM(AlignedDecisionMaker):
 
         prefix = '{"Reasoning": "Because'
 
-        responses = []
+        responses = [] # Accumumlate the different model samplings in here, both positive and negative
 
         logged_aligned_dialog = False
         logged_inverse_misaligned_dialog = False
-        for _ in range(n_positive_samples):
+        
+        # NOTE the content of this for-loop could be extracted out to a separate function
+        for _ in range(n_positive_samples): # Sample the postive samples where the model is aligned with the target_kdmas
             if baseline:
                 system_message = load_system_message()
                 system_message_keys = 'baseline'
 
             else:
                 system_message_keys = {kdma: 'high' if value > 5 else 'low'
-                                    for kdma, value in target_kdmas.items()}
+                                    for kdma, value in target_kdmas.items()} # picking the aligned system message
                 system_message = load_system_message(system_message_keys)
 
             indecies = list(range(len(choices)))
             if shuffle:
                 random.shuffle(indecies)
-            shuffled_choices = [choices[i] for i in indecies]
+            shuffled_choices = [choices[i] for i in indecies] # shuffle the answer choices to avoid any bias the model might have towards the order of the choices
 
             dialog = self.build_multiple_choice_dialog(
                 question,
@@ -433,11 +437,11 @@ class Llama2SingleKDMAADM(AlignedDecisionMaker):
                 'alignment': system_message_keys,
                 'aligned': True,
                 'parse_method': parse_method,
-            })
+            }) # collecting the samples in responses list
 
-        for _ in range(n_negative_sampels):
+        for _ in range(n_negative_sampels): # Sample the negative samples where the model is misaligned with the target_kdmas
             system_message_keys = {kdma: 'high' if not value > 5 else 'low'
-                                    for kdma, value in target_kdmas.items()}
+                                    for kdma, value in target_kdmas.items()} # picking the misaligned system message
 
             indecies = list(range(len(choices)))
             if shuffle:
