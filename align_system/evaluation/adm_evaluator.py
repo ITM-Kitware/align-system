@@ -11,7 +11,7 @@ def generate_outputs(dataset, adm, target_kdma_values, **kwargs):
             })
             continue
         
-        outputs.append(adm(input_, target_kdma_values, labels=label, **kwargs))
+        outputs.append(adm(input_, target_kdma_values, labels=label, dataset=dataset, **kwargs))
     
     return outputs
 
