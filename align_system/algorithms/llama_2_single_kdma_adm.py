@@ -801,8 +801,10 @@ class Llama2SingleKDMAADM(AlignedDecisionMaker):
 
 
             extra_prompts = [incontext_prompt_start]
+            ci =  1
             for cs, cl in chosen_sample:
-                extra_prompts.append(self.format_single_incontext_prompt(cs, cl))
+                extra_prompts.append(f'  Example {ci}' + self.format_single_incontext_prompt(cs, cl))
+                ci += 1
 
             extra_prompts.append('  Given these similar examples, please answer the question for the following scenario. ')
             
