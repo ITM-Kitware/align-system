@@ -43,7 +43,6 @@ class ChatKDMAPredictingADM(ChatLanguageModel, AlignedDecisionMaker):
             temperature=temperature
         )
 
-    
     def predict_kdma_values(self,
                             scenario_text: str,
                             probe_text: str,
@@ -74,15 +73,18 @@ class ChatKDMAPredictingADM(ChatLanguageModel, AlignedDecisionMaker):
         substitutions = []
         info = []
         
+        # Load descriptions for KDMAs from a YAML file
         relative_dir = os.path.dirname(__file__)
         kdma_descriptions_file_path = os.path.join(relative_dir, kdma_descriptions_file)
         
         with open(kdma_descriptions_file_path, 'r') as f:
             kdma_descriptions = yaml.load(f, Loader=yaml.FullLoader)
         
+        # Initialize predicted_outcomes with None if not provided
         if predicted_outcomes is None:
             predicted_outcomes = [None] * len(choice_texts)
         
+        # Preparing substitution data for the template
         for choice_id, choice, outcome in zip(choice_ids, choice_texts, predicted_outcomes):
             for kdma, kdma_info in kdma_descriptions.items():
                 substitution = {
@@ -134,6 +136,7 @@ class ChatKDMAPredictingADM(ChatLanguageModel, AlignedDecisionMaker):
             temperature=temperature,
         )
         
+        # Post-process generated KDMA predictions to structure them properly
         predicted_kdma_values = {}
         reasonings = {}
         for (choice_id, kdma), generation in zip(info, generations):
@@ -163,7 +166,6 @@ class ChatKDMAPredictingADM(ChatLanguageModel, AlignedDecisionMaker):
         else:
             return predicted_kdma_values
     
-    
     def __call__(self, sample, target_kdma_values, **kwargs):
         scenario_text = sample['scenario']
         if sample['state'] is not None:
@@ -186,6 +188,7 @@ class ChatKDMAPredictingADM(ChatLanguageModel, AlignedDecisionMaker):
             **kwargs['predict_kdma_values']
         )
         
+        # Mean Squared Error calculation between target and predicted KDMA values
         def mse(target_kdma_values, predicted_kdma_values):
             kdmas = set(target_kdma_values.keys()) & set(predicted_kdma_values.keys())
             
@@ -203,6 +206,7 @@ class ChatKDMAPredictingADM(ChatLanguageModel, AlignedDecisionMaker):
                 min_mse = mse_
                 choice_idx = i
         
+        # Return the chosen index, predicted KDMA values, and optionally generated reasoning
         return {
             'choice': choice_idx,
             'predicted_kdmas': predicted_kdma_values,

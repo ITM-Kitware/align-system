@@ -485,39 +485,58 @@ class Llama2SingleKDMAADM(AlignedDecisionMaker):
 
     @staticmethod
     def calculate_votes(responses, choices):
+        # Initialize a list to keep track of votes for each choice, starting at 0
         choice_votes = [0] * len(choices)
+        # Loop through each response
         for response in responses:
             answer_idx = response['answer_idx']
+
+            # Continue to next response if answer_idx is None
             if answer_idx is None:
                 continue
 
+            # Try converting the answer_idx to an integer, skip to the next response if it fails
             try:
                 answer_idx = int(answer_idx)
             except ValueError:
                 continue
 
+            # Skip this response if the answer_idx is out of bounds of the available choices
             if answer_idx >= len(choices):
                 continue
+            
+            # TODO it may be beneficial to throw a warning or error if either of the above conditions are met
 
+            # If there are shuffled indices provided, use them to find the original index of the answer
             if 'shuffle_indecies' in response:
                 answer_idx = response['shuffle_indecies'][int(answer_idx)]
 
+            # Get the alignment status of the response
             aligned = response['aligned']
 
+            # If the response is aligned, increment the vote count for the chosen answer
             if aligned:
                 choice_votes[answer_idx] += 1
             else:
+                # If not aligned, distribute the vote fractionally among all other options
+                # and subtract from the chosen option
                 for i in range(len(choices)):
                     if i != answer_idx:
                         choice_votes[i] += 1/len(choices)
                     else:
                         choice_votes[i] -= 1/len(choices)
+            # This ensures that each sampling has the same weight, but a negative vote affects all the choices that weren't selected
 
-        min_score = min(choice_votes) + 1e-6
+        # Normalize scores to ensure no negative totals and adjust based on the lowest score
+        min_score = min(choice_votes) + 1e-6  # Add a small constant to avoid zero division
         choice_votes = [score - min_score for score in choice_votes]
+        
+        # Calculate the sum of all adjusted vote counts
         total = sum(choice_votes)
+        # Normalize the vote counts to a percent distribution, rounded to six decimal points
         choice_votes = [round(score / total, 6) for score in choice_votes]
 
+        # Return the final normalized, adjusted vote counts
         return choice_votes
 
 
