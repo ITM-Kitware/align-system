@@ -3,6 +3,12 @@
 This changelog follows the specifications detailed in: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html), although we have not yet reached a `1.0.0` release.
 
+## Unreleased
+
+### Added
+
+* Added new Oracle ADM (action based; attempts to "choose" best action based on KDMA values)
+
 ## 0.3.3
 
 ### Changed
