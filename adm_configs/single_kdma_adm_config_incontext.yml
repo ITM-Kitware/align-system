@@ -1,0 +1,21 @@
+adm:
+  name: 'SingleKDMAADM'
+  init_kwargs:
+    hf_model: meta-llama/Llama-2-7b-chat-hf
+    precision: half
+    temperature: 0.7
+
+  inference_kwargs:
+    baseline: true
+    n_negative_samples: 0
+    n_positive_samples: 1
+    shuffle: true
+    incontext: 
+      number: 5
+      method: random
+    dataset: ../datasets/metrics-eval/bbn/metrics-eval-train-renamed.json
+
+alignment_target_override:
+  id: ADEPT-metrics_eval-alignment-target-train-HIGH
+  kdma_values:
+    - {kdma: MoralDesert, value: 1}
