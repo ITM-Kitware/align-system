@@ -216,6 +216,7 @@ class Llama2SingleKDMAADM(AlignedDecisionMaker):
     def build_multiple_choice_dialog(self,
                                      question,
                                      options,
+                                     incontext=None, 
                                      system_message=None,
                                      json_format=STANDARD_MULTIPLE_CHOICE_JSON_FORMAT):
         medical_triage_system_message = (
@@ -374,7 +375,7 @@ class Llama2SingleKDMAADM(AlignedDecisionMaker):
 
         return generated_outputs
 
-    def aligned_decision_maker(self, question, choices, target_kdmas, n_positive_samples=5, n_negative_sampels=5, shuffle=True, baseline=False, n_retries=3):
+    def aligned_decision_maker(self, question, choices, target_kdmas, incontext=None, n_positive_samples=5, n_negative_sampels=5, shuffle=True, baseline=False, n_retries=3):
         inference_pairs = []
         if not baseline:
             unsupported_kdmas = {kdma_remapping.get(k, k)
@@ -406,7 +407,8 @@ class Llama2SingleKDMAADM(AlignedDecisionMaker):
             dialog = self.build_multiple_choice_dialog(
                 question,
                 shuffled_choices,
-                system_message=system_message)
+                system_message=system_message,
+                incontext=incontext)
 
 
             if not logged_aligned_dialog:
@@ -766,6 +768,18 @@ class Llama2SingleKDMAADM(AlignedDecisionMaker):
         if sample['state'] is not None:
             prompt += f'\n{sample["state"]}'
 
+
+
+        [f'({i}) {option}' for i, option in enumerate(options)]
+        {
+            "role": "user",
+            "content": system_message
+        },
+        {
+            "role": "assistant",
+            "content": invalid_json
+        }
+
         for choice, label in zip(sample['choices'],labels):
             level = 'high' if list(label.values())[0] > 5 else 'low'
             attribute = list(label.keys())[0].replace('_', ' ')
@@ -788,6 +802,7 @@ class Llama2SingleKDMAADM(AlignedDecisionMaker):
 
         if 'incontext' in kwargs:
             possible_samples = []
+            incontext_prompts = []
 
             # Read dataset
             with open(kwargs['dataset']) as f:
@@ -809,10 +824,11 @@ class Llama2SingleKDMAADM(AlignedDecisionMaker):
             else:
                 raise(f'"{kwargs["incontext"]["method"]}" is not a valid incontext method.  Please use "random", ')
 
-            incontext_prompt_start = '  Here are some examples of similar problems with their attributes. '
+            # incontext_prompt_start = '  Here are some examples of similar problems with their attributes. '
 
 
-            extra_prompts = [incontext_prompt_start]
+            # extra_prompts = [incontext_prompt_start]
+            
             ci =  1
             for cs, cl in chosen_sample:
                 extra_prompts.append(f'  Example {ci}' + self.format_single_incontext_prompt(cs, cl))
@@ -821,7 +837,7 @@ class Llama2SingleKDMAADM(AlignedDecisionMaker):
             extra_prompts.append('  Given these similar examples, please answer the question for the following scenario. ')
 
             extra_prompts = ''.join(extra_prompts)
-            prompt = extra_prompts + prompt
+            # prompt = extra_prompts + prompt
 
         # if 'retriever' in kwargs:
         #     # retriever_prompt = "How would you treat the following injuries: {}".format(prompt)
@@ -867,6 +883,7 @@ class Llama2SingleKDMAADM(AlignedDecisionMaker):
             prompt,
             choices,
             alignment_target,
+            incontext=None,
             n_positive_samples=kwargs.get('n_positive_samples', 5),
             n_negative_samples=kwargs.get('n_negative_samples', 5),
             baseline=kwargs.get('baseline', False),
@@ -1105,7 +1122,7 @@ class Llama2SingleKDMAADM(AlignedDecisionMaker):
 
             parsed_tagging_output = self.attempt_generic_parse(  # noqa
                 raw_tagging_response, ['Reasoning', 'Answer', 'Tag'])  # noqa
-
+            
             if parsed_tagging_output is not None:
                 if len(untagged_characters) == 1:
                     log.debug("** Force selecting only available character")
