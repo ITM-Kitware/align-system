@@ -3,11 +3,12 @@ import json
 import yaml
 from copy import deepcopy
 import atexit
+from itertools import chain
 
 from rich.logging import RichHandler
 from rich.console import Console
 from rich.highlighter import JSONHighlighter
-from swagger_client.models import AlignmentTarget, ActionTypeEnum
+from swagger_client.models import AlignmentTarget, ActionTypeEnum, InjuryStatusEnum
 
 from align_system.utils import logging
 from align_system.interfaces.cli_builder import build_interfaces
@@ -177,6 +178,25 @@ def run_action_based_chat_system(interface,
                                   "allowing {} action".format(a.action_type))
                         continue
 
+                if a.action_type == ActionTypeEnum.APPLY_TREATMENT:
+                    untreated_injuries = [i for i in chain(*(c.injuries for c in current_state.characters)) if i.status != InjuryStatusEnum.TREATED]
+
+                    if len(untreated_injuries) == 0:
+                        log.debug("No untreated injuries remaining, not "
+                                  "allowing {} action".format(a.action_type))
+                        continue
+
+                    if a.character_id is not None:
+                        matching_characters = [c for c in current_state.characters
+                                               if c.id == a.character_id]
+                        assert len(matching_characters) == 1
+                        treated_injuries_for_character = [i for i in matching_characters[0].injuries if i.status == InjuryStatusEnum.TREATED]
+
+                        if len(treated_injuries_for_character) > 0:
+                            log.debug("Treated at least one injury for {}, not "
+                                      "allowing {} action".format(a.character_id, a.action_type))
+                            continue
+
                 is_a_noop_action = False
                 for noop_action in noop_actions:
                     if a == noop_action:
@@ -242,12 +262,15 @@ def run_action_based_chat_system(interface,
 
             last_state = current_state
             current_state = scenario.take_action(action_to_take)
+            log.debug("Elapsed time for current state: {}".format(current_state.elapsed_time))
 
             # Check that the scenario state has really changed
             # Want to restrict actions that have already been taken that
             # didn't change the state
             _tmp_current_state = deepcopy(current_state)
             _tmp_current_state.elapsed_time = last_state.elapsed_time
+            _tmp_current_state.supplies = last_state.supplies
+
             state_has_changed = (_tmp_current_state != last_state)
             if state_has_changed:
                 noop_actions = []

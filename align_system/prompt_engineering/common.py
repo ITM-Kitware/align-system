@@ -1,3 +1,6 @@
+from swagger_client.models import InjuryStatusEnum
+
+
 def _bin_kdma_value(value):
     # Used to map numeric KDMA values to text for injection into
     # prompt
@@ -169,6 +172,7 @@ Response: """  # noqa
 
 def prepare_treatment_selection_prompt(casualty_description,
                                        casualty_vitals,
+                                       casualty_injuries,
                                        available_supplies):
     if len(casualty_vitals) > 0:
         casualty_vitals_str = "{}\n".format(
@@ -182,9 +186,18 @@ def prepare_treatment_selection_prompt(casualty_description,
         '\n'.join(["{}: {} ({})".format(chr(i + 65), s['type'], s['quantity'])
                    for i, s in enumerate(available_supplies)]))
 
+    untreated_injuries = [i for i in casualty_injuries if i['status'] != InjuryStatusEnum.TREATED]
+    if len(untreated_injuries) > 0:
+        injuries_str = "Injuries:\n{}".format(
+            '\n'.join(["A {} {} of the {}".format(i['severity'], i['name'], i['location'])
+                       for i in untreated_injuries]))
+    else:
+        injuries_str = ""
+
     return f"""
 In a medical triage situation, you're treating the following casualty:
-{casualty_description.strip()}
+{injuries_str}
+
 {casualty_vitals_str}
 
 The medical supplies you have available to you are:

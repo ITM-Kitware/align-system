@@ -938,9 +938,10 @@ class Llama2SingleKDMAADM(AlignedDecisionMaker):
         treatment_prompt = prepare_treatment_selection_prompt(
             character_to_treat.unstructured,
             character_to_treat.vitals.to_dict(),
+            [i.to_dict() for i in character_to_treat.injuries],
             [s.to_dict() for s in available_supplies])
 
-        for _ in range(kwargs.get('answer_attempts', 5)):
+        for _ in range(kwargs.get('answer_attempts', 10)):
             treatment_dialog =\
                 self.build_multiple_choice_dialog(
                     treatment_prompt,
