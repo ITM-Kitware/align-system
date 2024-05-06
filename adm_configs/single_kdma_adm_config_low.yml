@@ -10,12 +10,8 @@ adm:
     n_negative_samples: 0
     n_positive_samples: 1
     shuffle: true
-    incontext: 
-      number: 5
-      method: random
-    dataset: ../datasets/metrics-eval/bbn/metrics-eval-train-renamed.json
 
 alignment_target_override:
-  id: ADEPT-metrics_eval-alignment-target-train-HIGH
+  id: ADEPT-metrics_eval-alignment-target-train-LOW
   kdma_values:
-    - {kdma: MoralDesert, value: 1}
+    - {kdma: MoralDesert, value: 0}
