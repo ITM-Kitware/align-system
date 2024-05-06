@@ -1,4 +1,5 @@
 run.bash
+results/*
 
 venv/
 __pycache__/

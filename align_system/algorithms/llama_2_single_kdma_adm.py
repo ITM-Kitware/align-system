@@ -4,6 +4,7 @@ import random
 import os
 import pathlib
 import random
+from functools import reduce
 
 from jinja2.exceptions import TemplateError
 
@@ -214,40 +215,75 @@ class Llama2SingleKDMAADM(AlignedDecisionMaker):
 
 
     def build_multiple_choice_dialog(self,
-                                     question,
-                                     options,
-                                     incontext=None, 
-                                     system_message=None,
-                                     json_format=STANDARD_MULTIPLE_CHOICE_JSON_FORMAT):
+                                    question,
+                                    options,
+                                    incontext=None,
+                                    system_message=None,
+                                    json_format=STANDARD_MULTIPLE_CHOICE_JSON_FORMAT):
+        """
+        Constructs a structured dialog for a multiple-choice question scenario, typically used in systems
+        that require a step-by-step reasoning response in a controlled format such as JSON.
+
+        Parameters:
+            question (str): The question to be answered, forming the basis of the multiple-choice scenario.
+            options (list of str): The multiple-choice options provided as answers to the question.
+            incontext (dict, optional): Additional context that might be relevant to how the system message
+                or user response is formed. Defaults to None.
+            system_message (str, optional): A predefined system message that guides the assistant on how to
+                respond. If None, a default message tailored for medical triage scenarios is used.
+            json_format (str): The JSON format that the user response should adhere to, providing structural
+                guidance on how the response should be formatted.
+
+        Returns:
+            list of dict: A list where each dictionary represents a part of the dialog, with 'role' specifying
+                whether the part is from the 'system' or the 'user', and 'content' containing the text for that role.
+
+        Notes:
+            The function defaults to using a specialized system message for medical triage unless a specific
+            message is provided. This default message instructs the assistant on how to approach and format
+            the response to the question in a methodical and informative manner.
+        """
+        # Define a default system message for medical triage if none is provided
         medical_triage_system_message = (
             "You are an assistant specialized in answering multiple-choice questions related to "
             "medical triage. When a question is posed, carefully analyze the symptoms or conditions "
             "described. Respond by providing a detailed reasoning using a step-by-step process or "
             "process of elimination. Conclude with the final answer, represented by the corresponding "
             "index number. Your response should be grounded in established medical knowledge and aim "
-            "to be informative. Please format your response as a JSON object in the following structure:\\n\\n"
+            "to be informative. Please format your response as a JSON object in the following structure:\n\n"
             f"{json_format}"
             "Ensure that you adhere to proper JSON syntax, and carefully note the index that corresponds to each answer."
         )
         if system_message is None:
             system_message = medical_triage_system_message
 
+        # Format the multiple choice options for display
         formatted_options = [f'({i}) {option}' for i, option in enumerate(options)]
 
-        content = f'{question} {formatted_options}'
+        content = f'{question} {" ".join(formatted_options)}'
+        if incontext:
+            dialog =  list(reduce(lambda x, y: x + y, incontext, []))
+        else:
+            dialog = []
 
-        dialog = [
+        # Construct the dialog with system and user parts
+        
+        s_message = [
             {
                 "role": "system",
                 "content": system_message
-            },
+            }
+        ]  
+        u_message = [
             {
                 "role": "user",
                 "content": content
             }
         ]
+        dialog = s_message + dialog + u_message
 
         return dialog
+
 
     def log_dialog(self, dialog):
         for e in dialog:
@@ -376,19 +412,53 @@ class Llama2SingleKDMAADM(AlignedDecisionMaker):
         return generated_outputs
 
     def aligned_decision_maker(self, question, choices, target_kdmas, incontext=None, n_positive_samples=5, n_negative_sampels=5, shuffle=True, baseline=False, n_retries=3):
+        """ Executes a decision-making process by simulating a dialog based on positive and negative alignments with specified Knowledge Domain Model Attributes (KDMAs). 
+        It attempts to identify the choice that best aligns with the target attributes, using both positive and negative samples to provide robustness against biases.
+
+        Parameters:
+            question (str): The primary question posed to the decision-making system.
+            choices (list of str): A list of choices from which the system must select the most appropriate based on KDAMs.
+            target_kdmas (dict): Key-value pairs indicating the target KDMAs and their desired levels. Values indicate desired thresholds for alignment.
+            incontext (dict, optional): Additional context provided to the decision-making system, which may affect its responses.
+            n_positive_samples (int): Number of samples to process assuming positive alignment with the target KDMAs.
+            n_negative_samples (int): Number of samples to process assuming negative or inverse alignment with the target KDMAs.
+            shuffle (bool): If True, shuffle the choices to potentially reduce positional bias in the decision-making process.
+            baseline (bool): If True, use a baseline decision-making model that does not consider specific KDMAs.
+            n_retries (int): The number of retry attempts to parse a successful response from the decision-making process.
+
+        Returns:
+            tuple:
+                responses (list): A list of dictionaries where each dictionary contains the response from the decision-making system, the reasoning behind it, and the index of the chosen answer.
+                inference_pairs (list): A list of dictionaries capturing detailed information about each inference attempt for analysis and debugging.
+
+        Raises:
+            RuntimeError: If any specified KDAMs in `target_kdmas` are not supported by the system.
+
+        Notes:
+            This function leverages logging to trace both aligned and misaligned dialogs, only the first of each type is logged for brevity. 
+        """
+
         inference_pairs = []
+
+
+        # Check if baseline is not used and handle unsupported KDMAs
         if not baseline:
             unsupported_kdmas = {kdma_remapping.get(k, k)
                                  for k in target_kdmas.keys()} - kdmas
             if len(unsupported_kdmas) > 0:
                 raise RuntimeError(f"KDMA(s) {unsupported_kdmas} not supported.")
 
+
+        # Prefix for logging reasoning
         prefix = '{"Reasoning": "Because'
 
         responses = []
 
+        # Flags to ensure we log certain types of dialog once
         logged_aligned_dialog = False
         logged_inverse_misaligned_dialog = False
+
+        # Generate responses for positive samples
         for _ in range(n_positive_samples):
             if baseline:
                 system_message = load_system_message()
@@ -399,24 +469,27 @@ class Llama2SingleKDMAADM(AlignedDecisionMaker):
                                     for kdma, value in target_kdmas.items()}
                 system_message = load_system_message(system_message_keys)
 
-            indecies = list(range(len(choices)))
+            # Shuffle choices if required
+            indices = list(range(len(choices)))
             if shuffle:
-                random.shuffle(indecies)
-            shuffled_choices = [choices[i] for i in indecies]
+                random.shuffle(indices)
+            shuffled_choices = [choices[i] for i in indices]
 
+            # Build dialog with the system message and shuffled choices
             dialog = self.build_multiple_choice_dialog(
                 question,
                 shuffled_choices,
                 system_message=system_message,
                 incontext=incontext)
 
-
+            # Log aligned dialog once for clarity
             if not logged_aligned_dialog:
                 log.debug("[bold]*ALIGNED DIALOG*[/bold]",
                           extra={"markup": True})
                 self.log_dialog(dialog)
                 logged_aligned_dialog = True
 
+            # Attempt to parse a valid response multiple times
             good_parse = False
             for i in range(n_retries):
                 high_response, inference_pair = self.respond_to_dialog(dialog, prefix=prefix)
@@ -428,42 +501,48 @@ class Llama2SingleKDMAADM(AlignedDecisionMaker):
                 except RuntimeError as e:
                     pass
 
+            # Fallback parsing strategy if normal parsing fails
             if not good_parse:
                 reasoning, answer_idx, parse_method = Llama2SingleKDMAADM.bert_similarity_parse(high_response, shuffled_choices)
 
+            # Ensure an answer was parsed successfully
             log.explain('CHOSEN ANSWER IDX %s %s', answer_idx, shuffled_choices)
             assert answer_idx is not None, f'Failed to parse answer index from generated output: {low_response}'
 
+            # Store response details
             responses.append({
                 'response': high_response,
                 'reasoning': reasoning,
                 'answer_idx': answer_idx,
-                'shuffle_indecies': indecies,
+                'shuffle_indices': indices,
                 'alignment': system_message_keys,
                 'aligned': True,
                 'parse_method': parse_method,
             })
-
+        # Repeat process for negative samples with inverse KDAM logic
         for _ in range(n_negative_sampels):
             system_message_keys = {kdma: 'high' if not value > 5 else 'low'
                                     for kdma, value in target_kdmas.items()}
 
-            indecies = list(range(len(choices)))
+            indices = list(range(len(choices)))
             if shuffle:
-                random.shuffle(indecies)
-            shuffled_choices = [choices[i] for i in indecies]
+                random.shuffle(indices)
+            shuffled_choices = [choices[i] for i in indices]
 
+             # Build dialog with inverse logic
             inverse_misaligned_dialog = self.build_multiple_choice_dialog(
                 question,
                 shuffled_choices,
                 system_message=load_system_message(system_message_keys))
 
+            # Log the first occurrence of an inverse misaligned dialog
             if not logged_inverse_misaligned_dialog:
                 log.debug("[bold]*INVERSE MISALIGNED DIALOG*[/bold]",
                             extra={"markup": True})
                 self.log_dialog(inverse_misaligned_dialog)
                 logged_inverse_misaligned_dialog = True
 
+            # Attempt response parsing with retries
             good_parse = False
             for i in range(n_retries):
                 low_response, inference_pair = self.respond_to_dialog(inverse_misaligned_dialog, prefix=prefix)
@@ -475,16 +554,18 @@ class Llama2SingleKDMAADM(AlignedDecisionMaker):
                 except RuntimeError as e:
                     pass
 
+            # Fallback parsing strategy if normal parsing fails
             if not good_parse:
                 reasoning, answer_idx, parse_method = Llama2SingleKDMAADM.bert_similarity_parse(low_response, shuffled_choices)
 
             assert answer_idx is not None, f'Failed to parse answer index from generated output: {low_response}'
 
+            # Store response details
             responses.append({
                 'response': low_response,
                 'reasoning': reasoning,
                 'answer_idx': answer_idx,
-                'shuffle_indecies': indecies,
+                'shuffle_indices': indices,
                 'alignment': system_message_keys,
                 'aligned': False,
                 'parse_method': parse_method,
@@ -495,6 +576,23 @@ class Llama2SingleKDMAADM(AlignedDecisionMaker):
 
     @staticmethod
     def calculate_votes(responses, choices):
+        """
+        Calculates voting scores for each choice based on a list of responses. Responses that align with the desired outcome increase the score of the selected choice. Misaligned responses distribute a penalty among other choices.
+
+        Parameters:
+            responses (list of dicts): Each dictionary contains information about a single response, including:
+                - 'answer_idx' (int or str): The index of the chosen answer.
+                - 'shuffle_indices' (list of int, optional): If present, it represents the original indices of the choices after shuffling.
+                - 'aligned' (bool): Indicates whether the response is aligned (True) or misaligned (False) with the desired outcome.
+            choices (list of str): A list of choices available for voting.
+
+        Returns:
+            list of float: A list of normalized vote scores for each choice, where higher scores represent greater alignment with the desired outcome.
+
+        Notes:
+            - The function handles cases where 'answer_idx' may not be an integer or could be out of the valid range of choices.
+            - Scores are adjusted by the minimum score to ensure all are non-negative and are then normalized to sum to 1.
+        """
         choice_votes = [0] * len(choices)
         for response in responses:
             answer_idx = response['answer_idx']
@@ -509,8 +607,8 @@ class Llama2SingleKDMAADM(AlignedDecisionMaker):
             if answer_idx >= len(choices):
                 continue
 
-            if 'shuffle_indecies' in response:
-                answer_idx = response['shuffle_indecies'][int(answer_idx)]
+            if 'shuffle_indices' in response:
+                answer_idx = response['shuffle_indices'][int(answer_idx)]
 
             aligned = response['aligned']
 
@@ -717,11 +815,50 @@ class Llama2SingleKDMAADM(AlignedDecisionMaker):
             return None
 
     def run_aligned_decision_maker_with_voting(
-            self, prompt, choices, alignment_target, n_positive_samples=5, n_negative_samples=5, baseline=False, shuffle=False):
+            self, 
+            prompt, 
+            choices, 
+            alignment_target, 
+            incontext= None,
+            n_positive_samples=5, 
+            n_negative_samples=5, 
+            baseline=False, 
+            shuffle=False):
+        """ Executes a decision-making process with voting based on alignment targets and user-provided choices. 
+        This method incorporates a mechanism for evaluating the alignment of choices with a specified target 
+        using a set of positive and negative samples.
+
+        Parameters:
+            prompt (str): The input prompt to which the decision-making model responds.
+            choices (list): A list of possible choices for the decision-maker to evaluate.
+            alignment_target (str): A target alignment criterion that guides the decision-making process.
+            incontext (list[dict], optional): Additional contextual information to provide to the model. Defaults to None.
+            n_positive_samples (int): Number of positive samples to use for aligning the choices with the target. Defaults to 5.
+            n_negative_samples (int): Number of negative samples to use for the alignment evaluation. Defaults to 5.
+            baseline (bool): Flag to determine whether to use a baseline model for comparison. Defaults to False.
+            shuffle (bool): Option to shuffle the choices before processing. This can help in reducing bias. Defaults to False.
+
+        Returns:
+            tuple: A tuple containing:
+                - reasoning (str or None): The reasoning behind the selected choice, if available.
+                - answer_idx (int): The index of the choice selected as most aligned.
+                - responses (list): Detailed responses from the model for each choice.
+                - inference_pairs (list): Raw data pairs used in the inference process.
+
+        Raises:
+            Exception: Captures and logs any exception that occurs during the vote calculation, defaulting choice scores to None if an error occurs.
+
+        Notes:
+            This method leverages internal logging to trace the detailed responses and the computation of choice scores. 
+            It is essential to ensure proper initialization of the logging and handling mechanisms to capture and utilize
+            the detailed debug outputs effectively.
+        
+        """
         responses, inference_pairs = self.aligned_decision_maker(
             prompt,
             choices,
             alignment_target,
+            incontext=incontext,
             baseline=baseline,
             n_positive_samples=n_positive_samples,
             n_negative_sampels=n_negative_samples,
@@ -755,40 +892,69 @@ class Llama2SingleKDMAADM(AlignedDecisionMaker):
 
         for r in responses:
             assert r['answer_idx'] is not None
-            assert int(r['answer_idx']) < len(r['shuffle_indecies'])
+            assert int(r['answer_idx']) < len(r['shuffle_indices'])
 
-            if r['shuffle_indecies'][int(r['answer_idx'])] == answer_idx:
+            if r['shuffle_indices'][int(r['answer_idx'])] == answer_idx:
                 reasoning = r['reasoning']
                 break
 
         return reasoning, answer_idx, responses, inference_pairs
 
-    def format_single_incontext_prompt(self, sample, labels):
-        prompt = sample['scenario']
+
+    def format_single_incontext_prompt(self, sample, labels, target_kdma_values):
+        """
+        Formats an in-context prompt for use in a dialogue system where an assistant provides reasoned answers based on provided scores and target values.
+
+        Parameters:
+            sample (dict): A dictionary containing the scenario description and choices.
+                - 'scenario' (str): The main question or scenario description.
+                - 'state' (str, optional): Additional state information to append to the scenario.
+                - 'choices' (list of str): Possible choices for the scenario.
+            labels (list of dicts): A list where each dictionary contains scores associated with each choice.
+            target_kdma_values (dict): A dictionary mapping a target attribute to its desired value.
+
+        Returns:
+            list of dicts: A list containing structured data for the user and assistant roles, formatted for a dialogue interaction.
+                - Each dictionary contains 'role' (str) indicating if it's 'user' or 'assistant' and 'content' (str) which is the text associated with that role.
+
+        Notes:
+            This function assumes there is exactly one key in `target_kdma_values`.
+            The assistant's answer includes reasoning why a particular choice is preferred based on the minimal distance to the target value in `labels`.
+        """
+        # Combine scenario and additional state information if available
+        question = sample['scenario']
         if sample['state'] is not None:
-            prompt += f'\n{sample["state"]}'
+            question += f'\n{sample["state"]}'
 
+        # Format choices as enumerated options for display
+        formatted_options = [f'({i}) {option}' for i, option in enumerate(sample['choices'])]
+        content = f"{question} {' '.join(formatted_options)}"
 
+        # Calculate the distance of each choice's score to the target value
+        target = next(iter(target_kdma_values))
+        dist_to_target = [abs(score[target] - target_kdma_values[target]) for score in labels]
+        correct_answer_idx = np.argmin(dist_to_target)
 
-        [f'({i}) {option}' for i, option in enumerate(options)]
-        {
-            "role": "user",
-            "content": system_message
-        },
-        {
-            "role": "assistant",
-            "content": invalid_json
+        # Map the target attribute to its descriptive wording
+        target_wording_mapping = {
+            "moral_deservingness": "morally deserving choice.",
+            "maximization": "maximization choice."
         }
 
-        for choice, label in zip(sample['choices'],labels):
-            level = 'high' if list(label.values())[0] > 5 else 'low'
-            attribute = list(label.keys())[0].replace('_', ' ')
-            prompt += f'  If you had a {level} {attribute}, you would select {choice}.'
+        # Determine the adjective based on the value being higher or lower than a threshold
+        adjective = 'more' if target_kdma_values[target] > 5 else 'less'
+        # Construct the reasoning text using the correct choice and its descriptor
+        answer_text = f'Because {sample["choices"][correct_answer_idx]} is the {adjective} {target_wording_mapping.get(target, "specified attribute")}'
+        answer = f'{{"Reasoning": "{answer_text}", "answer": {correct_answer_idx}}}'
+
+        # Structure the dialog with user and assistant roles
+        prompt = [
+            {"role": "user", "content": content},
+            {"role": "assistant", "content": answer}
+        ]
 
         return prompt
-
-
-        #TODO: add prompt completetion here for choices as well.
+        
 
 
     def __call__(self, sample, target_kdma_values, **kwargs):
@@ -805,13 +971,13 @@ class Llama2SingleKDMAADM(AlignedDecisionMaker):
             incontext_prompts = []
 
             # Read dataset
-            with open(kwargs['dataset']) as f:
+            with open(kwargs['incontext']['dataset']) as f:
                 dataset = json.load(f)
 
             #sam has both info in first element and labels in second element
             for sam in dataset:
                 # if sam[0]['probe_id'] != sample['probe_id']:
-                # TODO: add a way to prevent having the sample as a knn if loading itself
+                # TODO: add a way to prevent (or ensure) having the sample as a knn if loading itself
                 possible_samples.append(sam)
 
             if len(possible_samples) < kwargs['incontext']['number']:
@@ -821,22 +987,37 @@ class Llama2SingleKDMAADM(AlignedDecisionMaker):
 
             if kwargs['incontext']['method'] == 'random':
                 chosen_sample = random.sample(possible_samples, kwargs['incontext']['number'])
+            elif kwargs['incontext']['method'] == 'bert_similarity':
+                # Extract Strings for each situation
+                possible_samples_parse = []
+                for s, _ in possible_samples:
+                    question = s['scenario']
+                    if s['state'] is not None:
+                        question += f'\n{s["state"]}'
+                    possible_samples_parse.append(question)
+
+                # Create similarity scores between incontext dataset and find topk indices
+                from bert_score import score 
+                _, _, F1 = score([prompt]*len(possible_samples_parse), possible_samples_parse, lang='en')
+                _, indices = torch.topk(F1,  kwargs['incontext']['number'])
+
+                # Make list of the top k for creating prompts
+                chosen_sample = []
+                for i in indices:
+                    chosen_sample.append(possible_samples[i])
             else:
-                raise(f'"{kwargs["incontext"]["method"]}" is not a valid incontext method.  Please use "random", ')
-
-            # incontext_prompt_start = '  Here are some examples of similar problems with their attributes. '
+                raise(f'"{kwargs["incontext"]["method"]}" is not a valid incontext method.  Please use "random or bert_similarity", ')
 
 
-            # extra_prompts = [incontext_prompt_start]
-            
+            incontext_prompts = []
             ci =  1
             for cs, cl in chosen_sample:
-                extra_prompts.append(f'  Example {ci}' + self.format_single_incontext_prompt(cs, cl))
+                incontext_prompts.append(self.format_single_incontext_prompt(cs, cl, target_kdma_values))
                 ci += 1
 
-            extra_prompts.append('  Given these similar examples, please answer the question for the following scenario. ')
+            # extra_prompts.append('  Given these similar examples, please answer the question for the following scenario. ')
 
-            extra_prompts = ''.join(extra_prompts)
+            # extra_prompts = ''.join(extra_prompts)
             # prompt = extra_prompts + prompt
 
         # if 'retriever' in kwargs:
@@ -883,7 +1064,7 @@ class Llama2SingleKDMAADM(AlignedDecisionMaker):
             prompt,
             choices,
             alignment_target,
-            incontext=None,
+            incontext=incontext_prompts,
             n_positive_samples=kwargs.get('n_positive_samples', 5),
             n_negative_samples=kwargs.get('n_negative_samples', 5),
             baseline=kwargs.get('baseline', False),

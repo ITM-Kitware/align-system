@@ -1,0 +1,52 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "High Incontext Adept",
+            "type": "debugpy",
+            "request": "launch",
+            "console": "integratedTerminal",
+            "module": "align_system.cli.run_align_system",
+            "args": [
+                    "TA3ActionBased",
+                    "--adm-config", "adm_configs/single_kdma_adm_config_high_incontext.yml",
+                    "--username", "kitware-single-kdma-adm-aligned-no-negatives",
+                    "--align-to-target",
+                    "--session-type", "adept",
+                    "--api_endpoint", "http://127.0.0.1:8080",
+                    "--loglevel", "DEBUG",
+                    "--logfile-path", "${workspaceFolder}/results/high_incontext/output.log",
+                    "--save-input-output-to-path", "${workspaceFolder}/results/high_incontext/input-output.json",
+                    "--save-alignment-score-to-path", "${workspaceFolder}/results/high_incontext/output-scores.json"
+                    ],
+            "env":  {
+                    "CUDA_VISIBLE_DEVICES": "1"
+                    }
+        },
+        {
+            "name": "Low Incontext Adept",
+            "type": "debugpy",
+            "request": "launch",
+            "console": "integratedTerminal",
+            "module": "align_system.cli.run_align_system",
+            "args": [
+                    "TA3ActionBased",
+                    "--adm-config", "adm_configs/single_kdma_adm_config_low_incontext.yml",
+                    "--username", "kitware-single-kdma-adm-aligned-no-negatives",
+                    "--align-to-target",
+                    "--session-type", "adept",
+                    "--api_endpoint", "http://127.0.0.1:8080",
+                    "--loglevel", "DEBUG",
+                    "--logfile-path", "${workspaceFolder}/results/low_incontext/output.log",
+                    "--save-input-output-to-path", "${workspaceFolder}/results/low_incontext/input-output.json",
+                    "--save-alignment-score-to-path", "${workspaceFolder}/results/low_incontext/output-scores.json"
+                    ],
+            "env":  {
+                    "CUDA_VISIBLE_DEVICES": "0"
+                    }
+        }
+    ]
+}
