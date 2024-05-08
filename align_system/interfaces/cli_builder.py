@@ -7,12 +7,14 @@ from align_system.interfaces.local_files import LocalFilesInterface
 from align_system.interfaces.ta1_soartech_service import (
     TA1SoartechServiceInterface)
 from align_system.interfaces.ta1_adept_service import TA1AdeptServiceInterface
+from align_system.interfaces.input_output_file import InputOutputFileInterface
 
 INTERFACES = {
     'TA3ActionBased': TA3CACIActionBasedServiceInterface,
     'LocalFiles': LocalFilesInterface,
     'TA1Soartech': TA1SoartechServiceInterface,
     'TA1Adept': TA1AdeptServiceInterface,
+    'InputOutputFile': InputOutputFileInterface
     }
 
 

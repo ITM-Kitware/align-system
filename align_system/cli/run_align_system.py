@@ -60,7 +60,7 @@ def main():
     run_action_based_chat_system(
         **build_interfaces(
             add_cli_args, "ALIGN System CLI",
-            supported_interfaces={'TA3ActionBased'}))
+            supported_interfaces={'TA3ActionBased', 'InputOutputFile'}))
 
 
 def run_action_based_chat_system(interface,
