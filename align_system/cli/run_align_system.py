@@ -211,9 +211,13 @@ def run_action_based_chat_system(interface,
                 log.info("** Choosing only available (filtered) action")
                 action_to_take = available_actions_filtered[0]
             else:
+                # Passing in a copy of available filtered actions to
+                # prevent ADMs from modifying the originals (should
+                # considering doing the same for current_state and
+                # alignment_target)
                 action_to_take = adm.choose_action(
                     current_state,
-                    available_actions_filtered,
+                    [deepcopy(a) for a in available_actions_filtered],
                     alignment_target if align_to_target else None,
                     **adm_inference_kwargs)
 
