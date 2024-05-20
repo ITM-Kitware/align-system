@@ -900,16 +900,15 @@ class Llama2SingleKDMAADM(AlignedDecisionMaker):
 
         return reasoning, answer_idx, responses, inference_pairs
 
-
     def format_single_incontext_prompt(self, sample, labels, target_kdma_values):
         """
         Formats an in-context prompt for use in a dialogue system where an assistant provides reasoned answers based on provided scores and target values.
 
         Parameters:
             sample (dict): A dictionary containing the scenario description and choices.
-                - 'scenario' (str): The main question or scenario description.
-                - 'state' (str, optional): Additional state information to append to the scenario.
-                - 'choices' (list of str): Possible choices for the scenario.
+                - 'prompt' (str): The main question or scenario description.
+                - 'choices' (list of dicts): Possible choices for the scenario.
+                    - Each choice is a dictionary with an 'unstructured' key containing the choice text.
             labels (list of dicts): A list where each dictionary contains scores associated with each choice.
             target_kdma_values (dict): A dictionary mapping a target attribute to its desired value.
 
@@ -921,18 +920,33 @@ class Llama2SingleKDMAADM(AlignedDecisionMaker):
             This function assumes there is exactly one key in `target_kdma_values`.
             The assistant's answer includes reasoning why a particular choice is preferred based on the minimal distance to the target value in `labels`.
         """
-        # Combine scenario and additional state information if available
-        question = sample['scenario']
-        if sample['state'] is not None:
-            question += f'\n{sample["state"]}'
+        # Mapping of target attributes to their corresponding score keys
+        kdma_name_map = {
+            'moral_deservingness': 'MoralDesert',
+            'maximization': 'maximization',
+        }
+
+        # Extract the main question from the sample
+        question = sample['prompt']
 
         # Format choices as enumerated options for display
-        formatted_options = [f'({i}) {option}' for i, option in enumerate(sample['choices'])]
+        formatted_options = [f'({i}) {option["unstructured"]}' for i, option in enumerate(sample['choices'])]
         content = f"{question} {' '.join(formatted_options)}"
 
-        # Calculate the distance of each choice's score to the target value
+        # Extract the target attribute (assuming there's only one key in target_kdma_values)
         target = next(iter(target_kdma_values))
-        dist_to_target = [abs(score[target] - target_kdma_values[target]) for score in labels]
+
+        # Calculate the distance of each choice's score to the target value
+        dist_to_target = []
+        for score in labels:
+            if kdma_name_map[target] in score:
+                # Multiply by 10 to match the rest of the KDMA's score range
+                dist = abs(score[kdma_name_map[target]] * 10 - target_kdma_values[target])
+            else: 
+                dist = float('inf')  # If the target attribute is not in the scores, assign an infinite distance
+            dist_to_target.append(dist)    
+
+        # Determine the index of the choice with the minimum distance to the target value
         correct_answer_idx = np.argmin(dist_to_target)
 
         # Map the target attribute to its descriptive wording
@@ -943,8 +957,9 @@ class Llama2SingleKDMAADM(AlignedDecisionMaker):
 
         # Determine the adjective based on the value being higher or lower than a threshold
         adjective = 'more' if target_kdma_values[target] > 5 else 'less'
+
         # Construct the reasoning text using the correct choice and its descriptor
-        answer_text = f'Because {sample["choices"][correct_answer_idx]} is the {adjective} {target_wording_mapping.get(target, "specified attribute")}'
+        answer_text = f'Because {sample["choices"][correct_answer_idx]["unstructured"]} is the {adjective} {target_wording_mapping.get(target, "specified attribute")}'
         answer = f'{{"Reasoning": "{answer_text}", "answer": {correct_answer_idx}}}'
 
         # Structure the dialog with user and assistant roles
@@ -954,7 +969,6 @@ class Llama2SingleKDMAADM(AlignedDecisionMaker):
         ]
 
         return prompt
-        
 
 
     def __call__(self, sample, target_kdma_values, **kwargs):
@@ -990,10 +1004,8 @@ class Llama2SingleKDMAADM(AlignedDecisionMaker):
             elif kwargs['incontext']['method'] == 'bert_similarity':
                 # Extract Strings for each situation
                 possible_samples_parse = []
-                for s, _ in possible_samples:
-                    question = s['scenario']
-                    if s['state'] is not None:
-                        question += f'\n{s["state"]}'
+                for s in possible_samples:
+                    question = s['input']['prompt']
                     possible_samples_parse.append(question)
 
                 # Create similarity scores between incontext dataset and find topk indices
@@ -1011,8 +1023,8 @@ class Llama2SingleKDMAADM(AlignedDecisionMaker):
 
             incontext_prompts = []
             ci =  1
-            for cs, cl in chosen_sample:
-                incontext_prompts.append(self.format_single_incontext_prompt(cs, cl, target_kdma_values))
+            for cs in chosen_sample:
+                incontext_prompts.append(self.format_single_incontext_prompt(cs['input'], cs['label'], target_kdma_values))
                 ci += 1
 
             # extra_prompts.append('  Given these similar examples, please answer the question for the following scenario. ')
