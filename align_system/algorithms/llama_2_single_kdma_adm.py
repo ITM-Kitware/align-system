@@ -970,67 +970,72 @@ class Llama2SingleKDMAADM(AlignedDecisionMaker):
 
         return prompt
 
-
     def __call__(self, sample, target_kdma_values, **kwargs):
-        """ Build the prompt and send to the LLM to ask for a single KDMA
+        """
+        Build the prompt and send it to the LLM to ask for a single KDMA (Key Decision-Making Attribute).
 
+        Parameters:
+            sample (dict): A dictionary containing the scenario, state, probe, and choices.
+                - 'scenario' (str): The main scenario description.
+                - 'state' (str, optional): Additional state information to append to the scenario.
+                - 'probe' (str): The specific question or probe to be answered.
+                - 'choices' (list of str): Possible choices for the scenario.
+            target_kdma_values (dict): A dictionary mapping a target attribute to its desired value.
+            kwargs (dict): Additional keyword arguments for in-context learning, retrievers, labels, etc.
+                - 'incontext' (dict, optional): Configuration for in-context learning.
+                    - 'dataset' (str): Path to the in-context dataset.
+                    - 'number' (int): Number of in-context samples to use.
+                    - 'method' (str): Method to select in-context samples ('random' or 'bert_similarity').
+                - 'labels' (list of dicts, optional): A list where each dictionary contains scores associated with each choice.
+                - 'n_positive_samples' (int, optional): Number of positive samples for decision making.
+                - 'n_negative_samples' (int, optional): Number of negative samples for decision making.
+                - 'baseline' (bool, optional): Whether to use a baseline approach.
+                - 'shuffle' (bool, optional): Whether to shuffle the choices.
 
+        Returns:
+            dict: A dictionary containing the selected choice and additional information.
+                - 'choice' (int): The index of the selected choice.
+                - 'info' (dict): Additional information including reasoning, responses, and raw data.
         """
         prompt = sample['scenario']
         if sample['state'] is not None:
             prompt += f'\n{sample["state"]}'
 
+        incontext_prompts = []
+
         if 'incontext' in kwargs:
             possible_samples = []
-            incontext_prompts = []
 
             # Read dataset
             with open(kwargs['incontext']['dataset']) as f:
                 dataset = json.load(f)
 
-            #sam has both info in first element and labels in second element
+            # Populate possible samples from the dataset
             for sam in dataset:
-                # if sam[0]['probe_id'] != sample['probe_id']:
-                # TODO: add a way to prevent (or ensure) having the sample as a knn if loading itself
                 possible_samples.append(sam)
 
             if len(possible_samples) < kwargs['incontext']['number']:
-                raise RuntimeError(f'Not enough possible incontext samples to learn from here.'
-                        f'Only {len(possible_samples)} samples while asking for'
-                        f'{kwargs["incontext"]["number"]} in context samples')
+                raise RuntimeError(f'Not enough possible in-context samples to learn from. Only {len(possible_samples)} samples available while asking for {kwargs["incontext"]["number"]} in-context samples.')
 
             if kwargs['incontext']['method'] == 'random':
                 chosen_sample = random.sample(possible_samples, kwargs['incontext']['number'])
             elif kwargs['incontext']['method'] == 'bert_similarity':
-                # Extract Strings for each situation
-                possible_samples_parse = []
-                for s in possible_samples:
-                    question = s['input']['prompt']
-                    possible_samples_parse.append(question)
+                # Extract strings for each situation
+                possible_samples_parse = [s['input']['prompt'] for s in possible_samples]
 
-                # Create similarity scores between incontext dataset and find topk indices
+                # Create similarity scores between the in-context dataset and find top-k indices
                 from bert_score import score 
                 _, _, F1 = score([prompt]*len(possible_samples_parse), possible_samples_parse, lang='en')
-                _, indices = torch.topk(F1,  kwargs['incontext']['number'])
+                _, indices = torch.topk(F1, kwargs['incontext']['number'])
 
                 # Make list of the top k for creating prompts
-                chosen_sample = []
-                for i in indices:
-                    chosen_sample.append(possible_samples[i])
+                chosen_sample = [possible_samples[i] for i in indices]
             else:
-                raise(f'"{kwargs["incontext"]["method"]}" is not a valid incontext method.  Please use "random or bert_similarity", ')
+                raise ValueError(f'"{kwargs["incontext"]["method"]}" is not a valid in-context method. Please use "random" or "bert_similarity".')
 
-
-            incontext_prompts = []
-            ci =  1
+            # Create in-context prompts
             for cs in chosen_sample:
                 incontext_prompts.append(self.format_single_incontext_prompt(cs['input'], cs['label'], target_kdma_values))
-                ci += 1
-
-            # extra_prompts.append('  Given these similar examples, please answer the question for the following scenario. ')
-
-            # extra_prompts = ''.join(extra_prompts)
-            # prompt = extra_prompts + prompt
 
         # if 'retriever' in kwargs:
         #     # retriever_prompt = "How would you treat the following injuries: {}".format(prompt)
@@ -1055,10 +1060,9 @@ class Llama2SingleKDMAADM(AlignedDecisionMaker):
 
         #     prompt += f'\nGiven the scenario and documentation above.. {sample["probe"]}'
         # else:
+
         prompt += f'\n{sample["probe"]}'
-
         choices = sample['choices']
-
         labels = kwargs.get('labels', {})
 
         alignment_target = None
