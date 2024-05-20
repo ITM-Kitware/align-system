@@ -6,14 +6,15 @@ adm:
     temperature: 0.7
 
   inference_kwargs:
-    baseline: true
+    baseline: false
     n_negative_samples: 0
     n_positive_samples: 1
     shuffle: true
     incontext: 
       number: 5
-      method: random
-      dataset: ../datasets/metrics-eval/bbn/metrics-eval-train-renamed.json
+      method: bert_similarity
+      # dataset: ../datasets/metrics-eval/bbn/metrics-eval-train-renamed.json
+      dataset: /data/shared/samba/integrated_results_metrics_eval/captured_dataset_for_chris/baseline_adept_high-1715105775-input-output.json
 
 alignment_target_override:
   id: ADEPT-metrics_eval-alignment-target-train-HIGH
