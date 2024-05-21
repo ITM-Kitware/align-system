@@ -4,6 +4,7 @@ import inspect
 import yaml
 
 import pandas as pd
+from swagger_client.models import ActionTypeEnum
 
 from align_system.algorithms.abstracts import ActionBasedADM
 from align_system.algorithms.lib.kaleido import KaleidoSys
@@ -283,7 +284,29 @@ class KaleidoADM(AlignedDecisionMaker, ActionBasedADM):
         target_kdma_values = {t['kdma']: t['value'] * 10 for t
                               in alignment_target.get('kdma_values', ())}
 
-        choices_unstructured = [a.unstructured for a in available_actions]
+        # choices_unstructured = [a.unstructured for a in available_actions]
+
+        characters_by_id = {c.id: c for c in scenario_state.characters}
+
+        choices_unstructured = []
+        for action in available_actions:
+            if(action.action_type == ActionTypeEnum.APPLY_TREATMENT
+               and action.parameters is not None):
+
+                if('location' not in action.parameters
+                   or action.parameters['location'] == 'internal'):
+                    choices_unstructured.append(
+                        'Treat {} with {}'.format(
+                            characters_by_id[action.character_id].name,
+                            action.parameters['treatment']))
+                else:
+                    choices_unstructured.append(
+                        'Treat {} with {} on their {}'.format(
+                            characters_by_id[action.character_id].name,
+                            action.parameters['treatment'],
+                            action.parameters['location']))
+            else:
+                choices_unstructured.append(action.unstructured)
 
         kaleido_results = self.estimate_kdma_values(
             partial_template,

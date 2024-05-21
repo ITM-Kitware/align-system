@@ -865,10 +865,32 @@ class Llama2SingleKDMAADM(AlignedDecisionMaker):
 
         probe = ''
 
-        choices = [
-            action.unstructured
-            for action in available_actions
-        ]
+        characters_by_id = {c.id: c for c in scenario_state.characters}
+
+        choices = []
+        for action in available_actions:
+            if(action.action_type == ActionTypeEnum.APPLY_TREATMENT
+               and action.parameters is not None):
+
+                if('location' not in action.parameters
+                   or action.parameters['location'] == 'internal'):
+                    choices.append(
+                        'Treat {} with {}'.format(
+                            characters_by_id[action.character_id].name,
+                            action.parameters['treatment']))
+                else:
+                    choices.append(
+                        'Treat {} with {} on their {}'.format(
+                            characters_by_id[action.character_id].name,
+                            action.parameters['treatment'],
+                            action.parameters['location']))
+            else:
+                choices.append(action.unstructured)
+
+        # choices = [
+        #     action.unstructured
+        #     for action in available_actions
+        # ]
 
         response = self.__call__({
             'scenario': scenario,
@@ -1132,6 +1154,12 @@ class Llama2SingleKDMAADM(AlignedDecisionMaker):
                     character_idx = 0
                 else:
                     character_idx = parsed_character_selection_output['Answer']
+
+                    if isinstance(character_idx, list):
+                        log.warning('** character_idx ({}) is a list, taking '
+                                    'first mention character'.format(
+                                        character_idx))
+                        character_idx = character_idx[0]
 
                     if not isinstance(character_idx, int):
                         log.warning('** character_idx ({}) not an integer'
