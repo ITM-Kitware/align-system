@@ -97,22 +97,45 @@
                     }
         },
         {
-            "name": "Baseline Adept",
+            "name": "High Baseline Adept",
             "type": "debugpy",
             "request": "launch",
             "console": "integratedTerminal",
             "module": "align_system.cli.run_align_system",
             "args": [
                     "TA3ActionBased",
-                    "--adm-config", "adm_configs/single_kdma_adm_config_baseline.yml",
+                    "--adm-config", "adm_configs/single_kdma_adm_config_high_baseline.yml",
                     "--username", "kitware-single-kdma-adm-aligned-no-negatives",
                     "--align-to-target",
                     "--session-type", "adept",
                     "--api_endpoint", "http://127.0.0.1:8080",
                     "--loglevel", "DEBUG",
-                    "--logfile-path", "${workspaceFolder}/results/baseline/output.log",
-                    "--save-input-output-to-path", "${workspaceFolder}/results/baseline/input-output.json",
-                    "--save-alignment-score-to-path", "${workspaceFolder}/results/baseline/output-scores.json",
+                    "--logfile-path", "${workspaceFolder}/results/high_baseline/output.log",
+                    "--save-input-output-to-path", "${workspaceFolder}/results/high_baseline/input-output.json",
+                    "--save-alignment-score-to-path", "${workspaceFolder}/results/high_baseline/output-scores.json",
+                    "--training-session"
+                    ],
+            "env":  {
+                    "CUDA_VISIBLE_DEVICES": "3"
+                    }
+        },
+        {
+            "name": "Low Baseline Adept",
+            "type": "debugpy",
+            "request": "launch",
+            "console": "integratedTerminal",
+            "module": "align_system.cli.run_align_system",
+            "args": [
+                    "TA3ActionBased",
+                    "--adm-config", "adm_configs/single_kdma_adm_config_low_baseline.yml",
+                    "--username", "kitware-single-kdma-adm-aligned-no-negatives",
+                    "--align-to-target",
+                    "--session-type", "adept",
+                    "--api_endpoint", "http://127.0.0.1:8080",
+                    "--loglevel", "DEBUG",
+                    "--logfile-path", "${workspaceFolder}/results/low_baseline/output.log",
+                    "--save-input-output-to-path", "${workspaceFolder}/low_baseline/baseline/input-output.json",
+                    "--save-alignment-score-to-path", "${workspaceFolder}/low_baseline/baseline/output-scores.json",
                     "--training-session"
                     ],
             "env":  {
