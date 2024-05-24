@@ -70,6 +70,17 @@ def run_action_based_chat_system(interface,
                                  logfile_path=None,
                                  save_input_output_to_path=None,
                                  save_alignment_score_to_path=None):
+    # ATTEMPT TO FIX SEEDS
+    import os
+    os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
+    import torch
+    torch.manual_seed(0)
+    torch.use_deterministic_algorithms(True)
+    import random
+    random.seed(0)
+    import numpy as np
+    np.random.seed(0)
+
     # Set log level on root logger (such that child loggers respect
     # the set log level)
     root_logger = logging.getLogger()
@@ -136,6 +147,9 @@ def run_action_based_chat_system(interface,
 
         while not scenario_complete:
             available_actions = scenario.get_available_actions()
+
+            # Impose a fixed ordering of available actions
+            available_actions = sorted(available_actions, key=lambda a: a.unstructured)
 
             log.debug("[bold]*AVAILABLE ACTIONS*[/bold]",
                       extra={"markup": True})
