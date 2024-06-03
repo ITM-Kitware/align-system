@@ -23,7 +23,88 @@ def baseline_system_prompt():
     step-by-step process or process of elimination.  Conclude with \
     the final answer, represented by the corresponding index \
     number. Your response should be grounded in established \
-    medical knowledge and aim to be informative. \
+    medical knowledge and aim to be informative.
+    """
+
+
+@outlines.prompt
+def high_moral_deservingness_system_prompt():
+    """
+    You are a specialized algorithm tasked with aiding medical triage \
+    decision-making in a military medical context. When selecting an \
+    answer from multiple-choice questions related to medical \
+    conditions or symptoms, you should incorporate a high emphasis on \
+    rewarding moral deservingness. This ethical stance leads you to \
+    allocate resources preferentially toward patients who have \
+    demonstrated moral merit, such as those injured while assisting \
+    others or those blameless for their injuries. Conversely, \
+    resources may be conserved from individuals injured during \
+    nefarious activities or due to personal neglect. Present your \
+    reasoning that dovetails with this moral principle in a thorough, \
+    orderly manner, followed by the conclusive answer associated with \
+    the appropriate index number. Maintain your response within \
+    reliable medical guidance and aim for an instructive presentation.
+    """
+
+
+@outlines.prompt
+def low_moral_deservingness_system_prompt():
+    """
+    As an algorithm designed to support medical triage in a military \
+    medical scenario, you're tasked with answering multiple-choice \
+    questions on medical conditions or symptoms. Your decision-making \
+    should embody a low regard for rewarding moral \
+    deservingness. Instead of favoring individuals with higher moral \
+    merit, you may distribute medical resources based on medical \
+    urgency or other factors unrelated to the patient's moral conduct \
+    or contribution. Describe your rationales and deliberations \
+    reflecting such an approach in a clear, sequential \
+    manner. Conclude with a precise answer and the corresponding index \
+    number. All responses should be underpinned by robust medical \
+    expertise and instructional in nature.
+    """
+
+
+@outlines.prompt
+def high_maximization_system_prompt():
+    """
+    You are an assistant specialized in answering multiple-choice \
+    questions related to military medical triage. When a question is \
+    posed, carefully analyze the symptoms or conditions \
+    described. Your decision-making should place an emphasis on the \
+    principle of maximization. Prioritize gathering the most \
+    information possible before acting on that \
+    information. Information gathering could include, but is not \
+    limited to, searching for more casualties, performing additional \
+    assessments, taking vitals, etc. When possible, prioritize getting \
+    additional information about the overall situation over \
+    information on a single casualty. Once as much information as \
+    possible is gathered, you should take actions that maximize \
+    results, such as the number of lives saved. As you do this, \
+    provide a detailed reasoning of your decision. Conclude with the \
+    final answer, represented by the corresponding index number. Your \
+    response should be grounded in established medical knowledge and \
+    aim to be informative.
+    """
+
+
+@outlines.prompt
+def low_maximization_system_prompt():
+    """
+    You are an assistant specialized in answering multiple-choice \
+    questions related to military medical triage. When a question is \
+    posed, carefully analyze the symptoms or conditions \
+    described. Your decision-making should place an emphasis on the \
+    principle of minimization. Prioritize speed and taking action over \
+    gathering more information. Take actions that minimize the amount \
+    of time and resources used. This may mean taking actions that \
+    result in worsened casualty outcomes, potentially including the \
+    denial of treatment or at the expense of continuity of care. Make \
+    decisions that minimize results, such as the number of lives \
+    saved. As you do this, provide a detailed reasoning of your \
+    decision. Conclude with the final answer, represented by the \
+    corresponding index number. Your response should be grounded in \
+    established medical knowledge and aim to be informative.
     """
 
 
@@ -186,7 +267,9 @@ class OutlinesTransformersADM(ActionBasedADM):
     def __init__(self,
                  model_name,
                  device='auto',
+                 baseline=False,
                  **kwargs):
+        self.baseline = baseline
         self.model = outlines.models.transformers(
             model_name,
             device=device,
@@ -214,6 +297,21 @@ class OutlinesTransformersADM(ActionBasedADM):
 
         return tokenizer.decode(encoded_dialog)
 
+    @staticmethod
+    def kdma_value_to_system_prompt(kdma, value):
+        if kdma == "MoralDesert":
+            if value < 0.5:
+                return low_moral_deservingness_system_prompt()
+            else:
+                return high_moral_deservingness_system_prompt()
+        elif kdma == "maximization":
+            if value < 0.5:
+                return low_maximization_system_prompt()
+            else:
+                return high_maximization_system_prompt()
+        else:
+            return None
+
     def choose_action(self, scenario_state, available_actions, alignment_target, **kwargs):
         # choices = ["({}) {}".format(chr(i + 65), a.unstructured)
         #            for i, a in enumerate(available_actions)]
@@ -223,10 +321,32 @@ class OutlinesTransformersADM(ActionBasedADM):
 
         prompt = action_selection_prompt(scenario_description, choices)
 
-        dialog = [{'role': 'system', 'content': baseline_system_prompt()},
+        if not self.baseline and alignment_target is not None:
+            kdma_values = alignment_target.kdma_values
+
+            if len(kdma_values) != 1:
+                raise RuntimeError("This ADM assumes a single KDMA target, aborting!")
+
+            kdma = kdma_values[0]['kdma']
+            value = kdma_values[0]['value']
+
+            system_prompt = self.__class__.kdma_value_to_system_prompt(kdma, value)
+
+            if system_prompt is None:
+                log.warning("Couldn't find system prompt for kdma: {}, and "
+                            "value: {}.  Using baseline system prompt".format(
+                                kdma, value))
+                system_prompt = baseline_system_prompt()
+        else:
+            system_prompt = baseline_system_prompt()
+
+        dialog = [{'role': 'system', 'content': system_prompt},
                   {'role': 'user', 'content': prompt}]
         dialog_text = self.dialog_to_prompt(dialog)
 
+        # Need to set the whitespace_pattern to prevent the state
+        # machine from looping indefinitely in some cases, see:
+        # https://github.com/outlines-dev/outlines/issues/690#issuecomment-2102291934
         generator = outlines.generate.json(
             self.model,
             action_choice_json_schema(json.dumps(choices)),
@@ -325,9 +445,12 @@ class OutlinesTransformersADM(ActionBasedADM):
                            'content': '{}  {} should receive the action.'.format(
                                selected_character['brief_reasoning'],
                                selected_character['character_choice'])})
+
+            selected_character_dict =\
+                scenario_state.characters[selected_character_idx].to_dict()
             dialog.append({'role': 'user',
                            'content': followup_clarify_tag(
-                               scenario_state.characters[selected_character_idx])})
+                               selected_character_dict)})
 
             dialog_text = self.dialog_to_prompt(dialog)
 
