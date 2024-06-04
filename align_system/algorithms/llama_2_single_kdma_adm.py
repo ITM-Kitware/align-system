@@ -495,7 +495,7 @@ class Llama2SingleKDMAADM(AlignedDecisionMaker):
                 high_response, inference_pair = self.respond_to_dialog(dialog, prefix=prefix)
                 inference_pairs.append({**inference_pair, **{'aligned': True, 'attempt': i}})
                 try:
-                    reasoning, answer_idx, parse_method = Llama2SingleKDMAADM.parse_generated_output(high_response, len(choices))
+                    reasoning, answer_idx, parse_method, answer_text = Llama2SingleKDMAADM.parse_generated_output(high_response, len(choices))
                     good_parse = True
                     break
                 except RuntimeError as e:
@@ -504,7 +504,7 @@ class Llama2SingleKDMAADM(AlignedDecisionMaker):
             # Fallback parsing strategy if normal parsing fails
             if not good_parse:
                 reasoning, answer_idx, parse_method = Llama2SingleKDMAADM.bert_similarity_parse(high_response, shuffled_choices)
-
+                answer_text = None
             # Ensure an answer was parsed successfully
             log.explain('CHOSEN ANSWER IDX %s %s', answer_idx, shuffled_choices)
             assert answer_idx is not None, f'Failed to parse answer index from generated output: {low_response}'
@@ -514,6 +514,7 @@ class Llama2SingleKDMAADM(AlignedDecisionMaker):
                 'response': high_response,
                 'reasoning': reasoning,
                 'answer_idx': answer_idx,
+                'answer_text': answer_text,
                 'shuffle_indices': indices,
                 'alignment': system_message_keys,
                 'aligned': True,
@@ -548,7 +549,7 @@ class Llama2SingleKDMAADM(AlignedDecisionMaker):
                 low_response, inference_pair = self.respond_to_dialog(inverse_misaligned_dialog, prefix=prefix)
                 inference_pairs.append({**inference_pair, **{'aligned': True, 'attempt': i}})
                 try:
-                    reasoning, answer_idx, parse_method = Llama2SingleKDMAADM.parse_generated_output(low_response, len(choices))
+                    reasoning, answer_idx, parse_method, answer_text = Llama2SingleKDMAADM.parse_generated_output(low_response, len(choices))
                     good_parse = True
                     break
                 except RuntimeError as e:
@@ -557,6 +558,7 @@ class Llama2SingleKDMAADM(AlignedDecisionMaker):
             # Fallback parsing strategy if normal parsing fails
             if not good_parse:
                 reasoning, answer_idx, parse_method = Llama2SingleKDMAADM.bert_similarity_parse(low_response, shuffled_choices)
+                answer_text = None
 
             assert answer_idx is not None, f'Failed to parse answer index from generated output: {low_response}'
 
@@ -565,6 +567,7 @@ class Llama2SingleKDMAADM(AlignedDecisionMaker):
                 'response': low_response,
                 'reasoning': reasoning,
                 'answer_idx': answer_idx,
+                'answer_text': answer_text,
                 'shuffle_indices': indices,
                 'alignment': system_message_keys,
                 'aligned': False,
@@ -595,6 +598,8 @@ class Llama2SingleKDMAADM(AlignedDecisionMaker):
         """
         choice_votes = [0] * len(choices)
         for response in responses:
+            # TODO: Make it a choice to switch rather than always do it. 
+
             answer_idx = response['answer_idx']
             if answer_idx is None:
                 continue
@@ -604,11 +609,30 @@ class Llama2SingleKDMAADM(AlignedDecisionMaker):
             except ValueError:
                 continue
 
+            answer_text = response['answer_text']
+            chosen_idx = -1
+            potentially_shuffled_choices = choices
+            if 'shuffle_indices' in response:
+                potentially_shuffled_choices = [choices[i] for i in response['shuffle_indices']]
+
+            for idx, choice in enumerate(potentially_shuffled_choices):
+                if choice in answer_text or answer_text in choice:
+                    chosen_idx = idx
+                    break
+
+            if chosen_idx == -1:
+                log.debug(f'Answer Text "{answer_text}" not found in choices')
+            elif chosen_idx != answer_idx:
+                log.debug(f'Answer text index not equal to the parsed answer index.  Answer Text Index: {chosen_idx}  Answer Index: {answer_idx}.  Updating to {chosen_idx}.')
+                answer_idx = chosen_idx
+            else:
+                log.debug(f'Answer text index equals the parsed answer index.  Answer Text Index: {chosen_idx}  Answer Index: {answer_idx}.')
+
             if answer_idx >= len(choices):
                 continue
 
             if 'shuffle_indices' in response:
-                answer_idx = response['shuffle_indices'][int(answer_idx)]
+                answer_idx = response['shuffle_indices'][answer_idx]
 
             aligned = response['aligned']
 
@@ -653,10 +677,14 @@ class Llama2SingleKDMAADM(AlignedDecisionMaker):
         output = re.sub(r'"\s+"', '", "', output)
 
         # Parse json output
+        answer_text = None
         try:
             parsed = json.loads(output)
             if 'Reasoning' in parsed:
                 reasoning = parsed['Reasoning']
+
+            if 'Answer_Text' in parsed:
+                answer_text = parsed['Answer_Text']
 
             if 'Answer' in parsed:
                 try:
@@ -697,7 +725,7 @@ class Llama2SingleKDMAADM(AlignedDecisionMaker):
         if answer_idx is None or answer_idx >= n_choices:
             raise RuntimeError(f'Failed to parse answer index < {n_choices} from generated output: {generated_output}')
 
-        return reasoning, answer_idx, parse_method
+        return reasoning, answer_idx, parse_method, answer_text
 
     @staticmethod
     def bert_similarity_parse(generated_output, choices):
@@ -898,6 +926,7 @@ class Llama2SingleKDMAADM(AlignedDecisionMaker):
                 reasoning = r['reasoning']
                 break
 
+        log.debug(f'Final Response ({answer_idx}) {choices[answer_idx]}')
         return reasoning, answer_idx, responses, inference_pairs
 
     def format_single_incontext_prompt(self, sample, labels, target_kdma_values):
@@ -960,7 +989,7 @@ class Llama2SingleKDMAADM(AlignedDecisionMaker):
 
         # Construct the reasoning text using the correct choice and its descriptor
         answer_text = f'Because {sample["choices"][correct_answer_idx]["unstructured"]} is the {adjective} {target_wording_mapping.get(target, "specified attribute")}'
-        answer = f'{{"Reasoning": "{answer_text}", "answer": {correct_answer_idx}}}'
+        answer = f'{{"Reasoning": "{answer_text}", "Answer": {correct_answer_idx}, "Answer_Text": "{sample["choices"][correct_answer_idx]["unstructured"]}"}}'
 
         # Structure the dialog with user and assistant roles
         prompt = [
