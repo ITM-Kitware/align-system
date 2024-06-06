@@ -5,9 +5,14 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## Unreleased
 
+### Fixed
+
+* Prevent ADMs from modifying original action objects
+
 ### Added
 
 * Added new Oracle ADM (action based; attempts to "choose" best action based on KDMA values)
+* Added new action based "Interface" for walking through Input Output JSON files
 
 ## 0.3.3
 
