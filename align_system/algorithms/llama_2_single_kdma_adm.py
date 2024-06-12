@@ -935,9 +935,14 @@ class Llama2SingleKDMAADM(AlignedDecisionMaker):
 
         available_supplies = [s for s in scenario_state.supplies if s.quantity > 0]
 
+        if isinstance(character_to_treat.vitals, dict):
+            vitals_dict = character_to_treat.vitals
+        else:
+            vitals_dict = character_to_treat.vitals.to_dict()
+
         treatment_prompt = prepare_treatment_selection_prompt(
             character_to_treat.unstructured,
-            character_to_treat.vitals.to_dict(),
+            vitals_dict,
             [s.to_dict() for s in available_supplies])
 
         for _ in range(kwargs.get('answer_attempts', 5)):

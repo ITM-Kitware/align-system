@@ -1,0 +1,13 @@
+name: action_based
+
+defaults:
+  - interface: input_output_file
+  - adm: single_kdma_baseline
+  - override hydra/job_logging: custom
+
+loglevel: "EXPLAIN"
+logfile_path: null
+save_input_output_to_path: null
+save_alignment_score_to_path: null
+
+align_to_target: False

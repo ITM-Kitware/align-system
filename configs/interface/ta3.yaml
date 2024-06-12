@@ -1,0 +1,7 @@
+_target_: align_system.interfaces.ta3_caci_action_based_service.TA3CACIActionBasedServiceInterface
+
+username: 'ALIGN-ADM'
+api_endpoint: 'http://127.0.0.1:8080'
+session_type: 'eval'
+scenario_ids: []
+training_session: false
