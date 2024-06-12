@@ -220,3 +220,20 @@ algorithms / models*
 [Creating a custom system script](docs/creating_a_custom_system_script.md)
 
 [Developer environment setup](docs/developer_setup.md)
+
+## Acknowledgments
+
+This research was developed with funding from the Defense Advanced
+Research Projects Agency (DARPA) under Contract
+No. FA8650-23-C-7316. The views, opinions and/or findings expressed
+are those of the author and should not be interpreted as representing
+the official views or policies of the Department of Defense or the
+U.S. Government.
+
+## Disclaimer
+
+We emphasize that our work should be considered academic research, as
+we cannot fully guarantee model outputs are free of inaccuracies or
+biases that may pose risks if relied upon for medical
+decision-making. Please consult a qualified healthcare professional
+for personal medical needs.
