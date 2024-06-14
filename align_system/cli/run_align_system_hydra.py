@@ -1,6 +1,7 @@
 import json
 from copy import deepcopy
 import atexit
+import os
 
 from rich.logging import RichHandler
 from rich.console import Console
@@ -25,9 +26,20 @@ def run_action_based_chat_system(cfg: DictConfig) -> None:
     interface = cfg.interface
     adm = cfg.adm.instance
 
-    logfile_path = cfg.logfile_path
-    save_input_output_to_path = cfg.save_input_output_to_path
-    save_alignment_score_to_path = cfg.save_alignment_score_to_path
+    # Using the hydra generated output directory for the run
+    output_dir = hydra.core.hydra_config.HydraConfig.get().runtime.output_dir
+
+    logfile_path = None
+    if cfg.save_log:
+        logfile_path = os.path.join(output_dir, "align_system.log")
+
+    save_input_output_to_path = None
+    if cfg.save_input_output:
+        save_input_output_to_path = os.path.join(output_dir, "input_output.json")
+
+    save_alignment_score_to_path = None
+    if cfg.save_scoring_output:
+        save_alignment_score_to_path = os.path.join(output_dir, "scores.json")
 
     # Set log level on root logger (such that child loggers respect
     # the set log level)
@@ -61,9 +73,8 @@ def run_action_based_chat_system(cfg: DictConfig) -> None:
             log.info("Next scenario ID is blank, assuming we're done, exiting")
             break
 
-        if 'alignment_target_override' in cfg:
-            alignment_target = AlignmentTarget(
-                **cfg.alignment_target_override)
+        if 'alignment_target' in cfg:
+            alignment_target = cfg.alignment_target
         elif cfg.align_to_target:
             alignment_target = scenario.get_alignment_target()
         else:
@@ -212,16 +223,21 @@ def run_action_based_chat_system(cfg: DictConfig) -> None:
 
         if alignment_target is not None:
             session_alignment = interface.get_session_alignment(
-                alignment_target.id)
+                alignment_target)
 
             if session_alignment is None:
                 log.info("Couldn't get session alignment from interface")
             else:
                 session_alignment_scores.append(session_alignment)
 
+                if isinstance(session_alignment, dict):
+                    session_alignment_dict = session_alignment
+                else:
+                    session_alignment_dict = session_alignment.to_dict()
+
                 log.info("[bold]*TA1 Alignment Score*[/bold]",
                          extra={"markup": True})
-                log.info(json.dumps(session_alignment.to_dict(), indent=4),
+                log.info(json.dumps(session_alignment_dict, indent=4),
                          extra={"highlighter": JSON_HIGHLIGHTER})
 
     if save_input_output_to_path is not None:
@@ -231,7 +247,8 @@ def run_action_based_chat_system(cfg: DictConfig) -> None:
     if len(session_alignment_scores) > 0:
         if save_alignment_score_to_path is not None:
             with open(save_alignment_score_to_path, 'w') as f:
-                json.dump([s.to_dict() for s in session_alignment_scores], f, indent=2)
+                json.dump([(s if isinstance(s, dict) else s.to_dict())
+                           for s in session_alignment_scores], f, indent=2)
 
 
 if __name__ == "__main__":

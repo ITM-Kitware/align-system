@@ -6,8 +6,9 @@ defaults:
   - override hydra/job_logging: custom
 
 loglevel: "EXPLAIN"
-logfile_path: null
-save_input_output_to_path: null
-save_alignment_score_to_path: null
+
+save_log: true
+save_input_output: true
+save_scoring_output: true
 
 align_to_target: False
