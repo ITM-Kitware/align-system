@@ -1,0 +1,16 @@
+# @package _global_
+defaults:
+  - /alignment_target: maximization_low
+  - override /adm: single_kdma_baseline
+  - override /interface: ta3
+
+interface:
+  session_type: soartech
+  scenario_ids:
+    - desert-1-train1
+    - jungle-1-train1
+    - submarine-1-train1
+    - urban-1-train1
+  training_session: true
+
+align_to_target: true

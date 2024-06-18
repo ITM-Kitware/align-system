@@ -1,0 +1,10 @@
+# @package _global_
+defaults:
+  - override /adm: single_kdma_aligned
+  - override /interface: ta3
+
+interface:
+  session_type: eval
+  training_session: false
+
+align_to_target: true

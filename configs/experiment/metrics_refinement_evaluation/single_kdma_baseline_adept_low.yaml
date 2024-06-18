@@ -1,0 +1,16 @@
+# @package _global_
+defaults:
+  - /alignment_target: moral_deservingness_low
+  - override /adm: single_kdma_baseline
+  - override /interface: ta3
+
+interface:
+  session_type: adept
+  scenario_ids:
+    - MetricsEval.MD17
+    - MetricsEval.MD3
+    - MetricsEval.MD18
+    - MetricsEval.MD20
+  training_session: true
+
+align_to_target: true
