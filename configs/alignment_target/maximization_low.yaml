@@ -1,0 +1,6 @@
+_target_: swagger_client.models.AlignmentTarget
+
+id: maximization_low
+kdma_values:
+  - kdma: maximization
+    value: 0.1

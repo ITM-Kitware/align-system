@@ -1,0 +1,5 @@
+_target_: swagger_client.models.AlignmentTarget
+
+id: ADEPT-metrics_eval-alignment-target-train-LOW
+kdma_values:
+  - {kdma: MoralDesert, value: 0}
