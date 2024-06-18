@@ -2,7 +2,15 @@ import argparse
 import json
 import math
 
-from swagger_client.models import State, Action, Character, Supplies, Injury
+from swagger_client.models import (
+    State,
+    Action,
+    Character,
+    Supplies,
+    Injury,
+    Environment,
+    DecisionEnvironment,
+    SimEnvironment)
 
 from align_system.interfaces.abstracts import (
     Interface,
@@ -31,6 +39,12 @@ class InputOutputFileInterface(Interface):
                 c.injuries = [Injury(**i) for i in c.injuries]
 
             state.supplies = [Supplies(**s) for s in state.supplies]
+
+            state.environment = Environment(**state.environment)
+            state.environment.decision_environment = DecisionEnvironment(
+                **state.environment.decision_environment)
+            state.environment.sim_environment = SimEnvironment(
+                **state.environment.sim_environment)
 
             actions = [Action(**a) for a in record['input']['choices']]
             # TODO: Fix this on the input-output generation side, need

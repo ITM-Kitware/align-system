@@ -1,0 +1,5 @@
+instance:
+  _target_: align_system.algorithms.oracle_adm.OracleADM
+
+  probabilistic: false
+  upweight_missing_kdmas: false
