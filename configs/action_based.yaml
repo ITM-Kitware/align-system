@@ -1,6 +1,7 @@
 name: action_based
 
 defaults:
+  - _self_
   - interface: input_output_file
   - adm: single_kdma_baseline
   - override hydra/job_logging: custom

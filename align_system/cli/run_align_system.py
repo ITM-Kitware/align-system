@@ -20,7 +20,7 @@ JSON_HIGHLIGHTER = JSONHighlighter()
 @hydra.main(version_base=None,
             config_path="../../configs",
             config_name="action_based")
-def run_action_based_chat_system(cfg: DictConfig) -> None:
+def main(cfg: DictConfig) -> None:
     cfg = instantiate(cfg, recursive=True)
 
     interface = cfg.interface
@@ -252,4 +252,4 @@ def run_action_based_chat_system(cfg: DictConfig) -> None:
 
 
 if __name__ == "__main__":
-    run_action_based_chat_system()
+    main()
