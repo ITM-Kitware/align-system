@@ -7,96 +7,16 @@
 It's recommended to run the system on a machine with at least 32GB of
 RAM and with a modern GPU with at least 12GB of memory.
 
-### External Interfaces
-
-The ALIGN System can interface with a few difference services provided
-by other teams.  These interfaces may require additional setup
-assuming you need to run the services locally for testing / debugging.
-
-#### TA3 Action-based API
-
-The code for the TA3 Action-based service can be found at: [TA3 Evaluation Server API
-Repository](https://github.com/NextCenturyCorporation/itm-evaluation-server).
-
-There's a corresponding client module: [TA3 Evaluation Client](https://github.com/NextCenturyCorporation/itm-evaluation-client)
-
-#### Soartech's TA1 API
-
-Soartech's TA1 service code can be found at: [Soartech's TA1
-API](https://github.com/ITM-Soartech/ta1-server-mvp).  This API
-provides alignment scores for answered probes and scenarios.
-
-#### ADEPT's TA1 API
-
-ADEPT's TA1 service code can be found at: [ADEPT's TA1
-API](https://gitlab.com/itm-ta1-adept-shared/adept_server).
-This API provides alignment scores for answered probes and scenarios.
-
-
 ### Installation
 
 It's generally recommended to set up a virtual Python environment to neatly manage dependencies (e.g. using `venv` or `conda`).  The `align-system` code can be installed as a Python module with `pip
 install git+https://github.com/ITM-Kitware/align-system.git`.
 
-## Running the system against the TA3 action-based API
+## Running the system
 
+To run the default sytem configuration against included sample data, simply run:
 ```
-$ run_align_system --help
-usage: run_align_system [-h] {TA3ActionBased} ...
-
-ALIGN System CLI
-
-positional arguments:
-  {TA3ActionBased}  Select interface. Adding --help after interface selection will print interface and
-                    system specified arguments
-    TA3ActionBased  Interface with CACI's TA3 web-based service
-
-options:
-  -h, --help        show this help message and exit
-```
-
-Running `--help` after the selected interface prints the full set of options for the interface and system.  E.g.:
-
-```
-$ run_align_system TA3ActionBased --help
-usage: run_align_system TA3ActionBased [-h] [-u USERNAME] [-s SESSION_TYPE]
-                                       [-e API_ENDPOINT] [--training-session]
-                                       [--scenario-id SCENARIO_ID] -c ADM_CONFIG [-t]
-                                       [-l LOGLEVEL] [--logfile-path LOGFILE_PATH]
-                                       [--save-input-output-to-path SAVE_INPUT_OUTPUT_TO_PATH]
-                                       [--save-alignment-score-to-path SAVE_ALIGNMENT_SCORE_TO_PATH]
-
-options:
-  -h, --help            show this help message and exit
-  -u USERNAME, --username USERNAME
-                        ADM Username (provided to TA3 API server, default: "ALIGN-ADM")
-  -s SESSION_TYPE, --session-type SESSION_TYPE
-                        TA3 API Session Type (default: "eval")
-  -e API_ENDPOINT, --api_endpoint API_ENDPOINT
-                        Restful API endpoint for scenarios / probes (default:
-                        "http://127.0.0.1:8080")
-  --training-session    Return training related information from API requests
-  --scenario-id SCENARIO_ID
-                        Specific scenario to run
-  -c ADM_CONFIG, --adm-config ADM_CONFIG
-                        Path to ADM config YAML
-  -t, --align-to-target
-                        Align algorithm to target KDMAs
-  -l LOGLEVEL, --loglevel LOGLEVEL
-  --logfile-path LOGFILE_PATH
-                        Also write log output to the specified file
-  --save-input-output-to-path SAVE_INPUT_OUTPUT_TO_PATH
-                        Save system inputs and outputs to a file
-  --save-alignment-score-to-path SAVE_ALIGNMENT_SCORE_TO_PATH
-                        Save alignment score output to a file
-```
-
-Here's an example invocation of the system using the TA3 Action-based interface (assuming it's running locally on port `8080`):
-```
-$ run_action_based_align_system TA3ActionBased \
-           --adm-config adm_configs/metrics-evaluation/single_kdma_adm_adept_baseline.yml \
-           --api_endpoint "http://127.0.0.1:8080" \
-           --session-type adept
+run_align_system
 ```
 
 *NOTE* - The first time you run the system it can take upwards of a
@@ -104,102 +24,92 @@ half-hour to download the LLM model (which is roughly 25GB).
 Subsequent runs of the system should only take a few minutes as the
 model is cached.
 
+### Hydra
 
-## Running the system against TA1 services or local files
+We use
+[Hydra](https://github.com/NextCenturyCorporation/itm-evaluation-server)
+to hand our system configurations.  This allows us to set up sensible
+defaults for our configuration, while allowing additional
+configurations to build up and override existing configs, as well as
+override configuration values at runtime.
 
-In the Python environment you have set up, a CLI application called `run_simplified_align_system` should now be available.  This single entrypoint supports interfacing with both local files on disk, and the TA3 web-based API.  Running the script with `--help` shows which interfaces are available:
-
+The default configuration is (note that Hydra configuration files are `.yaml`):
 ```
-$ run_simplified_align_system --help
-usage: run_simplified_align_system [-h] {TA1Soartech,LocalFiles,TA1Adept} ...
+name: action_based
 
-ALIGN System CLI
+defaults:
+  - interface: input_output_file
+  - adm: single_kdma_baseline
+  - override hydra/job_logging: custom
 
-positional arguments:
-  {TA1Soartech,LocalFiles,TA1Adept}
-                        Select interface. Adding --help after interface selection will print interface and system specified arguments
-    TA1Soartech         Interface with Soartech's TA1 web-based service
-    LocalFiles          Interface with local scenario / probe JSON data on disk
-    TA1Adept            Interface with Adept's TA1 web-based service
+loglevel: "EXPLAIN"
 
-options:
-  -h, --help            show this help message and exit
-```
+save_log: true
+save_input_output: true
+save_scoring_output: true
 
-Running `--help` after the selected interface prints the full set of options for the interface and system.  E.g.:
-
-```
-$ run_simplified_align_system TA1Soartech --help
-usage: run_simplified_align_system TA1Soartech [-h] [-s [SCENARIOS ...]] [--alignment-targets [ALIGNMENT_TARGETS ...]] [-e API_ENDPOINT] [-m MODEL] [-t] [-a ALGORITHM] [-A ALGORITHM_KWARGS] [--similarity-measure SIMILARITY_MEASURE]
-
-options:
-  -h, --help            show this help message and exit
-  -s [SCENARIOS ...], --scenarios [SCENARIOS ...]
-                        Scenario IDs (default: 'kickoff-demo-scenario-1')
-  --alignment-targets [ALIGNMENT_TARGETS ...]
-                        Alignment target IDs (default: 'kdma-alignment-target-1')
-  -e API_ENDPOINT, --api_endpoint API_ENDPOINT
-                        Restful API endpoint for scenarios / probes (default: "http://127.0.0.1:8084")
-  -m MODEL, --model MODEL
-                        LLM Baseline model to use
-  -t, --align-to-target
-                        Align algorithm to target KDMAs
-  -a ALGORITHM, --algorithm ALGORITHM
-                        Algorithm to use
-  -A ALGORITHM_KWARGS, --algorithm-kwargs ALGORITHM_KWARGS
-                        JSON encoded dictionary of kwargs for algorithm initialization
-  --similarity-measure SIMILARITY_MEASURE
-                        Similarity measure to use (default: 'bert')
+align_to_target: False
 ```
 
+#### Overriding at runtime
 
-### Example Data
+Hydra's override syntax on the command line is fairly straightforward
+(covered in their documentation
+[here](https://hydra.cc/docs/advanced/override_grammar/basic/)).
+Though note the `+` prefix for `+alignment_target=maximization_high`
+in the example below, here we're adding a new configuration field that
+isn't specified in the default configuration (as opposed to overriding
+an existing field)
 
-We've included some example scenario, probe, and alignment target data for testing.  These files can be found in the `example_data` directory.  Here's an example system invocation with the provided example files:
+In the example below, we're building upon the default configuration,
+but we're running the `kaleido_hybrid` ADM (it's configuration can be
+found [here](configs/adm/hybrid_kaleido.yaml)), aligning to
+`maximization_high`, and interfacing with the `ta3` service (instead
+of a local sample file).
 
 ```
-run_simplified_align_system LocalFiles \
-    -s example_data/scenario_1/scenario.json \
-    --alignment-target-filepath example_data/scenario_1/alignment_target.json \
-    -p example_data/scenario_1/probe{1,2,3,4}.json \
-    --algorithm "llama_index" \
-    --model falcon \
-    --algorithm-kwargs '{"domain_docs_dir": "/data/shared/MVPData/DomainDocumentsPDF"}' \
-    --align-to-target
+run_align_system \
+    loglevel="DEBUG" \
+    adm=hybrid_kaleido \
+    +alignment_target=maximization_high \
+    align_to_target=true \
+    interface=ta3 \
+    interface.session_type='soartech' \
+    interface.scenario_ids='["desert-1-train1","jungle-1-train1","submarine-1-train1","urban-1-train1"]' \
+    interface.training_session=true
 ```
+
+#### Experiments
+
+Overriding at the command line is quick and handy, but Hydra has this
+notion of "experiments", which are essentially a set of overrides
+captured in a new configuration file.  We manage these experiments in
+`config/experiments`, and have created an experiment for each of the
+delivered ADMs for the Metrics Evaluation (both to run on training
+data, and eval data).
 
 ## Metrics Evaluation ADM Invocations
+
+Note that to override the API endpoint for the metrics evaluation
+ADMs, you can append `interface.api_endpoint='http://127.0.0.1:8080'`
+to the command line arguments, setting the value to the correct URL.
 
 ### Baseline ADM
 
 ```
-run_align_system TA3ActionBased \
-           --adm-config adm_configs/metrics-evaluation/delivered/single_kdma_adm_baseline.yml \
-           --username kitware-single-kdma-adm-baseline \
-           --session-type eval \
-           --api_endpoint "http://127.0.0.1:8080" # URL for TA3 Server
+run_align_system +experiment=metrics_refinement_evaluation/single_kdma_aligned_eval
 ```
 
-### Aligned ADM 1 (Single KDMA ADM No Negatives)
+### Aligned ADM 1 (Single KDMA ADM)
 
 ```
-run_align_system TA3ActionBased \
-           --adm-config adm_configs/metrics-evaluation/delivered/single_kdma_adm_adept.yml \
-           --username kitware-single-kdma-adm-aligned-no-negatives \
-           --align-to-target \
-           --session-type eval \
-           --api_endpoint "http://127.0.0.1:8080" # URL for TA3 Server
+run_align_system +experiment=metrics_refinement_evaluation/single_kdma_baseline_eval
 ```
 
 ### Aligned ADM 2 (Hybrid Kaleido ADM)
 
 ```
-run_align_system TA3ActionBased \
-           --adm-config adm_configs/metrics-evaluation/delivered/hybrid_kaleido.yml \
-           --username kitware-hybrid-kaleido-aligned \
-           --align-to-target \
-           --session-type eval \
-           --api_endpoint "http://127.0.0.1:8080" # URL for TA3 Server
+run_align_system +experiment=metrics_refinement_evaluation/hybrid_kaleido_eval
 ```
 
 
@@ -217,7 +127,7 @@ algorithms / models*
 
 ## Quicklinks
 
-[Creating a custom system script](docs/creating_a_custom_system_script.md)
+[External interfaces](docs/external_interfaces.md)
 
 [Developer environment setup](docs/developer_setup.md)
 

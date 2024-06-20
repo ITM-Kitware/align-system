@@ -1,50 +1,79 @@
+import sys
 import json
+import yaml
 from copy import deepcopy
 import atexit
-import os
 
 from rich.logging import RichHandler
 from rich.console import Console
 from rich.highlighter import JSONHighlighter
-from swagger_client.models import ActionTypeEnum
-import hydra
-from hydra.utils import instantiate
-from omegaconf import DictConfig
+from swagger_client.models import AlignmentTarget, ActionTypeEnum
 
 from align_system.utils import logging
+from align_system.interfaces.cli_builder import build_interfaces
+from align_system.algorithms import REGISTERED_ADMS
+
 
 log = logging.getLogger(__name__)
 JSON_HIGHLIGHTER = JSONHighlighter()
 
 
-@hydra.main(version_base=None,
-            config_path="../../configs",
-            config_name="action_based")
-def run_action_based_chat_system(cfg: DictConfig) -> None:
-    cfg = instantiate(cfg, recursive=True)
+def add_cli_args(parser):
+    # Using argparse to add our system CLI specific arguments.  Can
+    # modify or add your own custom CLI arguments here
+    parser.add_argument('-c', '--adm-config',
+                        type=str,
+                        required=True,
+                        help="Path to ADM config YAML")
+    parser.add_argument('-t', '--align-to-target',
+                        action='store_true',
+                        default=False,
+                        help="Align algorithm to target KDMAs")
+    parser.add_argument('-l', '--loglevel',
+                        type=str,
+                        default='INFO')
+    parser.add_argument('--logfile-path',
+                        type=str,
+                        default=None,
+                        help="Also write log output to the specified file")
+    parser.add_argument('--save-input-output-to-path',
+                        type=str,
+                        default=None,
+                        help="Save system inputs and outputs to a file")
+    parser.add_argument('--save-alignment-score-to-path',
+                        type=str,
+                        default=None,
+                        help="Save alignment score output to a file")
 
-    interface = cfg.interface
-    adm = cfg.adm.instance
 
-    # Using the hydra generated output directory for the run
-    output_dir = hydra.core.hydra_config.HydraConfig.get().runtime.output_dir
+def main():
+    # The `build_interfaces` call here adds all interfaces as
+    # subparsers to your CLI.  (Can specify what interfaces you
+    # support explicitly with the optional `supported_interfaces`
+    # argument (as a set))
+    # The `build_interfaces` call also instantiates an interface
+    # object based on the selected interface and interface arguments
+    # provided at the command line and passes them to your run
+    # function (`run_custom_system` in this case)
+    log.debug(f"[bright_black]CMD: {' '.join(sys.argv)}[/bright_black]",
+              extra={'markup': True, 'highlighter': None})
+    run_action_based_chat_system(
+        **build_interfaces(
+            add_cli_args, "ALIGN System CLI",
+            supported_interfaces={'TA3ActionBased', 'InputOutputFile'}))
 
-    logfile_path = None
-    if cfg.save_log:
-        logfile_path = os.path.join(output_dir, "align_system.log")
 
-    save_input_output_to_path = None
-    if cfg.save_input_output:
-        save_input_output_to_path = os.path.join(output_dir, "input_output.json")
-
-    save_alignment_score_to_path = None
-    if cfg.save_scoring_output:
-        save_alignment_score_to_path = os.path.join(output_dir, "scores.json")
-
+def run_action_based_chat_system(interface,
+                                 adm_config,
+                                 align_to_target,
+                                 loglevel="INFO",
+                                 logfile_path=None,
+                                 save_input_output_to_path=None,
+                                 save_alignment_score_to_path=None):
     # Set log level on root logger (such that child loggers respect
     # the set log level)
     root_logger = logging.getLogger()
-    root_logger.setLevel(cfg.loglevel)
+    root_logger.setLevel(loglevel)
 
     if logfile_path is not None:
         logfile = open(logfile_path, 'w')
@@ -54,6 +83,24 @@ def run_action_based_chat_system(cfg: DictConfig) -> None:
         filehandler = RichHandler(
             console=Console(file=logfile, color_system=None))
         root_logger.addHandler(filehandler)
+
+    with open(adm_config, 'r') as f:
+        config = yaml.safe_load(f)
+
+    adm_config = config['adm']
+    adm_name = adm_config['name']
+    adm_init_kwargs = adm_config.get('init_kwargs', {})
+    adm_inference_kwargs = adm_config.get('inference_kwargs', {})
+    adm_class = REGISTERED_ADMS.get(adm_name)
+
+    if adm_class is None:
+        raise RuntimeError("'adm' not found in REGISTERED_ADMS: {}".format(
+            list(REGISTERED_ADMS.keys())))
+
+    # TODO: Check that the selected ADM implements the expected
+    # abstract with respect to the selected "interface"
+    # (i.e. TA3ActionBased, vs. TA1)
+    adm = adm_class(**adm_init_kwargs)
 
     # HACK: need to invoke 'load_model' for ADMs that require it,
     # maybe it makes more sense to load_model in the init method for
@@ -73,9 +120,10 @@ def run_action_based_chat_system(cfg: DictConfig) -> None:
             log.info("Next scenario ID is blank, assuming we're done, exiting")
             break
 
-        if 'alignment_target' in cfg:
-            alignment_target = cfg.alignment_target
-        elif cfg.align_to_target:
+        if 'alignment_target_override' in config:
+            alignment_target = AlignmentTarget(
+                **config['alignment_target_override'])
+        elif align_to_target:
             alignment_target = scenario.get_alignment_target()
         else:
             alignment_target = None
@@ -170,8 +218,8 @@ def run_action_based_chat_system(cfg: DictConfig) -> None:
                 action_to_take = adm.choose_action(
                     current_state,
                     [deepcopy(a) for a in available_actions_filtered],
-                    alignment_target if cfg.align_to_target else None,
-                    **cfg.adm.get('inference_kwargs', {}))
+                    alignment_target if align_to_target else None,
+                    **adm_inference_kwargs)
 
             log.debug("[bold]*ACTION BEING TAKEN*[/bold]",
                       extra={"markup": True})
@@ -223,21 +271,16 @@ def run_action_based_chat_system(cfg: DictConfig) -> None:
 
         if alignment_target is not None:
             session_alignment = interface.get_session_alignment(
-                alignment_target)
+                alignment_target.id)
 
             if session_alignment is None:
                 log.info("Couldn't get session alignment from interface")
             else:
                 session_alignment_scores.append(session_alignment)
 
-                if isinstance(session_alignment, dict):
-                    session_alignment_dict = session_alignment
-                else:
-                    session_alignment_dict = session_alignment.to_dict()
-
                 log.info("[bold]*TA1 Alignment Score*[/bold]",
                          extra={"markup": True})
-                log.info(json.dumps(session_alignment_dict, indent=4),
+                log.info(json.dumps(session_alignment.to_dict(), indent=4),
                          extra={"highlighter": JSON_HIGHLIGHTER})
 
     if save_input_output_to_path is not None:
@@ -247,9 +290,8 @@ def run_action_based_chat_system(cfg: DictConfig) -> None:
     if len(session_alignment_scores) > 0:
         if save_alignment_score_to_path is not None:
             with open(save_alignment_score_to_path, 'w') as f:
-                json.dump([(s if isinstance(s, dict) else s.to_dict())
-                           for s in session_alignment_scores], f, indent=2)
+                json.dump([s.to_dict() for s in session_alignment_scores], f, indent=2)
 
 
 if __name__ == "__main__":
-    run_action_based_chat_system()
+    main()
