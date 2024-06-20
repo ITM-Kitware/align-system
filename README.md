@@ -28,8 +28,8 @@ model is cached.
 
 We use
 [Hydra](https://github.com/NextCenturyCorporation/itm-evaluation-server)
-to hand our system configurations.  This allows us to set up sensible
-defaults for our configuration, while allowing additional
+to handle our system configurations.  This allows us to set up
+sensible defaults for our configuration, while allowing additional
 configurations to build up and override existing configs, as well as
 override configuration values at runtime.
 
@@ -77,6 +77,19 @@ run_align_system \
     interface.session_type='soartech' \
     interface.scenario_ids='["desert-1-train1","jungle-1-train1","submarine-1-train1","urban-1-train1"]' \
     interface.training_session=true
+```
+
+#### Outputs
+
+By default, the `run_align_system` command puts output files in the
+current working directory, under
+`outputs/<year-month-day>/<hour-minute-second>`
+(e.g. `"outputs/2024-06-18/14-55-31"`).  The output directory and
+sub-directory pattern can be overridden on the command line by
+settting the `hydra.run.dir` parameter.
+
+```
+run_align_system hydra.run.dir='my_outputs/${now:%Y-%m-%d}/${now:%H-%M-%S}'
 ```
 
 #### Experiments
