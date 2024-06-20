@@ -6,7 +6,7 @@ import os
 from rich.logging import RichHandler
 from rich.console import Console
 from rich.highlighter import JSONHighlighter
-from swagger_client.models import AlignmentTarget, ActionTypeEnum
+from swagger_client.models import ActionTypeEnum
 import hydra
 from hydra.utils import instantiate
 from omegaconf import DictConfig
