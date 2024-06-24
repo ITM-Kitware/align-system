@@ -1,0 +1,6 @@
+# @package _global_
+defaults:
+  - /alignment_target: multi_high
+  - override /adm: multi_kdma_baseline
+
+align_to_target: true

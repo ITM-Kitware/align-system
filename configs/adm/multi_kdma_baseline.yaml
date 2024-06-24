@@ -1,0 +1,12 @@
+instance:
+  _target_: align_system.algorithms.llama_2_multi_kdma_adm.Llama2MultiKDMAADM
+
+  hf_model: meta-llama/Llama-2-13b-chat-hf
+  precision: half
+  temperature: 0.7
+
+inference_kwargs:
+  baseline: true
+  n_negative_samples: 0
+  n_positive_samples: 5
+  shuffle: true
