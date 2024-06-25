@@ -27,7 +27,7 @@ model is cached.
 ### Hydra
 
 We use
-[Hydra](https://github.com/NextCenturyCorporation/itm-evaluation-server)
+[Hydra](https://hydra.cc/)
 to handle our system configurations.  This allows us to set up
 sensible defaults for our configuration, while allowing additional
 configurations to build up and override existing configs, as well as
@@ -92,6 +92,10 @@ settting the `hydra.run.dir` parameter.
 run_align_system hydra.run.dir='my_outputs/${now:%Y-%m-%d}/${now:%H-%M-%S}'
 ```
 
+Hydra also saves out all of the config parameters, config overrides,
+and internal hydra parameters for the run in the output directory in a
+subdirectory called `.hydra`.
+
 #### Experiments
 
 Overriding at the command line is quick and handy, but Hydra has this
@@ -110,13 +114,13 @@ to the command line arguments, setting the value to the correct URL.
 ### Baseline ADM
 
 ```
-run_align_system +experiment=metrics_refinement_evaluation/single_kdma_aligned_eval
+run_align_system +experiment=metrics_refinement_evaluation/single_kdma_baseline_eval
 ```
 
 ### Aligned ADM 1 (Single KDMA ADM)
 
 ```
-run_align_system +experiment=metrics_refinement_evaluation/single_kdma_baseline_eval
+run_align_system +experiment=metrics_refinement_evaluation/single_kdma_aligned_eval
 ```
 
 ### Aligned ADM 2 (Hybrid Kaleido ADM)
