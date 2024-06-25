@@ -1,8 +1,0 @@
-adm:
-  name: 'RandomADM'
-
-alignment_target_override:
-  id: maximization_low
-  kdma_values:
-    - kdma: maximization
-      value: 0.1

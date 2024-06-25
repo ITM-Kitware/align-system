@@ -1,7 +1,0 @@
-adm:
-  name: 'RandomADM'
-
-alignment_target_override:
-  id: ADEPT-metrics_eval-alignment-target-train-LOW
-  kdma_values:
-    - {kdma: MoralDesert, value: 0}
