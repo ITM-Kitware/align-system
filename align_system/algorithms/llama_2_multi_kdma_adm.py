@@ -2,8 +2,12 @@ import json
 import re
 import random
 import os
+import yaml
 import pathlib
 from align_system.algorithms.abstracts import AlignedDecisionMaker
+
+from align_system.algorithms.lib.chat.chat_language_model import ChatLanguageModel
+from typing import Union, List, Dict, Tuple, Optional, TextIO
 
 from jinja2.exceptions import TemplateError
 
@@ -48,58 +52,21 @@ kdma_remapping = {
     'timepressure': 'time_pressure',
 }
 
-# default_system_messages_path=os.path.join(
-#     pathlib.Path(__file__).parent.absolute(), '..',
-#     'prompt_engineering/bbn_alignment_system_messages_v1')
 
 # NOTE temporary way to change which system messages are used
 # TODO make this configurable from the config
 default_system_messages_path=os.path.join(
     pathlib.Path(__file__).parent.absolute(), '..',
-    'prompt_engineering/single_kdma_adm_system_messges')
+    'prompt_engineering/multi_kdma_adm_system_messges')
 
 chat_template_path = os.path.join(
     pathlib.Path(__file__).parent.absolute(), '..',
     'prompt_engineering/chat_templates')
 
-def load_system_message(alignment=None,
-                        system_messages_path=default_system_messages_path):
-    if alignment is None:
-        file_name = 'baseline.txt'
-    else:
-        sorted_kdmas = sorted(alignment.keys())
-
-        alignment_string = '-'.join(
-            '{}-{}'.format(alignment[k], kdma_remapping.get(k, k))
-            for k in sorted_kdmas)
-
-        file_name = f'{alignment_string}.txt'
-
-    with open(os.path.join(system_messages_path, file_name), 'r') as f:
-        system_message = f.read()
-    return system_message
-
-
-def find_sequence(arr, seq):
-    seq_len = len(seq)
-    matches = [i+seq_len for i in range(len(arr)) if list(arr[i:i+seq_len]) == list(seq)]
-    if matches:
-        return matches[0]
-    else:
-        return None
-
-
-def get_logits(output_scores, start_idx, letter_ids):
-    logits = []
-    for _, id_ in letter_ids.items():
-        logit = output_scores[start_idx][0, id_].item()
-        logits.append(logit)
-    return logits
-
-
-def to_probabilities(logits):
-    return torch.nn.functional.softmax(torch.tensor(logits), dim=0)  # Apply softmax
-
+def read_template(template_file_name: str, template_dir=default_system_messages_path) -> str:
+    with open(os.path.join(template_dir, template_file_name), 'r') as f:
+        template = f.read()
+    return template
 
 STANDARD_MULTIPLE_CHOICE_JSON_FORMAT = "{\"Reasoning\": \"<Provide a reasoned explanation here>\", \"Answer\": <Integer index corresponding to your final answer>}\\n"
 
@@ -108,7 +75,7 @@ TREATMENT_MULTIPLE_CHOICE_JSON_FORMAT = "{\"Reasoning\": \"<Provide a reasoned e
 TAGGING_MULTIPLE_CHOICE_JSON_FORMAT = "{\"Reasoning\": \"<Provide a reasoned explanation here>\", \"Answer\": <Integer index corresponding to your final answer>, \"Tag\": \"<Specific medical triage tag to apply, one of: 'MINIMAL', 'DELAYED', 'IMMEDIATE', 'EXPECTANT'>\"}\\n"
 
 
-class Llama2MultiKDMAADM(AlignedDecisionMaker):
+class Llama2MultiKDMAADM(AlignedDecisionMaker, ChatLanguageModel):
 
     def __init__(self, device='cuda', hf_model='meta-llama/Llama-2-7b-chat-hf', precision='full', temperature=0.7, do_sample=True, **kwargs):
         self.device = device
@@ -375,160 +342,6 @@ class Llama2MultiKDMAADM(AlignedDecisionMaker):
 
         return generated_outputs
 
-    def aligned_decision_maker(self, question, choices, target_kdmas, n_positive_samples=5, n_negative_sampels=5, shuffle=True, baseline=False, n_retries=3):
-        inference_pairs = []
-        if not baseline:
-            unsupported_kdmas = {kdma_remapping.get(k, k)
-                                 for k in target_kdmas.keys()} - kdmas
-            if len(unsupported_kdmas) > 0:
-                raise RuntimeError(f"KDMA(s) {unsupported_kdmas} not supported.")
-
-        prefix = '{"Reasoning": "Because'
-
-        responses = []
-
-        logged_aligned_dialog = False
-        logged_inverse_misaligned_dialog = False
-        for _ in range(n_positive_samples):
-            if baseline:
-                system_message = load_system_message()
-                system_message_keys = 'baseline'
-
-            else:
-                system_message_keys = {kdma: 'high' if value > 5 else 'low'
-                                    for kdma, value in target_kdmas.items()}
-                system_message = load_system_message(system_message_keys)
-
-            indecies = list(range(len(choices)))
-            if shuffle:
-                random.shuffle(indecies)
-            shuffled_choices = [choices[i] for i in indecies]
-
-            dialog = self.build_multiple_choice_dialog(
-                question,
-                shuffled_choices,
-                system_message=system_message)
-
-            if not logged_aligned_dialog:
-                log.debug("[bold]*ALIGNED DIALOG*[/bold]",
-                          extra={"markup": True})
-                self.log_dialog(dialog)
-                logged_aligned_dialog = True
-
-            good_parse = False
-            for i in range(n_retries):
-                high_response, inference_pair = self.respond_to_dialog(dialog, prefix=prefix)
-                inference_pairs.append({**inference_pair, **{'aligned': True, 'attempt': i}})
-                try:
-                    reasoning, answer_idx, parse_method = Llama2MultiKDMAADM.parse_generated_output(high_response, len(choices))
-                    good_parse = True
-                    break
-                except RuntimeError as e:
-                    pass
-
-            if not good_parse:
-                reasoning, answer_idx, parse_method = Llama2MultiKDMAADM.bert_similarity_parse(high_response, shuffled_choices)
-
-            print('CHOSEN ANSWER IDX', answer_idx, shuffled_choices)
-            assert answer_idx is not None, f'Failed to parse answer index from generated output: {low_response}'
-
-            responses.append({
-                'response': high_response,
-                'reasoning': reasoning,
-                'answer_idx': answer_idx,
-                'shuffle_indecies': indecies,
-                'alignment': system_message_keys,
-                'aligned': True,
-                'parse_method': parse_method,
-            })
-
-        for _ in range(n_negative_sampels):
-            system_message_keys = {kdma: 'high' if not value > 5 else 'low'
-                                    for kdma, value in target_kdmas.items()}
-
-            indecies = list(range(len(choices)))
-            if shuffle:
-                random.shuffle(indecies)
-            shuffled_choices = [choices[i] for i in indecies]
-
-            inverse_misaligned_dialog = self.build_multiple_choice_dialog(
-                question,
-                shuffled_choices,
-                system_message=load_system_message(system_message_keys))
-
-            if not logged_inverse_misaligned_dialog:
-                log.debug("[bold]*INVERSE MISALIGNED DIALOG*[/bold]",
-                            extra={"markup": True})
-                self.log_dialog(inverse_misaligned_dialog)
-                logged_inverse_misaligned_dialog = True
-
-            good_parse = False
-            for i in range(n_retries):
-                low_response, inference_pair = self.respond_to_dialog(inverse_misaligned_dialog, prefix=prefix)
-                inference_pairs.append({**inference_pair, **{'aligned': True, 'attempt': i}})
-                try:
-                    reasoning, answer_idx, parse_method = Llama2MultiKDMAADM.parse_generated_output(low_response, len(choices))
-                    good_parse = True
-                    break
-                except RuntimeError as e:
-                    pass
-
-            if not good_parse:
-                reasoning, answer_idx, parse_method = Llama2MultiKDMAADM.bert_similarity_parse(low_response, shuffled_choices)
-
-            assert answer_idx is not None, f'Failed to parse answer index from generated output: {low_response}'
-
-            responses.append({
-                'response': low_response,
-                'reasoning': reasoning,
-                'answer_idx': answer_idx,
-                'shuffle_indecies': indecies,
-                'alignment': system_message_keys,
-                'aligned': False,
-                'parse_method': parse_method,
-            })
-
-        return responses, inference_pairs
-
-
-    @staticmethod
-    def calculate_votes(responses, choices):
-        choice_votes = [0] * len(choices)
-        for response in responses:
-            answer_idx = response['answer_idx']
-            if answer_idx is None:
-                continue
-
-            try:
-                answer_idx = int(answer_idx)
-            except ValueError:
-                continue
-
-            if answer_idx >= len(choices):
-                continue
-
-            if 'shuffle_indecies' in response:
-                answer_idx = response['shuffle_indecies'][int(answer_idx)]
-
-            aligned = response['aligned']
-
-            if aligned:
-                choice_votes[answer_idx] += 1
-            else:
-                for i in range(len(choices)):
-                    if i != answer_idx:
-                        choice_votes[i] += 1/len(choices)
-                    else:
-                        choice_votes[i] -= 1/len(choices)
-
-        min_score = min(choice_votes) + 1e-6
-        choice_votes = [score - min_score for score in choice_votes]
-        total = sum(choice_votes)
-        choice_votes = [round(score / total, 6) for score in choice_votes]
-
-        return choice_votes
-
-
     @staticmethod
     def parse_generated_output(generated_output, n_choices):
         parse_method = 'json'
@@ -714,83 +527,205 @@ class Llama2MultiKDMAADM(AlignedDecisionMaker):
                 log.warning(f'Warning: could not parse corrected JSON from generated output. Error: {str(e)}')
             return None
 
-    def run_aligned_decision_maker_with_voting(
-            self, prompt, choices, alignment_target, n_positive_samples=5, n_negative_samples=5, baseline=False, shuffle=False):
-        responses, inference_pairs = self.aligned_decision_maker(
-            prompt,
-            choices,
-            alignment_target,
-            baseline=baseline,
-            n_positive_samples=n_positive_samples,
-            n_negative_sampels=n_negative_samples,
-            shuffle=shuffle
+    def predict_outcomes(self, scenario, probe, choices, **kwargs):
+        """
+        Predicts outcomes for given scenario, probe and choices.
+
+        :param scenario: Scenario text.
+        :param probe: Probe text.
+        :param choices: Choices text.
+        :param kwargs
+        :return: List of generated predictions.
+        """
+        template = 'pred_outcome.txt'
+        templates = [read_template(template) for choice in choices] # TODO - make this work with a single string
+        substitution_dicts = [
+                {
+                    'scenario': scenario,
+                    'probe': probe, 
+                    'choice': choice,
+                }
+                for choice in choices 
+            ]
+        return self.generate_from_template(
+            templates,
+            substitution_dicts,
+            log_file=None, # Add new logging after call
+            max_tokens=kwargs.get('max_new_tokens', 512),
+            temperature=self.temperature
         )
 
-        try:
-            choice_scores = Llama2MultiKDMAADM.calculate_votes(responses, choices)
-        except Exception as e:
-            log.warning(f"Error calculating votes: {e}")
-            choice_scores = [None] * len(choices)
 
-        log.debug("[bold]*RESPONSES*[bold]", extra={"markup": True})
-        for i, ip in enumerate(inference_pairs):
-            log.debug("[bold]*response {}*[bold]".format(i+1),
-                      extra={"markup": True})
-            log.debug(ip['output'])
+    def predict_kdma_values(self, scenario_text, probe_text, choice_texts,
+                            predicted_outcomes, **kwargs):
+        """
+        Predicts KDMA scores each choice text under the given scenario and probe.
 
-        log.explain("[bold]*CHOICE SCORES*[/bold]",
-                    extra={"markup": True})
-        log.explain("\n".join([f"{c}: {s}" for c, s in zip(choices, choice_scores)]))
+        :param scenario_text: Scenario text.
+        :param probe_text: Probe text.
+        :param choice_texts: Choices text.
+        :param predicted_outcomes: Predicted outcomes.
+        :param kwargs
+        :return: KDMA predictions. If generate_reasoning is True, return predictions and reasonings.
+        """
 
-        results = {
-            'prompt': prompt,
-            'choice_scores': choice_scores,
-            'responses': responses,
-        }
+        # TODO - properly add these to kwargs
+        generate_reasoning=kwargs.get('generate_reasoning', True)
+        log_file = None 
+        max_new_tokens = kwargs.get('max_new_tokens', 512) 
+        temperature = self.temperature
+        template = 'pred_kdma_RO.txt' 
+        kdma_descriptions_file = 'test_kdma_descriptions.yml'
 
-        answer_idx = int(np.argmax(results['choice_scores']))
-        reasoning = None
+        choice_ids = [f'choice_{i}' for i in range(len(choice_texts))]
+        substitutions = []
+        info = []
+        
+        kdma_descriptions_file_path = os.path.join(default_system_messages_path, kdma_descriptions_file)
+        with open(kdma_descriptions_file_path, 'r') as f:
+            kdma_descriptions = yaml.load(f, Loader=yaml.FullLoader)
+        
+        if predicted_outcomes is None:
+            predicted_outcomes = [None] * len(choice_texts)
+        
+        for choice_id, choice, outcome in zip(choice_ids, choice_texts, predicted_outcomes):
+            for kdma, kdma_info in kdma_descriptions.items():
+                substitution = {
+                    'kdma': kdma_info['name'],
+                    'kdma_description': kdma_info['description'],
+                    'scenario': scenario_text,
+                    'probe': probe_text,
+                    'choice': choice,
+                }
+                
+                if outcome is not None:
+                    substitution['outcome'] = outcome
+                    
+                substitutions.append(substitution)
+                info.append((choice_id, kdma))
+        
+        def parse_kdma_score_response(response: str) -> Dict[str, Union[float, str]]:
+            """
+            Parses KDMA score response.
 
-        for r in responses:
-            assert r['answer_idx'] is not None
-            assert int(r['answer_idx']) < len(r['shuffle_indecies'])
+            :param response: Response to parse.
+            :return: Dictionary with KDMA score and reasoning if generate_reasoning.
+            """
+            if generate_reasoning:
+                start_idx = response.find('{')
+                end_idx = response.rfind('}')
+                response_json = json.loads(response[start_idx:end_idx+1])
+                assert 'score' in response_json, 'score not found in response'
+                assert 'reasoning' in response_json, 'reasoning not found in response'
+            else:
+                # find the first numeric character
+                char = None
+                for c in response:
+                    if c.isnumeric():
+                        char = c
+                        break
+                assert char is not None, 'Could not find numeric character in response'
+                response_json = {
+                    'score': float(response[response.find(char):])
+                }                
+            return response_json
+        
+        templates = [read_template(template) for sub in substitutions] # TODO - make this work with a single string
+        generations = self.generate_from_template(
+            templates,
+            substitutions,
+            parse_kdma_score_response,
+            log_file=log_file,
+            max_tokens=max_new_tokens,
+            temperature=temperature,
+        )
+        
+        predicted_kdma_values = {}
+        reasonings = {}
+        for (choice_id, kdma), generation in zip(info, generations):
+            predicted_choice_kdmas = predicted_kdma_values.get(choice_id, {})
+            predicted_kdma_values[choice_id] = predicted_choice_kdmas
+            
+            choice_reasonings = reasonings.get(choice_id, {})
+            reasonings[choice_id] = choice_reasonings
+            
+            predicted_choice_kdmas[kdma] = generation['score']
+            
+            if generate_reasoning:
+                choice_reasonings[kdma] = generation['reasoning']
+        
+        predicted_kdma_values = [
+            predicted_kdma_values[choice_id]
+            for choice_id in choice_ids
+        ]
+        if generate_reasoning:
+            reasonings = [
+                reasonings[choice_id]
+                for choice_id in choice_ids
+            ]
+        
+        if generate_reasoning:
+            return predicted_kdma_values, reasonings
+        else:
+            return predicted_kdma_values
 
-            if r['shuffle_indecies'][int(r['answer_idx'])] == answer_idx:
-                reasoning = r['reasoning']
-                break
 
-        return reasoning, answer_idx, responses, inference_pairs
+    def run_multi_aligned_decision_maker(
+            self, probe, prompt, choices, target_kdma_values, **kwargs):
+
+        # Predict outcomes of each choice is specified
+        predicted_outcomes = None
+        if 'predict_outcomes'in kwargs:
+            predicted_outcomes = self.predict_outcomes(
+                prompt, 
+                probe, 
+                choices, 
+                **kwargs)
+            # TODO - Log predicted outcomes 
+
+        # Predict KDMA values
+        predicted_kdma_values, generated_reasoning = self.predict_kdma_values(
+            prompt, 
+            probe, 
+            choices,
+            predicted_outcomes,
+            **kwargs
+        )
+        # TODO log
+
+        def mse(target_kdma_values, predicted_kdma_values):
+            kdmas = set(target_kdma_values.keys()) & set(predicted_kdma_values.keys())
+            
+            if len(kdmas) == 0:
+                return 0
+        
+            return sum([(target_kdma_values[kdma] - predicted_kdma_values[kdma])**2 for kdma in kdmas]) / len(kdmas)
+
+        # find index of min mse
+        choice_idx = 0
+        min_mse = float('inf')
+        for i, choice in enumerate(choices):
+            mse_ = mse(target_kdma_values, predicted_kdma_values[i])
+            if mse_ < min_mse:
+                min_mse = mse_
+                choice_idx = i
+        
+        return {
+            'choice': choice_idx,
+            'info': {
+                'reasoning': generated_reasoning[choice_idx],
+                'predicted_outcomes': predicted_outcomes,
+                'predicted_kdmas': predicted_kdma_values,
+                'generated_reasoning': generated_reasoning
+                }
+            }
 
     def __call__(self, sample, target_kdma_values, **kwargs):
         prompt = sample['scenario']
         if sample['state'] is not None:
             prompt += f'\n{sample["state"]}'
 
-        if 'retriever' in kwargs:
-            # retriever_prompt = "How would you treat the following injuries: {}".format(prompt)
-            retriever_prompt = "{}  {}".format(prompt, sample['probe'])
-
-            retriever = kwargs['retriever']
-            retrieved_nodes = retriever.retrieve(retriever_prompt)
-
-            if 'summarizer' in kwargs:
-                summarizer = kwargs['summarizer']
-                summary = summarizer.synthesize(retriever_prompt, nodes=retrieved_nodes)
-
-                log.explain("[bold] ** Retrieval Summary ** [/bold]",
-                            extra={"markup": True})
-                log.explain(summary)
-
-                prompt += "\n#############\n{}\n#############".format(summary)
-
-            else:
-                prompt += "\n#############\n{}\n#############".format(
-                    "\n#############\n".join((n.text for n in retrieved_nodes)))
-
-            prompt += f'\nGiven the scenario and documentation above.. {sample["probe"]}'
-        else:
-            prompt += f'\n{sample["probe"]}'
-
+        probe = sample['probe']
         choices = sample['choices']
 
         labels = kwargs.get('labels', {})
@@ -808,36 +743,21 @@ class Llama2MultiKDMAADM(AlignedDecisionMaker):
                 alignment_target[target_kdma] = target_kdma_values[target_kdma]
 
 
-        reasoning, answer_idx, responses, inference_pairs = self.run_aligned_decision_maker_with_voting(
+        decision = self.run_multi_aligned_decision_maker(
             prompt,
+            probe,
             choices,
             alignment_target,
-            n_positive_samples=kwargs.get('n_positive_samples', 5),
-            n_negative_samples=kwargs.get('n_negative_samples', 5),
-            baseline=kwargs.get('baseline', False),
-            shuffle=kwargs.get('shuffle', False)
+            **kwargs
         )
 
-        raw_data = {
-            'params': {
-                'model': self.hf_model,
-                'temperature': self.temperature,
-                'n_positive_samples': kwargs.get('n_positive_samples', 5),
-                'n_negative_samples': kwargs.get('n_negative_samples', 5),
-                'baseline': kwargs.get('baseline', False),
-                'shuffle': kwargs.get('shuffle', False),
-            },
-            'inference_pairs': inference_pairs
+        decision['info']['params'] = {
+            'model': self.hf_model,
+            'temperature': self.temperature
         }
 
-        return {
-            'choice': int(answer_idx),
-            'info': {
-                'reasoning': reasoning,
-                'responses': responses,
-                'raw_data': raw_data,
-            }
-        }
+        return(decision)
+
 
     def choose_action(self, scenario_state, available_actions, alignment_target, **kwargs):
         from swagger_client.models import ActionTypeEnum
