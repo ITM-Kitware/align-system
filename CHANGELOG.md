@@ -3,7 +3,11 @@
 This changelog follows the specifications detailed in: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html), although we have not yet reached a `1.0.0` release.
 
-## Unreleased
+## 0.4.0
+
+### Changed
+
+* (Major) Changed CLI configuration over to [Hydra](https://hydra.cc/); recommend reading the updated README
 
 ### Fixed
 
@@ -13,6 +17,8 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 * Added new Oracle ADM (action based; attempts to "choose" best action based on KDMA values)
 * Added new action based "Interface" for walking through Input Output JSON files
+* Added simple accuracy metrics to the input-output file interface
+* Added dedicated docs page for installing external (TA3, TA1s) services
 
 ## 0.3.3
 
