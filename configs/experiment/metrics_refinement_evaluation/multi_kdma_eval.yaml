@@ -1,0 +1,10 @@
+# @package _global_
+defaults:
+  - /alignment_target: multi_high
+  - override /adm: multi_kdma
+  - override /interface: input_output_file
+
+interface:
+  input_output_filepath: 'example_data/input_output_files/test_multi_training_input_output.json'
+
+align_to_target: true

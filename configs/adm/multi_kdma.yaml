@@ -6,7 +6,5 @@ instance:
   temperature: 0.7
 
 inference_kwargs:
-  baseline: true
-  n_negative_samples: 0
-  n_positive_samples: 5
-  shuffle: true
+  predict_outcomes: true
+  max_new_tokens: 512
