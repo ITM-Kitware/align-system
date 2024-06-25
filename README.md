@@ -63,7 +63,7 @@ an existing field)
 
 In the example below, we're building upon the default configuration,
 but we're running the `kaleido_hybrid` ADM (it's configuration can be
-found [here](configs/adm/hybrid_kaleido.yaml)), aligning to
+found [here](align_system/configs/adm/hybrid_kaleido.yaml)), aligning to
 `maximization_high`, and interfacing with the `ta3` service (instead
 of a local sample file).
 
@@ -101,7 +101,7 @@ subdirectory called `.hydra`.
 Overriding at the command line is quick and handy, but Hydra has this
 notion of "experiments", which are essentially a set of overrides
 captured in a new configuration file.  We manage these experiments in
-`config/experiments`, and have created an experiment for each of the
+`align_system/configs/experiments`, and have created an experiment for each of the
 delivered ADMs for the Metrics Evaluation (both to run on training
 data, and eval data).
 

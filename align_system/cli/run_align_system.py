@@ -18,7 +18,7 @@ JSON_HIGHLIGHTER = JSONHighlighter()
 
 
 @hydra.main(version_base=None,
-            config_path="../../configs",
+            config_path="../configs",
             config_name="action_based")
 def main(cfg: DictConfig) -> None:
     cfg = instantiate(cfg, recursive=True)
