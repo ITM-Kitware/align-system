@@ -1,0 +1,5 @@
+adm:
+  name: 'OutlinesTransformersADM'
+
+  init_kwargs:
+    model_name: "mistralai/Mistral-7B-Instruct-v0.2"
