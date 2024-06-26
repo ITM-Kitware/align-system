@@ -1,0 +1,6 @@
+instance:
+  _target_: align_system.algorithms.outlines_adm.OutlinesTransformersADM
+
+  model_name: mistralai/Mistral-7B-Instruct-v0.2
+  baseline: true
+
