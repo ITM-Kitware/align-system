@@ -267,13 +267,13 @@ class Llama2SingleKDMAADM(AlignedDecisionMaker):
             dialog = []
 
         # Construct the dialog with system and user parts
-        
+
         s_message = [
             {
                 "role": "system",
                 "content": system_message
             }
-        ]  
+        ]
         u_message = [
             {
                 "role": "user",
@@ -412,7 +412,7 @@ class Llama2SingleKDMAADM(AlignedDecisionMaker):
         return generated_outputs
 
     def aligned_decision_maker(self, question, choices, target_kdmas, incontext=None, n_positive_samples=5, n_negative_sampels=5, shuffle=True, baseline=False, n_retries=3):
-        """ Executes a decision-making process by simulating a dialog based on positive and negative alignments with specified Knowledge Domain Model Attributes (KDMAs). 
+        """ Executes a decision-making process by simulating a dialog based on positive and negative alignments with specified Knowledge Domain Model Attributes (KDMAs).
         It attempts to identify the choice that best aligns with the target attributes, using both positive and negative samples to provide robustness against biases.
 
         Parameters:
@@ -435,7 +435,7 @@ class Llama2SingleKDMAADM(AlignedDecisionMaker):
             RuntimeError: If any specified KDAMs in `target_kdmas` are not supported by the system.
 
         Notes:
-            This function leverages logging to trace both aligned and misaligned dialogs, only the first of each type is logged for brevity. 
+            This function leverages logging to trace both aligned and misaligned dialogs, only the first of each type is logged for brevity.
         """
 
         inference_pairs = []
@@ -507,7 +507,7 @@ class Llama2SingleKDMAADM(AlignedDecisionMaker):
                 answer_text = None
             # Ensure an answer was parsed successfully
             log.explain('CHOSEN ANSWER IDX %s %s', answer_idx, shuffled_choices)
-            assert answer_idx is not None, f'Failed to parse answer index from generated output: {low_response}'
+            assert answer_idx is not None, f'Failed to parse answer index from generated output: {high_response}'
 
             # Store response details
             responses.append({
@@ -598,7 +598,7 @@ class Llama2SingleKDMAADM(AlignedDecisionMaker):
         """
         choice_votes = [0] * len(choices)
         for response in responses:
-            # TODO: Make it a choice to switch rather than always do it. 
+            # TODO: Make it a choice to switch rather than always do it.
 
             answer_idx = response['answer_idx']
             if answer_idx is None:
@@ -609,14 +609,21 @@ class Llama2SingleKDMAADM(AlignedDecisionMaker):
             except ValueError:
                 continue
 
-            answer_text = response['answer_text']
+            answer_text = None
+            if 'answer_text' in response:
+                answer_text = response['answer_text']
+                if (isinstance(answer_text, list) or isinstance(answer_text, tuple)):
+                    if len(answer_text) > 0:
+                        answer_text = answer_text[0]
+                    else:
+                        answer_text = None
             chosen_idx = -1
             potentially_shuffled_choices = choices
             if 'shuffle_indices' in response:
                 potentially_shuffled_choices = [choices[i] for i in response['shuffle_indices']]
 
             for idx, choice in enumerate(potentially_shuffled_choices):
-                if choice in answer_text or answer_text in choice:
+                if answer_text is not None and (choice in answer_text or answer_text in choice):
                     chosen_idx = idx
                     break
 
@@ -628,11 +635,11 @@ class Llama2SingleKDMAADM(AlignedDecisionMaker):
             else:
                 log.debug(f'Answer text index equals the parsed answer index.  Answer Text Index: {chosen_idx}  Answer Index: {answer_idx}.')
 
-            if answer_idx >= len(choices):
+            if answer_idx < 0 or answer_idx >= len(choices):
                 continue
 
             if 'shuffle_indices' in response:
-                answer_idx = response['shuffle_indices'][answer_idx]
+                answer_idx = response['shuffle_indices'][int(answer_idx)]
 
             aligned = response['aligned']
 
@@ -843,17 +850,17 @@ class Llama2SingleKDMAADM(AlignedDecisionMaker):
             return None
 
     def run_aligned_decision_maker_with_voting(
-            self, 
-            prompt, 
-            choices, 
-            alignment_target, 
+            self,
+            prompt,
+            choices,
+            alignment_target,
             incontext= None,
-            n_positive_samples=5, 
-            n_negative_samples=5, 
-            baseline=False, 
+            n_positive_samples=5,
+            n_negative_samples=5,
+            baseline=False,
             shuffle=False):
-        """ Executes a decision-making process with voting based on alignment targets and user-provided choices. 
-        This method incorporates a mechanism for evaluating the alignment of choices with a specified target 
+        """ Executes a decision-making process with voting based on alignment targets and user-provided choices.
+        This method incorporates a mechanism for evaluating the alignment of choices with a specified target
         using a set of positive and negative samples.
 
         Parameters:
@@ -877,10 +884,10 @@ class Llama2SingleKDMAADM(AlignedDecisionMaker):
             Exception: Captures and logs any exception that occurs during the vote calculation, defaulting choice scores to None if an error occurs.
 
         Notes:
-            This method leverages internal logging to trace the detailed responses and the computation of choice scores. 
+            This method leverages internal logging to trace the detailed responses and the computation of choice scores.
             It is essential to ensure proper initialization of the logging and handling mechanisms to capture and utilize
             the detailed debug outputs effectively.
-        
+
         """
         responses, inference_pairs = self.aligned_decision_maker(
             prompt,
@@ -971,9 +978,9 @@ class Llama2SingleKDMAADM(AlignedDecisionMaker):
             if kdma_name_map[target] in score:
                 # Multiply by 10 to match the rest of the KDMA's score range
                 dist = abs(score[kdma_name_map[target]] * 10 - target_kdma_values[target])
-            else: 
+            else:
                 dist = float('inf')  # If the target attribute is not in the scores, assign an infinite distance
-            dist_to_target.append(dist)    
+            dist_to_target.append(dist)
 
         # Determine the index of the choice with the minimum distance to the target value
         correct_answer_idx = np.argmin(dist_to_target)
@@ -1053,7 +1060,7 @@ class Llama2SingleKDMAADM(AlignedDecisionMaker):
                 possible_samples_parse = [s['input']['prompt'] for s in possible_samples]
 
                 # Create similarity scores between the in-context dataset and find top-k indices
-                from bert_score import score 
+                from bert_score import score
                 _, _, F1 = score([prompt]*len(possible_samples_parse), possible_samples_parse, lang='en')
                 _, indices = torch.topk(F1, kwargs['incontext']['number'])
 
@@ -1348,7 +1355,7 @@ class Llama2SingleKDMAADM(AlignedDecisionMaker):
 
             parsed_tagging_output = self.attempt_generic_parse(  # noqa
                 raw_tagging_response, ['Reasoning', 'Answer', 'Tag'])  # noqa
-            
+
             if parsed_tagging_output is not None:
                 if len(untagged_characters) == 1:
                     log.debug("** Force selecting only available character")
