@@ -1,6 +1,7 @@
 import json
 import re
 import random
+import numpy as np
 import os
 import yaml
 import pathlib
@@ -691,15 +692,25 @@ class Llama2MultiKDMAADM(AlignedDecisionMaker, ChatLanguageModel):
             else:
                 predicted_outcomes = None
 
+            # shuffle
+            shuffle = kwargs.get('shuffle', False)
+            choice_indices = list(range(len(choices)))
+            if shuffle:
+                random.shuffle(choice_indices)
+            shuffled_choices = [choices[i] for i in choice_indices]
+
             # Predict KDMA values
-            predicted_kdma_values, generated_reasoning = self.predict_kdma_values(
+            shuffled_predicted_kdma_values, shuffled_generated_reasoning = self.predict_kdma_values(
                 prompt, 
                 probe, 
-                choices,
+                shuffled_choices,
                 predicted_outcomes,
                 **kwargs
             )
-            # TODO log
+            
+            # Unshuffle
+            predicted_kdma_values = [shuffled_predicted_kdma_values[idx] for idx in np.argsort(choice_indices)]
+            generated_reasoning = [shuffled_generated_reasoning[idx] for idx in np.argsort(choice_indices)]
 
             # add to samples
             if not predicted_kdma_values_samples:
@@ -740,9 +751,11 @@ class Llama2MultiKDMAADM(AlignedDecisionMaker, ChatLanguageModel):
             'choice': choice_idx,
             'info': {
                 'reasoning': 'placeholder',  # TODO
-                'predicted_outcomes': predicted_outcomes,
-                'predicted_kdmas': predicted_kdma_values,
-                'generated_reasoning': generated_reasoning
+                'raw_data': {
+                    'predicted_outcomes': predicted_outcomes,
+                    'predicted_kdmas': predicted_kdma_values,
+                    'generated_reasoning': generated_reasoning
+                    }
                 }
             }
 
@@ -777,14 +790,12 @@ class Llama2MultiKDMAADM(AlignedDecisionMaker, ChatLanguageModel):
             **kwargs
         )
 
-        raw_data = {
-            'params': {
-                'model': self.hf_model,
-                'temperature': self.temperature,
-            }
+        decision['info']['raw_data']['params'] = {
+            'model': self.hf_model,
+            'temperature': self.temperature,
+            'shuffle': kwargs.get('shuffle', False),
+            'n_samples': kwargs.get('n_samples', 5)
         }
-
-        decision['info']['raw_data'] = raw_data
 
         return(decision)
 
