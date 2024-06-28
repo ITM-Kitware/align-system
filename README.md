@@ -96,6 +96,13 @@ Hydra also saves out all of the config parameters, config overrides,
 and internal hydra parameters for the run in the output directory in a
 subdirectory called `.hydra`.
 
+#### Output scores
+
+Assuming the `save_scoring_output` configuration option is `true`
+(this is the default), and you're not running against the TA3 server
+for an `eval` session, the `run_align_sytem` command will save any
+scoring output from the run as `scores.json`.
+
 #### Experiments
 
 Overriding at the command line is quick and handy, but Hydra has this
