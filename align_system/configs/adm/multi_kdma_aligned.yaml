@@ -9,3 +9,5 @@ inference_kwargs:
   predict_outcomes: true
   max_new_tokens: 512
   n_samples: 5
+  shuffle: true
+
