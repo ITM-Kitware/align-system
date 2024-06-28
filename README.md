@@ -101,7 +101,7 @@ subdirectory called `.hydra`.
 Overriding at the command line is quick and handy, but Hydra has this
 notion of "experiments", which are essentially a set of overrides
 captured in a new configuration file.  We manage these experiments in
-`align_system/configs/experiments`, and have created an experiment for each of the
+`align_system/configs/experiment`, and have created an experiment for each of the
 delivered ADMs for the Metrics Evaluation (both to run on training
 data, and eval data).
 
@@ -129,6 +129,59 @@ run_align_system +experiment=metrics_refinement_evaluation/single_kdma_aligned_e
 run_align_system +experiment=metrics_refinement_evaluation/hybrid_kaleido_eval
 ```
 
+## Implementing a new ADM
+
+To implement a new ADM, at a minimum you need to implement a class
+with a `choose_action` method that takes the following arguments:
+- `scenario_state` -- Current state of the scenario, model is defined [here](https://github.com/NextCenturyCorporation/itm-evaluation-server/blob/development/swagger_server/models/state.py)
+- `available_actions` -- List of actions the ADM can choose to take, model is defined [here](https://github.com/NextCenturyCorporation/itm-evaluation-server/blob/development/swagger_server/models/action.py)
+- `alignment_target` -- Alignment target (or `None` if not aligning), model is defined [here](https://github.com/NextCenturyCorporation/itm-evaluation-server/blob/development/swagger_server/models/alignment_target.py)
+- `**kwargs` -- A catch all for any additional arguments you want your ADM to receive at inference time
+
+And this `choose_action` method should return one of the
+`available_actions`, which may require filling in additional
+parameters such as the treatment location for a treatment action, or
+triage tag category for a tagging action
+
+The [RandomADM](align_system/algorithms/random_adm.py) is a good
+example to start with.
+
+### Creating a configuration file for your new ADM
+
+To run your new ADM from the command line, you'll need to create a
+default configuration file in the `align_system/configs/adm`
+directory.  The name of the config file you create is important, as
+that's how you'll reference your ADM from the command line.
+
+As an example, here's the `single_kdma_aligned.yaml` config:
+
+```
+instance:
+  _target_: align_system.algorithms.llama_2_single_kdma_adm.Llama2SingleKDMAADM
+
+  hf_model: meta-llama/Llama-2-13b-chat-hf
+  precision: half
+  temperature: 0.7
+
+inference_kwargs:
+  baseline: false
+  n_negative_samples: 5
+  n_positive_samples: 5
+  shuffle: true
+```
+
+Notice that there are two top level keywords, `instance` (for
+specifying how an instance of your ADM should be created), and
+`inference_kwargs` (will be passed to your ADM's `choose_action`
+method as the `**kwargs` at inference time)
+
+The `_target_` field under `instance` should be the full import path
+to your ADM's class.  Note that your ADM doesn't have to be a class in
+the `align_system` module, as long as it's importable.
+
+To use your new ADM on the command line, do `run_align_system
+adm=my_new_adm` (assuming you named your new ADM config file
+`my_new_adm.yaml`).
 
 ## System Requirements by Algorithm / Model
 
