@@ -672,26 +672,50 @@ class Llama2MultiKDMAADM(AlignedDecisionMaker, ChatLanguageModel):
 
     def run_multi_aligned_decision_maker(
             self, probe, prompt, choices, target_kdma_values, **kwargs):
+        n_samples=kwargs.get('n_samples', 5)
 
-        # Predict outcomes of each choice is specified
-        predicted_outcomes = None
-        if 'predict_outcomes'in kwargs:
-            predicted_outcomes = self.predict_outcomes(
+        predicted_kdma_values_samples = []
+        generated_reasoning_samples = []
+
+        for _ in range(n_samples):
+
+            # Predict outcomes of each choice is specified
+            predicted_outcomes = None
+            if 'predict_outcomes'in kwargs:
+                predicted_outcomes = self.predict_outcomes(
+                    prompt, 
+                    probe, 
+                    choices, 
+                    **kwargs)
+                # TODO - Log predicted outcomes
+            else:
+                predicted_outcomes = None
+
+            # Predict KDMA values
+            predicted_kdma_values, generated_reasoning = self.predict_kdma_values(
                 prompt, 
                 probe, 
-                choices, 
-                **kwargs)
-            # TODO - Log predicted outcomes 
+                choices,
+                predicted_outcomes,
+                **kwargs
+            )
+            # TODO log
 
-        # Predict KDMA values
-        predicted_kdma_values, generated_reasoning = self.predict_kdma_values(
-            prompt, 
-            probe, 
-            choices,
-            predicted_outcomes,
-            **kwargs
-        )
-        # TODO log
+            # add to samples
+            if not predicted_kdma_values_samples:
+                predicted_kdma_values_samples = [ \
+                    {kdma: [predicted_kdma_values[choice_idx][kdma]] for kdma in predicted_kdma_values[choice_idx].keys()} \
+                    for choice_idx in range(len(choices))]
+            else:
+                for choice_idx in range(len(choices)):
+                    for kdma in predicted_kdma_values[choice_idx].keys():
+                        predicted_kdma_values_samples[choice_idx][kdma].append(predicted_kdma_values[choice_idx][kdma])
+            generated_reasoning_samples.append(generated_reasoning)
+
+        # mean reduction over samples
+        predicted_kdma_values = [ \
+                {kdma: sum(sample[kdma]) / len(sample[kdma]) for kdma in sample.keys()} \
+                for sample in predicted_kdma_values_samples]
 
         def mse(target_kdma_values, predicted_kdma_values):
             kdmas = set(target_kdma_values.keys()) & set(predicted_kdma_values.keys())
@@ -709,11 +733,13 @@ class Llama2MultiKDMAADM(AlignedDecisionMaker, ChatLanguageModel):
             if mse_ < min_mse:
                 min_mse = mse_
                 choice_idx = i
-        
+
+        print('CHOSEN ANSWER IDX', choice_idx, choices)
+
         return {
             'choice': choice_idx,
             'info': {
-                'reasoning': generated_reasoning[choice_idx],
+                'reasoning': 'placeholder',  # TODO
                 'predicted_outcomes': predicted_outcomes,
                 'predicted_kdmas': predicted_kdma_values,
                 'generated_reasoning': generated_reasoning
@@ -751,10 +777,14 @@ class Llama2MultiKDMAADM(AlignedDecisionMaker, ChatLanguageModel):
             **kwargs
         )
 
-        decision['info']['params'] = {
-            'model': self.hf_model,
-            'temperature': self.temperature
+        raw_data = {
+            'params': {
+                'model': self.hf_model,
+                'temperature': self.temperature,
+            }
         }
+
+        decision['info']['raw_data'] = raw_data
 
         return(decision)
 
@@ -830,7 +860,7 @@ class Llama2MultiKDMAADM(AlignedDecisionMaker, ChatLanguageModel):
             if action_to_take.character_id is None:
                 action_to_take = self.generic_populate_character_id(
                     scenario_state, action_to_take, alignment_target, **kwargs)
-
+        
         return action_to_take
 
     def populate_treatment_parameters(self, scenario_state, treatment_action, alignment_target, **kwargs):
