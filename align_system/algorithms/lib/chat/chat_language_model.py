@@ -33,24 +33,18 @@ class ChatLanguageModel(LanguageModel):
 
     def generate_responses(self, 
                            dialogs: List[List[Dict[str, str]]], 
-                           log_file: Optional[TextIO] = None, 
+                           log: Optional[TextIO] = None, 
                            max_new_tokens: int = 512, 
                            temperature: float = 0.6) -> List[str]:
         """
         Generates responses for given dialogs.
 
         :param dialogs: List of dialogs.
-        :param log_file: Optional file to log the process. 
+        :param log: Optional log. 
         :param max_new_tokens: Maximum number of new tokens to generate.
         :param temperature: Temperature for sampling.
         :return: Generated responses.
         """
-        # If logging is requested, write the dialogues into the log file
-        if log_file is not None:
-            log_file.write('**Dialogs:**\n')
-            for i, dialog in enumerate(dialogs):
-                log_file.write(f'*Dialog {i}:*\n{dialog_to_string(dialog)}\n')
-            log_file.flush()
 
         # Prepare lists for the last user dialogues and prefixes.
         # Prefix refers to the assistant's response in the last turn of a dialogue.
@@ -82,12 +76,12 @@ class ChatLanguageModel(LanguageModel):
             for prefix, response in zip(prefixes, responses)
         ]
         
-        # If logging is requested, write the generated responses into the log file
-        if log_file is not None:
-            log_file.write('**Generated Responses:**\n')
-            for i, response in enumerate(prefixed_responses):
-                log_file.write(f'*Response {i}:*\n{response}\n')
-            log_file.flush()
+        # If logging is requested, write the dialogues and generated responses 
+        if log is not None:
+            for i, dialog in enumerate(dialogs):
+                log.debug(f'*Dialog {i}:*\n')
+                self.log_dialog(dialog)
+                log.debug(f'*Response {i}:*\n{prefixed_responses[i]}\n')
 
         return prefixed_responses
 
@@ -97,7 +91,7 @@ class ChatLanguageModel(LanguageModel):
         substitution_dicts: Union[List[Dict[str, str]], Dict[str, str]],
         parse_generation_fn: Optional[Callable[[str], str]] = None,
         batch_size: int = 5,
-        log_file: Optional[TextIO] = None,
+        log: Optional[TextIO] = None,
         max_tokens: int = 512,
         temperature: float = 0.6,
         max_retry: int = 100,
@@ -109,7 +103,7 @@ class ChatLanguageModel(LanguageModel):
         :param substitution_dicts: Substitution dictionaries for the templates.
         :param parse_generation_fn: Function to parse the generated responses.
         :param batch_size: Batch size for generating responses.
-        :param log_file: Optional file to log the process.
+        :param log: Optional log.
         :param max_tokens: Maximum number of tokens to generate.
         :param temperature: Temperature for sampling.
         :param max_retry: Maximum number of attempts to generate a valid output.
@@ -138,7 +132,7 @@ class ChatLanguageModel(LanguageModel):
         while len(dialogs) > 0:
             sample_ids = list(dialogs.keys())[:batch_size]
             batch = [dialogs[i] for i in sample_ids]
-            generations = self.generate_responses(batch, log_file=log_file, max_new_tokens=max_tokens, temperature=temperature)
+            generations = self.generate_responses(batch, log=log, max_new_tokens=max_tokens, temperature=temperature)
 
             # Process the generated responses
             for sample_id, generation in zip(sample_ids, generations):
@@ -173,3 +167,15 @@ class ChatLanguageModel(LanguageModel):
             outputs = outputs[0]
         
         return outputs
+
+    def log_dialog(self, dialog):
+        for e in dialog:
+            if e.get('role') == 'system':
+                color = 'yellow'
+            else:
+                color = 'blue'
+
+            log.debug(f"[bold {color}]**{e.get('role')}**[/bold {color}]",
+                      extra={"markup": True})
+            log.debug(f"[{color}]{e.get('content')}[/{color}]",
+                      extra={"markup": True, "highlighter": None})
