@@ -10,4 +10,5 @@ inference_kwargs:
   max_new_tokens: 512
   n_samples: 5
   shuffle: true
+  distribution_matching: wd
 
