@@ -23,6 +23,8 @@ from align_system.utils import logging
 from align_system.similarity_measures import build_force_choice_func
 import IPython
 
+from scipy.stats import wasserstein_distance
+
 
 log = logging.getLogger(__name__)
 JSON_HIGHLIGHTER = JSONHighlighter()
@@ -723,27 +725,49 @@ class Llama2MultiKDMAADM(AlignedDecisionMaker, ChatLanguageModel):
                         predicted_kdma_values_samples[choice_idx][kdma].append(predicted_kdma_values[choice_idx][kdma])
             generated_reasoning_samples.append(generated_reasoning)
 
-        # mean reduction over samples
-        predicted_kdma_values = [ \
-                {kdma: sum(sample[kdma]) / len(sample[kdma]) for kdma in sample.keys()} \
-                for sample in predicted_kdma_values_samples]
-
-        def mse(target_kdma_values, predicted_kdma_values):
-            kdmas = set(target_kdma_values.keys()) & set(predicted_kdma_values.keys())
-            
-            if len(kdmas) == 0:
-                return 0
+        distribution_matching = kwargs.get('distribution_matching', 'wd')
         
-            return sum([(target_kdma_values[kdma] - predicted_kdma_values[kdma])**2 for kdma in kdmas]) / len(kdmas)
+        if distribution_matching == 'average':
+            # mean reduction over samples
+            predicted_kdma_values = [ \
+                    {kdma: sum(sample[kdma]) / len(sample[kdma]) for kdma in sample.keys()} \
+                    for sample in predicted_kdma_values_samples]
 
-        # find index of min mse
-        choice_idx = 0
-        min_mse = float('inf')
-        for i, choice in enumerate(choices):
-            mse_ = mse(target_kdma_values, predicted_kdma_values[i])
-            if mse_ < min_mse:
-                min_mse = mse_
-                choice_idx = i
+            def mse(target_kdma_values, predicted_kdma_values):
+                kdmas = set(target_kdma_values.keys()) & set(predicted_kdma_values.keys())
+                
+                if len(kdmas) == 0:
+                    return 0
+            
+                return sum([(target_kdma_values[kdma] - predicted_kdma_values[kdma])**2 for kdma in kdmas]) / len(kdmas)
+
+            # find index of min mse
+            choice_idx = 0
+            min_mse = float('inf')
+            for i, choice in enumerate(choices):
+                mse_ = mse(target_kdma_values, predicted_kdma_values[i])
+                if mse_ < min_mse:
+                    min_mse = mse_
+                    choice_idx = i
+
+        # wasserstein distance
+        elif distribution_matching == 'wd':
+
+            def wd(target_kdma_values, predicted_kdma_values):
+                wd = 0
+                for kdma in target_kdma_values.keys():
+                    target = target_kdma_values[kdma] if isinstance(target_kdma_values[kdma], list) else [target_kdma_values[kdma]]
+                    prediction = predicted_kdma_values[kdma] if isinstance(predicted_kdma_values[kdma], list) else [predicted_kdma_values[kdma]]
+                    wd += wasserstein_distance(target, prediction) / 9 # 9 is max wd since ranking is 1-10
+                return wd
+
+            choice_idx = 0
+            min_wd = float('inf')
+            for i, choice in enumerate(choices):
+                wd_ = wd(target_kdma_values, predicted_kdma_values_samples[i])
+                if wd_ < min_wd:
+                    min_wd = wd_
+                    choice_idx = i
 
         print('CHOSEN ANSWER IDX', choice_idx, choices)
 
