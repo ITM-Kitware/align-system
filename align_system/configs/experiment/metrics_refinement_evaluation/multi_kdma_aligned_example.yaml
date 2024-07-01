@@ -7,4 +7,5 @@ defaults:
 interface:
   input_output_filepath: 'example_data/input_output_files/test_multi_training_input_output.json'
 
+loglevel: "DEBUG"
 align_to_target: true

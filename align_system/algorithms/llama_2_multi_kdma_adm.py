@@ -553,14 +553,14 @@ class Llama2MultiKDMAADM(AlignedDecisionMaker, ChatLanguageModel):
         return self.generate_from_template(
             templates,
             substitution_dicts,
-            log_file=None, # Add new logging after call
+            log=log,
             max_tokens=kwargs.get('max_new_tokens', 512),
             temperature=self.temperature
         )
 
 
     def predict_kdma_values(self, scenario_text, probe_text, choice_texts,
-                            predicted_outcomes, **kwargs):
+                            predicted_outcomes, log, **kwargs):
         """
         Predicts KDMA scores each choice text under the given scenario and probe.
 
@@ -574,7 +574,6 @@ class Llama2MultiKDMAADM(AlignedDecisionMaker, ChatLanguageModel):
 
         # TODO - properly add these to kwargs
         generate_reasoning=kwargs.get('generate_reasoning', True)
-        log_file = None 
         max_new_tokens = kwargs.get('max_new_tokens', 512) 
         temperature = self.temperature
         template = 'pred_kdma_RO.txt' 
@@ -638,11 +637,12 @@ class Llama2MultiKDMAADM(AlignedDecisionMaker, ChatLanguageModel):
             templates,
             substitutions,
             parse_kdma_score_response,
-            log_file=log_file,
+            log=log,
             max_tokens=max_new_tokens,
             temperature=temperature,
         )
         
+        log.debug(f"[bold]*KDMA Score Prediction*[/bold]", extra={"markup": True})
         predicted_kdma_values = {}
         reasonings = {}
         for (choice_id, kdma), generation in zip(info, generations):
@@ -653,10 +653,14 @@ class Llama2MultiKDMAADM(AlignedDecisionMaker, ChatLanguageModel):
             reasonings[choice_id] = choice_reasonings
             
             predicted_choice_kdmas[kdma] = generation['score']
-            
+            score = str(generation['score'])
+
+            log.debug('Choice: {}, KDMA: {}, Predicted_score: {}'.format(choice_id, kdma, score))
             if generate_reasoning:
-                choice_reasonings[kdma] = generation['reasoning']
-        
+                reasoning = generation['reasoning']
+                choice_reasonings[kdma] = reasoning
+                log.debug(f'Reasoning: {reasoning}')
+
         predicted_kdma_values = [
             predicted_kdma_values[choice_id]
             for choice_id in choice_ids
@@ -690,7 +694,6 @@ class Llama2MultiKDMAADM(AlignedDecisionMaker, ChatLanguageModel):
                     probe, 
                     choices, 
                     **kwargs)
-                # TODO - Log predicted outcomes
             else:
                 predicted_outcomes = None
 
@@ -707,6 +710,7 @@ class Llama2MultiKDMAADM(AlignedDecisionMaker, ChatLanguageModel):
                 probe, 
                 shuffled_choices,
                 predicted_outcomes,
+                log,
                 **kwargs
             )
             
