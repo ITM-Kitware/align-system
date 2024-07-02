@@ -5,7 +5,7 @@ defaults:
   - override /interface: input_output_file
 
 interface:
-  input_output_filepath: 'example_data/input_output_files/test_multi_training_input_output.json'
+  input_output_filepath: 'example_data/input_output_files/oracle_adept_training_input_output.json'
 
 loglevel: "DEBUG"
 align_to_target: true
