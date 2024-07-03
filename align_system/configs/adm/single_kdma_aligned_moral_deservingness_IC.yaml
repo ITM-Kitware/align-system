@@ -1,0 +1,6 @@
+defaults:
+  - _single_kdma_aligned_base_IC
+
+inference_kwargs:
+  incontext:
+    dataset: /data/shared/samba/integrated_results_metrics_eval/captured_dataset_for_chris/baseline_adept_high-1715105775-input-output.json
