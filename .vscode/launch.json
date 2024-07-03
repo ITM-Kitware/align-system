@@ -11,17 +11,11 @@
             "console": "integratedTerminal",
             "module": "align_system.cli.run_align_system",
             "args": [
-                    "TA3ActionBased",
-                    "--adm-config", "adm_configs/single_kdma_adm_config_high_incontext.yml",
-                    "--username", "kitware-single-kdma-adm-aligned-no-negatives",
-                    "--align-to-target",
-                    "--session-type", "adept",
-                    "--api_endpoint", "http://127.0.0.1:8080",
-                    "--loglevel", "DEBUG",
-                    "--logfile-path", "${workspaceFolder}/results/high_incontext/output.log",
-                    "--save-input-output-to-path", "${workspaceFolder}/results/high_incontext/input-output.json",
-                    "--save-alignment-score-to-path", "${workspaceFolder}/results/high_incontext/output-scores.json",
-                    "--training-session"
+                    "loglevel=\"DEBUG\"",
+                    "+experiment=metrics_refinement_evaluation/single_kdma_aligned_adept_high",
+                    "adm=incontext/moral_deservingness",
+                    "adm.inference_kwargs.n_negative_samples=0",
+                    "interface.api_endpoint='http://127.0.0.1:8080'",
                     ],
             "env":  {
                     "CUDA_VISIBLE_DEVICES": "1"
@@ -34,17 +28,11 @@
             "console": "integratedTerminal",
             "module": "align_system.cli.run_align_system",
             "args": [
-                    "TA3ActionBased",
-                    "--adm-config", "adm_configs/single_kdma_adm_config_low_incontext.yml",
-                    "--username", "kitware-single-kdma-adm-aligned-no-negatives",
-                    "--align-to-target",
-                    "--session-type", "adept",
-                    "--api_endpoint", "http://127.0.0.1:8080",
-                    "--loglevel", "DEBUG",
-                    "--logfile-path", "${workspaceFolder}/results/low_incontext/output.log",
-                    "--save-input-output-to-path", "${workspaceFolder}/results/low_incontext/input-output.json",
-                    "--save-alignment-score-to-path", "${workspaceFolder}/results/low_incontext/output-scores.json",
-                    "--training-session"
+                    "loglevel=\"DEBUG\"",
+                    "+experiment=metrics_refinement_evaluation/single_kdma_aligned_adept_low",
+                    "adm=incontext/moral_deservingness",
+                    "adm.inference_kwargs.n_negative_samples=0",
+                    "interface.api_endpoint='http://127.0.0.1:8080'",
                     ],
             "env":  {
                     "CUDA_VISIBLE_DEVICES": "1"
@@ -57,17 +45,10 @@
             "console": "integratedTerminal",
             "module": "align_system.cli.run_align_system",
             "args": [
-                    "TA3ActionBased",
-                    "--adm-config", "adm_configs/single_kdma_adm_config_high.yml",
-                    "--username", "kitware-single-kdma-adm-aligned-no-negatives",
-                    "--align-to-target",
-                    "--session-type", "adept",
-                    "--api_endpoint", "http://127.0.0.1:8080",
-                    "--loglevel", "DEBUG",
-                    "--logfile-path", "${workspaceFolder}/results/high/output.log",
-                    "--save-input-output-to-path", "${workspaceFolder}/results/high/input-output.json",
-                    "--save-alignment-score-to-path", "${workspaceFolder}/results/high/output-scores.json",
-                    "--training-session"
+                    "loglevel=\"DEBUG\"",
+                    "+experiment=metrics_refinement_evaluation/single_kdma_aligned_adept_high",
+                    "adm.inference_kwargs.n_negative_samples=0",
+                    "interface.api_endpoint='http://127.0.0.1:8080'",
                     ],
             "env":  {
                     "CUDA_VISIBLE_DEVICES": "2"
@@ -80,17 +61,10 @@
             "console": "integratedTerminal",
             "module": "align_system.cli.run_align_system",
             "args": [
-                    "TA3ActionBased",
-                    "--adm-config", "adm_configs/single_kdma_adm_config_low.yml",
-                    "--username", "kitware-single-kdma-adm-aligned-no-negatives",
-                    "--align-to-target",
-                    "--session-type", "adept",
-                    "--api_endpoint", "http://127.0.0.1:8080",
-                    "--loglevel", "DEBUG",
-                    "--logfile-path", "${workspaceFolder}/results/low/output.log",
-                    "--save-input-output-to-path", "${workspaceFolder}/results/low/input-output.json",
-                    "--save-alignment-score-to-path", "${workspaceFolder}/results/low/output-scores.json",
-                    "--training-session"
+                    "loglevel=\"DEBUG\"",
+                    "+experiment=metrics_refinement_evaluation/single_kdma_aligned_adept_low",
+                    "adm.inference_kwargs.n_negative_samples=0",
+                    "interface.api_endpoint='http://127.0.0.1:8080'",
                     ],
             "env":  {
                     "CUDA_VISIBLE_DEVICES": "3"
@@ -103,17 +77,10 @@
             "console": "integratedTerminal",
             "module": "align_system.cli.run_align_system",
             "args": [
-                    "TA3ActionBased",
-                    "--adm-config", "adm_configs/single_kdma_adm_config_high_baseline.yml",
-                    "--username", "kitware-single-kdma-adm-aligned-no-negatives",
-                    "--align-to-target",
-                    "--session-type", "adept",
-                    "--api_endpoint", "http://127.0.0.1:8080",
-                    "--loglevel", "DEBUG",
-                    "--logfile-path", "${workspaceFolder}/results/high_baseline/output.log",
-                    "--save-input-output-to-path", "${workspaceFolder}/results/high_baseline/input-output.json",
-                    "--save-alignment-score-to-path", "${workspaceFolder}/results/high_baseline/output-scores.json",
-                    "--training-session"
+                    "loglevel=\"DEBUG\"",
+                    "+experiment=metrics_refinement_evaluation/single_kdma_baseline_adept_high",
+                    "adm.inference_kwargs.n_negative_samples=0",
+                    "interface.api_endpoint='http://127.0.0.1:8080'",
                     ],
             "env":  {
                     "CUDA_VISIBLE_DEVICES": "3"
@@ -126,17 +93,10 @@
             "console": "integratedTerminal",
             "module": "align_system.cli.run_align_system",
             "args": [
-                    "TA3ActionBased",
-                    "--adm-config", "adm_configs/single_kdma_adm_config_low_baseline.yml",
-                    "--username", "kitware-single-kdma-adm-aligned-no-negatives",
-                    "--align-to-target",
-                    "--session-type", "adept",
-                    "--api_endpoint", "http://127.0.0.1:8080",
-                    "--loglevel", "DEBUG",
-                    "--logfile-path", "${workspaceFolder}/results/low_baseline/output.log",
-                    "--save-input-output-to-path", "${workspaceFolder}/low_baseline/baseline/input-output.json",
-                    "--save-alignment-score-to-path", "${workspaceFolder}/low_baseline/baseline/output-scores.json",
-                    "--training-session"
+                    "loglevel=\"DEBUG\"",
+                    "+experiment=metrics_refinement_evaluation/single_kdma_baseline_adept_low",
+                    "adm.inference_kwargs.n_negative_samples=0",
+                    "interface.api_endpoint='http://127.0.0.1:8080'",
                     ],
             "env":  {
                     "CUDA_VISIBLE_DEVICES": "3"
