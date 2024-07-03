@@ -1,4 +1,7 @@
 import json
+import random
+import itertools
+import math
 
 import outlines
 import jinja2
@@ -11,6 +14,7 @@ from swagger_client.models import (
 
 from align_system.utils import logging
 from align_system.utils import get_swagger_class_enum_values
+from align_system.utils.voting import calculate_votes
 from align_system.algorithms.abstracts import ActionBasedADM
 from align_system.prompt_engineering.outlines_prompts import (
     baseline_system_prompt,
@@ -82,14 +86,19 @@ class OutlinesTransformersADM(ActionBasedADM):
         else:
             return None
 
-    def choose_action(self, scenario_state, available_actions, alignment_target, **kwargs):
-        # choices = ["({}) {}".format(chr(i + 65), a.unstructured)
-        #            for i, a in enumerate(available_actions)]
-        choices = [a.unstructured for a in available_actions]
+    def top_level_choose_action(self,
+                                scenario_state,
+                                available_actions,
+                                alignment_target,
+                                num_positive_samples=1,
+                                num_negative_samples=0,
+                                shuffle_choices=False,
+                                **kwargs):
+        if self.baseline and num_negative_samples > 0:
+            raise RuntimeError("No notion of negative samples for baseline run")
 
         scenario_description = scenario_state_description_1(scenario_state)
-
-        prompt = action_selection_prompt(scenario_description, choices)
+        choices = [a.unstructured for a in available_actions]
 
         if not self.baseline and alignment_target is not None:
             kdma_values = alignment_target.kdma_values
@@ -99,20 +108,42 @@ class OutlinesTransformersADM(ActionBasedADM):
 
             kdma = kdma_values[0]['kdma']
             value = kdma_values[0]['value']
+            # Assumption here is that KDMA values range from 0-1
+            negative_value = 1 - value
 
-            system_prompt = self.__class__.kdma_value_to_system_prompt(kdma, value)
+            positive_system_prompt = self.__class__.kdma_value_to_system_prompt(kdma, value)
+            negative_system_prompt = self.__class__.kdma_value_to_system_prompt(kdma, negative_value)
 
-            if system_prompt is None:
-                log.warning("Couldn't find system prompt for kdma: {}, and "
-                            "value: {}.  Using baseline system prompt".format(
-                                kdma, value))
-                system_prompt = baseline_system_prompt()
+            if positive_system_prompt is None:
+                raise RuntimeError("Couldn't find system prompt for kdma: {}, and "
+                                   "value: {}.".format(kdma, value))
+            if negative_system_prompt is None:
+                raise RuntimeError("Couldn't find system prompt for kdma: {}, and "
+                                   "value: {}.".format(kdma, negative_value))
         else:
-            system_prompt = baseline_system_prompt()
+            positive_system_prompt = baseline_system_prompt()
+            if num_negative_samples > 0:
+                raise RuntimeError("No notion of negative samples for baseline run")
 
-        dialog = [{'role': 'system', 'content': system_prompt},
-                  {'role': 'user', 'content': prompt}]
-        dialog_text = self.dialog_to_prompt(dialog)
+        positive_dialogs = []
+        for _ in range(num_positive_samples):
+            shuffled_choices = random.sample(choices, len(choices))
+
+            prompt = action_selection_prompt(scenario_description, shuffled_choices)
+            dialog = [{'role': 'system', 'content': positive_system_prompt},
+                      {'role': 'user', 'content': prompt}]
+
+            positive_dialogs.append(dialog)
+
+        negative_dialogs = []
+        for _ in range(num_negative_samples):
+            shuffled_choices = random.sample(choices, len(choices))
+
+            prompt = action_selection_prompt(scenario_description, shuffled_choices)
+            dialog = [{'role': 'system', 'content': positive_system_prompt},
+                      {'role': 'user', 'content': prompt}]
+
+            negative_dialogs.append(dialog)
 
         # Need to set the whitespace_pattern to prevent the state
         # machine from looping indefinitely in some cases, see:
@@ -122,19 +153,71 @@ class OutlinesTransformersADM(ActionBasedADM):
             action_choice_json_schema(json.dumps(choices)),
             whitespace_pattern=r"[ ]?")
 
+        dialog_texts = [self.dialog_to_prompt(d) for d in
+                        itertools.chain(positive_dialogs, negative_dialogs)]
+
         log.info("[bold]*DIALOG PROMPT*[/bold]",
                  extra={"markup": True})
-        log.info(dialog_text)
+        log.info(dialog_texts[0])
 
-        selected_choice = generator(dialog_text)
-        selected_choice_idx = choices.index(selected_choice['action_choice'])
+        responses = generator(dialog_texts)
+
+        positive_responses_choices =\
+            [r['action_choice'] for r in
+             responses[0:num_positive_samples]]
+        negative_responses_choices =\
+            [r['action_choice'] for r in
+             responses[num_positive_samples:num_positive_samples+num_negative_samples]]
+
+        votes = calculate_votes(choices,
+                                positive_responses_choices,
+                                negative_responses_choices)
+
+        log.explain("[bold]*VOTES*[/bold]",
+                    extra={"markup": True})
+        log.explain(votes, extra={"highlighter": JSON_HIGHLIGHTER})
+
+        # Take top choice by score (votes is a dictionary of choice: score)
+        top_choice, top_choice_score = max(votes.items(), key=lambda x: x[1])
+        # Just taking first justification from the positive responses
+        # where the top choice was selected.  A better approach might
+        # be to somehow summarized all justifications with the
+        # matching choice.  Theoretically it's possible to have no
+        # responses that match the top choice (i.e. if only using
+        # negative samples)
+        top_choice_justification = ""
+        top_choice_response = None
+        top_choice_dialog = None
+        for response, dialog in zip(responses[0:num_positive_samples], positive_dialogs):
+            if response['action_choice'] == top_choice:
+                top_choice_justification = response['detailed_reasoning']
+                top_choice_response = response
+                top_choice_dialog = dialog
+                break
+
+        selected_choice_idx = choices.index(top_choice)
 
         log.info("[bold]*STRUCTURED RESPONSE*[/bold]",
                  extra={"markup": True})
-        log.info(selected_choice, extra={"highlighter": JSON_HIGHLIGHTER})
+        log.info(top_choice_response, extra={"highlighter": JSON_HIGHLIGHTER})
 
         action_to_take = available_actions[selected_choice_idx]
-        action_to_take.justification = selected_choice['detailed_reasoning']
+        action_to_take.justification = top_choice_justification
+
+        return action_to_take, top_choice_dialog
+
+    def choose_action(self, scenario_state, available_actions, alignment_target, **kwargs):
+        # choices = ["({}) {}".format(chr(i + 65), a.unstructured)
+        #            for i, a in enumerate(available_actions)]
+
+        action_to_take, dialog = self.top_level_choose_action(
+            scenario_state,
+            available_actions,
+            alignment_target,
+            num_positive_samples=5,
+            num_negative_samples=5,
+            shuffle_choices=True,
+            **kwargs)
 
         if action_to_take.action_type in {ActionTypeEnum.APPLY_TREATMENT,
                                           ActionTypeEnum.TAG_CHARACTER,
@@ -144,8 +227,8 @@ class OutlinesTransformersADM(ActionBasedADM):
                                           ActionTypeEnum.MOVE_TO_EVAC}:
             dialog.append({'role': 'assistant',
                            'content': '{}  I would choose to {}'.format(
-                               selected_choice['detailed_reasoning'],
-                               selected_choice['action_choice'])})
+                               action_to_take.justification,
+                               action_to_take.unstructured)})
             dialog.append({'role': 'user',
                            'content': followup_clarify_character(scenario_state)})
             dialog_text = self.dialog_to_prompt(dialog)
