@@ -31,6 +31,7 @@ from align_system.prompt_engineering.outlines_prompts import (
     character_choice_json_schema,
     tag_choice_json_schema,
     treatment_choice_json_schema,
+    detailed_unstructured_action_text
 )
 
 log = logging.getLogger(__name__)
@@ -99,6 +100,13 @@ class OutlinesTransformersADM(ActionBasedADM):
 
         scenario_description = scenario_state_description_1(scenario_state)
         choices = [a.unstructured for a in available_actions]
+
+        if len(set(choices)) != len(choices):
+            log.warning("Unstructured text for available actions is not "
+                        "unique, appending action parameters to choices")
+
+            choices = [detailed_unstructured_action_text(a)
+                       for a in available_actions]
 
         if not self.baseline and alignment_target is not None:
             kdma_values = alignment_target.kdma_values
@@ -214,9 +222,6 @@ class OutlinesTransformersADM(ActionBasedADM):
             scenario_state,
             available_actions,
             alignment_target,
-            num_positive_samples=5,
-            num_negative_samples=5,
-            shuffle_choices=True,
             **kwargs)
 
         if action_to_take.action_type in {ActionTypeEnum.APPLY_TREATMENT,

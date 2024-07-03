@@ -113,6 +113,13 @@ def action_selection_prompt(situation, choices):
 
 
 @outlines.prompt
+def detailed_unstructured_action_text(action):
+    """
+    {{ action.unstructured }}{% if action.parameters is not none %} -- {{ action.parameters }}{% endif %}
+    """
+
+
+@outlines.prompt
 def scenario_state_description_1(scenario_state):
     """
     CHARACTERS:
