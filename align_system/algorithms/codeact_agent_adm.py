@@ -122,6 +122,43 @@ class CodeActAgentADM(AlignedDecisionMaker):
             if self.chat_template is not None:
                 with open(os.path.join(chat_template_path, self.chat_template), 'r') as f:
                     self.tokenizer.chat_template = f.read().replace('    ', '').replace('\n', '')
+    
+    @staticmethod
+    def calculate_votes(responses, choices):
+        choice_votes = [0] * len(choices)
+        for response in responses:
+            answer_idx = response['answer_idx']
+            if answer_idx is None:
+                continue
+
+            try:
+                answer_idx = int(answer_idx)
+            except ValueError:
+                continue
+
+            if answer_idx >= len(choices):
+                continue
+
+            if 'shuffle_indecies' in response:
+                answer_idx = response['shuffle_indecies'][int(answer_idx)]
+
+            aligned = response['aligned']
+
+            if aligned:
+                choice_votes[answer_idx] += 1
+            else:
+                for i in range(len(choices)):
+                    if i != answer_idx:
+                        choice_votes[i] += 1/len(choices)
+                    else:
+                        choice_votes[i] -= 1/len(choices)
+
+        min_score = min(choice_votes) + 1e-6
+        choice_votes = [score - min_score for score in choice_votes]
+        total = sum(choice_votes)
+        choice_votes = [round(score / total, 6) for score in choice_votes]
+
+        return choice_votes
 
     def run_aligned_decision_maker_with_voting(
             self, prompt, choices, alignment_target, n_positive_samples=5, n_negative_samples=5, baseline=False, shuffle=False):
@@ -136,7 +173,7 @@ class CodeActAgentADM(AlignedDecisionMaker):
         )
 
         try:
-            choice_scores = Llama2SingleKDMAADM.calculate_votes(responses, choices)
+            choice_scores = CodeActAgentADM.calculate_votes(responses, choices)
         except Exception as e:
             log.warning(f"Error calculating votes: {e}")
             choice_scores = [None] * len(choices)
