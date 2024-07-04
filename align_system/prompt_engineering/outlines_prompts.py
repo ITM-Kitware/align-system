@@ -113,9 +113,9 @@ def action_selection_prompt(situation, choices):
 
 
 @outlines.prompt
-def detailed_unstructured_action_text(action):
+def detailed_unstructured_action_text(action, character_id_to_name):
     """
-    {{ action.unstructured }}{% if action.parameters is not none %} -- {{ action.parameters }}{% endif %}
+    {{ action.unstructured }}{% if action.character_id is not none %} -- {{ character_id_to_name[action.character_id] }}{% endif %}{% if action.parameters is not none %} -- {{ action.parameters }}{% endif %}
     """
 
 

@@ -99,13 +99,20 @@ class OutlinesTransformersADM(ActionBasedADM):
             raise RuntimeError("No notion of negative samples for baseline run")
 
         scenario_description = scenario_state_description_1(scenario_state)
+        # Important that the choices stay in the same order as the
+        # available actions as we'll use the selected index later to
+        # map to the corresponding action
         choices = [a.unstructured for a in available_actions]
 
         if len(set(choices)) != len(choices):
             log.warning("Unstructured text for available actions is not "
                         "unique, appending action parameters to choices")
 
-            choices = [detailed_unstructured_action_text(a)
+            character_id_to_name = {c.id: c.name for c in scenario_state.characters}
+            # Important that the choices stay in the same order as the
+            # available actions as we'll use the selected index later to
+            # map to the corresponding action
+            choices = [detailed_unstructured_action_text(a, character_id_to_name)
                        for a in available_actions]
 
         if not self.baseline and alignment_target is not None:
