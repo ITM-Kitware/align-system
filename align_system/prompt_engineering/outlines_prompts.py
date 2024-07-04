@@ -107,15 +107,33 @@ def action_selection_prompt(situation, choices):
     Given the following possible actions, please provide a detailed \
     reasoning for what action you would take:
     {% for choice in choices %}
-    {{ choice }}
+    - {{ choice }}
     {% endfor %}
     """
 
 
 @outlines.prompt
-def detailed_unstructured_action_text(action, character_id_to_name):
+def detailed_unstructured_generic_action_text(action, character_id_to_name):
     """
-    {{ action.unstructured }}{% if action.character_id is not none %} -- {{ character_id_to_name[action.character_id] }}{% endif %}{% if action.parameters is not none %} -- {{ action.parameters }}{% endif %}
+    {{ action.unstructured }}{% if action.character_id is not none %} -- {{ character_id_to_name[action.character_id] }}{% endif %}{% if action.parameters is not none %} -- {{ action.parameters }}{% endif %} ({{ action.unstructured }})
+    """
+
+
+@outlines.prompt
+def detailed_unstructured_treatment_action_text(action, character_id_to_name):
+    """
+    {% if 'location' not in action.parameters or action.parameters['location'] == 'internal' -%}
+    Treat {% if action.character_id is not none %}{{ character_id_to_name[action.character_id] }} {% endif %}with {{ action.parameters['treatment'] }} ({{ action.unstructured }}){% else -%}
+    Treat {% if action.character_id is not none %}{{ character_id_to_name[action.character_id] }} {% endif %}with {{ action.parameters['treatment'] }} on their {{ action.parameters['location'] }} ({{ action.unstructured }}){% endif -%}
+    """
+
+
+@outlines.prompt
+def detailed_unstructured_tagging_action_text(action, character_id_to_name):
+    """
+    {% if action.character_id is none -%}
+    Tag as {{ action.parameters['category'] }} ({{ action.unstructured }}){% else -%}
+    Tag {{ character_id_to_name[action.character_id] }} as {{ action.parameters['category'] }} ({{ action.unstructured }}){% endif -%}
     """
 
 
@@ -124,14 +142,14 @@ def scenario_state_description_1(scenario_state):
     """
     CHARACTERS:
     {% for character in scenario_state.characters %}
-    {{ character.name }}: {{ character.unstructured }}
-    {{ character.name }}'s intent: {{ character.intent }}
-
+    - {{ character.name }}: {{ character.unstructured.rstrip() }}
+    {% if character.intent is not none %}
+      {{ character.name }}'s intent: {{ character.intent }}
+    {% endif %}
     {% endfor %}
 
     SITUATION:
-    {{ scenario_state.unstructured }}
-
+    {{ scenario_state.unstructured.rstrip() }}
     """
 
 
@@ -142,9 +160,10 @@ def followup_clarify_character(scenario_state):
 
     CHARACTERS:
     {% for character in scenario_state.characters %}
-    {{ character.name }}: {{ character.unstructured }}
-    {{ character.name }}'s intent: {{ character.intent }}
-
+    - {{ character.name }}: {{ character.unstructured.rstrip() }}
+    {% if character.intent is not none %}
+      {{ character.name }}'s intent: {{ character.intent }}
+    {% endif %}
     {% endfor %}
     """
 
