@@ -3,6 +3,18 @@
 This changelog follows the specifications detailed in: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html), although we have not yet reached a `1.0.0` release.
 
+## Unreleased
+
+### Changed
+
+### Fixed
+
+### Added
+
+* Added new [Outlines](https://github.com/outlines-dev/outlines) based structured ADM
+* Added outlines based prompts (in `align_system/prompt_engineering/outlines_prompts.py`)
+* Added dedicated function to utils for calculating votes (same voting scheme as the single KDMA ADM)
+
 ## 0.4.0
 
 ### Changed
