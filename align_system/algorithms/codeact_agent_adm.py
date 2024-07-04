@@ -123,6 +123,53 @@ class CodeActAgentADM(AlignedDecisionMaker):
                 with open(os.path.join(chat_template_path, self.chat_template), 'r') as f:
                     self.tokenizer.chat_template = f.read().replace('    ', '').replace('\n', '')
 
+    def run_aligned_decision_maker_with_voting(
+            self, prompt, choices, alignment_target, n_positive_samples=5, n_negative_samples=5, baseline=False, shuffle=False):
+        responses, inference_pairs = self.aligned_decision_maker(
+            prompt,
+            choices,
+            alignment_target,
+            baseline=baseline,
+            n_positive_samples=n_positive_samples,
+            n_negative_sampels=n_negative_samples,
+            shuffle=shuffle
+        )
+
+        try:
+            choice_scores = Llama2SingleKDMAADM.calculate_votes(responses, choices)
+        except Exception as e:
+            log.warning(f"Error calculating votes: {e}")
+            choice_scores = [None] * len(choices)
+
+        log.debug("[bold]*RESPONSES*[bold]", extra={"markup": True})
+        for i, ip in enumerate(inference_pairs):
+            log.debug("[bold]*response {}*[bold]".format(i+1),
+                      extra={"markup": True})
+            log.debug(ip['output'])
+
+        log.explain("[bold]*CHOICE SCORES*[/bold]",
+                    extra={"markup": True})
+        log.explain("\n".join([f"{c}: {s}" for c, s in zip(choices, choice_scores)]))
+
+        results = {
+            'prompt': prompt,
+            'choice_scores': choice_scores,
+            'responses': responses,
+        }
+
+        answer_idx = int(np.argmax(results['choice_scores']))
+        reasoning = None
+
+        for r in responses:
+            assert r['answer_idx'] is not None
+            assert int(r['answer_idx']) < len(r['shuffle_indecies'])
+
+            if r['shuffle_indecies'][int(r['answer_idx'])] == answer_idx:
+                reasoning = r['reasoning']
+                break
+
+        return reasoning, answer_idx, responses, inference_pairs
+
 
     def __call__(self, sample, target_kdma_values, **kwargs):
 
