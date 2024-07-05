@@ -1,4 +1,5 @@
 import argparse
+from uuid import uuid4
 
 import swagger_client
 from swagger_client.configuration import Configuration
@@ -18,7 +19,10 @@ class TA3CACIActionBasedServiceInterface(Interface):
                  scenario_ids=[],
                  training_session=False):
         self.api_endpoint = api_endpoint
-        self.username = username
+        # Append a UUID onto the end of our username, as the TA3
+        # server doesn't allow multiple concurrent sessions for the
+        # same ADM (by name)
+        self.username = "{}__{}".format(username, uuid4())
         self.scenario_ids = scenario_ids
         if len(self.scenario_ids) > 0:
             self.scenarios_specified = True
@@ -32,7 +36,7 @@ class TA3CACIActionBasedServiceInterface(Interface):
         api_client = ApiClient(configuration=config)
         self.connection = swagger_client.ItmTa2EvalApi(api_client=api_client)
 
-        start_session_params = {'adm_name': username,
+        start_session_params = {'adm_name': self.username,
                                 'session_type':  session_type}
 
         if self.training_session:
