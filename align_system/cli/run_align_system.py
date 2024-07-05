@@ -56,13 +56,14 @@ def main(cfg: DictConfig) -> None:
         root_logger.addHandler(filehandler)
 
     if cfg.get('force_determinism', False) or 'torch_random_seed' in cfg:
-        os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
         import torch
         torch_seed = cfg.get('torch_random_seed', 0)
         log.info(f"Setting `torch.manual_seed` to: {torch_seed}")
         torch.manual_seed(torch_seed)
 
     if cfg.get('force_determinism', False) or 'torch_use_deterministic_algorithms' in cfg:
+        os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
+        import torch
         log.info("Setting `torch_use_deterministic_algorithms` to True")
         torch.use_deterministic_algorithms(
             cfg.get('torch_use_deterministic_algorithms', True),
