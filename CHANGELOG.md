@@ -7,7 +7,11 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Changed
 
+* Now adding a random UUID suffix to the ADM name parameter when talking to the TA3 server to prevent session clobbering
+
 ### Fixed
+
+* Fixed issue with outlines ADM where responses weren't a list when only a single sample was requested
 
 ### Added
 
