@@ -188,6 +188,11 @@ class OutlinesTransformersADM(ActionBasedADM):
 
         responses = generator(dialog_texts)
 
+        if len(dialog_texts) == 1:
+            # Ensure responses is a list in the case that we passed a
+            # single dialog text
+            responses = [responses]
+
         positive_responses_choices =\
             [r['action_choice'] for r in
              responses[0:num_positive_samples]]
