@@ -560,7 +560,7 @@ class Llama2MultiKDMAADM(AlignedDecisionMaker, ChatLanguageModel):
 
 
     def predict_kdma_values(self, scenario_text, probe_text, choice_texts,
-                            predicted_outcomes, log, **kwargs):
+                            predicted_outcomes, target_kdmas, log, **kwargs):
         """
         Predicts KDMA scores each choice text under the given scenario and probe.
 
@@ -592,19 +592,20 @@ class Llama2MultiKDMAADM(AlignedDecisionMaker, ChatLanguageModel):
         
         for choice_id, choice, outcome in zip(choice_ids, choice_texts, predicted_outcomes):
             for kdma, kdma_info in kdma_descriptions.items():
-                substitution = {
-                    'kdma': kdma_info['name'],
-                    'kdma_description': kdma_info['description'],
-                    'scenario': scenario_text,
-                    'probe': probe_text,
-                    'choice': choice,
-                }
-                
-                if outcome is not None:
-                    substitution['outcome'] = outcome
+                if kdma in target_kdmas:
+                    substitution = {
+                        'kdma': kdma_info['name'],
+                        'kdma_description': kdma_info['description'],
+                        'scenario': scenario_text,
+                        'probe': probe_text,
+                        'choice': choice,
+                    }
                     
-                substitutions.append(substitution)
-                info.append((choice_id, kdma))
+                    if outcome is not None:
+                        substitution['outcome'] = outcome
+                        
+                    substitutions.append(substitution)
+                    info.append((choice_id, kdma))
         
         def parse_kdma_score_response(response: str) -> Dict[str, Union[float, str]]:
             """
@@ -710,6 +711,7 @@ class Llama2MultiKDMAADM(AlignedDecisionMaker, ChatLanguageModel):
                 probe, 
                 shuffled_choices,
                 predicted_outcomes,
+                list(target_kdma_values.keys()),
                 log,
                 **kwargs
             )
@@ -728,6 +730,9 @@ class Llama2MultiKDMAADM(AlignedDecisionMaker, ChatLanguageModel):
                     for kdma in predicted_kdma_values[choice_idx].keys():
                         predicted_kdma_values_samples[choice_idx][kdma].append(predicted_kdma_values[choice_idx][kdma])
             generated_reasoning_samples.append(generated_reasoning)
+
+        log.explain("Samples:\n")
+        log.explain(predicted_kdma_values_samples)
 
         distribution_matching = kwargs.get('distribution_matching', 'wd')
         

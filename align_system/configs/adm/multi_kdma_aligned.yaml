@@ -8,7 +8,7 @@ instance:
 inference_kwargs:
   predict_outcomes: true
   max_new_tokens: 512
-  n_samples: 5
+  n_samples: 10
   shuffle: true
-  distribution_matching: wd
+  distribution_matching: average
 
