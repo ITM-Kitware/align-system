@@ -18,6 +18,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 * Added new [Outlines](https://github.com/outlines-dev/outlines) based structured ADM
 * Added outlines based prompts (in `align_system/prompt_engineering/outlines_prompts.py`)
 * Added dedicated function to utils for calculating votes (same voting scheme as the single KDMA ADM)
+* Added top level config options to force determinism and fix seeds; along with an example experiment to demonstrate
 
 ## 0.4.0
 

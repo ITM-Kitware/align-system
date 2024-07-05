@@ -55,6 +55,37 @@ def main(cfg: DictConfig) -> None:
             console=Console(file=logfile, color_system=None))
         root_logger.addHandler(filehandler)
 
+    if cfg.get('force_determinism', False) or 'torch_random_seed' in cfg:
+        os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
+        import torch
+        torch_seed = cfg.get('torch_random_seed', 0)
+        log.info(f"Setting `torch.manual_seed` to: {torch_seed}")
+        torch.manual_seed(torch_seed)
+
+    if cfg.get('force_determinism', False) or 'torch_use_deterministic_algorithms' in cfg:
+        log.info("Setting `torch_use_deterministic_algorithms` to True")
+        torch.use_deterministic_algorithms(
+            cfg.get('torch_use_deterministic_algorithms', True),
+            warn_only=True)
+
+    if cfg.get('force_determinism', False) or 'random_seed' in cfg:
+        import random
+        random_seed = cfg.get('random_seed', 0)
+        log.info(f"Setting `random.seed` to: {random_seed}")
+        random.seed(random_seed)
+
+    if cfg.get('force_determinism', False) or 'numpy_random_seed' in cfg:
+        import numpy as np
+        numpy_random_seed = cfg.get('numpy_random_seed', 0)
+        log.info(f"Setting `numpy.random.seed` to: {numpy_random_seed}")
+        np.random.seed(numpy_random_seed)
+
+    if cfg.get('force_determinism', False) or 'sort_available_actions' in cfg:
+        log.info("Setting `sort_available_actions` to True")
+        sort_available_actions = cfg.get('sort_available_actions', True)
+    else:
+        sort_available_actions = False
+
     # HACK: need to invoke 'load_model' for ADMs that require it,
     # maybe it makes more sense to load_model in the init method for
     # those ADMs
@@ -88,6 +119,11 @@ def main(cfg: DictConfig) -> None:
 
         while not scenario_complete:
             available_actions = scenario.get_available_actions()
+
+            if sort_available_actions:
+                # Impose a fixed ordering of available actions to help
+                # with determinism
+                available_actions = sorted(available_actions, key=lambda a: a.unstructured)
 
             log.debug("[bold]*AVAILABLE ACTIONS*[/bold]",
                       extra={"markup": True})

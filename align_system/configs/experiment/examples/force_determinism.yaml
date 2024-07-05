@@ -1,0 +1,12 @@
+# @package _global_
+defaults:
+  - override /adm: single_kdma_baseline
+
+force_determinism: true
+# Setting `force_determinism` to true sets all of the following
+# parameters to the following (default values)
+# random_seed: 0
+# numpy_random_seed: 0
+# torch_random_seed: 0
+# torch_use_deterministic_algorithms: true
+# sort_available_actions: true
