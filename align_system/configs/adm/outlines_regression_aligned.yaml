@@ -1,0 +1,10 @@
+instance:
+  _target_: align_system.algorithms.outlines_regression_adm.OutlinesTransformersRegressionADM
+
+  model_name: mistralai/Mistral-7B-Instruct-v0.2
+  baseline: false
+
+inference_kwargs:
+  num_samples: 5
+  shuffle_choices: true
+  predict_outcomes: true

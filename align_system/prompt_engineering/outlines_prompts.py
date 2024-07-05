@@ -278,3 +278,25 @@ def treatment_choice_json_schema(supplies_json_str, locations_json_str):
      "title": "TreatmentSelection",
      "type": "object"}
     '''
+
+@outlines.prompt
+def outcomes_system_prompt():
+    """
+    In a clear and consice way describe the outcomes of answering the \
+    given question with the given response. Do not provide additional \
+    advice for the situation. Do not indicate wether or not you agree \
+    with the response. Simply analyze the outcomes of the response. \
+    Limit your analysis to a single sentence.
+    """
+
+@outlines.prompt
+def outcomes_prediction_prompt(situation, choices):
+    """
+    Consider the following scenario:
+    {{ situation }}
+
+    What would happen if you chose to answer the question with the following response?
+    {% for choice in choices %}
+    - {{ choice }}
+    {% endfor %}
+    """
