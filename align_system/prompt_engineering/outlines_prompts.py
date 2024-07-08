@@ -290,13 +290,21 @@ def outcomes_system_prompt():
     """
 
 @outlines.prompt
-def outcomes_prediction_prompt(situation, choices):
+def outcome_prediction_prompt(situation, choice):
     """
     Consider the following scenario:
     {{ situation }}
 
     What would happen if you chose to answer the question with the following response?
-    {% for choice in choices %}
-    - {{ choice }}
-    {% endfor %}
+    {{ choice }}
     """
+
+@outlines.prompt
+def outcome_prediction_json_schema():
+    '''
+    {"properties": {"predicted_outcome": {"title": "Outcome",
+       "type": "string"}},
+     "required": ["predicted_outcome"],
+     "title": "OutcomePredictions",
+     "type": "object"}
+    '''

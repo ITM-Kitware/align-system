@@ -1,5 +1,6 @@
 import json
 import random
+import itertools
 
 import outlines
 from rich.highlighter import JSONHighlighter
@@ -12,7 +13,8 @@ from align_system.algorithms.outlines_adm import OutlinesTransformersADM
 from align_system.prompt_engineering.outlines_prompts import (
     scenario_state_description_1,
     outcomes_system_prompt,
-    outcomes_prediction_prompt
+    outcome_prediction_prompt,
+    outcome_prediction_json_schema
 )
 
 log = logging.getLogger(__name__)
@@ -71,19 +73,42 @@ class OutlinesTransformersRegressionADM(OutlinesTransformersADM):
 
         kdma_values = alignment_target.kdma_values
 
+        # Loop over samples
         for _ in range(num_samples):
+            # Shuffle
             if shuffle_choices:
                 shuffled_choices = random.sample(choices, len(choices))
             else:
                 shuffled_choices = choices
 
+            # Predict outcome of selecting each choice - optional
             if predict_outcomes:
+                outcome_dialogs = []
                 outcomes_sys_prompt = outcomes_system_prompt()
-                predict_outcomes_prompt = outcomes_prediction_prompt(scenario_description, shuffled_choices)
-                dialog = [{'role': 'system', 'content': outcomes_sys_prompt},
-                          {'role': 'user', 'content': predict_outcomes_prompt}]
 
-        import IPython
-        IPython.embed()
+                for choice in shuffled_choices:
+                    predict_outcome_prompt = outcome_prediction_prompt(scenario_description, choice)
+                    outcome_dialogs.append([{'role': 'system', 'content': outcomes_sys_prompt},
+                                {'role': 'user', 'content': predict_outcome_prompt}])
 
+                # Need to set the whitespace_pattern to prevent the state
+                # machine from looping indefinitely in some cases, see:
+                # https://github.com/outlines-dev/outlines/issues/690#issuecomment-2102291934
+                outcome_generator = outlines.generate.json(
+                    self.model,
+                    outcome_prediction_json_schema(),
+                    whitespace_pattern=r"[ ]?")
+
+                outcome_dialog_texts = [self.dialog_to_prompt(d) for d in
+                    itertools.chain(outcome_dialogs)]
+
+                # List of {predicted_outcomes:}, one of each choice in order of shuffled_choices
+                predicted_outcomes = outcome_generator(outcome_dialog_texts)
+
+            else:
+                predicted_outcomes = None
+
+            import IPython
+            IPython.embed()
+            # Predict KDMA values for each choice
     
