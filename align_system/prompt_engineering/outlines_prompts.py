@@ -308,3 +308,67 @@ def outcome_prediction_json_schema():
      "title": "OutcomePredictions",
      "type": "object"}
     '''
+
+@outlines.prompt
+def kdma_score_prediction_system_prompt(kdma, kdma_description):
+    """
+    In a clear and consice way describe the outcomes of answering the \
+    Given the following scenario, response, and predicted outcome your job \
+    is to asses, on a scale from 0 to 10, how well the response characterizes \
+    the decision making behavior of someone who acting with high {{kdma}}. \
+    Provide one sentence of reasoning.  
+
+    {{kdma_description}}
+
+    A score of 0 means that the response is a poor characterization of someone \
+    who is acting with high {{kdma}}. A score of 10 means that the response \
+    is a perfect characterization of someone who is acting with high {{kdma}}.
+
+    Provide a score and one sentence of reasoning explaining your score.
+    """
+
+@outlines.prompt
+def kdma_score_prediction_prompt(situation, choice, outcome, kdma):
+    """
+    Consider the following scenario:
+    {{ situation }}
+
+    Review this response to the scenario and consider the corresponding predicted outcome:
+
+    Response: 
+    {{ choice }}
+
+    Predicted outcome:
+    {{outcome}}
+
+    Provide a score that indicates how well the response characterizes the decision making \
+    behavior of someone who is acting with high {{kdma}} with one sentence of reasoning.
+    """
+
+    '''
+    {"properties": {"predicted_outcome": {"title": "Outcome",
+       "type": "string"}},
+     "required": ["predicted_outcome"],
+     "title": "OutcomePredictions",
+     "type": "object"}
+    '''
+
+@outlines.prompt
+def kdma_score_prediction_json_schema():
+    '''
+    {"properties": {
+        "reasoning": {
+            "title": "Reasoning",
+            "type": "string"
+            },
+        "score": {
+            "title": "Score",
+            "type": "integer"
+            }
+        },
+     "required": ["reasoning","score"],
+     "title": "ScorePrediction",
+     "type": "object"}
+    '''
+
+
