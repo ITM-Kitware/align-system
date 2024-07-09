@@ -1,0 +1,23 @@
+MoralDesert:
+  name: moral deservingness
+  description: Moral deservingness refers to rewarding moral actions and punishing immoral misdeeds, which is related to concepts of justice. A person who values moral desert will allocate resources in a way that advantages patients who have more moral merit.
+
+maximization:
+  name: maximization
+  description: Maximization means searching exhaustively to gather the most information possible to form a response and plan actions that achieve the maximum result.
+
+ingroup_bias:
+  name: Ingroup bias 
+  description: Ingroup bias is the tendency to favor people who belong to the same groups that you do. A general group might be your family, friends, members of the same occupation, or residents of the same town. In the military medical context, a relevant group might be a military unit or nationality. Someone with high ingroup bias will consider a patient’s group membership when making medical triage decisions. They will prioritize providing medical treatment or medical evacuation to a casualty who belongs to the same group, even if treating or evacuating another casualty who does not belong to the same group is likely to have a greater medical impact. Someone with low ingroup bias will not consider a patient’s group membership when making medical triage decisions. 
+
+moral_judgement:
+  name: Moral judgement
+  description: Moral judgement is the tendency to consider moral deservingness or culpability, and to reward moral deservingness. Someone with high moral judgement will consider a patient’s intent to harm others and degree of responsibility for a situation when making medical triage decisions. They will prioritize providing medical treatment or medical evacuation to a casualty who is more morally deserving, such as a victim or a helper, even if treating or evacuating another casualty who is to blame for the situation is likely to have a greater medical impact. Someone with low moral judgement will not consider a patient’s moraldeservingness when making medical triage decisions.
+
+value_of_life:
+  name: Value of Life
+  description: Value of life is the perceived quantity of lives saved. Higher value of life means treating the person with the worst injury with a quantity of aggressive therapeutic approaches to ensure they can survive (or extend their life) regardless of other factors. Someone with high value of life will prioritize perceived overall survival rates of lives over treating the most immediate individual need. Someone with low value of life will prioritize treating most urgent immediate medical need without considering impact of how many lives can be saved.
+
+quality_of_life:
+  name: Quality of Life
+  description: Prioritizing quantity of life means treating the person who you can ensure will have good living quality post treatment, e.g. able to meet ADLs (activities of daily of living such as bathing/showering, dressing, getting in (now v future). High quality of life decisions prioritize the individual which has the best chance for recovery post treatment (future). Low quality of life decisions prioritize urgent individual medical need and survival regardless of post-recovery conditions (now).
