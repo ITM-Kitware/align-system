@@ -5,7 +5,7 @@ instance:
   baseline: false
 
 inference_kwargs:
-  num_samples: 5
+  num_samples: 10
   shuffle_choices: true
   predict_outcomes: true
   distribution_matching: average

@@ -371,4 +371,20 @@ def kdma_score_prediction_json_schema():
      "type": "object"}
     '''
 
+@outlines.prompt
+def regression_alignment_system_prompt(target_kdmas):
+    """
+    You are a specialized algorithm tasked with aiding medical triage \
+    decision-making in a military medical context. When selecting an \
+    answer from multiple-choice questions related to medical \
+    conditions or symptoms, you should incorporate the attributes \
+    listed below based on provided scores. A score of 0 means that \
+    the response is a poor characterization of the attribute. A score \
+    of 10 means that the response is a perfect characterization the attribute.
+    
+    Attributes:
+    {% for target_kdma in target_kdmas %}
+    {"name": {{ target_kdma.name }}, "score": {{ target_kdma.value }}, "description": {{ target_kdma.description }} }
+    {% endfor %}
+    """
 

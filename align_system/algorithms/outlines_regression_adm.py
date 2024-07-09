@@ -8,19 +8,23 @@ import yaml
 import outlines
 from rich.highlighter import JSONHighlighter
 from swagger_client.models import (
-    ActionTypeEnum
+    ActionTypeEnum,
+    kdma_value
 )
 
 from align_system.utils import logging
 from align_system.algorithms.outlines_adm import OutlinesTransformersADM
 from align_system.prompt_engineering.outlines_prompts import (
+    detailed_unstructured_treatment_action_text,
     scenario_state_description_1,
     outcomes_system_prompt,
     outcome_prediction_prompt,
     outcome_prediction_json_schema,
     kdma_score_prediction_system_prompt,
     kdma_score_prediction_prompt,
-    kdma_score_prediction_json_schema
+    kdma_score_prediction_json_schema,
+    regression_alignment_system_prompt,
+    action_selection_prompt
 )
 
 log = logging.getLogger(__name__)
@@ -67,8 +71,16 @@ class OutlinesTransformersRegressionADM(OutlinesTransformersADM):
         outcome_dialog_texts = [self.dialog_to_prompt(d) for d in
             itertools.chain(outcome_dialogs)]
 
+        log.info("[bold]*OUTCOMES PREDICTION DIALOG PROMPT*[/bold]",
+                 extra={"markup": True})
+        log.info(outcome_dialog_texts[0])
+
         # List of {predicted_outcomes:}, one of each choice in order of choices
         predicted_outcomes = outcome_generator(outcome_dialog_texts)
+
+        log.info("[bold]*OUTCOME PREDICTION RESPONSE*[/bold]",
+                 extra={"markup": True})
+        log.info(predicted_outcomes, extra={"highlighter": JSON_HIGHLIGHTER})
 
         return predicted_outcomes
 
@@ -105,11 +117,23 @@ class OutlinesTransformersRegressionADM(OutlinesTransformersADM):
         kdma_dialog_texts = [self.dialog_to_prompt(d) for d in
             itertools.chain(kdma_dialogs)]
 
+        log.info("[bold]*KDMA SCORE PREDICTION DIALOG PROMPT*[/bold]",
+                 extra={"markup": True})
+        log.info(kdma_dialog_texts[0])
+
         # List of {score:int, reasoning:str}
         kdma_score_responses = kdma_score_generator(kdma_dialog_texts)
 
+        log.info("[bold]*KDMA SCORE PREDICTION RESPONSE*[/bold]",
+                 extra={"markup": True})
+        log.info(predicted_outcomes, extra={"highlighter": JSON_HIGHLIGHTER})
+
         return kdma_score_responses, response_keys
 
+
+    # TODO - create a separate class for distribution matching approaches
+    # (each with a __call__ method) so we can specify the class target and 
+    # initialize in our hydra configs. 
 
     # Select choice by first averaging score across samples,
     # then selecting the one with minimal MSE to the target
@@ -123,10 +147,14 @@ class OutlinesTransformersRegressionADM(OutlinesTransformersADM):
             for target_kdma in target_kdmas:
                 kdma = target_kdma['kdma']
                 samples = predicted_kdma_values[choice][kdma]['scores']
-                average_predictions[kdma] = sum(samples) / len(samples) 
+                average_predictions[kdma] = (sum(samples) / len(samples)) / 10 # /10 because predictions are 0-10, but targets are 0-1
             average_predictions_for_each_choice.append(average_predictions)
 
-        # get target kdma values - assumed to be int, TODO 
+        log.explain("[bold]*AVERAGE PREDICTED SCORES*[/bold]",
+                    extra={"markup": True})
+        log.explain(average_predictions_for_each_choice, extra={"highlighter": JSON_HIGHLIGHTER})
+
+        # get target kdma values - currently assumed to be float value 0-1
         target_kdma_values = {}
         for target_kdma in target_kdmas:
             target_kdma_values[target_kdma['kdma']]=target_kdma['value']
@@ -138,7 +166,7 @@ class OutlinesTransformersRegressionADM(OutlinesTransformersADM):
                 return 0
             return sum([(target_kdma_values[kdma] - predicted_kdma_values[kdma])**2 for kdma in kdmas]) / len(kdmas)
 
-        # find index of min mse
+        # find index of min mse and get selected choice
         choice_idx = 0
         min_mse = float('inf')
         for i in range(len(choices)):
@@ -147,11 +175,18 @@ class OutlinesTransformersRegressionADM(OutlinesTransformersADM):
                 min_mse = mse_
                 choice_idx = i
         selected_choice = choices[choice_idx]
-
-        # For now return reasoning of first sample, TODO improve this
-        reasoning = ''
-        for kdma in list(target_kdma_values.keys()):
-            reasoning += predicted_kdma_values[selected_choice][kdma]['reasonings'][0] + ' '
+        
+        # If outcomes were predicted, add to reasoning
+        if predicted_kdma_values[selected_choice]['outcomes']:
+            reasoning = 'The predicted outcome for choice ' + selected_choice + ' was: '
+            reasoning += predicted_kdma_values[selected_choice]['outcomes'][0]
+        else:
+            reasoning = ''
+        # Add average predicted KDMA acores to reasoning
+        for target_kdma in target_kdmas:
+            reasoning += ' The average predcited score for ' + target_kdma['name'] + ' was ' + \
+                            str(average_predictions_for_each_choice[choice_idx][target_kdma['kdma']]) + '.'
+        # TODO - could improve returned reasoning
 
         return selected_choice, reasoning
 
@@ -201,9 +236,17 @@ class OutlinesTransformersRegressionADM(OutlinesTransformersADM):
             kdma_descriptions = yaml.load(f, Loader=yaml.FullLoader)
         # Add names and descriptions to target_kdmas
         for kdma_idx in range(len(target_kdmas)):
+            if not isinstance(target_kdmas[kdma_idx], dict):
+                if isinstance(target_kdmas[kdma_idx], kdma_value.KDMAValue):
+                    target_kdmas[kdma_idx] = target_kdmas[kdma_idx].to_dict()
+                else:
+                    target_kdmas[kdma_idx] = dict(target_kdmas[kdma_idx])
             kdma = target_kdmas[kdma_idx]['kdma']
-            target_kdmas[kdma_idx]['name'] = kdma_descriptions[kdma]['name']
-            target_kdmas[kdma_idx]['description'] = kdma_descriptions[kdma]['description'] # TODO error if description is missing
+            if kdma not in kdma_descriptions:
+                raise RuntimeError("Missing target kdma description.")
+            else:
+                target_kdmas[kdma_idx]['name'] = kdma_descriptions[kdma]['name']
+                target_kdmas[kdma_idx]['description'] = kdma_descriptions[kdma]['description']
 
         predicted_kdma_values = {}      # Dictionary to save output for each choice to
         for choice in choices:
@@ -244,11 +287,11 @@ class OutlinesTransformersRegressionADM(OutlinesTransformersADM):
                 predicted_kdma_values[choice][kdma]['scores'].append(response['score'])
                 predicted_kdma_values[choice][kdma]['reasonings'].append(response['reasoning'])
 
-            # TODO Logging
-
         # Regress best choice
         if distribution_matching == 'average':
-            selected_choice, random_justification = self.average_distribution_matching(predicted_kdma_values, target_kdmas)
+            # Averages over predicted score samples and selects choice with minimum MSE to target
+            selected_choice, first_justification = self.average_distribution_matching(predicted_kdma_values, target_kdmas)
+            # Currently returning the reasoning associated with the first sample for the selected choice
         else:
             raise RuntimeError("Distribution matching function not recognized.")
 
@@ -258,6 +301,12 @@ class OutlinesTransformersRegressionADM(OutlinesTransformersADM):
 
         selected_choice_idx = choices.index(selected_choice)
         action_to_take = available_actions[selected_choice_idx]
-        action_to_take.justification = random_justification
+        action_to_take.justification = first_justification
 
-        return action_to_take, [] # TODO
+        # Set up simple diaolg to return for follow-ups
+        alignment_system_prompt = regression_alignment_system_prompt(target_kdmas)
+        prompt = action_selection_prompt(scenario_description, shuffled_choices)
+        dialog = [{'role': 'system', 'content': alignment_system_prompt},
+                  {'role': 'user', 'content': prompt}]
+
+        return action_to_take, dialog
