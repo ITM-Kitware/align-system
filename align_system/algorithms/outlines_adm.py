@@ -132,8 +132,12 @@ class OutlinesTransformersADM(ActionBasedADM):
             if len(kdma_values) != 1:
                 raise RuntimeError("This ADM assumes a single KDMA target, aborting!")
 
-            kdma = kdma_values[0]['kdma']
-            value = kdma_values[0]['value']
+            kdma_value = kdma_values[0]
+            if not isinstance(kdma_value, dict):
+                kdma_value = kdma_value.to_dict()
+
+            kdma = kdma_value['kdma']
+            value = kdma_value['value']
             # Assumption here is that KDMA values range from 0-1
             negative_value = 1 - value
 
