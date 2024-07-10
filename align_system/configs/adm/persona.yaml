@@ -3,6 +3,7 @@ instance:
 
   # root_model: google/gemma-2-9b
   root_model: google/gemma-2-9b-it
+  device: auto
   panel_size: 3
   generation_kwargs:
     do_sample: true

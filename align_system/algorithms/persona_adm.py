@@ -61,6 +61,7 @@ def log_dialog(dialog):
 class PersonaADM(AlignedDecisionMaker, ActionBasedADM):
     def __init__(
         self,
+        device: str = "auto",
         root_model: str = "meta-llama/Llama-2-7b-chat-hf",
         backstory_collection: str = os.path.join(
             os.path.abspath(os.path.dirname(__file__)), "..", "prompt_engineering", "personas", "backstories.json"
@@ -85,7 +86,7 @@ class PersonaADM(AlignedDecisionMaker, ActionBasedADM):
         # Load and setup the root model for decision making
         logger.info(f"Loading root model: {root_model}")
         self._root_model = AutoModelForCausalLM.from_pretrained(
-            root_model, device_map="auto", token=os.getenv("HUGGINGFACE_API_KEY")
+            root_model, device_map=device, token=os.getenv("HUGGINGFACE_API_KEY"), torch_dtype=torch.bfloat16
         )
         self._root_model_tokenizer = AutoTokenizer.from_pretrained(root_model, token=os.getenv("HUGGINGFACE_API_KEY"))
         self._root_model_generation_kwargs = generation_kwargs or {}
