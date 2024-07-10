@@ -1,0 +1,13 @@
+instance:
+  _target_: align_system.algorithms.persona_adm.PersonaADM
+
+  # root_model: google/gemma-2-9b
+  root_model: google/gemma-2-9b-it
+  panel_size: 3
+  generation_kwargs:
+    do_sample: true
+    temperature: 0.7
+    top_k: 50
+    top_p: 0.95
+    max_new_tokens: 4096
+    no_repeat_ngram_size: 4

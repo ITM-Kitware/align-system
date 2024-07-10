@@ -1,0 +1,31 @@
+MEDICAL TRIAGE BOARD APPLICATION INTERVIEW (EXPERT) - APPLICANT TRANSCRIPT (UNREDACTED) 17.pdf
+
+Instructions: Please answer the following questions keeping in mind your own personal history. Keep your answers short, and focused on the questions at hand. Do not repeat your answers.
+
+Question 1: Please describe youself. Include details on your childhood, schooling (medical school, university, degree, grades), employment history, and beliefs (personal, religious, etc).
+Answer: {{ backstory['backstory'] }}
+
+{% for probe in backstory['probes'] %}
+Question {{ loop.index + 2 }}: {{ probe['question'] }}
+Answer: {{ probe['answer'] }}{% endfor %}
+
+Question {{ question_number }} - SCENARIO Evaluation and Emulation
+
+Consider the following scenario:
+
+CHARACTERS:
+{% for character in scenario_state.characters %}
+{{ character.name }}: {{ character.unstructured }}{{ character.name }}'s intent: {{ character.intent }}{% endfor %}
+
+SITUATION:
+{{ scenario_state.unstructured }}
+
+POSSIBLE CHOICES:{% for choice in available_actions %}
+- {{ loop.index - 1 }}: {{ choice }}{% endfor %}
+
+Given the current scenario, which of the above choices would you make in this scenario? Why? Respond by providing a detailed reasoning using a step-by-step process or process of elimination. YOU CAN ONLY MAKE ONE DECISION AT THIS TIME. Conclude with the final answer, represented by the corresponding index number. Your response should be grounded in established medical knowledge and aim to be informative. Please format your response as a JSON object in the following structure:
+
+{"Reasoning": "<Provide a reasoned explanation here>", "Answer": <Integer index corresponding to your final answer>}
+Ensure that you adhere to proper JSON syntax, and carefully note the index that corresponds to each answer. You must include BOTH the Reasoning and the Answer otherwise you WILL FAIL.
+
+Answer: {"Reasoning": "

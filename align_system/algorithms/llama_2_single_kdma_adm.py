@@ -100,12 +100,57 @@ def to_probabilities(logits):
     return torch.nn.functional.softmax(torch.tensor(logits), dim=0)  # Apply softmax
 
 
+
+
 STANDARD_MULTIPLE_CHOICE_JSON_FORMAT = "{\"Reasoning\": \"<Provide a reasoned explanation here>\", \"Answer\": <Integer index corresponding to your final answer>}\\n"
 
 TREATMENT_MULTIPLE_CHOICE_JSON_FORMAT = "{\"Reasoning\": \"<Provide a reasoned explanation here>\", \"Answer\": <Integer index corresponding to your final answer>, \"Location\": \"<Specific location on the body where the treatment should be applied, one of: 'right forearm', 'left forearm', 'right calf', 'left calf', 'right thigh', 'left thigh', 'right stomach', 'left stomach', 'right bicep', 'left bicep', 'right shoulder', 'left shoulder', 'right side', 'left side', 'right chest', 'left chest', 'right wrist', 'left wrist', 'left face', 'right face', 'left neck', 'right neck', 'unspecified'>\"}\\n"
 
 TAGGING_MULTIPLE_CHOICE_JSON_FORMAT = "{\"Reasoning\": \"<Provide a reasoned explanation here>\", \"Answer\": <Integer index corresponding to your final answer>, \"Tag\": \"<Specific medical triage tag to apply, one of: 'MINIMAL', 'DELAYED', 'IMMEDIATE', 'EXPECTANT'>\"}\\n"
 
+def build_multiple_choice_dialog(question,
+                                options,
+                                system_message=None,
+                                json_format=STANDARD_MULTIPLE_CHOICE_JSON_FORMAT):
+        medical_triage_system_message = (
+            "You are an assistant specialized in answering multiple-choice questions related to "
+            "medical triage. When a question is posed, carefully analyze the symptoms or conditions "
+            "described. Respond by providing a detailed reasoning using a step-by-step process or "
+            "process of elimination. Conclude with the final answer, represented by the corresponding "
+            "index number. Your response should be grounded in established medical knowledge and aim "
+            "to be informative. Please format your response as a JSON object in the following structure:\\n\\n"
+            f"{json_format}"
+            "Ensure that you adhere to proper JSON syntax, and carefully note the index that corresponds to each answer."
+        )
+        if system_message is None:
+            system_message = medical_triage_system_message
+
+        formatted_options = [f'({i}) {option}' for i, option in enumerate(options)]
+
+        content = f'{question} {formatted_options}'
+
+        return [
+            {
+                "role": "system",
+                "content": system_message
+            },
+            {
+                "role": "user",
+                "content": content
+            }
+        ]
+
+def log_dialog(dialog):
+    for e in dialog:
+        if e.get('role') == 'system':
+            color = 'yellow'
+        else:
+            color = 'blue'
+
+        log.debug(f"[bold {color}]**{e.get('role')}**[/bold {color}]",
+                    extra={"markup": True})
+        log.debug(f"[{color}]{e.get('content')}[/{color}]",
+                    extra={"markup": True, "highlighter": None})
 
 class Llama2SingleKDMAADM(AlignedDecisionMaker):
 
@@ -126,13 +171,15 @@ class Llama2SingleKDMAADM(AlignedDecisionMaker):
     def load_model(self, model=None, tokenizer=None):
         assert (model is None) == (tokenizer is None), "model and tokenizer must both be None or both be not None."
         if model is not None:
-            print('Loading model and tokenizer from provided objects.')
+            logging.info('Loading model and tokenizer from provided objects.')
             self.model = model
             self.tokenizer = tokenizer
         else:
-            print('Loading model:', self.hf_model)
-            if self.device == 'auto':
+            logging.info('Loading model: %s', self.hf_model)
+            logging.info('Requested device: %s', self.device)
+            if self.device in ('cuda', 'auto'):
                 self.model = AutoModelForCausalLM.from_pretrained(self.hf_model, torch_dtype=self.precision, device_map='auto')
+                logging.info('Model loaded on device: %s', self.model.device)
             else:
                 self.model = AutoModelForCausalLM.from_pretrained(self.hf_model, torch_dtype=self.precision)
                 self.model = self.model.to(self.device)
@@ -211,54 +258,6 @@ class Llama2SingleKDMAADM(AlignedDecisionMaker):
 
         # Return final list or tensor of prompt tokens
         return prompt_tokens
-
-
-    def build_multiple_choice_dialog(self,
-                                     question,
-                                     options,
-                                     system_message=None,
-                                     json_format=STANDARD_MULTIPLE_CHOICE_JSON_FORMAT):
-        medical_triage_system_message = (
-            "You are an assistant specialized in answering multiple-choice questions related to "
-            "medical triage. When a question is posed, carefully analyze the symptoms or conditions "
-            "described. Respond by providing a detailed reasoning using a step-by-step process or "
-            "process of elimination. Conclude with the final answer, represented by the corresponding "
-            "index number. Your response should be grounded in established medical knowledge and aim "
-            "to be informative. Please format your response as a JSON object in the following structure:\\n\\n"
-            f"{json_format}"
-            "Ensure that you adhere to proper JSON syntax, and carefully note the index that corresponds to each answer."
-        )
-        if system_message is None:
-            system_message = medical_triage_system_message
-
-        formatted_options = [f'({i}) {option}' for i, option in enumerate(options)]
-
-        content = f'{question} {formatted_options}'
-
-        dialog = [
-            {
-                "role": "system",
-                "content": system_message
-            },
-            {
-                "role": "user",
-                "content": content
-            }
-        ]
-
-        return dialog
-
-    def log_dialog(self, dialog):
-        for e in dialog:
-            if e.get('role') == 'system':
-                color = 'yellow'
-            else:
-                color = 'blue'
-
-            log.debug(f"[bold {color}]**{e.get('role')}**[/bold {color}]",
-                      extra={"markup": True})
-            log.debug(f"[{color}]{e.get('content')}[/{color}]",
-                      extra={"markup": True, "highlighter": None})
 
     def respond_to_dialog(self, dialog, prefix=None):
         inference_pair = {}
@@ -403,7 +402,7 @@ class Llama2SingleKDMAADM(AlignedDecisionMaker):
                 random.shuffle(indecies)
             shuffled_choices = [choices[i] for i in indecies]
 
-            dialog = self.build_multiple_choice_dialog(
+            dialog = build_multiple_choice_dialog(
                 question,
                 shuffled_choices,
                 system_message=system_message)
@@ -411,7 +410,7 @@ class Llama2SingleKDMAADM(AlignedDecisionMaker):
             if not logged_aligned_dialog:
                 log.debug("[bold]*ALIGNED DIALOG*[/bold]",
                           extra={"markup": True})
-                self.log_dialog(dialog)
+                log_dialog(dialog)
                 logged_aligned_dialog = True
 
             good_parse = False
@@ -450,7 +449,7 @@ class Llama2SingleKDMAADM(AlignedDecisionMaker):
                 random.shuffle(indecies)
             shuffled_choices = [choices[i] for i in indecies]
 
-            inverse_misaligned_dialog = self.build_multiple_choice_dialog(
+            inverse_misaligned_dialog = build_multiple_choice_dialog(
                 question,
                 shuffled_choices,
                 system_message=load_system_message(system_message_keys))
@@ -458,7 +457,7 @@ class Llama2SingleKDMAADM(AlignedDecisionMaker):
             if not logged_inverse_misaligned_dialog:
                 log.debug("[bold]*INVERSE MISALIGNED DIALOG*[/bold]",
                             extra={"markup": True})
-                self.log_dialog(inverse_misaligned_dialog)
+                log_dialog(inverse_misaligned_dialog)
                 logged_inverse_misaligned_dialog = True
 
             good_parse = False
@@ -947,14 +946,14 @@ class Llama2SingleKDMAADM(AlignedDecisionMaker):
 
         for _ in range(kwargs.get('answer_attempts', 5)):
             treatment_dialog =\
-                self.build_multiple_choice_dialog(
+                build_multiple_choice_dialog(
                     treatment_prompt,
                     [s.to_dict() for s in available_supplies],
                     json_format=TREATMENT_MULTIPLE_CHOICE_JSON_FORMAT)
 
             log.debug("[bold]*TREATMENT DIALOG*[/bold]",
                       extra={"markup": True})
-            self.log_dialog(treatment_dialog)
+            log_dialog(treatment_dialog)
 
             raw_treatment_response, _ = self.respond_to_dialog(
                 treatment_dialog)
@@ -1029,7 +1028,7 @@ class Llama2SingleKDMAADM(AlignedDecisionMaker):
             get_swagger_class_enum_values(CharacterTagEnum))
 
         for _ in range(kwargs.get('answer_attempts', 5)):
-            tagging_dialog = self.build_multiple_choice_dialog(
+            tagging_dialog = build_multiple_choice_dialog(
                 tagging_prompt,
                 [c.unstructured.strip()
                  for c in untagged_characters],
@@ -1037,7 +1036,7 @@ class Llama2SingleKDMAADM(AlignedDecisionMaker):
 
             log.debug("[bold]*TAGGING DIALOG*[/bold]",
                       extra={"markup": True})
-            self.log_dialog(tagging_dialog)
+            log_dialog(tagging_dialog)
 
             raw_tagging_response, _ = self.respond_to_dialog(
                 tagging_dialog)
@@ -1113,14 +1112,14 @@ class Llama2SingleKDMAADM(AlignedDecisionMaker):
             filtered_characters.append(c)
 
         for _ in range(kwargs.get('answer_attempts', 5)):
-            character_selection_dialog = self.build_multiple_choice_dialog(
+            character_selection_dialog = build_multiple_choice_dialog(
                 character_selection_prompt,
                 [c.unstructured.strip()
                  for c in filtered_characters])
 
             log.debug("[bold]*CHARACTER SELECTION DIALOG*[/bold]",
                       extra={"markup": True})
-            self.log_dialog(character_selection_dialog)
+            log_dialog(character_selection_dialog)
 
             raw_character_selection_response, _ = self.respond_to_dialog(
                 character_selection_dialog)

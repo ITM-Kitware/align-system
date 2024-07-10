@@ -1,0 +1,12 @@
+adm:
+  name: 'SingleKDMAADM'
+  init_kwargs:
+    hf_model: google/gemma-2b-it
+    precision: half
+    temperature: 0.7
+
+  inference_kwargs:
+    baseline: true
+    n_negative_samples: 0
+    n_positive_samples: 5
+    shuffle: true
