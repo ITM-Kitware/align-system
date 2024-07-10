@@ -3,6 +3,7 @@ import random
 import os 
 import pathlib
 import yaml
+import itertools
 
 import outlines
 from rich.highlighter import JSONHighlighter
@@ -34,6 +35,12 @@ KDMA_DESCRIPTIONS_FILE_PATH = os.path.join(
     pathlib.Path(__file__).parent.absolute(), '..',
     'prompt_engineering/kdma_descriptions.yml')
 
+def run_in_batches(inference_function, inputs, batch_size):
+    ''' Batch inference to avoid out of memory error'''
+    outputs = []
+    for batch in itertools.batched(inputs, batch_size):
+        outputs.extend(inference_function(list(batch)))
+    return outputs
 
 class OutlinesTransformersRegressionADM(OutlinesTransformersADM):
     def __init__(self,
@@ -49,18 +56,23 @@ class OutlinesTransformersRegressionADM(OutlinesTransformersADM):
             tokenizer_kwargs=kwargs.get('tokenizer_kwargs', {}))
 
 
-    def predict_outcomes(self, scenario_description, choices):
+    def sample_outcome_predictions(self, 
+                                   scenario_description, 
+                                   choices, 
+                                   num_samples=1,
+                                   batch_size=5):
         '''
-        Predicts outcomes if choices were to be selected
-        Returns a list of predicted outcomes corresponding to the list of choices
+        Samples prediction of what the outcome would be if choices were to be selected
+        Returns a list of samples where each sample is a list of predicted outcomes
         '''
         outcome_dialogs = []
         outcomes_sys_prompt = outcomes_system_prompt()
 
-        for choice in choices:
-            predict_outcome_prompt = outcome_prediction_prompt(scenario_description, choice)
-            outcome_dialogs.append([{'role': 'system', 'content': outcomes_sys_prompt},
-                                    {'role': 'user', 'content': predict_outcome_prompt}])
+        for _ in range(num_samples):
+            for choice in choices:
+                predict_outcome_prompt = outcome_prediction_prompt(scenario_description, choice)
+                outcome_dialogs.append([{'role': 'system', 'content': outcomes_sys_prompt},
+                                        {'role': 'user', 'content': predict_outcome_prompt}])
 
         # Need to set the whitespace_pattern to prevent the state
         # machine from looping indefinitely in some cases, see:
@@ -76,8 +88,10 @@ class OutlinesTransformersRegressionADM(OutlinesTransformersADM):
                  extra={"markup": True})
         log.info(outcome_dialog_texts[0])
 
-        # List of {predicted_outcomes:}, one of each choice in order of choices
-        predicted_outcomes = outcome_generator(outcome_dialog_texts)
+        # List of {predicted_outcomes:} with length = num_samples * len(choices)
+        predicted_outcomes = run_in_batches(outcome_generator, outcome_dialog_texts, batch_size)
+        # Reshape to matrix of num_samples x len(choices)
+        predicted_outcomes = [predicted_outcomes[i:i+len(choices)] for i in range(0,len(predicted_outcomes),len(choices))]
 
         log.info("[bold]*OUTCOME PREDICTION RESPONSE*[/bold]",
                  extra={"markup": True})
@@ -86,29 +100,37 @@ class OutlinesTransformersRegressionADM(OutlinesTransformersADM):
         return predicted_outcomes
 
 
-    def predict_kdma_scores(self, scenario_description, choices, target_kdmas, predicted_outcomes=None):
+    def sample_kdma_score_predictions(self, 
+                                      scenario_description, 
+                                      choices, 
+                                      target_kdmas, 
+                                      predicted_outcomes=None, 
+                                      num_samples=1,
+                                      batch_size=6):
         '''
-        Predicts kdma scores associated with each choice
-        Outputs a list of ADM responses and a corresponding list of response keys:
+        Samples predictions of kdma scores associated with each choice
+        Outputs a list of ADM responses and a corresponding keys:
         - kdma_score_responses = [{score:int, reasoning:str}, ...]
         - reponse_keys = [{kdma:str, choice:str}, ...]
         '''
         kdma_dialogs = []
         response_keys = []
-        # loop over target kdmas
-        for target_kdma in target_kdmas:
-            kdma_score_sys_prompt = kdma_score_prediction_system_prompt(target_kdma['name'], target_kdma['description'])
-            # loop over choices
-            for choice_idx in range(len(choices)):
-                choice = choices[choice_idx]
-                if predicted_outcomes:
-                    outcome = predicted_outcomes[choice_idx]['predicted_outcome']
-                else:
-                    outcome = None
-                predict_kdma_prompt = kdma_score_prediction_prompt(scenario_description, choice, outcome, target_kdma['name'])
-                kdma_dialogs.append([{'role': 'system', 'content': kdma_score_sys_prompt},
-                                     {'role': 'user', 'content': predict_kdma_prompt}])
-                response_keys.append({'kdma':target_kdma['kdma'], 'choice':choice})
+        # loop over samples
+        for sample_idx in range(num_samples):
+            # loop over target kdmas
+            for target_kdma in target_kdmas: 
+                kdma_score_sys_prompt = kdma_score_prediction_system_prompt(target_kdma['name'], target_kdma['description'])
+                # loop over choices
+                for choice_idx in range(len(choices)):
+                    choice = choices[choice_idx]
+                    if predicted_outcomes:
+                        outcome = predicted_outcomes[sample_idx][choice_idx]['predicted_outcome']
+                    else:
+                        outcome = None
+                    predict_kdma_prompt = kdma_score_prediction_prompt(scenario_description, choice, outcome, target_kdma['name'])
+                    kdma_dialogs.append([{'role': 'system', 'content': kdma_score_sys_prompt},
+                                         {'role': 'user', 'content': predict_kdma_prompt}])
+                    response_keys.append({'kdma':target_kdma['kdma'], 'choice':choice})
 
         # Need to set the whitespace_pattern to prevent the state
         # machine from looping indefinitely in some cases, see:
@@ -124,8 +146,12 @@ class OutlinesTransformersRegressionADM(OutlinesTransformersADM):
                  extra={"markup": True})
         log.info(kdma_dialog_texts[0])
 
-        # List of {score:int, reasoning:str}
-        kdma_score_responses = kdma_score_generator(kdma_dialog_texts)
+        # List of {score:int, reasoning:str} with length = num_samples*len(choices)*len(target_kdmas)
+        kdma_score_responses = run_in_batches(kdma_score_generator, kdma_dialog_texts, batch_size)
+        # # Reshape to matrix of num_samples x (len(choices)*len(target_kdmas))
+        # sample_size = len(choices)*len(target_kdmas)
+        # kdma_score_responses = [kdma_score_responses[i:i+sample_size] for i in range(0,len(kdma_score_responses),sample_size)]
+        # response_keys = [response_keys[i:i+sample_size] for i in range(0,len(response_keys),sample_size)]
 
         log.info("[bold]*KDMA SCORE PREDICTION RESPONSE*[/bold]",
                  extra={"markup": True})
@@ -204,6 +230,7 @@ class OutlinesTransformersRegressionADM(OutlinesTransformersADM):
                                 num_samples=1,
                                 predict_outcomes=False,
                                 distribution_matching='average',
+                                generator_batch_size=5,
                                 **kwargs):
 
         scenario_description = scenario_state_description_1(scenario_state)
@@ -264,27 +291,28 @@ class OutlinesTransformersRegressionADM(OutlinesTransformersADM):
                     'reasonings':[]     # List to add sampled kdma score reasonings to
                 }
 
-        # Sample multiple predictions
-        for _ in range(num_samples):
-            # Predict outcome of selecting each choice - optional
-            if predict_outcomes:
-                predicted_outcomes = self.predict_outcomes(scenario_description, choices)
-                # Save outcome predictions
+        # Predict outcome of selecting each choice - optional
+        if predict_outcomes:
+            predicted_outcomes = self.sample_outcome_predictions(scenario_description, choices, \
+                                                                 num_samples, generator_batch_size)
+            # Save outcome predictions
+            for sample in predicted_outcomes:
                 for idx in range(len(choices)):
-                    predicted_kdma_values[choices[idx]]['outcomes'].append(predicted_outcomes[idx]['predicted_outcome'])
-            else:
-                predicted_outcomes = None
+                    predicted_kdma_values[choices[idx]]['outcomes'].append(sample[idx]['predicted_outcome'])
+        else:
+            predicted_outcomes = None
 
-            # Predict kdma values
-            kdma_score_responses, response_keys = self.predict_kdma_scores(scenario_description, choices, \
-                                                                            target_kdmas, predicted_outcomes)
-            # Save predictions
-            for idx in range(len(kdma_score_responses)):
-                response = kdma_score_responses[idx]
-                kdma = response_keys[idx]['kdma']
-                choice = response_keys[idx]['choice']
-                predicted_kdma_values[choice][kdma]['scores'].append(response['score'])
-                predicted_kdma_values[choice][kdma]['reasonings'].append(response['reasoning'])
+        # Predict kdma values
+        kdma_score_responses, response_keys = self.sample_kdma_score_predictions(scenario_description, choices, \
+                                                                                target_kdmas, predicted_outcomes, \
+                                                                                num_samples, generator_batch_size)
+        # Save predictions
+        for idx in range(len(kdma_score_responses)):
+            response = kdma_score_responses[idx]
+            kdma = response_keys[idx]['kdma']
+            choice = response_keys[idx]['choice']
+            predicted_kdma_values[choice][kdma]['scores'].append(response['score'])
+            predicted_kdma_values[choice][kdma]['reasonings'].append(response['reasoning'])
 
         # Regress best choice
         if distribution_matching == 'average':
