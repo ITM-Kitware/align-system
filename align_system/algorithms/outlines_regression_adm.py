@@ -129,7 +129,7 @@ class OutlinesTransformersRegressionADM(OutlinesTransformersADM):
 
         log.info("[bold]*KDMA SCORE PREDICTION RESPONSE*[/bold]",
                  extra={"markup": True})
-        log.info(predicted_outcomes, extra={"highlighter": JSON_HIGHLIGHTER})
+        log.info(kdma_score_responses, extra={"highlighter": JSON_HIGHLIGHTER})
 
         return kdma_score_responses, response_keys
 
