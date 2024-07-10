@@ -202,7 +202,6 @@ class OutlinesTransformersRegressionADM(OutlinesTransformersADM):
                                 available_actions,
                                 alignment_target,
                                 num_samples=1,
-                                shuffle_choices=False,
                                 predict_outcomes=False,
                                 distribution_matching='average',
                                 **kwargs):
@@ -267,23 +266,17 @@ class OutlinesTransformersRegressionADM(OutlinesTransformersADM):
 
         # Sample multiple predictions
         for _ in range(num_samples):
-            # Shuffle
-            if shuffle_choices:
-                shuffled_choices = random.sample(choices, len(choices))
-            else:
-                shuffled_choices = choices
-
             # Predict outcome of selecting each choice - optional
             if predict_outcomes:
-                predicted_outcomes = self.predict_outcomes(scenario_description, shuffled_choices)
+                predicted_outcomes = self.predict_outcomes(scenario_description, choices)
                 # Save outcome predictions
                 for idx in range(len(choices)):
-                    predicted_kdma_values[shuffled_choices[idx]]['outcomes'].append(predicted_outcomes[idx]['predicted_outcome'])
+                    predicted_kdma_values[choices[idx]]['outcomes'].append(predicted_outcomes[idx]['predicted_outcome'])
             else:
                 predicted_outcomes = None
 
             # Predict kdma values
-            kdma_score_responses, response_keys = self.predict_kdma_scores(scenario_description, shuffled_choices, \
+            kdma_score_responses, response_keys = self.predict_kdma_scores(scenario_description, choices, \
                                                                             target_kdmas, predicted_outcomes)
             # Save predictions
             for idx in range(len(kdma_score_responses)):
@@ -311,7 +304,7 @@ class OutlinesTransformersRegressionADM(OutlinesTransformersADM):
 
         # Set up simple diaolg to return for follow-ups
         alignment_system_prompt = regression_alignment_system_prompt(target_kdmas)
-        prompt = action_selection_prompt(scenario_description, shuffled_choices)
+        prompt = action_selection_prompt(scenario_description, choices)
         dialog = [{'role': 'system', 'content': alignment_system_prompt},
                   {'role': 'user', 'content': prompt}]
 
