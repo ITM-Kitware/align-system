@@ -1,6 +1,5 @@
 import json
 import random
-import itertools
 import os 
 import pathlib
 import yaml
@@ -30,7 +29,7 @@ from align_system.prompt_engineering.outlines_prompts import (
 log = logging.getLogger(__name__)
 JSON_HIGHLIGHTER = JSONHighlighter()
 
-# TODO - make this configurable? 
+# TODO - make this configurable 
 KDMA_DESCRIPTIONS_FILE_PATH = os.path.join(
     pathlib.Path(__file__).parent.absolute(), '..',
     'prompt_engineering/kdma_descriptions.yml')
@@ -50,15 +49,18 @@ class OutlinesTransformersRegressionADM(OutlinesTransformersADM):
             tokenizer_kwargs=kwargs.get('tokenizer_kwargs', {}))
 
 
-    # Returns a list of predicted outcomes corresponding to the list of choices
     def predict_outcomes(self, scenario_description, choices):
+        '''
+        Predicts outcomes if choices were to be selected
+        Returns a list of predicted outcomes corresponding to the list of choices
+        '''
         outcome_dialogs = []
         outcomes_sys_prompt = outcomes_system_prompt()
 
         for choice in choices:
             predict_outcome_prompt = outcome_prediction_prompt(scenario_description, choice)
             outcome_dialogs.append([{'role': 'system', 'content': outcomes_sys_prompt},
-                        {'role': 'user', 'content': predict_outcome_prompt}])
+                                    {'role': 'user', 'content': predict_outcome_prompt}])
 
         # Need to set the whitespace_pattern to prevent the state
         # machine from looping indefinitely in some cases, see:
@@ -68,8 +70,7 @@ class OutlinesTransformersRegressionADM(OutlinesTransformersADM):
             outcome_prediction_json_schema(),
             whitespace_pattern=r"[ ]?")
 
-        outcome_dialog_texts = [self.dialog_to_prompt(d) for d in
-            itertools.chain(outcome_dialogs)]
+        outcome_dialog_texts = [self.dialog_to_prompt(d) for d in outcome_dialogs]
 
         log.info("[bold]*OUTCOMES PREDICTION DIALOG PROMPT*[/bold]",
                  extra={"markup": True})
@@ -84,11 +85,14 @@ class OutlinesTransformersRegressionADM(OutlinesTransformersADM):
 
         return predicted_outcomes
 
-    # Predicts kdma scores associated with each choice
-    # Outputs a list of ADM responses and a corresponding list of response keys:
-    #   kdma_score_responses = [{score:int, reasoning:str}, ...]
-    #   reponse_keys = [{kdma:str, choice:str}, ...]
+
     def predict_kdma_scores(self, scenario_description, choices, target_kdmas, predicted_outcomes=None):
+        '''
+        Predicts kdma scores associated with each choice
+        Outputs a list of ADM responses and a corresponding list of response keys:
+        - kdma_score_responses = [{score:int, reasoning:str}, ...]
+        - reponse_keys = [{kdma:str, choice:str}, ...]
+        '''
         kdma_dialogs = []
         response_keys = []
         # loop over target kdmas
@@ -103,7 +107,7 @@ class OutlinesTransformersRegressionADM(OutlinesTransformersADM):
                     outcome = None
                 predict_kdma_prompt = kdma_score_prediction_prompt(scenario_description, choice, outcome, target_kdma['name'])
                 kdma_dialogs.append([{'role': 'system', 'content': kdma_score_sys_prompt},
-                            {'role': 'user', 'content': predict_kdma_prompt}])
+                                     {'role': 'user', 'content': predict_kdma_prompt}])
                 response_keys.append({'kdma':target_kdma['kdma'], 'choice':choice})
 
         # Need to set the whitespace_pattern to prevent the state
@@ -114,8 +118,7 @@ class OutlinesTransformersRegressionADM(OutlinesTransformersADM):
             kdma_score_prediction_json_schema(),
             whitespace_pattern=r"[ ]?")
 
-        kdma_dialog_texts = [self.dialog_to_prompt(d) for d in
-            itertools.chain(kdma_dialogs)]
+        kdma_dialog_texts = [self.dialog_to_prompt(d) for d in kdma_dialogs]
 
         log.info("[bold]*KDMA SCORE PREDICTION DIALOG PROMPT*[/bold]",
                  extra={"markup": True})
@@ -135,9 +138,12 @@ class OutlinesTransformersRegressionADM(OutlinesTransformersADM):
     # (each with a __call__ method) so we can specify the class target and 
     # initialize in our hydra configs. 
 
-    # Select choice by first averaging score across samples,
-    # then selecting the one with minimal MSE to the target
     def average_distribution_matching(self, predicted_kdma_values, target_kdmas):
+        '''
+        Selects a choice by first averaging score across samples,
+        then selecting the one with minimal MSE to the target.
+        Returns the selected choice and reasoning.
+        '''
         # Get average of predicted scores
         average_predictions_for_each_choice = []
         choices = []
