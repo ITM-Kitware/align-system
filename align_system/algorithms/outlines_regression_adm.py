@@ -54,6 +54,10 @@ def run_in_batches(inference_function, inputs, batch_size):
     outputs = []
     for batch in batched(inputs, batch_size):
         outputs.extend(inference_function(list(batch)))
+        if batch_size == 1:
+            outputs.append(output)
+        else:
+            outputs.extend(output)
     return outputs
 
 class OutlinesTransformersRegressionADM(OutlinesTransformersADM):
