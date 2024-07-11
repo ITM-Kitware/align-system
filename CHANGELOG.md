@@ -11,14 +11,23 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Fixed
 
+* Fixed issue with outlines ADM by catching when target KDMAs are not formatted as dictionaries as expected during eval sessions
 * Fixed issue with outlines ADM where responses weren't a list when only a single sample was requested
 
 ### Added
 
+* Added new implementation of multi-KDMA ADM that regresses KDMA scores based on the outlines structure called `outlines_regression_adm`
+* Added regression prompts to `align_system/prompt_engineering/outlines_prompts.py`
+* Added KDMA descriptions to `align_system/prompt_engineering/kdma_descriptions.yml`
 * Added new [Outlines](https://github.com/outlines-dev/outlines) based structured ADM
 * Added outlines based prompts (in `align_system/prompt_engineering/outlines_prompts.py`)
 * Added dedicated function to utils for calculating votes (same voting scheme as the single KDMA ADM)
 * Added top level config options to force determinism and fix seeds; along with an example experiment to demonstrate
+
+### Deprecated 
+* The algorithm `align_system/algorithms/chat_kdma_predicting_adm.py` has been replaced by `align_system/algorithms/outlines_regression_adm.py`
+* The functionality in `align_system/algorithms/lib/chat/` is no longer being used
+* Files `align_system/algorithms/lib/templates/` have been replaced by `align_system/prompt_engineering/`
 
 ## 0.4.0
 

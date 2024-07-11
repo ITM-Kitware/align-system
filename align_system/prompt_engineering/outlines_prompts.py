@@ -278,3 +278,113 @@ def treatment_choice_json_schema(supplies_json_str, locations_json_str):
      "title": "TreatmentSelection",
      "type": "object"}
     '''
+
+@outlines.prompt
+def outcomes_system_prompt():
+    """
+    In a clear and consice way describe the outcomes of answering the \
+    given question with the given response. Do not provide additional \
+    advice for the situation. Do not indicate wether or not you agree \
+    with the response. Simply analyze the outcomes of the response. \
+    Limit your analysis to a single sentence.
+    """
+
+@outlines.prompt
+def outcome_prediction_prompt(situation, choice):
+    """
+    Consider the following scenario:
+    {{ situation }}
+
+    What would happen if you chose to answer the question with the following response?
+    {{ choice }}
+    """
+
+@outlines.prompt
+def outcome_prediction_json_schema():
+    '''
+    {"properties": {"predicted_outcome": {"title": "Outcome",
+       "type": "string"}},
+     "required": ["predicted_outcome"],
+     "title": "OutcomePredictions",
+     "type": "object"}
+    '''
+
+@outlines.prompt
+def kdma_score_prediction_system_prompt(kdma, kdma_description):
+    """
+    In a clear and consice way describe the outcomes of answering the \
+    Given the following scenario, response, and predicted outcome your job \
+    is to asses, on a scale from 0 to 10, how well the response characterizes \
+    the decision making behavior of someone who acting with high {{kdma}}. \
+    Provide one sentence of reasoning.  
+
+    {{kdma_description}}
+
+    A score of 0 means that the response is a poor characterization of someone \
+    who is acting with high {{kdma}}. A score of 10 means that the response \
+    is a perfect characterization of someone who is acting with high {{kdma}}.
+
+    Provide a score and one sentence of reasoning explaining your score.
+    """
+
+@outlines.prompt
+def kdma_score_prediction_prompt(situation, choice, outcome, kdma):
+    """
+    Consider the following scenario:
+    {{ situation }}
+
+    Review this response to the scenario and consider the corresponding predicted outcome:
+
+    Response: 
+    {{ choice }}
+
+    Predicted outcome:
+    {{outcome}}
+
+    Provide a score that indicates how well the response characterizes the decision making \
+    behavior of someone who is acting with high {{kdma}} with one sentence of reasoning.
+    """
+
+    '''
+    {"properties": {"predicted_outcome": {"title": "Outcome",
+       "type": "string"}},
+     "required": ["predicted_outcome"],
+     "title": "OutcomePredictions",
+     "type": "object"}
+    '''
+
+@outlines.prompt
+def kdma_score_prediction_json_schema():
+    '''
+    {"properties": {
+        "reasoning": {
+            "title": "Reasoning",
+            "type": "string"
+            },
+        "score": {
+            "title": "Score",
+            "type": "integer"
+            }
+        },
+     "required": ["reasoning","score"],
+     "title": "ScorePrediction",
+     "type": "object"}
+    '''
+
+@outlines.prompt
+def regression_alignment_system_prompt(target_kdmas):
+    """
+    You are a specialized algorithm tasked with aiding medical triage \
+    decision-making in a military medical context. When selecting an \
+    answer from multiple-choice questions related to medical \
+    conditions or symptoms, you should incorporate the attributes \
+    listed below based on provided scores. A score of 0 means that \
+    the response is a poor characterization of the attribute. A score \
+    of 10 means that the response is a perfect characterization the attribute.
+    
+    Attributes:
+    {% for target_kdma in target_kdmas %}
+    {"name": {{ target_kdma.name }}, "score": {{ target_kdma.value }}, "description": {{ target_kdma.description }} }
+    {% endfor %}
+    """
+
