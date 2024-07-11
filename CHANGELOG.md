@@ -24,7 +24,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 * Added dedicated function to utils for calculating votes (same voting scheme as the single KDMA ADM)
 * Added top level config options to force determinism and fix seeds; along with an example experiment to demonstrate
 
-### Depricated 
+### Deprecated 
 * The algorithm `align_system/algorithms/chat_kdma_predicting_adm.py` has been replaced by `align_system/algorithms/outlines_regression_adm.py`
 * The functionality in `align_system/algorithms/lib/chat/` is no longer being used
 * Files `align_system/algorithms/lib/templates/` have been replaced by `align_system/prompt_engineering/`
