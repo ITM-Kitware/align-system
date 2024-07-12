@@ -1,7 +1,6 @@
 import json
 import random
 import itertools
-import math
 
 import outlines
 import jinja2
@@ -10,6 +9,7 @@ from swagger_client.models import (
     ActionTypeEnum,
     InjuryLocationEnum,
     CharacterTagEnum,
+    KDMAValue
 )
 
 from align_system.utils import logging
@@ -133,7 +133,7 @@ class OutlinesTransformersADM(ActionBasedADM):
                 raise RuntimeError("This ADM assumes a single KDMA target, aborting!")
 
             kdma_value = kdma_values[0]
-            if not isinstance(kdma_value, dict):
+            if isinstance(kdma_value, KDMAValue):
                 kdma_value = kdma_value.to_dict()
 
             kdma = kdma_value['kdma']
