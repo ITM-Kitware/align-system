@@ -170,7 +170,7 @@ class OutlinesTransformersADM(ActionBasedADM):
             shuffled_choices = random.sample(choices, len(choices))
 
             prompt = action_selection_prompt(scenario_description, shuffled_choices)
-            dialog = [{'role': 'system', 'content': positive_system_prompt},
+            dialog = [{'role': 'system', 'content': negative_system_prompt},
                       {'role': 'user', 'content': prompt}]
 
             negative_dialogs.append(dialog)
