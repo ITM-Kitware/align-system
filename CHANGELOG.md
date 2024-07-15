@@ -13,6 +13,8 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 * Fixed issue with outlines ADM by catching when target KDMAs are not formatted as dictionaries as expected during eval sessions
 * Fixed issue with outlines ADM where responses weren't a list when only a single sample was requested
+* Fixed issue with outlines ADM during target KDMA conversion (should only run to_dict on KDMAValue objects)
+* Fixed a typo issue with outlines ADM where the positive system prompt was being used instead of the negative system prompt
 
 ### Added
 
