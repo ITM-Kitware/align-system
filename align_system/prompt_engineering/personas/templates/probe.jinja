@@ -5,8 +5,9 @@ Instructions: Please answer the following questions keeping in mind your own per
 Question 1: Please describe youself. Include details on your childhood, schooling (medical school, university, degree, grades), employment history, and beliefs (personal, religious, etc).
 Answer: {{ backstory['backstory'] }}
 
-{% for probe in backstory['probes'] %}Question {{ loop.index + 2 }}: {{ probe['probe_prompt'] }}
+{% for probe in backstory['probes'] %}Question {{ loop.index + 1 }}: {{ probe['probe_prompt'] }}
 Answer: {{ probe['response'] }}
+
 {% endfor %}
 
 Question {{ question_number }} - SCENARIO Evaluation and Emulation
