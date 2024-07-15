@@ -24,7 +24,9 @@ from align_system.algorithms.llama_2_single_kdma_adm import (
 # Some types
 class Probe(TypedDict):
     probe: str
-    result: str
+    probe_prompt: str
+    response: str
+    response_value: float
 
 
 class Backstory(TypedDict):
@@ -58,6 +60,14 @@ def log_dialog(dialog):
         logger.debug(f"[{color}]{e.get('content')}[/{color}]", extra={"markup": True, "highlighter": None})
 
 
+
+KDMA_TO_PROBE_MAPPING = {
+    'MoralDesert': 'moral_judgment',
+    'maximization': 'maximization',
+}
+
+
+
 class PersonaADM(AlignedDecisionMaker, ActionBasedADM):
     def __init__(
         self,
@@ -82,6 +92,7 @@ class PersonaADM(AlignedDecisionMaker, ActionBasedADM):
                 self._backstories: List[Backstory] = data
 
         self._backstory_panel_size = panel_size
+        self._backstory_alignment_cache = {}
 
         # Load and setup the root model for decision making
         logger.info(f"Loading root model: {root_model}")
@@ -94,14 +105,42 @@ class PersonaADM(AlignedDecisionMaker, ActionBasedADM):
         logger.info(f"Loaded root model {root_model} using generation kwargs: {self._root_model_generation_kwargs}")
 
     def _sample_backstories(self, alignment_target: Optional[type[AlignmentTarget]] = None) -> List[Backstory]:
-        # TODO: Cache panels for particular alignment targets
-        if alignment_target is None:
+        if alignment_target is None or len(alignment_target.kdma_values) == 0: # type: ignore
             # There's no alignment target, so randomly sample a set of backstories
             return random.sample(self._backstories, self._backstory_panel_size)
 
-        # Otherwise, we need to focus on maximizing a particular KDMA.
-        # TODO
-        return random.sample(self._backstories, self._backstory_panel_size)
+        # Map the alignment target to a probe
+        alignment_target_dict = alignment_target.to_dict()
+        probe_values = {
+            KDMA_TO_PROBE_MAPPING[k['kdma']]: k['value'] * 10
+            for k in alignment_target_dict.get('kdma_values', [])
+            if k['kdma'] in KDMA_TO_PROBE_MAPPING
+        }
+
+        # Serialize the probe values into a repeatable string
+        probe_values_str = json.dumps(probe_values, sort_keys=True)
+        if probe_values_str in self._backstory_alignment_cache:
+            return self._backstory_alignment_cache[probe_values_str]
+
+        # Now that we have the probe values, we can find a set of backstories that maximize the value.
+        # For each backstory, add the value
+        backstories_with_values = []
+        for backstory in self._backstories:
+            value = sum(
+                probe_values.get(probe['probe'], 0) * probe['response_value']
+                for probe in backstory['probes']
+            )
+            backstories_with_values.append((backstory, value))
+
+        # Sort by value (largest to smallest)
+        backstories_with_values.sort(key=lambda x: x[1], reverse=True)
+
+        # Cache the panel
+        sampled_backstories = [b[0] for b in backstories_with_values[:self._backstory_panel_size]]
+        self._backstory_alignment_cache[probe_values_str] = sampled_backstories
+
+        # Return the top N backstories
+        return sampled_backstories
 
     def _get_model_response(self, prompt: str, choices: List[str], prefix: Optional[str] = None) -> Choice:
         # Tokenize the prompt
