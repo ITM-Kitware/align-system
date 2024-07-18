@@ -25,7 +25,8 @@ from align_system.prompt_engineering.outlines_prompts import (
     kdma_score_prediction_prompt,
     kdma_score_prediction_json_schema,
     regression_alignment_system_prompt,
-    action_selection_prompt
+    action_selection_prompt,
+    kdma_score_prediction_system_prompt_with_examples
 )
 
 log = logging.getLogger(__name__)
@@ -128,6 +129,7 @@ class OutlinesTransformersRegressionADM(OutlinesTransformersADM):
                                       target_kdmas,
                                       predicted_outcomes=None,
                                       num_samples=1,
+                                      kdma_score_examples=False,
                                       batch_size=6):
         '''
         Samples predictions of kdma scores associated with each choice
@@ -140,8 +142,11 @@ class OutlinesTransformersRegressionADM(OutlinesTransformersADM):
         # loop over samples
         for sample_idx in range(num_samples):
             # loop over target kdmas
-            for target_kdma in target_kdmas:
-                kdma_score_sys_prompt = kdma_score_prediction_system_prompt(target_kdma['name'], target_kdma['description'])
+            for target_kdma in target_kdmas: 
+                if kdma_score_examples:
+                    kdma_score_sys_prompt = kdma_score_prediction_system_prompt_with_examples(target_kdma['name'], target_kdma['description'], target_kdma['score_examples'])
+                else:
+                    kdma_score_sys_prompt = kdma_score_prediction_system_prompt(target_kdma['name'], target_kdma['description'])
                 # loop over choices
                 for choice_idx in range(len(choices)):
                     choice = choices[choice_idx]
@@ -254,6 +259,7 @@ class OutlinesTransformersRegressionADM(OutlinesTransformersADM):
                                 predict_outcomes=False,
                                 distribution_matching='average',
                                 generator_batch_size=5,
+                                kdma_score_examples=False,
                                 **kwargs):
 
         scenario_description = scenario_state_description_1(scenario_state)
@@ -302,6 +308,7 @@ class OutlinesTransformersRegressionADM(OutlinesTransformersADM):
             else:
                 target_kdmas[kdma_idx]['name'] = kdma_descriptions[kdma]['name']
                 target_kdmas[kdma_idx]['description'] = kdma_descriptions[kdma]['description']
+                target_kdmas[kdma_idx]['score_examples'] = kdma_descriptions[kdma]['score_examples']
 
         predicted_kdma_values = {}      # Dictionary to save output for each choice to
         for choice in choices:
@@ -328,7 +335,8 @@ class OutlinesTransformersRegressionADM(OutlinesTransformersADM):
         # Predict kdma values
         kdma_score_responses, response_keys = self.sample_kdma_score_predictions(scenario_description, choices, \
                                                                                 target_kdmas, predicted_outcomes, \
-                                                                                num_samples, generator_batch_size)
+                                                                                num_samples, kdma_score_examples, \
+                                                                                generator_batch_size)
         # Save predictions
         for idx in range(len(kdma_score_responses)):
             response = kdma_score_responses[idx]

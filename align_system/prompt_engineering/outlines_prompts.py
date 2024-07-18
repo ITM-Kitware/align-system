@@ -332,6 +332,26 @@ def kdma_score_prediction_system_prompt(kdma, kdma_description):
     """
 
 @outlines.prompt
+def kdma_score_prediction_system_prompt_with_examples(kdma, kdma_description, kdma_score_examples):
+    """
+    Given the following scenario, response, and predicted outcome your job \
+    is to asses, on a scale from 0 to 10, how well the response characterizes \
+    the decision making behavior of someone who acting with high {{kdma}}. \
+    Provide one sentence of reasoning.  
+
+    {{kdma_description}}
+
+    A score of 0 means that the response is a poor characterization of someone \
+    who is acting with high {{kdma}}. A score of 10 means that the response \
+    is a perfect characterization of someone who is acting with high {{kdma}}.\
+    Below are some examples.
+
+    {{kdma_score_examples}}
+
+    Provide a score and one sentence of reasoning explaining your score.
+    """
+
+@outlines.prompt
 def kdma_score_prediction_prompt(situation, choice, outcome, kdma):
     """
     Consider the following scenario:
