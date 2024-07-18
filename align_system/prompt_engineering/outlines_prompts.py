@@ -223,7 +223,7 @@ def action_choice_json_schema(choices_json_str):
        "title": "ActionChoice",
        "type": "string"}},
      "properties": {"detailed_reasoning": {"title": "Detailed Reasoning",
-       "type": "string"},
+       "type": "string","maxLength":512},
       "action_choice": {"$ref": "#/$defs/ActionChoice"}},
      "required": ["detailed_reasoning", "action_choice"],
      "title": "ActionSelection",
@@ -238,7 +238,7 @@ def character_choice_json_schema(choices_json_str):
        "title": "CharacterChoice",
        "type": "string"}},
      "properties": {"brief_reasoning": {"title": "Brief Reasoning",
-       "type": "string"},
+       "type": "string","maxLength":512},
       "character_choice": {"$ref": "#/$defs/CharacterChoice"}},
      "required": ["brief_reasoning", "character_choice"],
      "title": "CharacterSelection",
@@ -253,7 +253,7 @@ def tag_choice_json_schema(tags_json_str):
        "title": "TriageTag",
        "type": "string"}},
      "properties": {"detailed_reasoning": {"title": "Detailed Reasoning",
-       "type": "string"},
+       "type": "string","maxLength":512},
       "triage_tag": {"$ref": "#/$defs/TriageTag"}},
      "required": ["detailed_reasoning", "triage_tag"],
      "title": "TagSelection",
@@ -271,7 +271,7 @@ def treatment_choice_json_schema(supplies_json_str, locations_json_str):
        "title": "LocationChoice",
        "type": "string"}},
      "properties": {"detailed_reasoning": {"title": "Detailed Reasoning",
-       "type": "string"},
+       "type": "string","maxLength":512},
       "supplies_to_use": {"$ref": "#/$defs/SupplyChoice"},
       "treatment_location": {"$ref": "#/$defs/LocationChoice"}},
      "required": ["detailed_reasoning", "supplies_to_use", "treatment_location"],
@@ -302,8 +302,13 @@ def outcome_prediction_prompt(situation, choice):
 @outlines.prompt
 def outcome_prediction_json_schema():
     '''
-    {"properties": {"predicted_outcome": {"title": "Outcome",
-       "type": "string"}},
+    {"properties": {
+        "predicted_outcome": {
+            "title": "Outcome",
+            "type": "string", 
+            "maxLength": 512
+            }
+        },
      "required": ["predicted_outcome"],
      "title": "OutcomePredictions",
      "type": "object"}
@@ -312,7 +317,6 @@ def outcome_prediction_json_schema():
 @outlines.prompt
 def kdma_score_prediction_system_prompt(kdma, kdma_description):
     """
-    In a clear and consice way describe the outcomes of answering the \
     Given the following scenario, response, and predicted outcome your job \
     is to asses, on a scale from 0 to 10, how well the response characterizes \
     the decision making behavior of someone who acting with high {{kdma}}. \
@@ -345,21 +349,14 @@ def kdma_score_prediction_prompt(situation, choice, outcome, kdma):
     behavior of someone who is acting with high {{kdma}} with one sentence of reasoning.
     """
 
-    '''
-    {"properties": {"predicted_outcome": {"title": "Outcome",
-       "type": "string"}},
-     "required": ["predicted_outcome"],
-     "title": "OutcomePredictions",
-     "type": "object"}
-    '''
-
 @outlines.prompt
 def kdma_score_prediction_json_schema():
     '''
     {"properties": {
         "reasoning": {
             "title": "Reasoning",
-            "type": "string"
+            "type": "string",
+            "maxLength": 512
             },
         "score": {
             "title": "Score",
