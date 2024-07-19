@@ -3,6 +3,7 @@ import random
 import itertools
 
 import outlines
+from outlines.samplers import MultinomialSampler
 import jinja2
 from rich.highlighter import JSONHighlighter
 from swagger_client.models import (
@@ -44,6 +45,7 @@ class OutlinesTransformersADM(ActionBasedADM):
                  model_name,
                  device='auto',
                  baseline=False,
+                 sampler=MultinomialSampler(),
                  **kwargs):
         self.baseline = baseline
         self.model = outlines.models.transformers(
@@ -51,6 +53,12 @@ class OutlinesTransformersADM(ActionBasedADM):
             device=device,
             model_kwargs=kwargs.get('model_kwargs', {}),
             tokenizer_kwargs=kwargs.get('tokenizer_kwargs', {}))
+        # NOTE: In cases where we want multiple samples, we're passing
+        # in a list of prompts (this allows us to shuffle answers in
+        # each prompt), rather than setting the number of samples in
+        # the sampler itself (which defaults to 1); setting the number
+        # of samples in the sampler may result in unexpected behavior
+        self.sampler = sampler
 
     def dialog_to_prompt(self, dialog):
         tokenizer = self.model.tokenizer.tokenizer
@@ -181,6 +189,7 @@ class OutlinesTransformersADM(ActionBasedADM):
         generator = outlines.generate.json(
             self.model,
             action_choice_json_schema(json.dumps(choices)),
+            sampler=self.sampler,
             whitespace_pattern=r"[ ]?")
 
         dialog_texts = [self.dialog_to_prompt(d) for d in
@@ -270,6 +279,7 @@ class OutlinesTransformersADM(ActionBasedADM):
             generator = outlines.generate.json(
                 self.model,
                 character_choice_json_schema(json.dumps(characters)),
+                sampler=self.sampler,
                 whitespace_pattern=r"[ ]?")
 
             log.info("[bold]*DIALOG PROMPT*[/bold]",
@@ -305,6 +315,7 @@ class OutlinesTransformersADM(ActionBasedADM):
                 treatment_choice_json_schema(
                     json.dumps([s.type for s in available_supplies]),
                     json.dumps(valid_treatment_locations)),
+                sampler=self.sampler,
                 whitespace_pattern=r"[ ]?")
 
             log.info("[bold]*DIALOG PROMPT*[/bold]",
@@ -343,6 +354,7 @@ class OutlinesTransformersADM(ActionBasedADM):
                 self.model,
                 tag_choice_json_schema(
                     json.dumps(valid_tags)),
+                sampler=self.sampler,
                 whitespace_pattern=r"[ ]?")
 
             log.info("[bold]*DIALOG PROMPT*[/bold]",

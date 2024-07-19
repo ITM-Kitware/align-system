@@ -1,0 +1,27 @@
+# @package _global_
+defaults:
+  - /alignment_target: moral_deservingness_high
+  - override /adm: outlines_transformers_structured_aligned
+
+adm:
+  instance:
+    model_name: meta-llama/Meta-Llama-3-8B
+
+    # For greedy sampling
+    # sampler:
+    #   _target_: outlines.samplers.GreedySampler
+
+    # For multinomial sampling with temperature 0.7 (default is 1.0 if
+    # not specified)
+    sampler:
+      _target_: outlines.samplers.MultinomialSampler
+      temperature: 0.7
+
+    # NOTE: In cases where we want multiple samples, we're
+    # passing in a list of prompts (this allows us to shuffle
+    # answers in each prompt), rather than setting the number of
+    # samples in the sampler itself (which defaults to 1); setting
+    # the number of samples in the sampler may result in
+    # unexpected behavior
+
+align_to_target: true

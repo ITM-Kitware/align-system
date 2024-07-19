@@ -1,11 +1,12 @@
 import json
 import random
-import os 
+import os
 import pathlib
 import yaml
 import itertools
 
 import outlines
+from outlines.samplers import MultinomialSampler
 from rich.highlighter import JSONHighlighter
 from swagger_client.models import (
     ActionTypeEnum,
@@ -30,15 +31,28 @@ from align_system.prompt_engineering.outlines_prompts import (
 log = logging.getLogger(__name__)
 JSON_HIGHLIGHTER = JSONHighlighter()
 
-# TODO - make this configurable 
+# TODO - make this configurable
 KDMA_DESCRIPTIONS_FILE_PATH = os.path.join(
     pathlib.Path(__file__).parent.absolute(), '..',
     'prompt_engineering/kdma_descriptions.yml')
 
+
+# Function borrowed from
+# https://docs.python.org/3/library/itertools.html#itertools.batched
+# (since itertools.batched is only available in Python 3.12 or newer):
+def batched(iterable, n):
+    # batched('ABCDEFG', 3) --> ABC DEF G
+    if n < 1:
+        raise ValueError('n must be at least one')
+    iterator = iter(iterable)
+    while batch := tuple(itertools.islice(iterator, n)):
+        yield batch
+
+
 def run_in_batches(inference_function, inputs, batch_size):
     ''' Batch inference to avoid out of memory error'''
     outputs = []
-    for batch in itertools.batched(inputs, batch_size):
+    for batch in batched(inputs, batch_size):
         outputs.extend(inference_function(list(batch)))
     return outputs
 
@@ -47,6 +61,7 @@ class OutlinesTransformersRegressionADM(OutlinesTransformersADM):
                  model_name,
                  device='auto',
                  baseline=False,
+                 sampler=MultinomialSampler(),
                  **kwargs):
         self.baseline = baseline
         self.model = outlines.models.transformers(
@@ -54,11 +69,17 @@ class OutlinesTransformersRegressionADM(OutlinesTransformersADM):
             device=device,
             model_kwargs=kwargs.get('model_kwargs', {}),
             tokenizer_kwargs=kwargs.get('tokenizer_kwargs', {}))
+        # NOTE: In cases where we want multiple samples, we're passing
+        # in a list of prompts (this allows us to shuffle answers in
+        # each prompt), rather than setting the number of samples in
+        # the sampler itself (which defaults to 1); setting the number
+        # of samples in the sampler may result in unexpected behavior
+        self.sampler = sampler
 
 
-    def sample_outcome_predictions(self, 
-                                   scenario_description, 
-                                   choices, 
+    def sample_outcome_predictions(self,
+                                   scenario_description,
+                                   choices,
                                    num_samples=1,
                                    batch_size=5):
         '''
@@ -80,6 +101,7 @@ class OutlinesTransformersRegressionADM(OutlinesTransformersADM):
         outcome_generator = outlines.generate.json(
             self.model,
             outcome_prediction_json_schema(),
+            sampler=self.sampler,
             whitespace_pattern=r"[ ]?")
 
         outcome_dialog_texts = [self.dialog_to_prompt(d) for d in outcome_dialogs]
@@ -100,11 +122,11 @@ class OutlinesTransformersRegressionADM(OutlinesTransformersADM):
         return predicted_outcomes
 
 
-    def sample_kdma_score_predictions(self, 
-                                      scenario_description, 
-                                      choices, 
-                                      target_kdmas, 
-                                      predicted_outcomes=None, 
+    def sample_kdma_score_predictions(self,
+                                      scenario_description,
+                                      choices,
+                                      target_kdmas,
+                                      predicted_outcomes=None,
                                       num_samples=1,
                                       batch_size=6):
         '''
@@ -118,7 +140,7 @@ class OutlinesTransformersRegressionADM(OutlinesTransformersADM):
         # loop over samples
         for sample_idx in range(num_samples):
             # loop over target kdmas
-            for target_kdma in target_kdmas: 
+            for target_kdma in target_kdmas:
                 kdma_score_sys_prompt = kdma_score_prediction_system_prompt(target_kdma['name'], target_kdma['description'])
                 # loop over choices
                 for choice_idx in range(len(choices)):
@@ -138,6 +160,7 @@ class OutlinesTransformersRegressionADM(OutlinesTransformersADM):
         kdma_score_generator = outlines.generate.json(
             self.model,
             kdma_score_prediction_json_schema(),
+            sampler=self.sampler,
             whitespace_pattern=r"[ ]?")
 
         kdma_dialog_texts = [self.dialog_to_prompt(d) for d in kdma_dialogs]
@@ -161,8 +184,8 @@ class OutlinesTransformersRegressionADM(OutlinesTransformersADM):
 
 
     # TODO - create a separate class for distribution matching approaches
-    # (each with a __call__ method) so we can specify the class target and 
-    # initialize in our hydra configs. 
+    # (each with a __call__ method) so we can specify the class target and
+    # initialize in our hydra configs.
 
     def average_distribution_matching(self, predicted_kdma_values, target_kdmas):
         '''
@@ -207,7 +230,7 @@ class OutlinesTransformersRegressionADM(OutlinesTransformersADM):
                 min_mse = mse_
                 choice_idx = i
         selected_choice = choices[choice_idx]
-        
+
         # If outcomes were predicted, add to reasoning
         if predicted_kdma_values[selected_choice]['outcomes']:
             reasoning = 'The predicted outcome for choice ' + selected_choice + ' was: '
@@ -263,7 +286,7 @@ class OutlinesTransformersRegressionADM(OutlinesTransformersADM):
 
         target_kdmas = alignment_target.kdma_values
 
-        # Get kdma names and descriptions 
+        # Get kdma names and descriptions
         with open(KDMA_DESCRIPTIONS_FILE_PATH, 'r') as f:
             kdma_descriptions = yaml.load(f, Loader=yaml.FullLoader)
         # Add names and descriptions to target_kdmas

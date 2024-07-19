@@ -4,7 +4,9 @@ defaults:
   - override /adm: outlines_transformers_structured_aligned
   - override /interface: ta3
 
-adm.instance.model_name: meta-llama/Meta-Llama-3-8B
+adm:
+  instance:
+    model_name: meta-llama/Meta-Llama-3-8B
 
 interface:
   session_type: adept

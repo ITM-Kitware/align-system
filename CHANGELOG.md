@@ -16,6 +16,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 * Fixed issue with outlines ADM where responses weren't a list when only a single sample was requested
 * Fixed issue with outlines ADM during target KDMA conversion (should only run to_dict on KDMAValue objects)
 * Fixed a typo issue with outlines ADM where the positive system prompt was being used instead of the negative system prompt
+* Fixed issue with llama3 outlines ADM experiment files where the model wasn't being correctly set
 
 ### Added
 
@@ -26,6 +27,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 * Added outlines based prompts (in `align_system/prompt_engineering/outlines_prompts.py`)
 * Added dedicated function to utils for calculating votes (same voting scheme as the single KDMA ADM)
 * Added top level config options to force determinism and fix seeds; along with an example experiment to demonstrate
+* Added sampler parameter to outlines ADMs (example usage in `align_system/configs/experiment/examples/outlines_sampler.yaml`)
 
 ### Deprecated 
 * The algorithm `align_system/algorithms/chat_kdma_predicting_adm.py` has been replaced by `align_system/algorithms/outlines_regression_adm.py`
