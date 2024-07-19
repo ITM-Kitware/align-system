@@ -33,3 +33,14 @@ def calculate_votes(possible_choices,
                         for choice, score in tmp_normalized_votes.items()}
 
     return normalized_votes
+
+
+def filter_votes_to_responses(votes, responses):
+    filtered_votes = {choice: score for choice, score in votes.items()
+                      if choice in responses}
+
+    if len(filtered_votes) == 0:
+        raise RuntimeError(
+            "No votes left after filtering, was `reponses` empty?")
+
+    return filtered_votes

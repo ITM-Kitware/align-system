@@ -15,7 +15,10 @@ from swagger_client.models import (
 
 from align_system.utils import logging
 from align_system.utils import get_swagger_class_enum_values
-from align_system.utils.voting import calculate_votes
+from align_system.utils.voting import (
+    calculate_votes,
+    filter_votes_to_responses,
+)
 from align_system.algorithms.abstracts import ActionBasedADM
 from align_system.prompt_engineering.outlines_prompts import (
     baseline_system_prompt,
@@ -221,8 +224,22 @@ class OutlinesTransformersADM(ActionBasedADM):
                     extra={"markup": True})
         log.explain(votes, extra={"highlighter": JSON_HIGHLIGHTER})
 
+        if kwargs.get('filter_votes_to_positives', True):
+            filtered_votes = filter_votes_to_responses(
+                votes, positive_responses_choices)
+
+            if filtered_votes != votes:
+                log.explain("Filtering votes down to choices where we "
+                            "have a positive reponse")
+                log.explain(filtered_votes,
+                            extra={"highlighter": JSON_HIGHLIGHTER})
+
+            final_votes = filtered_votes
+        else:
+            final_votes = votes
+
         # Take top choice by score (votes is a dictionary of choice: score)
-        top_choice, top_choice_score = max(votes.items(), key=lambda x: x[1])
+        top_choice, top_choice_score = max(final_votes.items(), key=lambda x: x[1])
         # Just taking first justification from the positive responses
         # where the top choice was selected.  A better approach might
         # be to somehow summarized all justifications with the
