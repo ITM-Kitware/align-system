@@ -1,0 +1,13 @@
+# @package _global_
+defaults:
+  - override /adm: outlines_transformers_structured_aligned
+  - override /interface: ta3
+
+adm:
+  instance:
+    model_name: meta-llama/Meta-Llama-3-8B
+
+interface:
+  api_endpoint: "http://127.0.0.1:8089"
+
+align_to_target: true

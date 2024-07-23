@@ -1,0 +1,6 @@
+_target_: swagger_client.models.AlignmentTarget
+
+id: ADEPT-DryRun-Moral judgement-0.1
+kdma_values:
+- kdma: Moral judgement
+  value: 0.1

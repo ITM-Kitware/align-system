@@ -1,0 +1,6 @@
+_target_: swagger_client.models.AlignmentTarget
+
+id: ADEPT-DryRun-Ingroup Bias-0.5
+kdma_values:
+- kdma: Ingroup Bias
+  value: 0.5
