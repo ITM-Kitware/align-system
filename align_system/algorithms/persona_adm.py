@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import numpy as np
 import random
 from typing import List, Optional, TypedDict
 
@@ -127,13 +128,13 @@ class PersonaADM(AlignedDecisionMaker, ActionBasedADM):
         backstories_with_values = []
         for backstory in self._backstories:
             value = sum(
-                probe_values.get(probe['probe'], 0) * probe['response_value']
+                np.abs(probe['response_value'] - probe_values.get(probe['probe'], 0))
                 for probe in backstory['probes']
             )
             backstories_with_values.append((backstory, value))
 
         # Sort by value (largest to smallest)
-        backstories_with_values.sort(key=lambda x: x[1], reverse=True)
+        backstories_with_values.sort(key=lambda x: x[1])
 
         # Cache the panel
         sampled_backstories = [b[0] for b in backstories_with_values[:self._backstory_panel_size]]
