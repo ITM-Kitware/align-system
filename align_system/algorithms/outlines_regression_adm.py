@@ -33,11 +33,6 @@ from align_system.prompt_engineering.outlines_prompts import (
 log = logging.getLogger(__name__)
 JSON_HIGHLIGHTER = JSONHighlighter()
 
-# TODO - make this configurable
-KDMA_DESCRIPTIONS_FILE_PATH = os.path.join(
-    pathlib.Path(__file__).parent.absolute(), '..',
-    'prompt_engineering/kdma_descriptions.yml')
-
 
 class OutlinesTransformersRegressionADM(OutlinesTransformersADM):
     def __init__(self,
@@ -333,6 +328,7 @@ class OutlinesTransformersRegressionADM(OutlinesTransformersADM):
                                 predict_outcomes=False,
                                 distribution_matching='average',
                                 generator_batch_size=5,
+                                kdma_descriptions_map='align_system/prompt_engineering/kdma_descriptions.yml',
                                 **kwargs):
 
         scenario_description = scenario_state_description_1(scenario_state)
@@ -349,7 +345,7 @@ class OutlinesTransformersRegressionADM(OutlinesTransformersADM):
         target_kdmas = alignment_target.kdma_values
 
         # Get kdma names and descriptions
-        with open(KDMA_DESCRIPTIONS_FILE_PATH, 'r') as f:
+        with open(kdma_descriptions_map, 'r') as f:
             kdma_descriptions = yaml.load(f, Loader=yaml.FullLoader)
         # Add names and descriptions to target_kdmas
         for kdma_idx in range(len(target_kdmas)):

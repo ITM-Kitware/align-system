@@ -1,0 +1,13 @@
+# @package _global_
+defaults:
+  - override /adm: outlines_regression_aligned
+  - override /interface: ta3
+
+adm:
+  inference_kwargs:
+    kdma_descriptions_map: 'align_system/prompt_engineering/kdma_descriptions.yml'
+
+interface:
+  api_endpoint: "http://127.0.0.1:8089"
+
+align_to_target: true
