@@ -126,16 +126,16 @@ class PersonaProvider:
 
         dialog: Dialog = [{
             "role": "user",
-            "content": BACKSTORY_ASSISTANT_PROMPT
+            "content": BACKSTORY_ASSISTANT_PROMPT # Question 1
         }, {
             "role": "assistant",
             "content": backstory['backstory'],
         }]
 
-        for probe in backstory['probes']:
+        for i, probe in enumerate(backstory['probes']):
             dialog.extend(
                 (
-                    {"role": "user", "content": probe['probe_prompt']},
+                    {"role": "user", "content": f'Question {i + 2}: {probe["probe_prompt"]}'}, # Question 2, 3, 4, ... etc.
                     {"role": "assistant", "content": probe['response']},
                 )
             )
