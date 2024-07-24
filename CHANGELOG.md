@@ -5,6 +5,10 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## Unreleased
 
+### Changed
+
+* Updated KDMA descriptions and made the KDMA description yml file configurable 
+
 ### Added
 
 * Added incontext learning option for Outlines-based structured ADM
