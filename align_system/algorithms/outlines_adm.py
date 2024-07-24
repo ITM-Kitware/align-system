@@ -203,7 +203,10 @@ class OutlinesTransformersADM(ActionBasedADM):
         ''' Batch inference to avoid out of memory error'''
         outputs = []
         for batch in cls.batched(inputs, batch_size):
-            outputs.extend(inference_function(list(batch)))
+            output = inference_function(list(batch))
+            if not isinstance(output, list):
+                output = [output]
+            outputs.extend(output)
         return outputs
 
     def top_level_choose_action(self,
@@ -362,12 +365,6 @@ class OutlinesTransformersADM(ActionBasedADM):
         log.info(dialog_texts[0])
 
         responses = self.run_in_batches(generator, dialog_texts, generator_batch_size)
-
-        if len(dialog_texts) == 1:
-            # Ensure responses is a list in the case that we passed a
-            # single dialog text
-            responses = [responses]
-
         positive_responses_choices =\
             [r['action_choice'] for r in
              responses[0:num_positive_samples]]
