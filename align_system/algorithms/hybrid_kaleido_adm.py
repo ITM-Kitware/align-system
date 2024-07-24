@@ -39,7 +39,8 @@ class HybridKaleidoADM(ActionBasedADM):
         elif action_to_take.action_type in {ActionTypeEnum.CHECK_ALL_VITALS,
                                             ActionTypeEnum.CHECK_PULSE,
                                             ActionTypeEnum.CHECK_RESPIRATION,
-                                            ActionTypeEnum.MOVE_TO_EVAC}:
+                                            ActionTypeEnum.MOVE_TO_EVAC,
+                                            ActionTypeEnum.CHECK_BLOOD_OXYGEN}:
             # These actions require a `character_id`
             if action_to_take.character_id is None:
                 action_to_take = self.llm_algorithm.generic_populate_character_id(

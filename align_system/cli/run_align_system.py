@@ -112,6 +112,12 @@ def main(cfg: DictConfig) -> None:
         else:
             alignment_target = None
 
+        log.info('[bold]*ALIGNMENT TARGET*[/bold]')
+        if alignment_target is None:
+            log.info('Alignment target is `None`')
+        else:
+            log.info(alignment_target)
+
         current_state = scenario.get_state()
         scenario_complete = current_state.scenario_complete
 
@@ -141,7 +147,8 @@ def main(cfg: DictConfig) -> None:
                                          ActionTypeEnum.CHECK_PULSE,
                                          ActionTypeEnum.CHECK_RESPIRATION,
                                          ActionTypeEnum.MOVE_TO_EVAC,
-                                         ActionTypeEnum.TAG_CHARACTER}:
+                                         ActionTypeEnum.TAG_CHARACTER,
+                                         ActionTypeEnum.CHECK_BLOOD_OXYGEN}:
                         log.debug("No characters in current state, not "
                                   "allowing {} action".format(a.action_type))
                         continue
@@ -160,7 +167,8 @@ def main(cfg: DictConfig) -> None:
                                         if c.visited is None or not c.visited]
                 if a.action_type in {ActionTypeEnum.CHECK_ALL_VITALS,
                                      ActionTypeEnum.CHECK_PULSE,
-                                     ActionTypeEnum.CHECK_RESPIRATION}:
+                                     ActionTypeEnum.CHECK_RESPIRATION,
+                                     ActionTypeEnum.CHECK_BLOOD_OXYGEN}:
                     if len(unvisited_characters) == 0:
                         log.debug("No unvisited characters remaining, not "
                                   "allowing {} action".format(a.action_type))
