@@ -9,6 +9,9 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 * Added incontext learning option for Outlines-based structured ADM
 * Added incontext learning option for Outlines-based regression ADM
+* Added alignment targets for ADEPT training scenarios for the dry run evaluation
+* Added some Kaleido hybrid experiments for the ADEPT dry run scenarios
+* Added Persona based ADM from UCB (based off single kdma adm)
 
 ## 0.4.1
 
