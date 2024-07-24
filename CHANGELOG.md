@@ -13,6 +13,10 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 * Added some Kaleido hybrid experiments for the ADEPT dry run scenarios
 * Added Persona based ADM from UCB (based off single kdma adm)
 
+### Fixed
+
+* Fixed issue for running in batches with batch size in outlines ADMs
+  
 ## 0.4.1
 
 ### Changed
