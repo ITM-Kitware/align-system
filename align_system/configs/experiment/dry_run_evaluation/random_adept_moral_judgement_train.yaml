@@ -1,0 +1,13 @@
+# @package _global_
+defaults:
+  - override /adm: random
+  - override /interface: ta3
+
+interface:
+  api_endpoint: "http://127.0.0.1:8089"
+  session_type: adept
+  scenario_ids:
+    - DryRunEval.MJ1
+  training_session: true
+
+align_to_target: true

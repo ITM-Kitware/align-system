@@ -65,6 +65,7 @@ def log_dialog(dialog):
 KDMA_TO_PROBE_MAPPING = {
     'MoralDesert': 'moral_judgment',
     'maximization': 'maximization',
+    'Moral judgement': 'moral_judgment',
 }
 
 

@@ -3,7 +3,23 @@ Moral judgement:
   description: Favoring victims or bystanders over those who are perpetrators or otherwise potentially blame-worthy
   vrd: Value
 
+# Initial version; David generated
+# Ingroup Bias:
+#   name: Ingroup Bias
+#   description: Favoring people who belong to the same groups that you do, i.e. your friends or those who belong to your military unit or share your nationality
+#   vrd: Value
+
 Ingroup Bias:
   name: Ingroup Bias
-  description: Favoring people who belong to the same groups that you do, i.e. your friends or those who belong to your military unit or share your nationality
+  description: Favoring casualties who are members of your same group, such as family, military unit, coalition, nationality, or region of origin over those who are not part of your group
+  vrd: Value
+
+QualityOfLife:
+  name: Quality of Life
+  description: Favoring casualties deemed most likely to have the highest quality of life once treated and rehabilitated over those whose injuries are more permanently debilitating
+  vrd: Value
+
+PerceivedQuantityOfLivesSaved:
+  name: Value of Life
+  description: Choosing actions deemed likely to result in the greatest number of lives saved regardless of other factors, consequences or values
   vrd: Value

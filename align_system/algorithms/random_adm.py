@@ -46,4 +46,7 @@ class RandomADM(ActionBasedADM):
                 action_to_take.parameters['category'] = random.choice(
                     get_swagger_class_enum_values(CharacterTagEnum))
 
+        # Required since Dry Run Evaluation
+        action_to_take.justification = "Random choice"
+
         return action_to_take
