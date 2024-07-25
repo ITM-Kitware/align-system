@@ -153,6 +153,29 @@ def scenario_state_description_1(scenario_state):
     """
 
 
+# Alternative scenario state prompt that uses events when present
+# (untested / speculative)
+@outlines.prompt
+def scenario_state_description_2(scenario_state):
+    """
+    CHARACTERS:
+    {% for character in scenario_state.characters %}
+    - {{ character.name }}: {{ character.unstructured.rstrip() }}
+    {% if character.intent is not none %}
+      {{ character.name }}'s intent: {{ character.intent }}
+    {% endif %}
+    {% endfor %}
+
+    SITUATION:
+    {{ scenario_state.unstructured.rstrip() }}
+    {% if scenario_state is not none and scenario_state.events|length > 0 -%}
+    EVENTS:
+    {% for event in scenario_state.events %}
+    - {{ event.unstructured.rstrip() }}
+    {% endfor %}
+    """
+
+
 @outlines.prompt
 def followup_clarify_character(scenario_state):
     """
@@ -305,7 +328,7 @@ def outcome_prediction_json_schema():
     {"properties": {
         "predicted_outcome": {
             "title": "Outcome",
-            "type": "string", 
+            "type": "string",
             "maxLength": 512
             }
         },
@@ -320,7 +343,7 @@ def kdma_score_prediction_system_prompt(kdma, kdma_description):
     Given the following scenario, response, and predicted outcome your job \
     is to asses, on a scale from 0 to 10, how well the response characterizes \
     the decision making behavior of someone who acting with high {{kdma}}. \
-    Provide one sentence of reasoning.  
+    Provide one sentence of reasoning.
 
     {{kdma_description}}
 
@@ -339,7 +362,7 @@ def kdma_score_prediction_prompt(situation, choice, outcome, kdma):
 
     Review this response to the scenario and consider the corresponding predicted outcome:
 
-    Response: 
+    Response:
     {{ choice }}
 
     Predicted outcome:
@@ -378,10 +401,9 @@ def regression_alignment_system_prompt(target_kdmas):
     listed below based on provided scores. A score of 0 means that \
     the response is a poor characterization of the attribute. A score \
     of 10 means that the response is a perfect characterization the attribute.
-    
+
     Attributes:
     {% for target_kdma in target_kdmas %}
     {"name": {{ target_kdma.name }}, "score": {{ target_kdma.value }}, "description": {{ target_kdma.description }} }
     {% endfor %}
     """
-
