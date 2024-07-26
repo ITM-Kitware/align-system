@@ -328,7 +328,7 @@ class OutlinesTransformersComparativeRegressionADM(OutlinesTransformersADM):
         selected_choice = choices[choice_idx]
 
         # If outcomes were predicted, add to reasoning
-        if predicted_kdma_values[selected_choice]['predicted_outcome']:
+        if predicted_kdma_values[selected_choice]['predicted_outcome'][0] is not None:
             reasoning = 'The predicted outcome for choice ' + selected_choice + ' was: '
             reasoning += predicted_kdma_values[selected_choice]['predicted_outcome'][0]
         else:
@@ -390,12 +390,12 @@ class OutlinesTransformersComparativeRegressionADM(OutlinesTransformersADM):
         else:
             # set predicted outcomes to none
             predictions = []
-            for _ in num_samples:
+            for _ in range(num_samples):
                 sample = {}
                 for choice in choices:
                     sample[choice] = {}
                     sample[choice]['predicted_outcome'] = None
-                predictions.appemd(sample)
+                predictions.append(sample)
 
 
         # Predict kdma values
