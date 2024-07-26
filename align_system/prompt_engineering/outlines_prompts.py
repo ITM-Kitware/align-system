@@ -1,4 +1,5 @@
 import outlines
+import json
 from swagger_client.models import (
     InjuryStatusEnum,
 )
@@ -313,6 +314,16 @@ def outcomes_system_prompt():
     """
 
 @outlines.prompt
+def comparative_outcomes_system_prompt():
+    """
+    In a clear and consice way describe the outcomes of answering the \
+    given question with the given responses. Do not provide additional \
+    advice for the situation. Do not indicate wether or not you agree \
+    with the response. Simply analyze the outcomes of the responses. \
+    Limit your analysis to a single sentence per response.
+    """
+
+@outlines.prompt
 def outcome_prediction_prompt(situation, choice):
     """
     Consider the following scenario:
@@ -320,6 +331,18 @@ def outcome_prediction_prompt(situation, choice):
 
     What would happen if you chose to answer the question with the following response?
     {{ choice }}
+    """
+
+@outlines.prompt
+def comparative_outcome_prediction_prompt(situation, choices):
+    """
+    Consider the following scenario:
+    {{ situation }}
+
+    What would the outcome of selecting each of the following responses be?
+    {% for choice in choices %}
+    - {{ choice }}
+    {% endfor %}
     """
 
 @outlines.prompt
@@ -337,6 +360,27 @@ def outcome_prediction_json_schema():
      "type": "object"}
     '''
 
+def comparative_outcome_prediction_json_schema(choices):
+    json_schema = {
+        "type": "object",
+        "properties": {
+            choice: {
+                "type": "object",
+                "properties": {
+                    "predicted_outcome": {
+                        "title": "Outcome",
+                        "type": "string",
+                        "maxLength": 512
+                    }
+                },
+                "required": ["predicted_outcome"]
+            }
+            for choice in choices
+        },
+        "required": list(choices)
+    }
+    return json.dumps(json_schema)
+
 @outlines.prompt
 def kdma_score_prediction_system_prompt(kdma, kdma_description):
     """
@@ -352,6 +396,22 @@ def kdma_score_prediction_system_prompt(kdma, kdma_description):
     is a perfect characterization of someone who is acting with high {{kdma}}.
 
     Provide a score and one sentence of reasoning explaining your score.
+    """
+
+@outlines.prompt
+def comparative_kdma_score_prediction_system_prompt(kdma, kdma_description):
+    """
+    Given the following scenario, responses, and predicted outcomes your job \
+    is to asses, on a scale from 0 to 10, how well each response characterizes \
+    the decision making behavior of someone who acting with high {{kdma}}. \
+
+    {{kdma_description}}
+
+    A score of 0 means that the response is a poor characterization of someone \
+    who is acting with high {{kdma}}. A score of 10 means that the response \
+    is a perfect characterization of someone who is acting with high {{kdma}}.
+
+    For each response, provide a score and one sentence of reasoning explaining your score.
     """
 
 @outlines.prompt
@@ -373,6 +433,24 @@ def kdma_score_prediction_prompt(situation, choice, outcome, kdma):
     """
 
 @outlines.prompt
+def comparative_kdma_score_prediction_prompt(situation, choices, kdma):
+    """
+    Consider the following scenario and responses:
+    {{ situation }}
+
+    RESPONSES:
+    {% for choice, choice_dict in choices.items() %}
+    - {{ choice }}
+    {% if choice_dict.predicted_outcome is not none %}
+      Predicted outcome: {{ choice_dict.predicted_outcome }}
+    {% endif %}
+    {% endfor %}
+
+    Provide a score that indicates how well each response characterizes the decision making \
+    behavior of someone who is acting with high {{kdma}} with one sentence of reasoning.
+    """
+
+@outlines.prompt
 def kdma_score_prediction_json_schema():
     '''
     {"properties": {
@@ -390,6 +468,33 @@ def kdma_score_prediction_json_schema():
      "title": "ScorePrediction",
      "type": "object"}
     '''
+
+
+def comparative_kdma_score_prediction_json_schema(choices):
+    json_schema = {
+        "type": "object",
+        "properties": {
+            choice: {
+                "type": "object",
+                "properties": {
+                    "reasoning": {
+                        "type": "string",
+                        "maxLength": 512
+                    },
+                    "score": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 10
+                    }                    
+                },
+                "required": ["score", "reasoning"]
+            }
+            for choice in choices
+        },
+        "required": list(choices)
+    }
+    return json.dumps(json_schema)
+
 
 @outlines.prompt
 def regression_alignment_system_prompt(target_kdmas):
