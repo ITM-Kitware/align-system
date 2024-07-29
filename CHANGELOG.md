@@ -11,6 +11,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Added
 
+* Added comparative regression ADM which predicts KDMA scores for all responses simultaneously, enabling comparative reasoning 
 * Added incontext learning option for Outlines-based structured ADM
 * Added incontext learning option for Outlines-based regression ADM
 * Added alignment targets for ADEPT training scenarios for the dry run evaluation
