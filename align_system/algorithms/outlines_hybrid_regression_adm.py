@@ -4,23 +4,19 @@ import yaml
 import numpy as np
 import pandas as pd
 import torch
-from torch.utils.data import TensorDataset
+from torch.utils.data import TensorDataset, DataLoader
 from transformers import AutoModelForSequenceClassification, AutoConfig, AutoTokenizer
 
 import outlines
 from outlines.samplers import MultinomialSampler
 from rich.highlighter import JSONHighlighter
-from swagger_client.models import (
-    kdma_value
-)
 
 from align_system.utils import logging
 from align_system.algorithms.outlines_adm import OutlinesTransformersADM
 from align_system.prompt_engineering.outlines_prompts import (
-
     action_selection_prompt,
     scenario_state_description_1,
-    regression_alignment_system_prompt
+    regression_error_alignment_system_prompt
 )
 
 log = logging.getLogger(__name__)
@@ -42,43 +38,34 @@ def get_ids_mask(sentences, tokenizer, max_length):
     return ids, amasks
 
 
-def load_itm_sentences(data_dict: Dict[str, List], attr: str):
+def load_itm_sentences(data_dict: Dict[str, List]):
     df = pd.DataFrame.from_dict(data_dict)
-    if attr not in df.columns:
-        raise RuntimeError("KDMA does not exist in provided data")
-    # Identify relevant rows in df based on chosen kdma
-    idx = df[attr].dropna().index
-    df_kdma = df.loc[idx]
-
-    labels = [v for v in df_kdma[attr].values]
-    scenarios = df_kdma['scenario'].values
-    states = df_kdma['state'].replace(np.nan, '').values
-    answers = df_kdma['answer'].values
-    sentences = [sc + st + " [SEP] " + ans for (sc, st, ans)
-                 in zip(scenarios, states, answers)]
-    return sentences, labels
+    scenarios = df['scenario'].values
+    # states = df['state'].replace(np.nan, '').values
+    answers = df['answer'].values
+    sentences = [sc + " [SEP] " + ans for (sc, ans)
+                 in zip(scenarios, answers)]
+    return sentences
 
 
-def load_model_data(model_name: str, data_dict: Dict[str, List], attr: str) -> TensorDataset:
-    sentences, labels = load_itm_sentences(data_dict, attr=attr)
+def load_model_data(model_name: str, data_dict: Dict[str, List]) -> TensorDataset:
+    sentences = load_itm_sentences(data_dict)
     sentences = ["[CLS] " + s for s in sentences]
     tokenizer = AutoTokenizer.from_pretrained(model_name)
     ids, amasks = get_ids_mask(sentences, tokenizer, max_length=512)
-    inputs, labels, masks = torch.tensor(ids), torch.tensor(labels), torch.tensor(amasks)
-    data = TensorDataset(inputs, masks, labels)
+    inputs, masks = torch.tensor(ids), torch.tensor(amasks)
+    data = TensorDataset(inputs, masks)
     return data
 
 
-def get_kdma_predictions(model_name: str, data_dict: Dict[str, List],
-                         attr: str, model_path: str) -> np.ndarray:
+def get_kdma_predictions(model_name: str, data_dict: Dict[str, List], model_path: str) -> np.ndarray:
     dataset = load_model_data(
         model_name=model_name,
-        data_dict=data_dict,
-        attr=attr
+        data_dict=data_dict
     )
+    dataloader = DataLoader(dataset, batch_size=1)
     regression_model = BertRegressionModel(model_name=model_name, load_path=model_path)
-    regression_model.load_model()
-    predictions = regression_model.evaluate(dataset)
+    predictions = regression_model.evaluate(dataloader)
 
     return predictions
 
@@ -89,23 +76,22 @@ class BertRegressionModel:
         self.model_name = model_name
         self.load_path = load_path
         self.device = device
+        config = AutoConfig.from_pretrained(self.model_name, num_labels=1)
+        self.model = AutoModelForSequenceClassification.from_pretrained(self.model_name, config=config)
 
-    def load_model(self):
-        config = AutoConfig(self.model_name, num_labels=1)
-        model = AutoModelForSequenceClassification.from_pretrained(self.model_name, config=config)
-        self.model = model.load_state_dict(torch.load(self.load_path))
-
-    def evaluate(self, dataset):
-
+    def evaluate(self, dataloader):
+        self.model.load_state_dict(torch.load(self.load_path))
         self.model.to(self.device)
-
         self.model.eval()
-        for batch in dataset:
+        for batch in dataloader:
             # Copy data to GPU if needed
-            batch = tuple(t.to(self.device) for t in batch)
+            if self.device == "cuda":
+                batch = tuple(t.cuda() for t in batch)
+            else:
+                batch = tuple(t.cpu() for t in batch)
 
             # Unpack the inputs from our dataloader
-            b_input_ids, b_input_mask, b_labels = batch
+            b_input_ids, b_input_mask = batch
 
             # Forward pass
             with torch.no_grad():
@@ -159,6 +145,7 @@ class HybridRegressionADM(OutlinesTransformersADM):
             scenario_state
         )
 
+        # Replicate scenarios for the number of available choices
         scenario = [scenario_description for i in range(len(choices))]
 
         data_dict = {
@@ -166,35 +153,48 @@ class HybridRegressionADM(OutlinesTransformersADM):
             'answer': choices
         }
 
-        inference_args = kwargs.get('inference_kwargs', {})
-
-        target_models = inference_args["models"]
-        target_model_checkpoints = inference_args["models"]["target_checkpoint"].keys()
-        model_name = inference_args["models"]["model_name"]
+        target_models = kwargs.get('models', {})
+        target_model_checkpoints = target_models["target_checkpoint"].keys()
+        model_name = target_models["model_name"]
 
         target_kdmas = alignment_target.kdma_values
 
+        target_kdma_configs = []
         for i, target_kdma in enumerate(target_kdmas):
             target_kdma_name = target_kdma.kdma
             if target_kdma_name in target_model_checkpoints:
-                print(f"Chosen KDMA: {target_kdma_name}")
+                log.info("Chosen KDMA: %s, and target value: %f", target_kdma_name, target_kdma.value)
                 predictions = get_kdma_predictions(
                     model_name=model_name,
                     data_dict=data_dict,
-                    attr=str(target_kdma_name),
                     model_path=target_models["target_checkpoint"][str(target_kdma_name)]
                 )
+                predictions = np.array([predictions])
+                dist_to_align_score = []
+                for pred in predictions:
+                    target_kdma_value = target_kdma.value
+                    dist_to_align_score.append((target_kdma_value - pred)**2)
 
-            choice_scores = []
-            for p in predictions:
-                choice_scores.append((target_kdma - p)**2)
+                choice_index = np.argmin(dist_to_align_score)
+                final_choice = choices[choice_index]
 
-        choice_index = np.argmin(choice_scores)
-        final_choice = choices[choice_index]
+                target_kdma_configs.append(
+                    {
+                        "name": target_kdma_name,
+                        "score": predictions[choice_index] * 10,
+                        "action_choice": final_choice
+                    }
+                )
 
-        action_to_take = available_actions[final_choice]
+        log.info('Predicted KDMA value from Regression model = %f', predictions[choice_index])
+        action_to_take = available_actions[choice_index]
+        action_to_take.justification = (
+            f"The direct kdma predictions from a pre-trained bert-based-uncased regression model"
+            f" for the chosen action - \"{final_choice}\" - is equal to {predictions[choice_index] * 10}."
+        )
+
         # Set up simple diaolg to return for follow-ups
-        alignment_system_prompt = regression_alignment_system_prompt(target_kdmas)
+        alignment_system_prompt = regression_error_alignment_system_prompt(target_kdma_configs)
         prompt = action_selection_prompt(scenario_description, choices)
         dialog = [{'role': 'system', 'content': alignment_system_prompt},
                   {'role': 'user', 'content': prompt}]
