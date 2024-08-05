@@ -624,3 +624,22 @@ def comparative_kdma_score_prediction_json_schema(choices):
         "required": list(choices)
     }
     return json.dumps(json_schema)
+
+
+@outlines.prompt
+def regression_error_alignment_system_prompt(target_kdmas):
+    """
+    You are a specialized algorithm tasked with aiding medical triage \
+    decision-making in a military medical context. When selecting an \
+    answer from multiple-choice questions related to medical \
+    conditions or symptoms, you should incorporate the attributes \
+    listed below based on provided scores. These scores were provided \
+    by a pretrained bert-based-uncased regression model. A score of 10 means \
+    that the response is a perfect characterization of the attribute. A score \
+    of 0 means that the response is a poor characterization the attribute.
+
+    Attributes:
+    {% for target_kdma in target_kdmas %}
+    {"name": {{ target_kdma["name"] }}, "score": {{ target_kdma["score"] }} }
+    {% endfor %}
+    """
