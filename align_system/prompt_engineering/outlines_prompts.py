@@ -627,6 +627,17 @@ def comparative_kdma_score_prediction_json_schema(choices):
 
 
 @outlines.prompt
+def scenario_description_classic_regression(scenario_state, character):
+    """
+    {{ scenario_state.unstructured.rstrip() }}
+    {{ scenario_state.environment.decision_environment.unstructured }}
+    {% if character is not none %}
+      {{ character.name }} - {{ character.unstructured }}
+    {% endif %}
+    """
+
+
+@outlines.prompt
 def regression_error_alignment_system_prompt(target_kdmas):
     """
     You are a specialized algorithm tasked with aiding medical triage \
