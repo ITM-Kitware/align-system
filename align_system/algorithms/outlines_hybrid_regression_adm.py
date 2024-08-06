@@ -15,7 +15,7 @@ from align_system.utils import logging
 from align_system.algorithms.outlines_adm import OutlinesTransformersADM
 from align_system.prompt_engineering.outlines_prompts import (
     action_selection_prompt,
-    scenario_state_description_1,
+    scenario_description_classic_regression,
     regression_error_alignment_system_prompt
 )
 
@@ -40,9 +40,9 @@ def get_ids_mask(sentences, tokenizer, max_length):
 
 def load_itm_sentences(data_dict: Dict[str, List]):
     df = pd.DataFrame.from_dict(data_dict)
-    scenarios = df['scenario'].values
+    scenarios = df['scenario'].replace('\n', '').values
     # states = df['state'].replace(np.nan, '').values
-    answers = df['answer'].values
+    answers = df['answer'].replace('\n', '').values
     sentences = [sc + " [SEP] " + ans for (sc, ans)
                  in zip(scenarios, answers)]
     return sentences
@@ -83,6 +83,7 @@ class BertRegressionModel:
         self.model.load_state_dict(torch.load(self.load_path))
         self.model.to(self.device)
         self.model.eval()
+        predictions = []
         for batch in dataloader:
             # Copy data to GPU if needed
             if self.device == "cuda":
@@ -97,7 +98,8 @@ class BertRegressionModel:
             with torch.no_grad():
                 logits = self.model(b_input_ids, attention_mask=b_input_mask)[0]
             output = logits.squeeze().detach().cpu().numpy()
-            predictions = np.clip(output, 0, 1)
+            predictions.append(output)
+        predictions = np.clip(output, 0, 1)
 
         return predictions
 
@@ -134,7 +136,19 @@ class HybridRegressionADM(OutlinesTransformersADM):
                                 kdma_score_examples=False,
                                 **kwargs):
 
-        scenario_description = scenario_state_description_1(scenario_state)
+        scenario = []
+        for action in available_actions:
+            for character in scenario_state.characters:
+                chosen_character = None
+                if character.id == action.character_id:
+                    chosen_character = character
+            scenario_description = (
+                scenario_description_classic_regression(
+                    scenario_state,
+                    chosen_character
+                )
+            )
+            scenario.append(scenario_description)
 
         # Important that the choices stay in the same order as the
         # available actions as we'll use the selected index later to
@@ -144,9 +158,6 @@ class HybridRegressionADM(OutlinesTransformersADM):
             available_actions,
             scenario_state
         )
-
-        # Replicate scenarios for the number of available choices
-        scenario = [scenario_description for i in range(len(choices))]
 
         data_dict = {
             'scenario': scenario,
@@ -173,7 +184,9 @@ class HybridRegressionADM(OutlinesTransformersADM):
                 dist_to_align_score = []
                 for pred in predictions:
                     target_kdma_value = target_kdma.value
-                    dist_to_align_score.append((target_kdma_value - pred)**2)
+                    dist = (target_kdma_value - pred)**2
+                    log.info("Distance to alignment target: %f", dist)
+                    dist_to_align_score.append(dist)
 
                 choice_index = np.argmin(dist_to_align_score)
                 final_choice = choices[choice_index]
