@@ -8,5 +8,4 @@ instance:
 
 inference_kwargs:
   distribution_matching: sample
-  num_samples: 1
   kde_norm: rawscores
