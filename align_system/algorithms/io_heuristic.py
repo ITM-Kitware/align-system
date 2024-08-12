@@ -12,26 +12,37 @@ log = logging.getLogger(__name__)
 
 class HeuristicADM(ActionBasedADM):
     def __init__(self, **kwargs):
-        self.intent_lookup = {'intend major help': 1.0,
-                              'intend minor help': 0.75,
-                              'no intent': 0.5,
-                              'intend minor harm': 0.25,
-                              'intend major harm': 0.0}
+        self.kdma_lookup = {'Allied US': 0.675,
+                            'Allied': 0.3875,
+                            'Civilian': 0.35,
+                            'Military Adversary': 0.1875,
+                            'Allied US,close': 0.8125,
+                            'Allied US,neutral': 0.4125}
 
     def choose_action(self, scenario_state, available_actions, alignment_target, **kwargs):
-        # Get character intent mapping
-        character_intent = {}
+        # Get character military disposition mapping
+        character_disposition = {}
+        character_rapport = {}
         for character in scenario_state.characters:
-            character_intent[character.id] = character.intent
+            character_disposition[character.id] = character.demographics.military_disposition
+            character_rapport[character.id] = character.rapport
 
         # Compute action value mapping
         action_values = []
         filtered_actions = []
         for action in available_actions:
             character_id = action.character_id
-            if character_id is not None and character_intent[character_id] is not None:
+            if character_id is not None:
                 filtered_actions.append(action)
-                action_values.append(self.intent_lookup[character_intent[character_id]])
+                # military disposition is primary factor
+                if character_disposition[character_id] is not None:
+                    key = ','.join(filter(None, [character_disposition.get(character_id), character_rapport.get(character_id)]))
+                    if key not in self.kdma_lookup:
+                        key = key.split(',')[0]
+                    action_values.append(self.kdma_lookup[key])
+                else:
+                    # assume 0.5 value
+                    action_values.append(0.5)
 
         if len(filtered_actions) > 0 and alignment_target is not None:
             # Depend on alignment target
@@ -40,13 +51,15 @@ class HeuristicADM(ActionBasedADM):
                 for target in alignment_target.kdma_values
             }
             kdma_target = list(target_kdma_assoc.values())[0]
-            if kdma_target > 0.5:
-                action_to_take = filtered_actions[np.argmax(action_values)]
-            else:
-                action_to_take = filtered_actions[np.argmin(action_values)]
+            action_to_take = available_actions[np.argmin(np.abs(np.array(action_values) - kdma_target))]
         else:
             # Take random action
             action_to_take = random.choice(available_actions)
+
+        logging.info('Filtered actions:\n')
+        logging.info(filtered_actions)
+        logging.info('Chosen action:\n')
+        logging.info(action_to_take)
 
         # Action requires a character ID
         if action_to_take.action_type in {ActionTypeEnum.APPLY_TREATMENT,
@@ -77,5 +90,8 @@ class HeuristicADM(ActionBasedADM):
             if 'category' not in action_to_take.parameters:
                 action_to_take.parameters['category'] = random.choice(
                     get_swagger_class_enum_values(CharacterTagEnum))
+
+        # Required since Dry Run Evaluation
+        action_to_take.justification = "Taking action based on heuristic rule"
 
         return action_to_take

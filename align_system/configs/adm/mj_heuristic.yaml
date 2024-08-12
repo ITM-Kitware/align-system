@@ -1,0 +1,2 @@
+instance:
+  _target_: align_system.algorithms.mj_heuristic.HeuristicADM
