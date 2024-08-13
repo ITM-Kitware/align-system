@@ -27,6 +27,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 * Added functionality in comparative regression for aligning to KDE targets
 * Added a misaligned option for the Oracle ADM. Currently only applicable to scalar targets.
 * Added configuration option to record timing information about `choose_action`
+* Added a scenario description prompt which includes all unique structured character info
 
 ### Fixed
 
