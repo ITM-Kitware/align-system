@@ -1,22 +1,20 @@
-from typing import Any, Dict, List
+from typing import Dict, List
 
-import yaml
 import numpy as np
 import pandas as pd
 import torch
 from torch.utils.data import TensorDataset, DataLoader
 from transformers import AutoModelForSequenceClassification, AutoConfig, AutoTokenizer
 
-import outlines
-from outlines.samplers import MultinomialSampler
 from rich.highlighter import JSONHighlighter
 
 from align_system.utils import logging
 from align_system.algorithms.outlines_adm import OutlinesTransformersADM
 from align_system.prompt_engineering.outlines_prompts import (
     action_selection_prompt,
-    scenario_description_classic_regression,
-    regression_error_alignment_system_prompt
+    scenario_description_hybrid_regression,
+    baseline_system_prompt,
+    scenario_state_description_dre
 )
 
 log = logging.getLogger(__name__)
@@ -77,13 +75,14 @@ class BertRegressionModel:
         self.load_path = load_path
         self.device = device
         config = AutoConfig.from_pretrained(self.model_name, num_labels=1)
-        self.model = AutoModelForSequenceClassification.from_pretrained(self.model_name, config=config)
+        self.model = AutoModelForSequenceClassification.from_pretrained(self.model_name,
+                                                                        config=config)
 
     def evaluate(self, dataloader):
         self.model.load_state_dict(torch.load(self.load_path))
         self.model.to(self.device)
         self.model.eval()
-        predictions = []
+        predictions = np.array([])
         for batch in dataloader:
             # Copy data to GPU if needed
             if self.device == "cuda":
@@ -98,52 +97,30 @@ class BertRegressionModel:
             with torch.no_grad():
                 logits = self.model(b_input_ids, attention_mask=b_input_mask)[0]
             output = logits.squeeze().detach().cpu().numpy()
-            predictions.append(output)
-        predictions = np.clip(output, 0, 1)
+            predictions = np.append(predictions, output)
 
         return predictions
 
 
 class HybridRegressionADM(OutlinesTransformersADM):
-    def __init__(self,
-                 model_name,
-                 device='auto',
-                 baseline=False,
-                 sampler=MultinomialSampler(),
-                 **kwargs):
-        self.baseline = baseline
-        self.model = outlines.models.transformers(
-            model_name,
-            device=device,
-            model_kwargs=kwargs.get('model_kwargs', {}),
-            tokenizer_kwargs=kwargs.get('tokenizer_kwargs', {}))
-        # NOTE: In cases where we want multiple samples, we're passing
-        # in a list of prompts (this allows us to shuffle answers in
-        # each prompt), rather than setting the number of samples in
-        # the sampler itself (which defaults to 1); setting the number
-        # of samples in the sampler may result in unexpected behavior
-        self.sampler = sampler
 
     def top_level_choose_action(self,
                                 scenario_state,
                                 available_actions,
                                 alignment_target,
-                                num_samples=1,
-                                predict_outcomes=False,
-                                distribution_matching='average',
-                                generator_batch_size=5,
-                                kdma_descriptions_map='align_system/prompt_engineering/kdma_descriptions.yml',
-                                kdma_score_examples=False,
                                 **kwargs):
 
         scenario = []
         for action in available_actions:
+            if action.character_id is None:
+                continue
             for character in scenario_state.characters:
                 chosen_character = None
                 if character.id == action.character_id:
                     chosen_character = character
+                    break
             scenario_description = (
-                scenario_description_classic_regression(
+                scenario_description_hybrid_regression(
                     scenario_state,
                     chosen_character
                 )
@@ -165,50 +142,70 @@ class HybridRegressionADM(OutlinesTransformersADM):
         }
 
         target_models = kwargs.get('models', {})
+        if not target_models:
+            raise KeyError("'models' field is empty")
+        for k in ["target_checkpoint", "model_name"]:
+            if k not in target_models:
+                raise KeyError(f"{k} does not exist")
+
         target_model_checkpoints = target_models["target_checkpoint"].keys()
         model_name = target_models["model_name"]
 
         target_kdmas = alignment_target.kdma_values
 
-        target_kdma_configs = []
+        per_kdma_min_score = {}
         for i, target_kdma in enumerate(target_kdmas):
+            # Only works for scalar alignment targets
             target_kdma_name = target_kdma.kdma
-            if target_kdma_name in target_model_checkpoints:
-                log.info("Chosen KDMA: %s, and target value: %f", target_kdma_name, target_kdma.value)
-                predictions = get_kdma_predictions(
-                    model_name=model_name,
-                    data_dict=data_dict,
-                    model_path=target_models["target_checkpoint"][str(target_kdma_name)]
+
+            if target_kdma_name not in target_model_checkpoints:
+                raise ValueError(f"Model checkpoint does not exist for {target_kdma_name}")
+            log.info(
+                f"Chosen KDMA: {target_kdma_name}, "
+                f"and target value: {target_kdma.value}"
+            )
+            predictions = get_kdma_predictions(
+                model_name=model_name,
+                data_dict=data_dict,
+                model_path=target_models["target_checkpoint"][str(target_kdma_name)]
+            )
+            dist_to_align_score = []
+            log.info("ACTION CHOICES AND REGRESSION MODEL PREDICTIONS:")
+            for pred, choice in zip(predictions, choices):
+                # Only works for scalar alignment targets
+                target_kdma_value = target_kdma.value
+                dist = (target_kdma_value - pred)**2
+                log.info(
+                    f"Action: \"{choice}\", Model predicted KDMA_value: {pred}, "
+                    f" Distance to alignment target: {dist}",
                 )
-                predictions = np.array([predictions])
-                dist_to_align_score = []
-                for pred in predictions:
-                    target_kdma_value = target_kdma.value
-                    dist = (target_kdma_value - pred)**2
-                    log.info("Distance to alignment target: %f", dist)
-                    dist_to_align_score.append(dist)
+                dist_to_align_score.append(dist)
 
-                choice_index = np.argmin(dist_to_align_score)
-                final_choice = choices[choice_index]
+            choice_index = np.argmin(dist_to_align_score)
+            per_kdma_min_score.update({
+                target_kdma_name: choices[choice_index]
+            })
 
-                target_kdma_configs.append(
-                    {
-                        "name": target_kdma_name,
-                        "score": predictions[choice_index] * 10,
-                        "action_choice": final_choice
-                    }
-                )
+        final_choice_kdma = min(per_kdma_min_score, key=per_kdma_min_score.get)
+        final_choice_val = per_kdma_min_score[final_choice_kdma]
+        log.info("\nFINAL CHOICE:")
+        log.info(
+            f"KDMA: \"{final_choice_kdma}\", "
+            f"Action: \"{final_choice_val}\", "
+            f"Score: {predictions[choice_index] * 10}\n"         
+        )
 
-        log.info('Predicted KDMA value from Regression model = %f', predictions[choice_index])
         action_to_take = available_actions[choice_index]
         action_to_take.justification = (
             f"The direct kdma predictions from a pre-trained bert-based-uncased regression model"
-            f" for the chosen action - \"{final_choice}\" - is equal to {predictions[choice_index] * 10}."
+            f" for the chosen action - \"{final_choice_val}\" - is equal to "
+            f"{predictions[choice_index] * 10}."
         )
 
-        # Set up simple diaolg to return for follow-ups
-        alignment_system_prompt = regression_error_alignment_system_prompt(target_kdma_configs)
-        prompt = action_selection_prompt(scenario_description, choices)
+        # Set up simple dialog to return for follow-ups
+        alignment_system_prompt = baseline_system_prompt()
+        prompt_scenario_description = scenario_state_description_dre(scenario_state)
+        prompt = action_selection_prompt(prompt_scenario_description, choices)
         dialog = [{'role': 'system', 'content': alignment_system_prompt},
                   {'role': 'user', 'content': prompt}]
 
