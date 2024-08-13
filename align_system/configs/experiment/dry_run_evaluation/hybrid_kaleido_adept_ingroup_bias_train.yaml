@@ -12,6 +12,8 @@ interface:
   session_type: adept
   scenario_ids:
     - DryRunEval.IO1
+    - DryRunEval.IO2
+    - DryRunEval.IO3
   training_session: true
 
 align_to_target: true

@@ -207,6 +207,22 @@ def main(cfg: DictConfig) -> None:
                                   "allowing {} action".format(a.action_type))
                         continue
 
+                if (
+                    a.action_type == ActionTypeEnum.APPLY_TREATMENT and
+                    a.parameters is not None and 'treatment' in a.parameters
+                ):
+                    treatment_available = False
+                    for s in current_state.supplies:
+                        if a.parameters['treatment'] == s.type:
+                            if s.quantity > 0:
+                                treatment_available = True
+                            break
+
+                    if not treatment_available:
+                        log.debug("Insufficient supplies, not allowing "
+                                    f"{ActionTypeEnum.APPLY_TREATMENT} action")
+                        continue
+
                 is_a_noop_action = False
                 for noop_action in noop_actions:
                     if a == noop_action:
