@@ -379,18 +379,18 @@ class OutlinesTransformersComparativeRegressionADM(OutlinesTransformersADM):
 
         # Select aligned choice
         if all_scalar_targets:
-            AlignmentFunction = alignment_utils.AvgDistScalarAlignment()
-            selected_choice, probs = AlignmentFunction(predicted_kdma_values, target_kdmas)
+            alignment_function = alignment_utils.AvgDistScalarAlignment()
+            selected_choice, probs = alignment_function(predicted_kdma_values, target_kdmas)
         elif all_kde_targets:
             if distribution_matching == 'sample':
-                AlignmentFunction = alignment_utils.MinDistToRandomSampleKdeAlignment()
+                alignment_function = alignment_utils.MinDistToRandomSampleKdeAlignment()
             elif distribution_matching == 'max_likelihood':
-                AlignmentFunction = alignment_utils.MaxLikelihoodKdeAlignment()
+                alignment_function = alignment_utils.MaxLikelihoodKdeAlignment()
             elif distribution_matching == 'js_divergence':
-                AlignmentFunction = alignment_utils.JsDivergenceKdeAlignment()
+                alignment_function = alignment_utils.JsDivergenceKdeAlignment()
             else:
                 raise RuntimeError(distribution_matching, "distribution matching function unrecognized.")
-            selected_choice, probs = AlignmentFunction(predicted_kdma_values, target_kdmas, kde_norm=kde_norm)
+            selected_choice, probs = alignment_function(predicted_kdma_values, target_kdmas, kde_norm=kde_norm)
         else:
             # TODO: Currently we assume all targets either have scalar values or KDES,
             #       Down the line, we should extend to handling multiple targets of mixed types
