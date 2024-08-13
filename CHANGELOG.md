@@ -29,6 +29,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 * Added a misaligned option for the Oracle ADM using any alignment function
 * Added configuration option to record timing information about `choose_action`
 * Added a scenario description prompt which includes all unique structured character info
+* Added a hybrid regression approach for the Outlines ADM.
 
 ### Fixed
 
