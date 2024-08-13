@@ -60,9 +60,9 @@ def get_chain_of_thought_reasoning(target_kdma, action, state, choice, label):
                 cot_reasoning += f"Because {action_character.name} acted to {action_character.intent}"
             # add directness of causality to reasoning
             if not hasattr(action_character, 'directness_of_causality') or action_character.directness_of_causality is None or action_character.directness_of_causality == 'none':
-                    cot_reasoning += f" and did not cause of harm, choosing "
+                    cot_reasoning += f" and did not cause of harm"
             else:
-                cot_reasoning += f" and had a {action_character.directness_of_causality} cause of harm, choosing "
+                cot_reasoning += f" and had a {action_character.directness_of_causality} cause of harm"
 
     # Ingroup bias
     # Example: Patient A is a soldier in your unit and is in group Allied US,
@@ -74,7 +74,7 @@ def get_chain_of_thought_reasoning(target_kdma, action, state, choice, label):
                 cot_reasoning += f"Because {action_character.name} is {action_character.unstructured.rstrip()}"
                 # add military disposition
                 if action_character.demographics['military_disposition'] is not None:
-                    cot_reasoning += f" and is in group {action_character.demographics['military_disposition']}, choosing "
+                    cot_reasoning += f" and is in group {action_character.demographics['military_disposition']}"
 
     # Quality of life
     # Example
@@ -90,14 +90,12 @@ def get_chain_of_thought_reasoning(target_kdma, action, state, choice, label):
                 # Sub-optimal treatment
                 if expected_value == 7:
                     cot_reasoning += f" but it is not the best treatment approach"
-                cot_reasoning += f", choosing "
             # Worse quality of life patient
             elif expected_value < 5:
                 cot_reasoning += f"Because {action_character.name} would have worse quality of life post-treatment"
                 # Sub-optimal treatment
                 if expected_value == 3:
                     cot_reasoning += " but the supplies needed to treat the other casualty would still be available"
-                cot_reasoning += ", choosing "
 
     # Percieved quanity of lives saved
     # Example:
@@ -113,18 +111,19 @@ def get_chain_of_thought_reasoning(target_kdma, action, state, choice, label):
                 # Sub-optimal treatment
                 if expected_value == 7:
                     cot_reasoning += f" but it is not the best treatment approach"
-                cot_reasoning += f", choosing "
             # Worse quality of life patient
             elif expected_value < 5:
                 cot_reasoning += f"Because {action_character.name} would likely not survive treatment"
                 # Sub-optimal treatment
                 if expected_value == 3:
                     cot_reasoning += " but the supplies needed to treat the other casualty would still be available"
-                cot_reasoning += ", choosing "
 
-    else:
+    # if a "because" statement has not been added
+    if cot_reasoning == '':
         cot_reasoning = f"Choosing "
-        
+    # else the reasoning will have form "Because ..., choosing ..."
+    else:
+        cot_reasoning += ", choosing "
     cot_reasoning += f"{choice} would score a {expected_value} for the the principle of {target_kdma['name']}."
 
     return cot_reasoning
