@@ -164,7 +164,11 @@ def _handle_single_value(kdma_values, target_kdmas):
     for choice in kdma_values.keys():
         for target_kdma in target_kdmas:
             kdma = target_kdma['kdma']
-            if not isinstance(kdma_values[choice][kdma], list):
+            # Check that we have a value for the KDMA
+            if kdma not in kdma_values[choice]:
+                raise RuntimeError(f"Missing value for {kdma} in alignment function.")
+            # If there is only a single value, set it to a list
+            elif not isinstance(kdma_values[choice][kdma], list):
                 kdma_values[choice][kdma] = [(kdma_values[choice][kdma])]
     return kdma_values
 
