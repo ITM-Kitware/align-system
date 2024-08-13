@@ -99,9 +99,9 @@ def get_relevant_structured_character_info(characters):
 
     # Remove unstructured info from structured dicts
     for relevant_structured_dict in relevant_structured_dicts:
-        relevant_structured_dict.pop('name')
-        relevant_structured_dict.pop('id')
-        relevant_structured_dict.pop('unstructured')
+        relevant_structured_dict.pop('name', None)
+        relevant_structured_dict.pop('id', None)
+        relevant_structured_dict.pop('unstructured', None)
 
     return_character_dicts = []
     for i in range(len(character_dicts)):
