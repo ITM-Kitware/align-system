@@ -10,6 +10,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 * Updated KDMA descriptions and made the KDMA description yml file configurable
 * No longer overwriting data when followup prompts are used in the Outlines ADM
 * Small updates to Outlines ADM to be compatible with API updates
+* Updated the oracle and comparative regression ADMs to use `AlignmentFunction` class
 
 ### Added
 
@@ -24,8 +25,8 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 * Added alignment targets for SoarTech scenarios for the dry run evaluation
 * Added some random ADM experiments for the SoarTech dry run scenarios
 * Added `intend_action` to the `ActionBasedScenarioInterface` to comply with TA3 server updates
-* Added functionality in comparative regression for aligning to KDE targets
-* Added a misaligned option for the Oracle ADM. Currently only applicable to scalar targets.
+* Added functionality in the oracle and comparative regression ADMs for aligning to KDE targets
+* Added a misaligned option for the Oracle ADM using any alignment function
 * Added configuration option to record timing information about `choose_action`
 
 ### Fixed
