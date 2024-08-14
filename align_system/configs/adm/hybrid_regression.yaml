@@ -7,5 +7,7 @@ inference_kwargs:
   models:
     model_name: 'bert-base-uncased'
     target_checkpoint:
-      Moral judgement: /data/users/barry.ravichandran/ITM/attribute-alignment/checkpoints_full_train/moral_judgement/moral_judgement_bert-base-uncased_3e-05_2_16_epoch_16_test_acc_0.004499295485639288.pt
-      Ingroup Bias: /data/users/barry.ravichandran/ITM/attribute-alignment/checkpoints_full_train/ingroup_bias/ingroup_bias_bert-base-uncased_3e-05_4_10_epoch_10_test_acc_0.012139826783467082.pt
+      Moral judgement: /data/shared/model_checkpoints/hybrid_regression/moral_judgement.pt
+      Ingroup Bias: /data/shared/model_checkpoints/hybrid_regression/ingroup_bias.pt
+      PerceivedQuantityOfLivesSaved: /data/shared/model_checkpoints/hybrid_regression/value_of_life.pt
+      QualityOfLife: /data/shared/model_checkpoints/hybrid_regression/quality_of_life.pt

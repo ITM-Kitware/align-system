@@ -8,7 +8,7 @@ from transformers import AutoModelForSequenceClassification, AutoConfig, AutoTok
 
 from rich.highlighter import JSONHighlighter
 
-from align_system.utils import logging
+from align_system.utils import logging, alignment_utils
 from align_system.algorithms.outlines_adm import OutlinesTransformersADM
 from align_system.prompt_engineering.outlines_prompts import (
     action_selection_prompt,
@@ -108,17 +108,18 @@ class HybridRegressionADM(OutlinesTransformersADM):
                                 scenario_state,
                                 available_actions,
                                 alignment_target,
+                                distribution_matching='sample',
+                                kde_norm='globalnorm',
                                 **kwargs):
 
         scenario = []
         for action in available_actions:
-            if action.character_id is None:
-                continue
-            for character in scenario_state.characters:
-                chosen_character = None
-                if character.id == action.character_id:
-                    chosen_character = character
-                    break
+            chosen_character = None
+            if action.character_id is not None:
+                for character in scenario_state.characters:
+                    if character.id == action.character_id:
+                        chosen_character = character
+                        break
             scenario_description = (
                 scenario_description_hybrid_regression(
                     scenario_state,
@@ -153,53 +154,68 @@ class HybridRegressionADM(OutlinesTransformersADM):
 
         target_kdmas = alignment_target.kdma_values
 
-        per_kdma_min_score = {}
         for i, target_kdma in enumerate(target_kdmas):
+            target_kdma = dict(target_kdma)
             # Only works for scalar alignment targets
-            target_kdma_name = target_kdma.kdma
+            target_kdma_name = target_kdma["kdma"]
 
             if target_kdma_name not in target_model_checkpoints:
                 raise ValueError(f"Model checkpoint does not exist for {target_kdma_name}")
-            log.info(
-                f"Chosen KDMA: {target_kdma_name}, "
-                f"and target value: {target_kdma.value}"
-            )
-            predictions = get_kdma_predictions(
+
+            predictions_per_kdma = get_kdma_predictions(
                 model_name=model_name,
                 data_dict=data_dict,
                 model_path=target_models["target_checkpoint"][str(target_kdma_name)]
             )
-            dist_to_align_score = []
+            predicted_kdma_values = {}
             log.info("ACTION CHOICES AND REGRESSION MODEL PREDICTIONS:")
-            for pred, choice in zip(predictions, choices):
-                # Only works for scalar alignment targets
-                target_kdma_value = target_kdma.value
-                dist = (target_kdma_value - pred)**2
+            for pred, choice in zip(predictions_per_kdma, choices):
+                if choice not in predicted_kdma_values:
+                    predicted_kdma_values[choice] = {}
+                predicted_kdma_values[choice][target_kdma_name] = pred
+
                 log.info(
-                    f"Action: \"{choice}\", Model predicted KDMA_value: {pred}, "
-                    f" Distance to alignment target: {dist}",
+                    f"Action: \"{choice}\", Model predicted KDMA_value: {pred}"
                 )
-                dist_to_align_score.append(dist)
+            
+        # Get type of targets
+        all_scalar_targets = True
+        all_kde_targets = True
+        for target_kdma in target_kdmas:
+            if not hasattr(target_kdma, 'value') or target_kdma.value is None:
+                all_scalar_targets = False
+            if not hasattr(target_kdma, 'kdes') or target_kdma.kdes is None:
+                all_kde_targets = False
 
-            choice_index = np.argmin(dist_to_align_score)
-            per_kdma_min_score.update({
-                target_kdma_name: choices[choice_index]
-            })
+        # Select aligned choice
+        if all_scalar_targets:
+            alignment_function = alignment_utils.AvgDistScalarAlignment()
+            selected_choice, probs = alignment_function(predicted_kdma_values, target_kdmas)
+        elif all_kde_targets:
+            if distribution_matching == 'sample':
+                alignment_function = alignment_utils.MinDistToRandomSampleKdeAlignment()
+            elif distribution_matching == 'max_likelihood':
+                alignment_function = alignment_utils.MaxLikelihoodKdeAlignment()
+            elif distribution_matching == 'js_divergence':
+                alignment_function = alignment_utils.JsDivergenceKdeAlignment()
+            else:
+                raise RuntimeError(distribution_matching, "distribution matching function unrecognized.")
+            selected_choice, probs = alignment_function(predicted_kdma_values, target_kdmas, kde_norm=kde_norm)
+        else:
+            # TODO: Currently we assume all targets either have scalar values or KDES,
+            #       Down the line, we should extend to handling multiple targets of mixed types
+            raise ValueError("ADM does not currently support a mix of scalar and KDE targets.")
 
-        final_choice_kdma = min(per_kdma_min_score, key=per_kdma_min_score.get)
-        final_choice_val = per_kdma_min_score[final_choice_kdma]
-        log.info("\nFINAL CHOICE:")
+        log.info("\nFINAL CHOICE after distribution matching:")
         log.info(
-            f"KDMA: \"{final_choice_kdma}\", "
-            f"Action: \"{final_choice_val}\", "
-            f"Score: {predictions[choice_index] * 10}\n"         
+            f"Action: \"{selected_choice}\", "   
         )
-
-        action_to_take = available_actions[choice_index]
+        selected_choice_idx = choices.index(selected_choice)
+        action_to_take = available_actions[selected_choice_idx]
         action_to_take.justification = (
-            f"The direct kdma predictions from a pre-trained bert-based-uncased regression model"
-            f" for the chosen action - \"{final_choice_val}\" - is equal to "
-            f"{predictions[choice_index] * 10}."
+            f"Based on doing a distribution matching on the predicted kdma values from a "
+            f"pre-trained bert-based-uncased regression model, the chosen action is - "
+            f"\"{selected_choice}\""
         )
 
         # Set up simple dialog to return for follow-ups
