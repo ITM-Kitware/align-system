@@ -434,6 +434,14 @@ class OutlinesTransformersADM(ActionBasedADM):
             alignment_target,
             **kwargs)
 
+        action_to_take, dialog = self.populate_action_parameters(
+            scenario_state,
+            action_to_take,
+            dialog)
+
+        return action_to_take
+
+    def populate_action_parameters(self, scenario_state, action_to_take, dialog):
         if action_to_take.action_type in {ActionTypeEnum.APPLY_TREATMENT,
                                           ActionTypeEnum.TAG_CHARACTER,
                                           ActionTypeEnum.CHECK_ALL_VITALS,
@@ -441,126 +449,58 @@ class OutlinesTransformersADM(ActionBasedADM):
                                           ActionTypeEnum.CHECK_RESPIRATION,
                                           ActionTypeEnum.MOVE_TO_EVAC,
                                           ActionTypeEnum.CHECK_BLOOD_OXYGEN}:
-            if action_to_take.character_id is None:
-                # Use follow up prompt to define selected_character
-                characters = [c for c in scenario_state.characters if not c.unseen]
-                dialog.append({'role': 'assistant',
-                               'content': '{}  I would choose to {}'.format(
-                                   action_to_take.justification,
-                                   action_to_take.unstructured)})
-                dialog.append({'role': 'user',
-                               'content': followup_clarify_character(characters)})
-                dialog_text = self.dialog_to_prompt(dialog)
-
-                character_names = [c.name for c in characters]
-
-                generator = outlines.generate.json(
-                    self.model,
-                    character_choice_json_schema(json.dumps(character_names)),
-                    sampler=self.sampler,
-                    whitespace_pattern=r"[ ]?")
-
-                log.info("[bold]*DIALOG PROMPT*[/bold]",
-                         extra={"markup": True})
-                log.info(dialog_text)
-
-                selected_character = generator(dialog_text)
-                selected_character_idx = character_names.index(selected_character['character_choice'])
-
-                log.info("[bold]*STRUCTURED RESPONSE*[/bold]",
-                         extra={"markup": True})
-                log.info(selected_character, extra={"highlighter": JSON_HIGHLIGHTER})
-
-                action_to_take.character_id = characters[selected_character_idx].id
-            else:
-                # Use action_to_take.character_id to define selected_character
-                selected_character = {}
-                for char_index in range(len(scenario_state.characters)):
-                    character = scenario_state.characters[char_index]
-                    if character.id == action_to_take.character_id:
-                        selected_character['character_choice'] = character.name
-                        selected_character_idx = char_index
-                selected_character['brief_reasoning'] = action_to_take.justification
+            action_to_take, selected_character, selected_character_idx, dialog =\
+                self.ensure_character_id_is_populated(scenario_state, action_to_take, dialog)
 
         if action_to_take.action_type == ActionTypeEnum.APPLY_TREATMENT:
             # Use follow up prompt to define treatment and/or location if neccesary
             if action_to_take.parameters is None or 'treatment' not in action_to_take.parameters or 'location' not in action_to_take.parameters:
+                action_to_take, selected_treatment, dialog =\
+                    self.populate_treatment_parameters(scenario_state,
+                                                       action_to_take,
+                                                       selected_character,
+                                                       selected_character_idx,
+                                                       dialog)
+        elif action_to_take.action_type == ActionTypeEnum.TAG_CHARACTER:
+            if action_to_take.parameters is None or 'category' not in action_to_take.parameters:
+                action_to_take, selected_tag, dialog =\
+                    self.populate_tagging_parameters(scenario_state,
+                                                     action_to_take,
+                                                     selected_character,
+                                                     selected_character_idx,
+                                                     dialog)
+        # Set aid_id for MOVE_TO_EVAC if missing
+        elif action_to_take.action_type == ActionTypeEnum.MOVE_TO_EVAC:
+            if action_to_take.parameters is None or "aid_id" not in action_to_take.parameters:
+                action_to_take, selected_aid, dialog =\
+                    self.populate_aid_parameters(scenario_state,
+                                                 action_to_take,
+                                                 selected_character,
+                                                 selected_character_idx,
+                                                 dialog)
 
-                # Get valid injury locations for the selected character
-                valid_treatment_locations = []
-                for injury in scenario_state.characters[selected_character_idx].injuries:
-                    valid_treatment_locations.append(injury.location)
+        return action_to_take, dialog
 
-                # Work-around when injuries are not yet discovered (intend actions)
-                if len(valid_treatment_locations) == 0:
-                    log.info("No injuries on selected character. Allowing any treatment location")
-                    valid_treatment_locations = get_swagger_class_enum_values(InjuryLocationEnum)
-
-                # If there is only one treatment location and we have the treatment, we don't need a follow-up
-                if len(valid_treatment_locations) == 1 and action_to_take.parameters is not None and 'treatment' in action_to_take.parameters:
-                    action_to_take.parameters['location'] = valid_treatment_locations[0]
-
-                # If there are multiple treatment locations and/or we are missing the treatment, use follow-up
-                else:
-                    available_supplies = [s for s in scenario_state.supplies if s.quantity > 0]
-
-                    dialog.append({'role': 'assistant',
-                                   'content': '{}  {} should receive the action.'.format(
-                                       selected_character['brief_reasoning'],
-                                       selected_character['character_choice'])})
-                    dialog.append({'role': 'user',
-                                   'content': followup_clarify_treatment(
-                                       scenario_state.characters[selected_character_idx],
-                                       available_supplies)})
-
-                    dialog_text = self.dialog_to_prompt(dialog)
-
-                    generator = outlines.generate.json(
-                        self.model,
-                        treatment_choice_json_schema(
-                            json.dumps([s.type for s in available_supplies]),
-                            json.dumps(valid_treatment_locations)),
-                        sampler=self.sampler,
-                        whitespace_pattern=r"[ ]?")
-
-                    log.info("[bold]*DIALOG PROMPT*[/bold]",
-                             extra={"markup": True})
-                    log.info(dialog_text)
-
-                    selected_treatment = generator(dialog_text)
-
-                    log.info("[bold]*STRUCTURED RESPONSE*[/bold]",
-                             extra={"markup": True})
-                    log.info(selected_treatment, extra={"highlighter": JSON_HIGHLIGHTER})
-
-                    # Use follow-up response to define only the missing fields
-                    if action_to_take.parameters is None:
-                        action_to_take.parameters = {}
-                    if 'treatment' not in action_to_take.parameters:
-                        action_to_take.parameters['treatment'] = selected_treatment['supplies_to_use']
-                    if 'location' not in action_to_take.parameters:
-                        action_to_take.parameters['location'] = selected_treatment['treatment_location']
-
-        if action_to_take.action_type == ActionTypeEnum.TAG_CHARACTER:
-            valid_tags = get_swagger_class_enum_values(CharacterTagEnum)
-
+    def ensure_character_id_is_populated(self,
+                                         scenario_state,
+                                         action_to_take,
+                                         dialog):
+        if action_to_take.character_id is None:
+            # Use follow up prompt to define selected_character
+            characters = [c for c in scenario_state.characters if not c.unseen]
             dialog.append({'role': 'assistant',
-                           'content': '{}  {} should receive the action.'.format(
-                               selected_character['brief_reasoning'],
-                               selected_character['character_choice'])})
-
-            selected_character_dict =\
-                scenario_state.characters[selected_character_idx].to_dict()
+                           'content': '{}  I would choose to {}'.format(
+                               action_to_take.justification,
+                               action_to_take.unstructured)})
             dialog.append({'role': 'user',
-                           'content': followup_clarify_tag(
-                               selected_character_dict)})
-
+                           'content': followup_clarify_character(characters)})
             dialog_text = self.dialog_to_prompt(dialog)
+
+            character_names = [c.name for c in characters]
 
             generator = outlines.generate.json(
                 self.model,
-                tag_choice_json_schema(
-                    json.dumps(valid_tags)),
+                character_choice_json_schema(json.dumps(character_names)),
                 sampler=self.sampler,
                 whitespace_pattern=r"[ ]?")
 
@@ -568,66 +508,195 @@ class OutlinesTransformersADM(ActionBasedADM):
                      extra={"markup": True})
             log.info(dialog_text)
 
-            selected_tag = generator(dialog_text)
+            selected_character = generator(dialog_text)
+            selected_character_idx = character_names.index(selected_character['character_choice'])
 
             log.info("[bold]*STRUCTURED RESPONSE*[/bold]",
                      extra={"markup": True})
-            log.info(selected_tag, extra={"highlighter": JSON_HIGHLIGHTER})
+            log.info(selected_character, extra={"highlighter": JSON_HIGHLIGHTER})
 
+            action_to_take.character_id = characters[selected_character_idx].id
+        else:
+            # Use action_to_take.character_id to define selected_character
+            selected_character = {}
+            for char_index in range(len(scenario_state.characters)):
+                character = scenario_state.characters[char_index]
+                if character.id == action_to_take.character_id:
+                    selected_character['character_choice'] = character.name
+                    selected_character_idx = char_index
+                    break
+
+            selected_character['brief_reasoning'] = action_to_take.justification
+
+        return action_to_take, selected_character, selected_character_idx, dialog
+
+    def populate_treatment_parameters(self,
+                                      scenario_state,
+                                      action_to_take,
+                                      selected_character,
+                                      selected_character_idx,
+                                      dialog):
+        # Get valid injury locations for the selected character
+        valid_treatment_locations = []
+        for injury in scenario_state.characters[selected_character_idx].injuries:
+            valid_treatment_locations.append(injury.location)
+
+        # Work-around when injuries are not yet discovered (intend actions)
+        if len(valid_treatment_locations) == 0:
+            log.info("No injuries on selected character. Allowing any treatment location")
+            valid_treatment_locations = get_swagger_class_enum_values(InjuryLocationEnum)
+
+        # If there is only one treatment location and we have the treatment, we don't need a follow-up
+        if len(valid_treatment_locations) == 1 and action_to_take.parameters is not None and 'treatment' in action_to_take.parameters:
+            action_to_take.parameters['location'] = valid_treatment_locations[0]
+
+            selected_treatment = {'detailed_reasoning': '<Treatment already specified and only one valid treatment location>',
+                                  'supplies_to_use': action_to_take.parameters['treatment'],
+                                  'treatment_location': action_to_take.parameters['location']}
+        # If there are multiple treatment locations and/or we are missing the treatment, use follow-up
+        else:
+            available_supplies = [s for s in scenario_state.supplies if s.quantity > 0]
+
+            dialog.append({'role': 'assistant',
+                           'content': '{}  {} should receive the action.'.format(
+                               selected_character['brief_reasoning'],
+                               selected_character['character_choice'])})
+            dialog.append({'role': 'user',
+                           'content': followup_clarify_treatment(
+                               scenario_state.characters[selected_character_idx],
+                               available_supplies)})
+
+            dialog_text = self.dialog_to_prompt(dialog)
+
+            generator = outlines.generate.json(
+                self.model,
+                treatment_choice_json_schema(
+                    json.dumps([s.type for s in available_supplies]),
+                    json.dumps(valid_treatment_locations)),
+                sampler=self.sampler,
+                whitespace_pattern=r"[ ]?")
+
+            log.info("[bold]*DIALOG PROMPT*[/bold]",
+                     extra={"markup": True})
+            log.info(dialog_text)
+
+            selected_treatment = generator(dialog_text)
+
+            log.info("[bold]*STRUCTURED RESPONSE*[/bold]",
+                     extra={"markup": True})
+            log.info(selected_treatment, extra={"highlighter": JSON_HIGHLIGHTER})
+
+            # Use follow-up response to define only the missing fields
             if action_to_take.parameters is None:
                 action_to_take.parameters = {}
+            if 'treatment' not in action_to_take.parameters:
+                action_to_take.parameters['treatment'] = selected_treatment['supplies_to_use']
+            if 'location' not in action_to_take.parameters:
+                action_to_take.parameters['location'] = selected_treatment['treatment_location']
 
-            action_to_take.parameters['category'] = selected_tag['triage_tag']
+        return action_to_take, selected_treatment, dialog
 
-        # Set aid_id for MOVE_TO_EVAC if missing
-        if action_to_take.action_type == ActionTypeEnum.MOVE_TO_EVAC and "aid_id" not in action_to_take.parameters:
-            selected_character_dict =\
-                scenario_state.characters[selected_character_idx].to_dict()
+    def populate_tagging_parameters(self,
+                                    scenario_state,
+                                    action_to_take,
+                                    selected_character,
+                                    selected_character_idx,
+                                    dialog):
+        valid_tags = get_swagger_class_enum_values(CharacterTagEnum)
 
-            # Limit to the aids that will accept the selected patient
-            available_aids = [
-                aid
-                for aid in scenario_state.environment.decision_environment.aid
-                if (
-                    aid.patients_treated is None or
-                    "military_disposition"  not in selected_character_dict or
-                    selected_character_dict["miliary_disposition"] in aid.patients_treated
-                )
-            ]
+        dialog.append({'role': 'assistant',
+                       'content': '{}  {} should receive the action.'.format(
+                           selected_character['brief_reasoning'],
+                           selected_character['character_choice'])})
 
-            if len(available_aids) == 0:
-                raise RuntimeError("No aids to choose from")
-            elif len(available_aids) == 1:  # If there is only one option, we don't need a follow-up
-                action_to_take.parameters["aid_id"] = available_aids[0].id
-            else:
-                dialog.append({'role': 'assistant',
-                                'content': '{}  {} should receive the action.'.format(
-                                    selected_character['brief_reasoning'],
-                                    selected_character['character_choice'])})
-                dialog.append({'role': 'user',
-                               'content': followup_clarify_aid(
-                                    selected_character_dict,
-                                    available_aids)})
+        selected_character_dict =\
+            scenario_state.characters[selected_character_idx].to_dict()
+        dialog.append({'role': 'user',
+                       'content': followup_clarify_tag(
+                           selected_character_dict)})
 
-                dialog_text = self.dialog_to_prompt(dialog)
+        dialog_text = self.dialog_to_prompt(dialog)
 
-                generator = outlines.generate.json(
-                    self.model,
-                    aid_choice_json_schema(
-                        json.dumps([aid.id for aid in available_aids])),
-                    sampler=self.sampler,
-                    whitespace_pattern=r"[ ]?")
+        generator = outlines.generate.json(
+            self.model,
+            tag_choice_json_schema(
+                json.dumps(valid_tags)),
+            sampler=self.sampler,
+            whitespace_pattern=r"[ ]?")
 
-                log.info("[bold]*DIALOG PROMPT*[/bold]",
-                            extra={"markup": True})
-                log.info(dialog_text)
+        log.info("[bold]*DIALOG PROMPT*[/bold]",
+                 extra={"markup": True})
+        log.info(dialog_text)
 
-                selected_aid = generator(dialog_text)
+        selected_tag = generator(dialog_text)
 
-                log.info("[bold]*STRUCTURED RESPONSE*[/bold]",
-                            extra={"markup": True})
-                log.info(selected_aid, extra={"highlighter": JSON_HIGHLIGHTER})
+        log.info("[bold]*STRUCTURED RESPONSE*[/bold]",
+                 extra={"markup": True})
+        log.info(selected_tag, extra={"highlighter": JSON_HIGHLIGHTER})
 
-                action_to_take.parameters["aid_id"] = selected_aid['aid_choice']
+        if action_to_take.parameters is None:
+            action_to_take.parameters = {}
 
-        return action_to_take
+        action_to_take.parameters['category'] = selected_tag['triage_tag']
+
+        return action_to_take, selected_tag, dialog
+
+    def populate_aid_parameters(self,
+                                scenario_state,
+                                action_to_take,
+                                selected_character,
+                                selected_character_idx,
+                                dialog):
+        selected_character_dict =\
+            scenario_state.characters[selected_character_idx].to_dict()
+
+        # Limit to the aids that will accept the selected patient
+        available_aids = [
+            aid
+            for aid in scenario_state.environment.decision_environment.aid
+            if (
+                aid.patients_treated is None or
+                "military_disposition" not in selected_character_dict or
+                selected_character_dict["miliary_disposition"] in aid.patients_treated
+            )
+        ]
+
+        if len(available_aids) == 0:
+            raise RuntimeError("No aids to choose from")
+        elif len(available_aids) == 1:  # If there is only one option, we don't need a follow-up
+            action_to_take.parameters["aid_id"] = available_aids[0].id
+
+            selected_aid = {'brief_reasoning': '<Only one aid option available>',
+                            'aid_choice': action_to_take.parameters["aid_id"]}
+        else:
+            dialog.append({'role': 'assistant',
+                           'content': '{}  {} should receive the action.'.format(
+                               selected_character['brief_reasoning'],
+                               selected_character['character_choice'])})
+            dialog.append({'role': 'user',
+                           'content': followup_clarify_aid(
+                                selected_character_dict,
+                                available_aids)})
+
+            dialog_text = self.dialog_to_prompt(dialog)
+
+            generator = outlines.generate.json(
+                self.model,
+                aid_choice_json_schema(
+                    json.dumps([aid.id for aid in available_aids])),
+                sampler=self.sampler,
+                whitespace_pattern=r"[ ]?")
+
+            log.info("[bold]*DIALOG PROMPT*[/bold]",
+                     extra={"markup": True})
+            log.info(dialog_text)
+
+            selected_aid = generator(dialog_text)
+
+            log.info("[bold]*STRUCTURED RESPONSE*[/bold]",
+                     extra={"markup": True})
+            log.info(selected_aid, extra={"highlighter": JSON_HIGHLIGHTER})
+
+            action_to_take.parameters["aid_id"] = selected_aid['aid_choice']
+
+        return action_to_take, selected_aid, dialog
