@@ -88,8 +88,8 @@ class OracleADM(ActionBasedADM):
 
         # Log scoring results
         results = pd.DataFrame([
-            (action.unstructured, prob)
-            for action, prob in zip(actions_with_kdma_values, probs)
+            (action.unstructured, probs[action.unstructured])
+            for action in actions_with_kdma_values
         ], columns=["choice", "probability"])
         results = results.sort_values(by=["probability"], ascending=False)
         log.explain(results)

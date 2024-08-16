@@ -1,15 +1,19 @@
 from abc import ABC, abstractmethod
-from functools import reduce
+from functools import reduce, partial
 import inspect
 import yaml
 
 import pandas as pd
+from swagger_client.models import (
+    kdma_value
+)
 
 from align_system.algorithms.abstracts import ActionBasedADM
 from align_system.algorithms.lib.kaleido import KaleidoSys
 from align_system.algorithms.abstracts import AlignedDecisionMaker
 from align_system.algorithms.lib.util import format_template
 from align_system.utils import logging
+from align_system.utils import alignment_utils
 
 
 log = logging.getLogger(__name__)
@@ -79,7 +83,7 @@ class KaleidoADM(AlignedDecisionMaker, ActionBasedADM):
     def estimate_kdma_values(self,
                              prompt_template,
                              choices,
-                             target_kdmas,
+                             kdmas,
                              estimator_fn=DefaultKDMAEstimatorFunction,
                              kdma_descriptions_map=None):
         if isinstance(estimator_fn, str):
@@ -98,7 +102,7 @@ class KaleidoADM(AlignedDecisionMaker, ActionBasedADM):
                 "found, or does not implement EstimateKDMAFunction")
 
         if kdma_descriptions_map is None:
-            kdma_descriptions_map = {k: {'description': k.replace('_', ' ')} for k in target_kdmas.keys()}
+            kdma_descriptions_map = {k: {'description': k.replace('_', ' ')} for k in kdmas}
 
         rows = []
         for choice in choices:
@@ -112,7 +116,7 @@ class KaleidoADM(AlignedDecisionMaker, ActionBasedADM):
                       extra={"markup": True})
             log.debug(choice_prompt)
 
-            for kdma, target in target_kdmas.items():
+            for kdma in kdmas:
                 mapped_kdma = kdma_descriptions_map[kdma]
 
                 vrd = mapped_kdma.get('vrd', 'Value')
@@ -126,10 +130,10 @@ class KaleidoADM(AlignedDecisionMaker, ActionBasedADM):
 
                 explanation = self.kaleido.get_explanation(choice_prompt, vrd, description)
 
-                rows.append((choice, vrd, description, *relevance, *valence, target, explanation))
+                rows.append((choice, vrd, kdma, description, *relevance, *valence, explanation))
 
         results = pd.DataFrame(
-            rows, columns=["choice", "VRD", "KDMA", "relevant", "not_relevant", "supports", "opposes", "either", "target", "explanation"])
+            rows, columns=["choice", "VRD", "KDMA", "kdma_description", "relevant", "not_relevant", "supports", "opposes", "either", "explanation"])
 
         results['estimated_kdma_value'] = estimator_fn(results)
 
@@ -139,9 +143,9 @@ class KaleidoADM(AlignedDecisionMaker, ActionBasedADM):
         log.debug(results)
 
         display_results = results.copy()
-        display_results[['relevant', 'supports', 'opposes', 'either', 'target', 'estimated_kdma_value']] =\
-            display_results[['relevant', 'supports', 'opposes', 'either', 'target', 'estimated_kdma_value']].map(lambda x: f"{float(x):.2f}")
-        log.explain(display_results[['choice', 'VRD', 'KDMA', 'relevant', 'supports', 'opposes', 'either', 'target', 'estimated_kdma_value']])
+        display_results[['relevant', 'supports', 'opposes', 'either', 'estimated_kdma_value']] =\
+            display_results[['relevant', 'supports', 'opposes', 'either', 'estimated_kdma_value']].map(lambda x: f"{float(x):.2f}")
+        log.explain(display_results[['choice', 'VRD', 'KDMA', 'kdma_description', 'relevant', 'supports', 'opposes', 'either', 'estimated_kdma_value']])
 
         return results
 
@@ -189,6 +193,28 @@ class KaleidoADM(AlignedDecisionMaker, ActionBasedADM):
 
         return output_choice_idx
 
+    def force_choice_with_alignment_fn(self, kaleido_results, choices, target_kdmas, alignment_fn):
+        kdma_values = {}
+        relevance_values = {}
+        for group_key, group_records in kaleido_results.groupby(['choice', 'KDMA']):
+            # group_key is a single element tuple in this case
+            choice, kdma = group_key
+
+            # alignment functions expecting values to be 0-1 (rather than 0-10)
+            kdma_values.setdefault(choice, {})[kdma] =\
+                [float(v) for v in (group_records['estimated_kdma_value'] / 10)]
+
+            relevance_values.setdefault(choice, {})[kdma] =\
+                [float(v) for v in (group_records['estimated_kdma_value'] / 10)]
+
+        selected_choice, probs = alignment_fn(kdma_values, target_kdmas)
+
+        # NOTE ** Not making use of relevance at all here, could
+        # consider adding a weighting argument to the alignment
+        # function
+
+        return choices.index(selected_choice)
+
     def __call__(self, sample, target_kdma_values, labels, **kwargs):
         kdma_descriptions_map = None
         if 'kdma_descriptions_map' in kwargs:
@@ -229,7 +255,7 @@ class KaleidoADM(AlignedDecisionMaker, ActionBasedADM):
         kaleido_results = self.estimate_kdma_values(
             partial_template,
             sample['choices'],
-            target_kdma_values_in_labels,
+            label_kdmas,
             kdma_descriptions_map=kdma_descriptions_map)
 
         selected_choice_idx = self.force_choice(
@@ -276,25 +302,72 @@ class KaleidoADM(AlignedDecisionMaker, ActionBasedADM):
             decision_environment=scenario_state.environment.decision_environment.unstructured.strip(),
             characters_str=characters_str)
 
-        # Scaling KDMA values by 10 (range should be 0-10)
-        if not isinstance(alignment_target, dict):
-            alignment_target = alignment_target.to_dict()
-
-        target_kdma_values = {t['kdma']: t['value'] * 10 for t
-                              in alignment_target.get('kdma_values', ())}
-
         choices_unstructured = [a.unstructured for a in available_actions]
+
+        target_kdmas = alignment_target.kdma_values
+
+        kdmas = set()
+        for kdma_idx in range(len(target_kdmas)):
+            if not isinstance(target_kdmas[kdma_idx], dict):
+                if isinstance(target_kdmas[kdma_idx], kdma_value.KDMAValue):
+                    target_kdmas[kdma_idx] = target_kdmas[kdma_idx].to_dict()
+                else:
+                    target_kdmas[kdma_idx] = dict(target_kdmas[kdma_idx])
+            kdma = target_kdmas[kdma_idx]['kdma']
+            kdmas.add(kdma)
 
         kaleido_results = self.estimate_kdma_values(
             partial_template,
             choices_unstructured,
-            target_kdma_values,
+            kdmas,
             kdma_descriptions_map=kdma_descriptions_map)
 
-        selected_choice_idx = self.force_choice(
-            kaleido_results,
-            choices_unstructured,
-            distance_fn=kwargs.get('distance_fn', DefaultDistanceFunction))
+        # Get type of targets
+        all_scalar_targets = True
+        all_kde_targets = True
+        for target_kdma in target_kdmas:
+            if not hasattr(target_kdma, 'value') or target_kdma.value is None:
+                all_scalar_targets = False
+            if not hasattr(target_kdma, 'kdes') or target_kdma.kdes is None:
+                all_kde_targets = False
+
+        # Select aligned choice
+        if all_scalar_targets:
+            alignment_function = alignment_utils.AvgDistScalarAlignment()
+        elif all_kde_targets:
+            if not kwargs.get('use_alignment_utils', True):
+                raise RuntimeError("Can't handle KDE alignment targets "
+                                   "without `use_alignment_utils` "
+                                   "(set to True and retry)")
+
+            distribution_matching = kwargs.get('distribution_matching', 'sample')
+
+            if distribution_matching == 'sample':
+                alignment_function = alignment_utils.MinDistToRandomSampleKdeAlignment()
+            elif distribution_matching == 'max_likelihood':
+                alignment_function = alignment_utils.MaxLikelihoodKdeAlignment()
+            elif distribution_matching == 'js_divergence':
+                alignment_function = alignment_utils.JsDivergenceKdeAlignment()
+            else:
+                raise RuntimeError(distribution_matching, "distribution matching function unrecognized.")
+
+            alignment_function = partial(alignment_function, kde_norm=kwargs.get('kde_norm', 'globalnorm'))
+        else:
+            # TODO: Currently we assume all targets either have scalar values or KDES,
+            #       Down the line, we should extend to handling multiple targets of mixed types
+            raise ValueError("ADM does not currently support a mix of scalar and KDE targets.")
+
+        if kwargs.get('use_alignment_utils', True):
+            selected_choice_idx = self.force_choice_with_alignment_fn(
+                    kaleido_results,
+                    choices_unstructured,
+                    target_kdmas,
+                    alignment_function)
+        else:
+            selected_choice_idx = self.force_choice(
+                kaleido_results,
+                choices_unstructured,
+                distance_fn=kwargs.get('distance_fn', DefaultDistanceFunction))
 
         action_to_take = available_actions[selected_choice_idx]
         action_to_take.justification = kaleido_results.loc[selected_choice_idx, :].explanation

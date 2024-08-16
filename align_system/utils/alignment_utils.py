@@ -7,7 +7,7 @@ from align_system.utils import kde_utils
 
 
 '''
-Abstract class for alignment function 
+Abstract class for alignment function
 Inputs:
     - kdma_values: Dictionary of choices and KDMA score(s) (between 0 and 1)
         For example: {'Treat Patient A':{'Moral judgement': [0.1,0.1,0.2], ...}, 'Treat Patient B':{...}, ... }
@@ -55,8 +55,10 @@ class AlignmentFunction(ABC):
         # TODO could add some tie breaking logic here
         selected_choice = choices[random.choice(max_actions)]
 
-        return selected_choice, probs
-    
+        probs_dict = {c: p for c, p in zip(choices, probs)}
+
+        return selected_choice, probs_dict
+
     # Given the selected choice, get the index of the sample closest to the target
     def get_best_sample_index(self, kdma_values, target_kdmas, selected_choice, misaligned=False, kde_norm=None):
         pass
@@ -71,7 +73,7 @@ class AvgDistScalarAlignment(AlignmentFunction):
         '''
         kdma_values = _handle_single_value(kdma_values, target_kdmas)
         _check_if_targets_are_scalar(target_kdmas)
-        
+
         # Get distance from average of predicted scores to targets
         distances = []
         choices = list(kdma_values.keys())
@@ -86,7 +88,7 @@ class AvgDistScalarAlignment(AlignmentFunction):
 
         selected_choice, probs = self._select_min_dist_choice(choices, distances, misaligned)
         return selected_choice, probs
-    
+
     def get_best_sample_index(self, kdma_values, target_kdmas, selected_choice, misaligned=False):
         sample_distances = []
         sample_indices = range(len(kdma_values[selected_choice][target_kdmas[0]['kdma']]))
@@ -104,7 +106,7 @@ class AvgDistScalarAlignment(AlignmentFunction):
         return best_sample_index
 
 
-class MinDistToRandomSampleKdeAlignment(AlignmentFunction): 
+class MinDistToRandomSampleKdeAlignment(AlignmentFunction):
     def __call__(self, kdma_values, target_kdmas, misaligned=False, kde_norm='globalnorm'):
         '''
         Returns the choice with min average distance to random sample from the target KDEs
@@ -122,7 +124,7 @@ class MinDistToRandomSampleKdeAlignment(AlignmentFunction):
         # Use avergae distance to sampled scalar targets
         avg_alignment_function = AvgDistScalarAlignment()
         return avg_alignment_function(kdma_values, self.sampled_target_kdmas, misaligned=misaligned)
-    
+
     def get_best_sample_index(self, kdma_values, target_kdmas, selected_choice, misaligned=False, kde_norm=None):
         # Use avergae distance to sampled scalar targets
         avg_alignment_function = AvgDistScalarAlignment()
@@ -173,7 +175,7 @@ class MaxLikelihoodKdeAlignment(AlignmentFunction):
                 sample_distances.append(sample_dist)
             best_sample_index, _ = self._select_min_dist_choice(sample_indices, sample_distances, misaligned)
         return best_sample_index
-            
+
 
 class JsDivergenceKdeAlignment(AlignmentFunction):
     def __call__(self, kdma_values, target_kdmas, misaligned=False, kde_norm='globalnorm'):
@@ -199,7 +201,7 @@ class JsDivergenceKdeAlignment(AlignmentFunction):
 
         selected_choice, probs = self._select_min_dist_choice(choices, distances, misaligned)
         return selected_choice, probs
-    
+
     def get_best_sample_index(self, kdma_values, target_kdmas, selected_choice, misaligned=False, kde_norm=None):
         # Use max likelihood as distance from a sample to the distribution because JS is disitribution to distribution
         ml_alignment_function = MaxLikelihoodKdeAlignment()
