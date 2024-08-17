@@ -440,7 +440,8 @@ class OutlinesTransformersADM(ActionBasedADM):
                                           ActionTypeEnum.CHECK_ALL_VITALS,
                                           ActionTypeEnum.CHECK_PULSE,
                                           ActionTypeEnum.CHECK_RESPIRATION,
-                                          ActionTypeEnum.MOVE_TO_EVAC}:
+                                          ActionTypeEnum.MOVE_TO_EVAC,
+                                          ActionTypeEnum.CHECK_BLOOD_OXYGEN}:
             if action_to_take.character_id == None:
                 # Use follow up prompt to define selected_character
                 characters = [c for c in scenario_state.characters if not c.unseen]

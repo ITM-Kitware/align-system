@@ -129,6 +129,7 @@ def main(cfg: DictConfig) -> None:
         if scenario.id() == '':
             log.info("Next scenario ID is blank, assuming we're done, exiting")
             break
+        log.info(f'[bold]*Scenario ID*[/bold]: {scenario.id()}')
 
         if 'alignment_target' in cfg:
             alignment_target = cfg.alignment_target
@@ -147,7 +148,6 @@ def main(cfg: DictConfig) -> None:
 
                 with open(alignment_target_path, "w") as f:
                     yaml.dump(alignment_target.to_dict(), f)
-
 
         current_state = scenario.get_state()
         scenario_complete = current_state.scenario_complete

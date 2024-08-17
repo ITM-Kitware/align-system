@@ -197,7 +197,7 @@ def scenario_state_description_dre(scenario_state):
     {{ scenario_state.unstructured.rstrip() }}
     """
 
-# Prompt that includes provided relevant structured character info 
+# Prompt that includes provided relevant structured character info
 # characters is a list of dicts with keys: name, unstructured, relevant_structured
 # the relevant_structured field is expected to already be serialized to a string (JSON.stringify(strucutured_json))
 @outlines.prompt
@@ -311,7 +311,7 @@ def action_choice_json_schema(choices_json_str):
        "title": "ActionChoice",
        "type": "string"}},
      "properties": {"detailed_reasoning": {"title": "Detailed Reasoning",
-       "type": "string","maxLength":512},
+       "type": "string", "minLength": 1, "maxLength": 512},
       "action_choice": {"$ref": "#/$defs/ActionChoice"}},
      "required": ["detailed_reasoning", "action_choice"],
      "title": "ActionSelection",
@@ -326,7 +326,7 @@ def character_choice_json_schema(choices_json_str):
        "title": "CharacterChoice",
        "type": "string"}},
      "properties": {"brief_reasoning": {"title": "Brief Reasoning",
-       "type": "string","maxLength":512},
+       "type": "string", "minLength": 1, "maxLength": 512},
       "character_choice": {"$ref": "#/$defs/CharacterChoice"}},
      "required": ["brief_reasoning", "character_choice"],
      "title": "CharacterSelection",
@@ -341,7 +341,7 @@ def tag_choice_json_schema(tags_json_str):
        "title": "TriageTag",
        "type": "string"}},
      "properties": {"detailed_reasoning": {"title": "Detailed Reasoning",
-       "type": "string","maxLength":512},
+       "type": "string", "minLength": 1, "maxLength": 512},
       "triage_tag": {"$ref": "#/$defs/TriageTag"}},
      "required": ["detailed_reasoning", "triage_tag"],
      "title": "TagSelection",
@@ -355,7 +355,7 @@ def aid_choice_json_schema(choices_json_str):
        "title": "AidChoice",
        "type": "string"}},
      "properties": {"brief_reasoning": {"title": "Brief Reasoning",
-       "type": "string","maxLength":512},
+       "type": "string", "minLength": 1, "maxLength": 512},
       "aid_choice": {"$ref": "#/$defs/AidChoice"}},
      "required": ["brief_reasoning", "aid_choice"],
      "title": "AidSelection",
@@ -373,7 +373,7 @@ def treatment_choice_json_schema(supplies_json_str, locations_json_str):
        "title": "LocationChoice",
        "type": "string"}},
      "properties": {"detailed_reasoning": {"title": "Detailed Reasoning",
-       "type": "string","maxLength":512},
+       "type": "string", "minLength": 1, "maxLength": 512},
       "supplies_to_use": {"$ref": "#/$defs/SupplyChoice"},
       "treatment_location": {"$ref": "#/$defs/LocationChoice"}},
      "required": ["detailed_reasoning", "supplies_to_use", "treatment_location"],
@@ -435,6 +435,7 @@ def outcome_prediction_json_schema():
         "predicted_outcome": {
             "title": "Outcome",
             "type": "string",
+            "minLength": 1,
             "maxLength": 512
             }
         },
@@ -453,6 +454,7 @@ def comparative_outcome_prediction_json_schema(choices):
                     "predicted_outcome": {
                         "title": "Outcome",
                         "type": "string",
+                        "minLength": 1,
                         "maxLength": 512
                     }
                 },
@@ -587,6 +589,7 @@ def kdma_score_prediction_json_schema():
         "reasoning": {
             "title": "Reasoning",
             "type": "string",
+            "minLength": 1,
             "maxLength": 512
             },
         "score": {
@@ -609,6 +612,7 @@ def comparative_kdma_score_prediction_json_schema(choices):
                 "properties": {
                     "reasoning": {
                         "type": "string",
+                        "minLength": 1,
                         "maxLength": 512
                     },
                     "score": {

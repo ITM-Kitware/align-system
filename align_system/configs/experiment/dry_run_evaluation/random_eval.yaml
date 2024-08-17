@@ -5,6 +5,7 @@ defaults:
 
 interface:
   api_endpoint: "http://127.0.0.1:8089"
+  session_type: eval
   training_session: false
 
 align_to_target: true
