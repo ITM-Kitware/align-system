@@ -288,7 +288,7 @@ class OutlinesTransformersComparativeRegressionADM(OutlinesTransformersADM):
     def get_selected_choice_reasoning(self, selected_choice, best_sample_index, outcome_predictions, reasonings):
         # If outcomes were predicted, add the best sample outcome prediction reasoning
         if outcome_predictions[best_sample_index][selected_choice]['predicted_outcome'] is not None:
-            reasoning = f'{outcome_predictions[best_sample_index][selected_choice]['predicted_outcome']} '
+            reasoning = f'{outcome_predictions[best_sample_index][selected_choice]["predicted_outcome"]} '
         else:
             reasoning = ''
         # Add the score prediction reasoning for each KDMA
