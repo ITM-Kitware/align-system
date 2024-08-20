@@ -1,7 +1,6 @@
 import json
 import random
 import itertools
-import math
 import numpy as np
 import torch
 
@@ -442,7 +441,7 @@ class OutlinesTransformersADM(ActionBasedADM):
                                           ActionTypeEnum.CHECK_RESPIRATION,
                                           ActionTypeEnum.MOVE_TO_EVAC,
                                           ActionTypeEnum.CHECK_BLOOD_OXYGEN}:
-            if action_to_take.character_id == None:
+            if action_to_take.character_id is None:
                 # Use follow up prompt to define selected_character
                 characters = [c for c in scenario_state.characters if not c.unseen]
                 dialog.append({'role': 'assistant',
@@ -491,6 +490,11 @@ class OutlinesTransformersADM(ActionBasedADM):
                 valid_treatment_locations = []
                 for injury in scenario_state.characters[selected_character_idx].injuries:
                     valid_treatment_locations.append(injury.location)
+
+                # Work-around when injuries are not yet discovered (intend actions)
+                if len(valid_treatment_locations) == 0:
+                    log.info("No injuries on selected character. Allowing any treatment location")
+                    valid_treatment_locations = get_swagger_class_enum_values(InjuryLocationEnum)
 
                 # If there is only one treatment location and we have the treatment, we don't need a follow-up
                 if len(valid_treatment_locations) == 1 and action_to_take.parameters is not None and 'treatment' in action_to_take.parameters:
