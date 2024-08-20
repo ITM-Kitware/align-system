@@ -149,7 +149,13 @@ class KaleidoADM(AlignedDecisionMaker, ActionBasedADM):
 
         return results
 
-    def force_choice(self, kaleido_results, choices, distance_fn=DefaultDistanceFunction):
+    def force_choice(self, kaleido_results, choices, target_kdma_values, distance_fn=DefaultDistanceFunction):
+        # Make sure we don't modify the original when we add in the targets
+        kaleido_results = kaleido_results.copy(deep=True)
+
+        kaleido_results['target'] = kaleido_results['KDMA'].apply(
+            lambda k: target_kdma_values[k])
+
         if isinstance(distance_fn, str):
             distance_fn = {fn.__name__: fn for fn
                            in KnownDistanceFunctions}.get(
@@ -261,6 +267,7 @@ class KaleidoADM(AlignedDecisionMaker, ActionBasedADM):
         selected_choice_idx = self.force_choice(
             kaleido_results,
             sample['choices'],
+            target_kdma_values_in_labels,
             distance_fn=kwargs.get('distance_fn', DefaultDistanceFunction))
 
         predicted_kdma_values = []
@@ -364,9 +371,12 @@ class KaleidoADM(AlignedDecisionMaker, ActionBasedADM):
                     target_kdmas,
                     alignment_function)
         else:
+            target_kdmas_to_values = {t['kdma']: t['value'] for t in target_kdmas}
+
             selected_choice_idx = self.force_choice(
                 kaleido_results,
                 choices_unstructured,
+                target_kdmas_to_values,
                 distance_fn=kwargs.get('distance_fn', DefaultDistanceFunction))
 
         action_to_take = available_actions[selected_choice_idx]
