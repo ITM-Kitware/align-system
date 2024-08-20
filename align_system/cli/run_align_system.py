@@ -157,7 +157,15 @@ def main(cfg: DictConfig) -> None:
 
         sce_times_s = []
 
+        last_scene_id = None
+
         while not scenario_complete:
+            current_scene_id = current_state.meta_info.scene_id
+            if last_scene_id != current_scene_id:
+                log.info(f"[bold] CHANGED SCENE TO: {current_scene_id} [/bold]",
+                         extra={"markup": True})
+                last_scene_id = current_scene_id
+
             available_actions = scenario.get_available_actions()
 
             if sort_available_actions:
@@ -274,14 +282,14 @@ def main(cfg: DictConfig) -> None:
                 sce_times_s.append(end_choose_action - start_choose_action)
                 log.debug(f"choose_action took {end_choose_action - start_choose_action} seconds")
 
-            log.debug("[bold]*ACTION BEING TAKEN*[/bold]",
-                      extra={"markup": True})
+            log.info("[bold]*ACTION BEING TAKEN*[/bold]",
+                     extra={"markup": True})
             if isinstance(action_to_take, dict):
-                log.debug(json.dumps(action_to_take, indent=4),
-                          extra={"highlighter": JSON_HIGHLIGHTER})
+                log.info(json.dumps(action_to_take, indent=4),
+                         extra={"highlighter": JSON_HIGHLIGHTER})
             else:
-                log.debug(json.dumps(action_to_take.to_dict(), indent=4),
-                          extra={"highlighter": JSON_HIGHLIGHTER})
+                log.info(json.dumps(action_to_take.to_dict(), indent=4),
+                         extra={"highlighter": JSON_HIGHLIGHTER})
 
             action_choice_idx = None
             for i, a in enumerate(available_actions):
