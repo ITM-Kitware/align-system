@@ -495,6 +495,16 @@ class OutlinesTransformersADM(ActionBasedADM):
                 # Further filtering for tagging action, don't tag
                 # a character that already has a tag
                 characters = [c for c in characters if c.tag is None]
+            elif action_to_take.action_type in {ActionTypeEnum.CHECK_ALL_VITALS,
+                                                ActionTypeEnum.CHECK_PULSE,
+                                                ActionTypeEnum.CHECK_RESPIRATION,
+                                                ActionTypeEnum.CHECK_BLOOD_OXYGEN}:
+                # Further filtering for assessment actions, don't
+                # allow an already "visited" character to be assessed
+                # again; NOTE: Not certain this won't prevent us from
+                # doing legitimate actions in some corner cases
+                characters = [c for c in characters
+                              if c.visited is None or not c.visited]
 
             dialog.append({'role': 'assistant',
                            'content': '{}  I would choose to {}'.format(
