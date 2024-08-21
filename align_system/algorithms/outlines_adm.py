@@ -490,6 +490,12 @@ class OutlinesTransformersADM(ActionBasedADM):
         if action_to_take.character_id is None:
             # Use follow up prompt to define selected_character
             characters = [c for c in scenario_state.characters if not c.unseen]
+
+            if action_to_take.action_type == ActionTypeEnum.TAG_CHARACTER:
+                # Further filtering for tagging action, don't tag
+                # a character that already has a tag
+                characters = [c for c in characters if c.tag is None]
+
             dialog.append({'role': 'assistant',
                            'content': '{}  I would choose to {}'.format(
                                action_to_take.justification,
