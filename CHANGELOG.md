@@ -10,6 +10,11 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 * Updated Hybrid Kaleido ADM to optionally (on by default) use alignment_utils to support distribution based alignment
 * Refactored outlines_adm to break out action parameter completion into separate functions for reuse
 
+### Fixed
+
+* Fixed case in Kaleido ADM where choices weren't necessarily unique
+* In outlines_adm ensure that an already tagged character can't be selected again for the TAG_CHARACTER action
+
 ## 0.5.0
 
 ### Changed
