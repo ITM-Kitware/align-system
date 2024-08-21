@@ -104,6 +104,8 @@ class OutlinesTransformersADM(ActionBasedADM):
         else:
             return None
 
+    # TODO: Move this function to utilities somewhere as it's
+    # generally useful regardless of ADM
     @classmethod
     def format_choices(cls, choices, available_actions, scenario_state):
         """
