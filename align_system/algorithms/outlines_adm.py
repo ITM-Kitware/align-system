@@ -56,10 +56,24 @@ class OutlinesTransformersADM(ActionBasedADM):
                  sampler=MultinomialSampler(),
                  **kwargs):
         self.baseline = baseline
+
+        model_kwargs = kwargs.get('model_kwargs', {})
+        if 'precision' in kwargs:
+            if kwargs['precision'] == 'half':
+                torch_dtype = torch.float16
+            elif kwargs['precision'] == 'full':
+                torch_dtype = torch.float32
+            else:
+                raise RuntimeError(
+                    f"Unexpected value for 'precision' ({kwargs['precision']})"
+                    ", expecting either 'half' or 'full'")
+
+            model_kwargs['torch_dtype'] = torch_dtype
+
         self.model = outlines.models.transformers(
             model_name,
             device=device,
-            model_kwargs=kwargs.get('model_kwargs', {}),
+            model_kwargs=model_kwargs,
             tokenizer_kwargs=kwargs.get('tokenizer_kwargs', {}))
         # NOTE: In cases where we want multiple samples, we're passing
         # in a list of prompts (this allows us to shuffle answers in

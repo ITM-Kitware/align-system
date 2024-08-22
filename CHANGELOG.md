@@ -10,6 +10,10 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 * Updated Hybrid Kaleido ADM to optionally (on by default) use alignment_utils to support distribution based alignment
 * Refactored outlines_adm to break out action parameter completion into separate functions for reuse
 
+### Added
+
+* Added support for 'precision' in model_kwargs for outlines based adms (expecting either 'full' or 'half')
+
 ### Fixed
 
 * Fixed case in Kaleido ADM where choices weren't necessarily unique

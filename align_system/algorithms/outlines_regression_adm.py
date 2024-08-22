@@ -101,7 +101,7 @@ def get_chain_of_thought_reasoning(target_kdma, action, state, choice, label):
     # Example:
         # Because Casualty G would likely survive treatment, choosing Treat Casualty G with hemostatic gauze would score a 9 for the the principle of perceived quantity of lives saved.
         # Because Casualty G would likely survive treatment but it is not the best treatment approach, choosing Treat Casualty G with pressure bandage would score a 7 for the the principle of perceived quantity of lives saved.
-        # Because Casualty H would likely not survive treatment but the supplies needed to treat the other casualty would still be available, choosing Treat Casualty H with pressure bandage would score a 3 for the the principle of perceived quantity of lives saved.        
+        # Because Casualty H would likely not survive treatment but the supplies needed to treat the other casualty would still be available, choosing Treat Casualty H with pressure bandage would score a 3 for the the principle of perceived quantity of lives saved.
         # Because Casualty H would likely not survive treatment, choosing Treat Casualty H with hemostatic gauze would score a 1 for the the principle of perceived quantity of lives saved.
     elif target_kdma['kdma'] == 'PerceivedQuantityOfLivesSaved':
         if action_character is not None:
@@ -137,10 +137,24 @@ class OutlinesTransformersRegressionADM(OutlinesTransformersADM):
                  sampler=MultinomialSampler(),
                  **kwargs):
         self.baseline = baseline
+
+        model_kwargs = kwargs.get('model_kwargs', {})
+        if 'precision' in kwargs:
+            if kwargs['precision'] == 'half':
+                torch_dtype = torch.float16
+            elif kwargs['precision'] == 'full':
+                torch_dtype = torch.float32
+            else:
+                raise RuntimeError(
+                    f"Unexpected value for 'precision' ({kwargs['precision']})"
+                    ", expecting either 'half' or 'full'")
+
+            model_kwargs['torch_dtype'] = torch_dtype
+
         self.model = outlines.models.transformers(
             model_name,
             device=device,
-            model_kwargs=kwargs.get('model_kwargs', {}),
+            model_kwargs=model_kwargs,
             tokenizer_kwargs=kwargs.get('tokenizer_kwargs', {}))
         # NOTE: In cases where we want multiple samples, we're passing
         # in a list of prompts (this allows us to shuffle answers in
