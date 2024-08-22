@@ -99,7 +99,7 @@ class BertRegressionModel:
             output = logits.squeeze().detach().cpu().numpy()
             predictions = np.append(predictions, output)
 
-        return predictions
+        return np.clip(predictions, 0, 1)
 
 
 class HybridRegressionADM(OutlinesTransformersADM):
