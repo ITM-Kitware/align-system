@@ -7,17 +7,22 @@ from scipy.stats import entropy
 from scipy.spatial.distance import jensenshannon
 from scipy.integrate import trapezoid
 
+from swagger_client.models import KDMAValue
+
 KDE_MAX_VALUE = 1.0 # Value ranges from 0 to 1.0
 KDE_BANDWIDTH = 0.75 * (KDE_MAX_VALUE / 10.0)
 
 
 def load_kde(target_kdma, norm='globalnorm'):
+    if isinstance(target_kdma, KDMAValue):
+        target_kdma = target_kdma.to_dict()
+
     if norm == 'globalnorm':
-        target_kde_base64 = target_kdma.kdes['globalnorm']['kde']
+        target_kde_base64 = target_kdma['kdes']['globalnorm']['kde']
     elif norm == 'localnorm':
-        target_kde_base64 = target_kdma.kdes['localnorm']['kde']
+        target_kde_base64 = target_kdma['kdes']['localnorm']['kde']
     elif norm == 'rawscores':
-        target_kde_base64 = target_kdma.kdes['rawscores']['kde']
+        target_kde_base64 = target_kdma['kdes']['rawscores']['kde']
     else:
         raise RuntimeError(norm, "normalization distribution matching not implemented.")
     return kde_from_base64(target_kde_base64)
@@ -27,7 +32,7 @@ def load_kde(target_kdma, norm='globalnorm'):
 
 def sample_kde():
     """
-    Generates a random KDMA Measurement based on a 
+    Generates a random KDMA Measurement based on a
     normally distributed random sample
 
     The normal distribution is centered on `norm_loc` with a
@@ -66,11 +71,11 @@ def _normalize(x, y):
     ----------
     x: ndarray
         domain over which discrete probability distribution y is defined.
-    
+
     y: ndarray
         probability distribution at each point in x. Y is proportional to the
         probability density of the distribution at x.
-    
+
     Returns
     --------
     pdf: ndarray
@@ -98,8 +103,8 @@ def _kde_to_pdf(kde, x, normalize=True):
 
     x: ndarray
         points to evaulate kde at to generate probability function.
-    
-    
+
+
     Returns
     ---------
     pf: ndarray
@@ -108,7 +113,7 @@ def _kde_to_pdf(kde, x, normalize=True):
     """
     pf = np.exp(kde.score_samples(x[:,np.newaxis]))
 
-    if normalize: 
+    if normalize:
         pf = _normalize(x, pf)
 
     return pf
@@ -120,24 +125,24 @@ def hellinger_similarity(kde1, kde2, samples: int):
 
     The Hellinger similarity :math:`H(P,Q)`  between probability density functions
     :math:`P(x)` and :math:`Q(x)` is given by:
-    
+
     .. math::
         H(P,Q) = 1 - D(P,Q)
-    
+
     Where :math:`D(P,Q)` is the
     `hellinger distance <https://en.wikipedia.org/wiki/Hellinger_distance>`_ between
     the distributions.
 
-    The similarity score is bounded between 0 (:math:`P` is 0 everywhere where 
+    The similarity score is bounded between 0 (:math:`P` is 0 everywhere where
     :math:`Q` is nonzero and vice-versa) and ` (:math:`P(x)=Q(x) \\forall x`)
-    
+
     Parameters
     --------------
     kde1, kde2: sklearn KDE models
         KDEs for distributions to compare.
-    
+
     samples: int
-        number of evenly-spaced points on the intevral :math:`[0,1]` 
+        number of evenly-spaced points on the intevral :math:`[0,1]`
 
     """
     # Compute the PDFs of the two KDEs at some common evaluation points
@@ -145,12 +150,12 @@ def hellinger_similarity(kde1, kde2, samples: int):
     x = np.linspace(0, 1, samples)
     pdf_kde1 = _kde_to_pdf(kde1, x)
     pdf_kde2 = _kde_to_pdf(kde2, x)
-    
+
 
     squared_diff = (np.sqrt(pdf_kde1)-np.sqrt(pdf_kde2))**2
     area = trapezoid(squared_diff, x)
     d_hellinger = np.sqrt(area/2)
-    
+
     return 1 - d_hellinger
 
 
@@ -160,7 +165,7 @@ def kl_distance(kde1, kde2, samples: int):
     x = np.linspace(0, 1, samples)
     pdf_kde1 = _kde_to_pdf(kde1, x)
     pdf_kde2 = _kde_to_pdf(kde2, x)
-    
+
     # Compute the Kullback-Leibler Distance using samples
     kl = entropy(pdf_kde1, pdf_kde2)
     # TODO note - KL is not bounded between 0 and 1- inverting may give negative values
@@ -183,5 +188,5 @@ def js_distance(kde1, kde2, samples: int):
         # Compute the Jensen-Shannon Distance using samples
         js = jensenshannon(pdf_kde1, pdf_kde2)
 
-    # 1 = unaligned, 0 = full aligned 
+    # 1 = unaligned, 0 = full aligned
     return js

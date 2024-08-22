@@ -4,6 +4,7 @@ import math
 import random
 
 from align_system.utils import kde_utils
+from swagger_client.models import KDMAValue
 
 
 '''
@@ -80,6 +81,9 @@ class AvgDistScalarAlignment(AlignmentFunction):
         for choice in choices:
             distance = 0.
             for target_kdma in target_kdmas:
+                if isinstance(target_kdma, KDMAValue):
+                    target_kdma = target_kdma.to_dict()
+
                 kdma = target_kdma['kdma']
                 samples = kdma_values[choice][kdma]
                 average_score = (sum(samples) / len(samples))
@@ -99,6 +103,9 @@ class AvgDistScalarAlignment(AlignmentFunction):
             for sample_idx in sample_indices:
                 sample_dist = 0
                 for target_kdma in target_kdmas:
+                    if isinstance(target_kdma, KDMAValue):
+                        target_kdma = target_kdma.to_dict()
+
                     sample = kdma_values[selected_choice][target_kdma['kdma']][sample_idx]
                     sample_dist += _euclidean_distance(target_kdma['value'], sample)
                 sample_distances.append(sample_dist)
@@ -116,7 +123,11 @@ class MinDistToRandomSampleKdeAlignment(AlignmentFunction):
         # Sample KDEs to get scalar targets
         self.sampled_target_kdmas = []
         for target_kdma in target_kdmas:
-            sampled_target_kdma = {'kdma':target_kdma.kdma}
+
+            if isinstance(target_kdma, KDMAValue):
+                target_kdma = target_kdma.to_dict()
+
+            sampled_target_kdma = {'kdma':target_kdma["kdma"]}
             target_kde = kde_utils.load_kde(target_kdma, kde_norm)
             sampled_target_kdma['value']= float(target_kde.sample(1)) # sample returns array
             self.sampled_target_kdmas.append(sampled_target_kdma)
@@ -146,6 +157,9 @@ class MaxLikelihoodKdeAlignment(AlignmentFunction):
         for choice in choices:
             distance = 0.
             for target_kdma in target_kdmas:
+                if isinstance(target_kdma, KDMAValue):
+                    target_kdma = target_kdma.to_dict()
+
                 target_kde = kde_utils.load_kde(target_kdma, kde_norm)
                 predicted_samples = kdma_values[choice][target_kdma.kdma]
                 log_likelihoods = target_kde.score_samples(np.array(predicted_samples).reshape(-1, 1))
@@ -168,6 +182,9 @@ class MaxLikelihoodKdeAlignment(AlignmentFunction):
             for sample_idx in sample_indices:
                 sample_dist = 0
                 for target_kdma in target_kdmas:
+                    if isinstance(target_kdma, KDMAValue):
+                        target_kdma = target_kdma.to_dict()
+
                     target_kde = kde_utils.load_kde(target_kdma, kde_norm)
                     sample = kdma_values[selected_choice][target_kdma['kdma']][sample_idx]
                     likelihood = np.exp(target_kde.score_samples(np.array([sample]).reshape(-1, 1))[0])
@@ -193,6 +210,9 @@ class JsDivergenceKdeAlignment(AlignmentFunction):
         for choice in choices:
             distance = 0.
             for target_kdma in target_kdmas:
+                if isinstance(target_kdma, KDMAValue):
+                    target_kdma = target_kdma.to_dict()
+
                 target_kde = kde_utils.load_kde(target_kdma, kde_norm)
                 predicted_samples = kdma_values[choice][target_kdma.kdma]
                 predicted_kde = kde_utils.get_kde_from_samples(predicted_samples)
@@ -212,6 +232,9 @@ class JsDivergenceKdeAlignment(AlignmentFunction):
 def _handle_single_value(kdma_values, target_kdmas):
     for choice in kdma_values.keys():
         for target_kdma in target_kdmas:
+            if isinstance(target_kdma, KDMAValue):
+                target_kdma = target_kdma.to_dict()
+
             kdma = target_kdma['kdma']
             # Check that we have a value for the KDMA
             if kdma not in kdma_values[choice]:
@@ -226,6 +249,9 @@ def _check_if_targets_are_scalar(target_kdmas):
     if len(target_kdmas) == 0:
         raise RuntimeError(f"Alignment function requires at least one KDMA target.")
     for target_kdma in target_kdmas:
+        if isinstance(target_kdma, KDMAValue):
+            target_kdma = target_kdma.to_dict()
+
         if 'value' not in target_kdma or not isinstance(target_kdma['value'], float):
             raise RuntimeError(f"Alignment function requires scalar KDMA targets.")
 
@@ -234,7 +260,10 @@ def _check_if_targets_are_kde(target_kdmas):
     if len(target_kdmas) == 0:
         raise RuntimeError(f"Alignment function requires at least one KDMA target.")
     for target_kdma in target_kdmas:
-        if 'kde' in target_kdma:
+        if isinstance(target_kdma, KDMAValue):
+            target_kdma = target_kdma.to_dict()
+
+        if 'kdes' not in target_kdma or target_kdma["kdes"] is None:
             raise RuntimeError(f"Alignment function requires KDE targets.")
 
 def _euclidean_distance(target, score):

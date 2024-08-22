@@ -7,10 +7,7 @@ from copy import deepcopy
 import outlines
 from outlines.samplers import MultinomialSampler
 from rich.highlighter import JSONHighlighter
-from swagger_client.models import (
-    ActionTypeEnum,
-    kdma_value
-)
+from swagger_client.models import kdma_value
 
 from align_system.utils import logging
 from align_system.utils import outlines_prompts_utils
@@ -383,9 +380,9 @@ class OutlinesTransformersComparativeRegressionADM(OutlinesTransformersADM):
         all_scalar_targets = True
         all_kde_targets = True
         for target_kdma in target_kdmas:
-            if not hasattr(target_kdma, 'value') or target_kdma.value is None:
+            if 'value' not in target_kdma or target_kdma["value"] is None:
                 all_scalar_targets = False
-            if not hasattr(target_kdma, 'kdes') or target_kdma.kdes is None:
+            if 'kdes' not in target_kdma or target_kdma["kdes"] is None:
                 all_kde_targets = False
 
         # Select aligned choice

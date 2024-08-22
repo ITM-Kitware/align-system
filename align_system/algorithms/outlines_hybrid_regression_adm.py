@@ -2,6 +2,7 @@ from typing import Dict, List
 
 import numpy as np
 import pandas as pd
+from swagger_client.models import KDMAValue
 import torch
 from torch.utils.data import TensorDataset, DataLoader
 from transformers import AutoModelForSequenceClassification, AutoConfig, AutoTokenizer
@@ -99,7 +100,7 @@ class BertRegressionModel:
             output = logits.squeeze().detach().cpu().numpy()
             predictions = np.append(predictions, output)
 
-        return predictions
+        return np.clip(predictions, 0, 1)
 
 
 class HybridRegressionADM(OutlinesTransformersADM):
@@ -155,8 +156,8 @@ class HybridRegressionADM(OutlinesTransformersADM):
         target_kdmas = alignment_target.kdma_values
 
         for i, target_kdma in enumerate(target_kdmas):
-            target_kdma = dict(target_kdma)
-            # Only works for scalar alignment targets
+            if isinstance(target_kdma, KDMAValue):
+                target_kdma = target_kdma.to_dict()
             target_kdma_name = target_kdma["kdma"]
 
             if target_kdma_name not in target_model_checkpoints:
@@ -177,7 +178,7 @@ class HybridRegressionADM(OutlinesTransformersADM):
                 log.info(
                     f"Action: \"{choice}\", Model predicted KDMA_value: {pred}"
                 )
-            
+
         # Get type of targets
         all_scalar_targets = True
         all_kde_targets = True
@@ -208,7 +209,7 @@ class HybridRegressionADM(OutlinesTransformersADM):
 
         log.info("\nFINAL CHOICE after distribution matching:")
         log.info(
-            f"Action: \"{selected_choice}\", "   
+            f"Action: \"{selected_choice}\", "
         )
         selected_choice_idx = choices.index(selected_choice)
         action_to_take = available_actions[selected_choice_idx]
