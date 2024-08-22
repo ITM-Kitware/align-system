@@ -1,6 +1,4 @@
-import math
 import random
-import numpy as np
 import pandas as pd
 from typing import List, Optional
 
@@ -17,29 +15,14 @@ log = logging.getLogger(__name__)
 
 
 class OracleADM(ActionBasedADM):
-    def __init__(
-        self, probabilistic: bool=False, upweight_missing_kdmas: bool=False,
-        filter_unlabeled_actions: bool=False, misaligned: bool=False, **kwargs
-    ):
-        self.probabilistic = probabilistic
-        self.upweight_missing_kdmas = upweight_missing_kdmas
-        self.filter_unlabeled_actions = filter_unlabeled_actions
+    def __init__(self, misaligned: bool=False, **kwargs):
         self.misaligned = misaligned
 
     def choose_action(self, scenario_state, available_actions, alignment_target,
-                      distribution_matching: str='sample',
-                      kde_norm: str='rawscores', **kwargs):
+                      distribution_matching='sample', kde_norm='rawscores',
+                      probabilistic=False **kwargs):
         if available_actions is None or len(available_actions) == 0:
             return None
-
-        if self.filter_unlabeled_actions:
-            available_actions = [
-                action for action in available_actions
-                if action.kdma_association is not None and len(action.kdma_association) > 0
-            ]
-
-            if len(available_actions) == 0:
-                raise RuntimeError("No actions left to take after filtering unlabled actions")
 
         if alignment_target is None:
             raise ValueError("Oracle ADM needs alignment target")
@@ -65,7 +48,9 @@ class OracleADM(ActionBasedADM):
 
         if all_scalar_targets:
             alignment_function = alignment_utils.AvgDistScalarAlignment()
-            selected_choice_id, probs = alignment_function(gt_kdma_values, target_kdmas, misaligned=self.misaligned)
+            selected_choice_id, probs = alignment_function(
+                gt_kdma_values, target_kdmas, misaligned=self.misaligned, probabilistic=probabilistic
+            )
 
         elif all_kde_targets:
             if distribution_matching == 'sample':
@@ -76,7 +61,9 @@ class OracleADM(ActionBasedADM):
                 alignment_function = alignment_utils.JsDivergenceKdeAlignment()
             else:
                 raise RuntimeError(distribution_matching, "distribution matching function unrecognized.")
-            selected_choice_id, probs = alignment_function(gt_kdma_values, target_kdmas, misaligned=self.misaligned, kde_norm=kde_norm)
+            selected_choice_id, probs = alignment_function(
+                gt_kdma_values, target_kdmas, misaligned=self.misaligned, kde_norm=kde_norm, probabilistic=probabilistic
+            )
         else:
             # TODO: Currently we assume all targets either have scalar values or KDES,
             #       Down the line, we should extend to handling multiple targets of mixed types

@@ -110,6 +110,7 @@ class HybridRegressionADM(OutlinesTransformersADM):
                                 alignment_target,
                                 distribution_matching='sample',
                                 kde_norm='globalnorm',
+                                probabilistic=False,
                                 **kwargs):
 
         scenario = []
@@ -186,7 +187,9 @@ class HybridRegressionADM(OutlinesTransformersADM):
         # Select aligned choice
         if all_scalar_targets:
             alignment_function = alignment_utils.AvgDistScalarAlignment()
-            selected_choice, probs = alignment_function(predicted_kdma_values, target_kdmas)
+            selected_choice, probs = alignment_function(
+                predicted_kdma_values, target_kdmas, probabilistic=probabilistic
+            )
         elif all_kde_targets:
             if distribution_matching == 'sample':
                 alignment_function = alignment_utils.MinDistToRandomSampleKdeAlignment()
@@ -196,7 +199,9 @@ class HybridRegressionADM(OutlinesTransformersADM):
                 alignment_function = alignment_utils.JsDivergenceKdeAlignment()
             else:
                 raise RuntimeError(distribution_matching, "distribution matching function unrecognized.")
-            selected_choice, probs = alignment_function(predicted_kdma_values, target_kdmas, kde_norm=kde_norm)
+            selected_choice, probs = alignment_function(
+                predicted_kdma_values, target_kdmas, kde_norm=kde_norm, probabilistic=probabilistic
+            )
         else:
             # TODO: Currently we assume all targets either have scalar values or KDES,
             #       Down the line, we should extend to handling multiple targets of mixed types

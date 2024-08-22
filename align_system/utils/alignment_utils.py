@@ -27,7 +27,7 @@ Returns:
 '''
 class AlignmentFunction(ABC):
     @abstractmethod
-    def __call__(self, kdma_values, target_kdmas, misaligned=False, kde_norm=None):
+    def __call__(self, kdma_values, target_kdmas, misaligned=False, kde_norm=None, probabilistic=False):
         '''
         1. Make sure the data is in the right format (scalar vs KDE target)
         2. Compute the distance of each choice to the targets
@@ -36,7 +36,7 @@ class AlignmentFunction(ABC):
         '''
         pass
 
-    def _select_min_dist_choice(self, choices, dists, misaligned=False):
+    def _select_min_dist_choice(self, choices, dists, misaligned=False, probabilistic=False):
         if not misaligned:
             # For aligned, want to minimize to distance to target
             # Invert distances so minimal distances have higher probability
@@ -53,11 +53,15 @@ class AlignmentFunction(ABC):
             # Convert distances to probabilities
             probs = [dist/sum(dists) for dist in dists]
 
-        max_prob = max(probs)
-        max_actions = [idx for idx, p in enumerate(probs) if p == max_prob]
-        # Randomly chose one of the max probability actions
-        # TODO could add some tie breaking logic here
-        selected_choice = choices[random.choice(max_actions)]
+        if probabilistic:
+            selected_choice = np.random.choice(choices, p=probs)
+        else:
+            max_prob = max(probs)
+            max_actions = [idx for idx, p in enumerate(probs) if p == max_prob]
+            # Randomly chose one of the max probability actions
+            # TODO could add some tie breaking logic here
+            selected_choice = choices[random.choice(max_actions)]
+
 
         probs_dict = {c: p for c, p in zip(choices, probs)}
 
@@ -69,7 +73,7 @@ class AlignmentFunction(ABC):
 
 
 class AvgDistScalarAlignment(AlignmentFunction):
-    def __call__(self, kdma_values, target_kdmas, misaligned=False):
+    def __call__(self, kdma_values, target_kdmas, misaligned=False, probabilistic=False):
         '''
         Selects a choice by first averaging score across samples,
         then selecting the one with minimal MSE to the scalar target.
@@ -93,10 +97,10 @@ class AvgDistScalarAlignment(AlignmentFunction):
                 distance += _euclidean_distance(target_kdma['value'], average_score)
             distances.append(distance)
 
-        selected_choice, probs = self._select_min_dist_choice(choices, distances, misaligned)
+        selected_choice, probs = self._select_min_dist_choice(choices, distances, misaligned, probabilistic=probabilistic)
         return selected_choice, probs
 
-    def get_best_sample_index(self, kdma_values, target_kdmas, selected_choice, misaligned=False):
+    def get_best_sample_index(self, kdma_values, target_kdmas, selected_choice, misaligned=False, **kwargs):
         sample_distances = []
         sample_indices = range(len(kdma_values[selected_choice][target_kdmas[0]['kdma']]))
         if len(sample_indices) == 1:
@@ -117,7 +121,7 @@ class AvgDistScalarAlignment(AlignmentFunction):
 
 
 class MinDistToRandomSampleKdeAlignment(AlignmentFunction):
-    def __call__(self, kdma_values, target_kdmas, misaligned=False, kde_norm='globalnorm'):
+    def __call__(self, kdma_values, target_kdmas, misaligned=False, kde_norm='globalnorm', probabilistic=False):
         '''
         Returns the choice with min average distance to random sample from the target KDEs
         '''
@@ -153,7 +157,7 @@ class MinDistToRandomSampleKdeAlignment(AlignmentFunction):
 
         # Use avergae distance to sampled scalar targets
         avg_alignment_function = AvgDistScalarAlignment()
-        return avg_alignment_function(kdma_values, self.sampled_target_kdmas, misaligned=misaligned)
+        return avg_alignment_function(kdma_values, self.sampled_target_kdmas, misaligned=misaligned, probabilistic=probabilistic)
 
     def get_best_sample_index(self, kdma_values, target_kdmas, selected_choice, misaligned=False, kde_norm=None):
         # Use avergae distance to sampled scalar targets
@@ -162,7 +166,7 @@ class MinDistToRandomSampleKdeAlignment(AlignmentFunction):
 
 
 class MaxLikelihoodKdeAlignment(AlignmentFunction):
-    def __call__(self, kdma_values, target_kdmas, misaligned=False, kde_norm='globalnorm'):
+    def __call__(self, kdma_values, target_kdmas, misaligned=False, kde_norm='globalnorm', probabilistic=False):
         '''
         Gets the likelihood of sampled score predictions under the target KDE for each choice
         Returns the selected choice with maximum average likelihood
@@ -174,7 +178,7 @@ class MaxLikelihoodKdeAlignment(AlignmentFunction):
         likelihoods = []
         choices = list(kdma_values.keys())
         for choice in choices:
-            distance = 0.
+            total_likelihood = 0.
             for target_kdma in target_kdmas:
                 if isinstance(target_kdma, KDMAValue):
                     target_kdma = target_kdma.to_dict()
@@ -182,13 +186,13 @@ class MaxLikelihoodKdeAlignment(AlignmentFunction):
                 target_kde = kde_utils.load_kde(target_kdma, kde_norm)
                 predicted_samples = kdma_values[choice][target_kdma.kdma]
                 log_likelihoods = target_kde.score_samples(np.array(predicted_samples).reshape(-1, 1))
-                total_likelihood = np.sum(np.exp(log_likelihoods))
+                total_likelihood += np.sum(np.exp(log_likelihoods))
             likelihoods.append(total_likelihood)
 
         # distances are inverse to likelihood
         distances = [1/(likelihood) for likelihood in likelihoods]
 
-        selected_choice, probs = self._select_min_dist_choice(choices, distances, misaligned)
+        selected_choice, probs = self._select_min_dist_choice(choices, distances, misaligned, probabilistic=probabilistic)
         return selected_choice, probs
 
     def get_best_sample_index(self, kdma_values, target_kdmas, selected_choice, misaligned=False, kde_norm=None):
@@ -214,7 +218,7 @@ class MaxLikelihoodKdeAlignment(AlignmentFunction):
 
 
 class JsDivergenceKdeAlignment(AlignmentFunction):
-    def __call__(self, kdma_values, target_kdmas, misaligned=False, kde_norm='globalnorm'):
+    def __call__(self, kdma_values, target_kdmas, misaligned=False, kde_norm='globalnorm', probabilistic=False):
         '''
         Creates predicted KDEs for each choice using sampled score predictions
         Returns the selected choice with minimum JS divergence to target KDE
@@ -238,7 +242,7 @@ class JsDivergenceKdeAlignment(AlignmentFunction):
                 distance += kde_utils.js_distance(target_kde, predicted_kde, 100)
             distances.append(distance)
 
-        selected_choice, probs = self._select_min_dist_choice(choices, distances, misaligned)
+        selected_choice, probs = self._select_min_dist_choice(choices, distances, misaligned, probabilistic=probabilistic)
         return selected_choice, probs
 
     def get_best_sample_index(self, kdma_values, target_kdmas, selected_choice, misaligned=False, kde_norm=None):
@@ -266,18 +270,18 @@ def _handle_single_value(kdma_values, target_kdmas):
 # Raises error if all targets aren't scalar
 def _check_if_targets_are_scalar(target_kdmas):
     if len(target_kdmas) == 0:
-        raise RuntimeError(f"Alignment function requires at least one KDMA target.")
+        raise RuntimeError("Alignment function requires at least one KDMA target.")
     for target_kdma in target_kdmas:
         if isinstance(target_kdma, KDMAValue):
             target_kdma = target_kdma.to_dict()
 
         if 'value' not in target_kdma or not isinstance(target_kdma['value'], float):
-            raise RuntimeError(f"Alignment function requires scalar KDMA targets.")
+            raise RuntimeError("Alignment function requires scalar KDMA targets.")
 
 # Raises error if all targets aren't KDE
 def _check_if_targets_are_kde(target_kdmas):
     if len(target_kdmas) == 0:
-        raise RuntimeError(f"Alignment function requires at least one KDMA target.")
+        raise RuntimeError("Alignment function requires at least one KDMA target.")
     for target_kdma in target_kdmas:
         if isinstance(target_kdma, KDMAValue):
             target_kdma = target_kdma.to_dict()

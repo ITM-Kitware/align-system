@@ -242,6 +242,7 @@ class OutlinesTransformersComparativeRegressionADM(OutlinesTransformersADM):
                                 generator_batch_size=5,
                                 kdma_descriptions_map='align_system/prompt_engineering/kdma_descriptions.yml',
                                 kdma_score_examples=False,
+                                probabilistic=False,
                                 **kwargs):
 
         character_info = outlines_prompts_utils.get_relevant_structured_character_info(scenario_state.characters)
@@ -311,7 +312,7 @@ class OutlinesTransformersComparativeRegressionADM(OutlinesTransformersADM):
         # Select aligned choice
         if all_scalar_targets:
             alignment_function = alignment_utils.AvgDistScalarAlignment()
-            selected_choice, probs = alignment_function(predicted_kdma_values, target_kdmas)
+            selected_choice, probs = alignment_function(predicted_kdma_values, target_kdmas, probabilistic=probabilistic)
             best_sample_index = alignment_function.get_best_sample_index(predicted_kdma_values, target_kdmas, selected_choice)
         elif all_kde_targets:
             if distribution_matching == 'sample':
@@ -322,7 +323,7 @@ class OutlinesTransformersComparativeRegressionADM(OutlinesTransformersADM):
                 alignment_function = alignment_utils.JsDivergenceKdeAlignment()
             else:
                 raise RuntimeError(distribution_matching, "distribution matching function unrecognized.")
-            selected_choice, probs = alignment_function(predicted_kdma_values, target_kdmas, kde_norm=kde_norm)
+            selected_choice, probs = alignment_function(predicted_kdma_values, target_kdmas, kde_norm=kde_norm, probabilistic=probabilistic)
             best_sample_index = alignment_function.get_best_sample_index(predicted_kdma_values, target_kdmas, selected_choice, kde_norm=kde_norm)
 
         else:

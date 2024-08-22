@@ -15,13 +15,15 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ### Added
 
 * Added option to normalize KDMA values in incontext examples
-  
+* Added a probabilistic option to alignment utilities. Exposed this option in oracle, comparative regression, and
+  hybrid regression ADMs.
+
 ### Fixed
 
 * Fixed KDE target samples to be between 0 and 1
 * Fixed issue in alignment_utils logging (where kdma values can be a float/int rather than a list)
 * Now properly hydrating the meta_info field of input_output files
-  
+
 ## 0.5.2
 
 ### Added
