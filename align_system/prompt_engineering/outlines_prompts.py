@@ -631,11 +631,7 @@ def comparative_kdma_score_prediction_json_schema(choices):
 
 
 @outlines.prompt
-def scenario_description_hybrid_regression(scenario_state, character):
+def scenario_description_hybrid_regression(scenario_state):
     """
-    {{ scenario_state.unstructured.rstrip() }}
-    {{ scenario_state.environment.decision_environment.unstructured }}
-    {% if character is not none %}
-      {{ character.name }} - {{ character.unstructured }}
-    {% endif %}
+    {{ scenario_state.unstructured.rstrip() }} {% for character in scenario_state.characters %}{{  character.name }} - {{ character.unstructured.rstrip()}} {% endfor %}
     """

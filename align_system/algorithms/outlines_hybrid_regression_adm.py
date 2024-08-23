@@ -40,7 +40,6 @@ def get_ids_mask(sentences, tokenizer, max_length):
 def load_itm_sentences(data_dict: Dict[str, List]):
     df = pd.DataFrame.from_dict(data_dict)
     scenarios = df['scenario'].replace('\n', '').values
-    # states = df['state'].replace(np.nan, '').values
     answers = df['answer'].replace('\n', '').values
     sentences = [sc + " [SEP] " + ans for (sc, ans)
                  in zip(scenarios, answers)]
@@ -115,20 +114,8 @@ class HybridRegressionADM(OutlinesTransformersADM):
 
         scenario = []
         for action in available_actions:
-            chosen_character = None
-            if action.character_id is not None:
-                for character in scenario_state.characters:
-                    if character.id == action.character_id:
-                        chosen_character = character
-                        break
-            scenario_description = (
-                scenario_description_hybrid_regression(
-                    scenario_state,
-                    chosen_character
-                )
-            )
+            scenario_description = scenario_description_hybrid_regression(scenario_state)
             scenario.append(scenario_description)
-
         # Important that the choices stay in the same order as the
         # available actions as we'll use the selected index later to
         # map to the corresponding action
@@ -162,6 +149,14 @@ class HybridRegressionADM(OutlinesTransformersADM):
 
             if target_kdma_name not in target_model_checkpoints:
                 raise ValueError(f"Model checkpoint does not exist for {target_kdma_name}")
+
+            # Add probe at the end of the ADEPT scenarios text
+            if target_kdma_name in ['Moral judgement', 'Ingroup Bias']:
+                updated_scenario = []
+                for d in data_dict['scenario']:
+                    d += "Who would you treat?"
+                    updated_scenario.append(d)
+                data_dict.update({'scenario': updated_scenario})
 
             predictions_per_kdma = get_kdma_predictions(
                 model_name=model_name,

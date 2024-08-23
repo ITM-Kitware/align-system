@@ -7,7 +7,7 @@ inference_kwargs:
   models:
     model_name: 'bert-base-uncased'
     target_checkpoint:
-      Moral judgement: /data/shared/model_checkpoints/hybrid_regression/v2/moral_judgement.pt
-      Ingroup Bias: /data/shared/model_checkpoints/hybrid_regression/v2/ingroup_bias.pt
-      PerceivedQuantityOfLivesSaved: /data/shared/model_checkpoints/hybrid_regression/v2.2/value_of_life.pt
-      QualityOfLife: /data/shared/model_checkpoints/hybrid_regression/v2.2/quality_of_life.pt
+      Moral judgement: /data/shared/model_checkpoints/hybrid_regression/v2.1/moral_judgement.pt
+      Ingroup Bias: /data/shared/model_checkpoints/hybrid_regression/v2.1/ingroup_bias.pt
+      PerceivedQuantityOfLivesSaved: /data/shared/model_checkpoints/hybrid_regression/v2.3/value_of_life.pt
+      QualityOfLife: /data/shared/model_checkpoints/hybrid_regression/v2.3/quality_of_life.pt
