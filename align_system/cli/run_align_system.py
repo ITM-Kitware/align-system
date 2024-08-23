@@ -337,6 +337,13 @@ def main(cfg: DictConfig) -> None:
                 log.info("Final state unstructured: {}".format(
                     current_state.unstructured))
 
+                if cfg.get('save_last_unstructured_state_per_scenario', False):
+                    final_scenario_state_output_path = os.path.join(
+                        output_dir, "{}.{}.final_state_unstructured.json".format(
+                            scenario.id(), alignment_target.id))
+                    with open(final_scenario_state_output_path, "w") as f:
+                        print(current_state.unstructured, file=f)
+
         if save_timing_to_path is not None:
             action_times["scenarios"].append(_compute_time_stats(sce_times_s))
 

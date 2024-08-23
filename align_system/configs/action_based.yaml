@@ -13,5 +13,6 @@ save_input_output: true
 save_scoring_output: true
 save_alignment_targets: false
 save_timing: true
+save_last_unstructured_state_per_scenario: false
 
 align_to_target: false

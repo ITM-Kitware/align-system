@@ -1,0 +1,17 @@
+# @package _global_
+defaults:
+  - override /adm: random
+  - override /interface: ta3
+
+interface:
+  api_endpoint: "https://darpaitm.caci.com"
+  session_type: eval
+  training_session: false
+  username: "ALIGN-ADM-Random"
+
+align_to_target: true
+save_last_unstructured_state_per_scenario: true
+
+hydra:
+  run:
+    dir: 'random_eval_live/${now:%Y-%m-%d__%H-%M-%S}'
