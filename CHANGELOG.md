@@ -19,6 +19,8 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 * Fixed case in Kaleido ADM where choices weren't necessarily unique
 * In outlines_adm ensure that an already tagged character can't be selected again for the TAG_CHARACTER action
 * In outlines_adm ensure that already visited characters can't be selected again for assessment actions
+* In outlines_adm ensure MOVE_TO specifies character ID
+* In run_align_sytem CLI, don't allow unseen characters except for MOVE_TO and MOVE_TO_EVAC actions
 
 ## 0.5.0
 

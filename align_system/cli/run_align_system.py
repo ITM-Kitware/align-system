@@ -198,14 +198,14 @@ def main(cfg: DictConfig) -> None:
                     # Don't let ADM choose to tag a character unless there are
                     # still untagged characters
                     untagged_characters = [c for c in current_state.characters
-                                           if c.tag is None]
+                                           if c.tag is None and not c.unseen]
                     if len(untagged_characters) == 0:
                         log.debug("No untagged characters remaining, not "
                                   "allowing {} action".format(ActionTypeEnum.TAG_CHARACTER))
                         continue
 
                 unvisited_characters = [c for c in current_state.characters
-                                        if c.visited is None or not c.visited]
+                                        if not c.unseen and (c.visited is None or not c.visited)]
                 if a.action_type in {ActionTypeEnum.CHECK_ALL_VITALS,
                                      ActionTypeEnum.CHECK_PULSE,
                                      ActionTypeEnum.CHECK_RESPIRATION,

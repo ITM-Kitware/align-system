@@ -463,8 +463,9 @@ class OutlinesTransformersADM(ActionBasedADM):
                                           ActionTypeEnum.CHECK_ALL_VITALS,
                                           ActionTypeEnum.CHECK_PULSE,
                                           ActionTypeEnum.CHECK_RESPIRATION,
+                                          ActionTypeEnum.CHECK_BLOOD_OXYGEN,
                                           ActionTypeEnum.MOVE_TO_EVAC,
-                                          ActionTypeEnum.CHECK_BLOOD_OXYGEN}:
+                                          ActionTypeEnum.MOVE_TO}:
             action_to_take, selected_character, selected_character_idx, dialog =\
                 self.ensure_character_id_is_populated(scenario_state, action_to_take, dialog)
 
@@ -503,7 +504,9 @@ class OutlinesTransformersADM(ActionBasedADM):
                                          dialog):
         if action_to_take.character_id is None:
             # Use follow up prompt to define selected_character
-            characters = [c for c in scenario_state.characters if not c.unseen]
+            if action_to_take.action_type not in {ActionTypeEnum.MOVE_TO_EVAC,
+                                                  ActionTypeEnum.MOVE_TO}:
+                characters = [c for c in scenario_state.characters if not c.unseen]
 
             if action_to_take.action_type == ActionTypeEnum.TAG_CHARACTER:
                 # Further filtering for tagging action, don't tag
