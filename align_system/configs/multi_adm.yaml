@@ -1,0 +1,23 @@
+name: multi_adm
+
+defaults:
+  - _self_
+  - interface: ta3
+  - adm@adm1: random
+  - override hydra/job_logging: custom
+
+loglevel: "EXPLAIN"
+
+save_log: true
+save_input_output: true
+save_scoring_output: true
+save_alignment_targets: false
+save_timing: true
+save_last_unstructured_state_per_scenario: true
+
+align_to_target: true
+
+adm_mappings:
+  - scenario_pattern: '.*'
+    alignment_target_pattern: '.*'
+    adm: ${adm1}
