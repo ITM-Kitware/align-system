@@ -112,28 +112,38 @@ captured in a new configuration file.  We manage these experiments in
 delivered ADMs for the Metrics Evaluation (both to run on training
 data, and eval data).
 
-## Metrics Evaluation ADM Invocations
+## Dry Run Evaluation ADM Invocations
 
-Note that to override the API endpoint for the metrics evaluation
-ADMs, you can append `interface.api_endpoint='http://127.0.0.1:8080'`
-to the command line arguments, setting the value to the correct URL.
+We've specified Hydra experiments for the Dry Run Evaluation ADMs.
+Note that by default these configurations attempt to connect to
+`https://darpaitm.caci.com` as the TA3 API endpoint, but this can be
+overridden with `interface.api_endpoint='http://127.0.0.1:8080'` on
+the command line.
+
+### Random ADM
+
+(Good candidate for a smoketest)
+
+```
+run_align_system +experiment=dry_run_evaluation/random_eval_live
+```
 
 ### Baseline ADM
 
 ```
-run_align_system +experiment=metrics_refinement_evaluation/single_kdma_baseline_eval
+run_align_system +experiment=dry_run_evaluation/outlines_baseline_eval_live
 ```
 
-### Aligned ADM 1 (Single KDMA ADM)
+### Aligned ADM 1 (Comparative Regression + ICL + Template ADM)
 
 ```
-run_align_system +experiment=metrics_refinement_evaluation/single_kdma_aligned_eval
+run_align_system +experiment=dry_run_evaluation/comparative_regression_icl_template_eval_live
 ```
 
-### Aligned ADM 2 (Hybrid Kaleido ADM)
+### Aligned ADM 2 (Hybrid Regression ADM)
 
 ```
-run_align_system +experiment=metrics_refinement_evaluation/hybrid_kaleido_eval
+run_align_system +experiment=dry_run_evaluation/hybrid_regression_eval_live
 ```
 
 ## Implementing a new ADM

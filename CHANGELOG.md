@@ -3,16 +3,19 @@
 This changelog follows the specifications detailed in: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html), although we have not yet reached a `1.0.0` release.
 
-## Unreleased
+## 0.5.1
 
 ### Changed
 
 * Updated Hybrid Kaleido ADM to optionally (on by default) use alignment_utils to support distribution based alignment
 * Refactored outlines_adm to break out action parameter completion into separate functions for reuse
+* Update README ADM invocation examples for the dry run evaluation (DRE)
 
 ### Added
 
 * Added support for 'precision' in model_kwargs for outlines based adms (expecting either 'full' or 'half')
+* Add option to save per scenario x alignment target unstructured outputs (useful for "eval" TA3 session types)
+* Added DRE experiment configurations
 
 ### Fixed
 
@@ -21,6 +24,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 * In outlines_adm ensure that already visited characters can't be selected again for assessment actions
 * In outlines_adm ensure MOVE_TO specifies character ID
 * In run_align_sytem CLI, don't allow unseen characters except for MOVE_TO and MOVE_TO_EVAC actions
+* Typo fix for Quality of Life KDMA description
 
 ## 0.5.0
 
