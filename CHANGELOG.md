@@ -3,6 +3,13 @@
 This changelog follows the specifications detailed in: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html), although we have not yet reached a `1.0.0` release.
 
+## 0.5.2
+
+### Added
+
+* Split out our experiment configuration for our aligned DRE ADM to specific configs for SoarTech and Adept
+* Added logging for sampled KDMA target value, and estimated KDMA values in alignment_utils
+
 ## 0.5.1
 
 ### Changed
