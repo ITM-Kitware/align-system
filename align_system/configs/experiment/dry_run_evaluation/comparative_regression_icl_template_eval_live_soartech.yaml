@@ -5,7 +5,7 @@ defaults:
 
 interface:
   api_endpoint: "https://darpaitm.caci.com"
-  session_type: eval
+  session_type: soartech
   training_session: false
   username: "ALIGN-ADM-ComparativeRegression+ICL+Template"
 
@@ -19,9 +19,12 @@ adm:
     predict_outcomes: false
     generator_batch_size: 5
 
+    incontext:
+      number: 1
+
 align_to_target: true
 save_last_unstructured_state_per_scenario: true
 
 hydra:
   run:
-    dir: 'comparative_regression_icl_template_eval_live/${now:%Y-%m-%d__%H-%M-%S}'
+    dir: 'comparative_regression_icl_template_eval_live_soartech/${now:%Y-%m-%d__%H-%M-%S}'

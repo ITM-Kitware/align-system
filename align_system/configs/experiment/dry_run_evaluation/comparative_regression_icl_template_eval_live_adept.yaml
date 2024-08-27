@@ -1,0 +1,27 @@
+# @package _global_
+defaults:
+  - override /adm: outlines_regression_aligned_comparative/incontext
+  - override /interface: ta3
+
+interface:
+  api_endpoint: "https://darpaitm.caci.com"
+  session_type: adept
+  training_session: false
+  username: "ALIGN-ADM-ComparativeRegression+ICL+Template"
+
+adm:
+  instance:
+    precision: half
+
+  inference_kwargs:
+    kdma_score_examples: true
+    num_samples: 5
+    predict_outcomes: false
+    generator_batch_size: 5
+
+align_to_target: true
+save_last_unstructured_state_per_scenario: true
+
+hydra:
+  run:
+    dir: 'comparative_regression_icl_template_eval_live_adept/${now:%Y-%m-%d__%H-%M-%S}'

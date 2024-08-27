@@ -134,10 +134,16 @@ run_align_system +experiment=dry_run_evaluation/random_eval_live
 run_align_system +experiment=dry_run_evaluation/outlines_baseline_eval_live
 ```
 
-### Aligned ADM 1 (Comparative Regression + ICL + Template ADM)
+### Aligned ADM 1 (Comparative Regression + ICL + Template ADM) (ADEPT eval scenarios)
 
 ```
-run_align_system +experiment=dry_run_evaluation/comparative_regression_icl_template_eval_live
+run_align_system +experiment=dry_run_evaluation/comparative_regression_icl_template_eval_live_adept
+```
+
+### Aligned ADM 1 (Comparative Regression + ICL + Template ADM) (SoarTech eval scenarios)
+
+```
+run_align_system +experiment=dry_run_evaluation/comparative_regression_icl_template_eval_live_soartech
 ```
 
 ### Aligned ADM 2 (Hybrid Regression ADM)
