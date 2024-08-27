@@ -4,7 +4,10 @@ import math
 import random
 
 from align_system.utils import kde_utils
+from align_system.utils import logging
 from swagger_client.models import KDMAValue
+
+log = logging.getLogger(__name__)
 
 
 '''
@@ -130,6 +133,15 @@ class MinDistToRandomSampleKdeAlignment(AlignmentFunction):
             sampled_target_kdma = {'kdma':target_kdma["kdma"]}
             target_kde = kde_utils.load_kde(target_kdma, kde_norm)
             sampled_target_kdma['value']= float(target_kde.sample(1)) # sample returns array
+            log.info("Sampled Target KDMA Value(s): {}".format(sampled_target_kdma['value']))
+
+            # Log average KDMA values for each KDMA/choice; this
+            # should probably done outside of this method
+            for choice, kv in kdma_values.items():
+                for k, v in kv.items():
+                    log.info('KDMA "{}" Values for "{}": {} (average: {:0.3f})'.format(
+                        k, choice, v, (sum(v) / len(v))))
+
             self.sampled_target_kdmas.append(sampled_target_kdma)
 
         # Use avergae distance to sampled scalar targets
