@@ -13,6 +13,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ### Fixed
 
 * Fixed issue in Oracle ADM which caused an key error exception when logging probabilities
+* Fixed KDE target samples to be between 0 and 1
 
 ## 0.5.1
 
