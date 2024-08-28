@@ -132,7 +132,9 @@ class MinDistToRandomSampleKdeAlignment(AlignmentFunction):
 
             sampled_target_kdma = {'kdma':target_kdma["kdma"]}
             target_kde = kde_utils.load_kde(target_kdma, kde_norm)
-            sampled_target_kdma['value']= float(target_kde.sample(1)) # sample returns array
+            kde_sample = float(target_kde.sample(1)) # sample returns array
+            kde_sample = max(0.0, min(kde_sample, 1.0)) # clamp to be between 0 and 1
+            sampled_target_kdma['value'] = kde_sample
             log.info("Sampled Target KDMA Value(s): {}".format(sampled_target_kdma['value']))
 
             # Log average KDMA values for each KDMA/choice; this
