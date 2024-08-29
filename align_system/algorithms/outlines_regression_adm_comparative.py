@@ -10,6 +10,7 @@ from rich.highlighter import JSONHighlighter
 from swagger_client.models import kdma_value
 
 from align_system.utils import logging
+from align_system.utils import adm_utils
 from align_system.utils import outlines_prompts_utils
 from align_system.utils import alignment_utils
 from align_system.utils.hydrate_state import hydrate_scenario_state
@@ -122,10 +123,11 @@ class OutlinesTransformersComparativeRegressionADM(OutlinesTransformersADM):
             icl_datasets[dset_kdma] = []
             for icl_sample in dset:
                 state, actions = hydrate_scenario_state(icl_sample["input"])
-                icl_choices = self.format_choices(
+                icl_choices = adm_utils.format_choices(
                     [a.unstructured for a in actions],
                     actions,
-                    state
+                    state,
+                    log
                 )
 
                 icl_choices_with_outcomes = {}
@@ -327,10 +329,11 @@ class OutlinesTransformersComparativeRegressionADM(OutlinesTransformersADM):
         # Important that the choices stay in the same order as the
         # available actions as we'll use the selected index later to
         # map to the corresponding action
-        choices = self.format_choices(
+        choices = adm_utils.format_choices(
             [a.unstructured for a in available_actions],
             available_actions,
-            scenario_state
+            scenario_state,
+            log
         )
 
         target_kdmas = alignment_target.kdma_values

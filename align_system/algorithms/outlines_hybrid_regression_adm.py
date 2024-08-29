@@ -9,7 +9,7 @@ from transformers import AutoModelForSequenceClassification, AutoConfig, AutoTok
 
 from rich.highlighter import JSONHighlighter
 
-from align_system.utils import logging, alignment_utils
+from align_system.utils import logging, alignment_utils, adm_utils
 from align_system.algorithms.outlines_adm import OutlinesTransformersADM
 from align_system.prompt_engineering.outlines_prompts import (
     action_selection_prompt,
@@ -119,10 +119,11 @@ class HybridRegressionADM(OutlinesTransformersADM):
         # Important that the choices stay in the same order as the
         # available actions as we'll use the selected index later to
         # map to the corresponding action
-        choices = self.format_choices(
+        choices = adm_utils.format_choices(
             [a.unstructured for a in available_actions],
             available_actions,
-            scenario_state
+            scenario_state,
+            log
         )
 
         data_dict = {

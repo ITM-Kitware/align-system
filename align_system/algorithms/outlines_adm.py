@@ -16,6 +16,7 @@ from swagger_client.models import (
 )
 
 from align_system.utils import logging
+from align_system.utils import adm_utils
 from align_system.utils import get_swagger_class_enum_values
 from align_system.utils.voting import (
     calculate_votes,
@@ -118,44 +119,15 @@ class OutlinesTransformersADM(ActionBasedADM):
         else:
             return None
 
-    # TODO: Move this function to utilities somewhere as it's
-    # generally useful regardless of ADM
-    @classmethod
-    def format_choices(cls, choices, available_actions, scenario_state):
-        """
-        If choices are not unique, format choices to include state information.
-        """
-        if len(set(choices)) != len(choices):
-            log.warning("Unstructured text for available actions is not "
-                        "unique, appending action parameters to choices")
-
-            character_id_to_name = {c.id: c.name for c in scenario_state.characters}
-            # Important that the choices stay in the same order as the
-            # available actions as we'll use the selected index later to
-            # map to the corresponding action
-            choices = []
-            for a in available_actions:
-                if(a.action_type == ActionTypeEnum.APPLY_TREATMENT
-                   and a.parameters is not None and len(a.parameters) > 0):
-                    choices.append(detailed_unstructured_treatment_action_text(a, character_id_to_name))
-                elif(a.action_type == ActionTypeEnum.TAG_CHARACTER
-                     and a.parameters is not None and len(a.parameters) > 0):
-                    choices.append(detailed_unstructured_tagging_action_text(a, character_id_to_name))
-                else:
-                    # Not covering every possible case here, may need
-                    # to add more dedicated detailed prompts
-                    choices.append(a.unstructured)
-
-        return choices
-
     def _state_to_top_level_prompt(self, scenario_state, actions):
         """
         Generate prompt dialog based on given state and actions
         """
-        choices = self.format_choices(
+        choices = adm_utils.format_choices(
             [a.unstructured for a in actions],
             actions,
-            scenario_state
+            scenario_state,
+            log
         )
 
         scenario_description = scenario_state_description_1(scenario_state)
@@ -244,10 +216,11 @@ class OutlinesTransformersADM(ActionBasedADM):
         # Important that the choices stay in the same order as the
         # available actions as we'll use the selected index later to
         # map to the corresponding action
-        choices = self.format_choices(
+        choices = adm_utils.format_choices(
             [a.unstructured for a in available_actions],
             available_actions,
-            scenario_state
+            scenario_state,
+            log
         )
 
         positive_icl_examples = []

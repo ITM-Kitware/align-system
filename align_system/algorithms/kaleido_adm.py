@@ -14,6 +14,7 @@ from align_system.algorithms.abstracts import AlignedDecisionMaker
 from align_system.algorithms.lib.util import format_template
 from align_system.algorithms.outlines_adm import OutlinesTransformersADM
 from align_system.utils import logging
+from align_system.utils import adm_utils
 from align_system.utils import alignment_utils
 
 
@@ -315,10 +316,11 @@ class KaleidoADM(AlignedDecisionMaker, ActionBasedADM):
         # this function out to utilities somewhere as it's generally
         # useful
         choices_unstructured = [a.unstructured for a in available_actions]
-        choices_unstructured = OutlinesTransformersADM.format_choices(
+        choices_unstructured = adm_utils.format_choices(
             choices_unstructured,
             available_actions,
-            scenario_state)
+            scenario_state,
+            log)
 
         target_kdmas = alignment_target.kdma_values
 
