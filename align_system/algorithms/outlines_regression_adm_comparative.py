@@ -13,9 +13,9 @@ from align_system.utils import logging
 from align_system.utils import adm_utils
 from align_system.utils import outlines_prompts_utils
 from align_system.utils import alignment_utils
+from align_system.utils import incontext_utils
 from align_system.utils.hydrate_state import hydrate_scenario_state
 from align_system.algorithms.outlines_adm import OutlinesTransformersADM
-from align_system.algorithms.outlines_regression_adm import get_chain_of_thought_reasoning
 from align_system.prompt_engineering.outlines_prompts import (
     scenario_state_description_with_relevant_char_info,
     comparative_outcomes_system_prompt,
@@ -110,55 +110,6 @@ class OutlinesTransformersComparativeRegressionADM(OutlinesTransformersADM):
 
         return predicted_outcomes
 
-
-    def get_icl_datasets(self, incontext_settings, target_kdmas):
-        icl_datasets = {}
-        # Read dataset(s)
-        for target_kdma in target_kdmas:
-            dset_kdma = target_kdma['kdma']
-            dset_f = incontext_settings["datasets"][dset_kdma]
-            with open(dset_f) as f:
-                dset = json.load(f)
-
-            icl_datasets[dset_kdma] = []
-            for icl_sample in dset:
-                state, actions = hydrate_scenario_state(icl_sample["input"])
-                icl_choices = adm_utils.format_choices(
-                    [a.unstructured for a in actions],
-                    actions,
-                    state,
-                    log
-                )
-
-                icl_choices_with_outcomes = {}
-                for choice in icl_choices:
-                    # TODO: Include outcome prediction for ICL examples?
-                    icl_choices_with_outcomes[choice] = {'predicted_outcome':None}
-
-                character_info = outlines_prompts_utils.get_relevant_structured_character_info(state.characters)
-                icl_scenario_description = scenario_state_description_with_relevant_char_info(state, character_info)
-                icl_prompt = comparative_kdma_score_prediction_prompt(icl_scenario_description,
-                                                                    icl_choices_with_outcomes,
-                                                                    dset_kdma)
-                icl_reponse = {}
-                for action, icl_choice, label in zip(actions, icl_choices, icl_sample["label"]):
-                    if dset_kdma not in label:
-                        continue
-
-                    icl_reponse[icl_choice] = {}
-                    icl_reponse[icl_choice]['reasoning'] = get_chain_of_thought_reasoning(target_kdma, action,
-                                                                                          state, icl_choice,
-                                                                                          label[dset_kdma])
-                    # Predicted scores are 0-10, KDMA values are 0-1
-                    icl_reponse[icl_choice]['score'] = int(label[dset_kdma] * 10)
-
-                icl_datasets[dset_kdma].append({
-                    "scenario_description": icl_scenario_description,
-                    "prompt": icl_prompt,
-                    "response": icl_reponse
-                    })
-        return icl_datasets
-
     def sample_kdma_score_predictions(self,
                                       scenario_description,
                                       choices,
@@ -175,67 +126,30 @@ class OutlinesTransformersComparativeRegressionADM(OutlinesTransformersADM):
         - reasonings: {choice1:{kdma1:[reasoning1(str), ...], ...}, ...}
         '''
         use_icl = False
-        icl_datasets = {}
         if "number" in incontext_settings and incontext_settings["number"] > 0:
             use_icl = True
-            n_icl_examples = incontext_settings["number"]
-            icl_datasets = self.get_icl_datasets(incontext_settings, target_kdmas)
+            icl_example_generator = incontext_utils.ComparativeRegressionIncontextExampleGenerator(incontext_settings,
+                                                                                                   target_kdmas,
+                                                                                                   log)
 
         kdma_dialogs = []
         # loop over samples
         for sample_idx in range(num_samples):
             # loop over target kdmas
             for target_kdma in target_kdmas:
-                kdma_sys_name = target_kdma['kdma']
-                target_kdma_name = target_kdma['name']
                 if kdma_score_examples:
-                    kdma_score_sys_prompt = comparative_kdma_score_prediction_system_prompt_with_examples(target_kdma_name,
+                    kdma_score_sys_prompt = comparative_kdma_score_prediction_system_prompt_with_examples(target_kdma['name'],
                                                                                                           target_kdma['description'],
                                                                                                           target_kdma['score_examples'])
                 else:
-                    kdma_score_sys_prompt = comparative_kdma_score_prediction_system_prompt(target_kdma_name, target_kdma['description'])
+                    kdma_score_sys_prompt = comparative_kdma_score_prediction_system_prompt(target_kdma['name'], target_kdma['description'])
 
                 icl_examples = []
                 if use_icl:
-                    if kdma_sys_name not in icl_datasets:
-                        raise RuntimeError(f"No incontext samples for targeted kdma: {kdma_sys_name}")
-                    possible_icl_examples = icl_datasets[kdma_sys_name]
-                    if incontext_settings.get("leave_one_out", False):
-                        # Don't include example ICL with exact same scenario state
-                        possible_icl_examples = [
-                            icl_ex for icl_ex in possible_icl_examples
-                            if icl_ex["scenario_description"] != scenario_description
-                        ]
-                    if len(possible_icl_examples) < n_icl_examples:
-                        raise RuntimeError(f"Not enough possible incontext samples to learn from. Only "
-                                        f"{len(possible_icl_examples)} samples available while asking for "
-                                        f"{n_icl_examples} incontext samples.")
-
-                    # Downselect to n_icl_examples via given method
-                    icl_strategy = incontext_settings["method"]
-                    if icl_strategy == "random":
-                        selected_icl_examples = random.sample(possible_icl_examples, n_icl_examples)
-                    elif icl_strategy == "bert_similarity":
-                        # TODO: Include outcome prediction for ICL examples?
-                        no_outcome_predictions = deepcopy(outcome_predictions[sample_idx])
-                        for choice in no_outcome_predictions.keys():
-                            no_outcome_predictions[choice]['predicted_outcome'] = None
-                        no_outcome_prompt = comparative_kdma_score_prediction_prompt(scenario_description,
-                                                                                     no_outcome_predictions,
-                                                                                     target_kdma_name)
-
-                        possible_icl_prompts = [icl_sample["prompt"] for icl_sample in possible_icl_examples]
-
-                        # Create similarity scores between the ICL samples and find top-k indices
-                        from bert_score import score
-                        _, _, F1 = score([no_outcome_prompt]*len(possible_icl_prompts), possible_icl_prompts, lang="en")
-                        _, indices = torch.topk(F1, n_icl_examples)
-
-                        selected_icl_examples = [possible_icl_examples[i] for i in indices]
-                    else:
-                        raise ValueError(f'"{icl_strategy}" is not a valid incontext method. Please use "random" or '
-                                         '"bert_similarity"')
-
+                    selected_icl_examples = icl_example_generator.select_icl_examples(target_kdma['kdma'],
+                                                                                      target_kdma['name'],
+                                                                                      scenario_description,
+                                                                                      choices)
                     for icl_sample in selected_icl_examples:
                         icl_examples.extend([
                             {"role": "user", "content": icl_sample['prompt']},
@@ -244,7 +158,7 @@ class OutlinesTransformersComparativeRegressionADM(OutlinesTransformersADM):
 
                 predict_kdma_prompt = comparative_kdma_score_prediction_prompt(scenario_description,
                                                                                outcome_predictions[sample_idx],
-                                                                               target_kdma_name)
+                                                                               target_kdma['name'])
                 dialog = [{'role': 'system', 'content': kdma_score_sys_prompt}]
                 dialog.extend(icl_examples)
                 dialog.append({'role': 'user', 'content': predict_kdma_prompt})
