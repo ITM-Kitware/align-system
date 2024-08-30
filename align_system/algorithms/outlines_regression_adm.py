@@ -235,8 +235,7 @@ class OutlinesTransformersRegressionADM(OutlinesTransformersADM):
                 icl_choices = adm_utils.format_choices(
                     [a.unstructured for a in actions],
                     actions,
-                    state,
-                    log
+                    state
                 )
                 for action, icl_choice, label in zip(actions, icl_choices, icl_sample["label"]):
                     if dset_kdma not in label:
@@ -448,8 +447,7 @@ class OutlinesTransformersRegressionADM(OutlinesTransformersADM):
         choices = adm_utils.format_choices(
             [a.unstructured for a in available_actions],
             available_actions,
-            scenario_state,
-            log
+            scenario_state
         )
 
         target_kdmas = alignment_target.kdma_values

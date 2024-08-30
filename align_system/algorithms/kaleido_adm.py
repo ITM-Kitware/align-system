@@ -319,8 +319,8 @@ class KaleidoADM(AlignedDecisionMaker, ActionBasedADM):
         choices_unstructured = adm_utils.format_choices(
             choices_unstructured,
             available_actions,
-            scenario_state,
-            log)
+            scenario_state
+            )
 
         target_kdmas = alignment_target.kdma_values
 

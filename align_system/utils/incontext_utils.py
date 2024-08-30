@@ -22,11 +22,9 @@ class IncontextExampleGenerator(object, metaclass=ABCMeta):
     def __init__(self,
                  incontext_settings, 
                  target_kdmas, 
-                 log,
                  **kwargs):
         self.incontext_settings = incontext_settings
         self.target_kdmas = target_kdmas
-        self.log = log
         self.set_icl_datasets()
 
     @abstractmethod
@@ -73,8 +71,7 @@ class IncontextExampleGenerator(object, metaclass=ABCMeta):
                     choices = adm_utils.format_choices(
                         [a.unstructured for a in actions],
                         actions,
-                        state,
-                        self.log
+                        state
                     )
                     # Get KDMA_values
                     kdma_values = []
@@ -140,11 +137,9 @@ class ComparativeRegressionIncontextExampleGenerator(IncontextExampleGenerator):
     def __init__(self,
                  incontext_settings, 
                  target_kdmas, 
-                 log,
                  **kwargs):
         self.incontext_settings = incontext_settings
         self.target_kdmas = target_kdmas
-        self.log = log
         self.set_icl_datasets()
     
     def set_icl_datasets(self):

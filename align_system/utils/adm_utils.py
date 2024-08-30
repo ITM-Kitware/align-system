@@ -5,8 +5,11 @@ from align_system.prompt_engineering.outlines_prompts import (
     detailed_unstructured_treatment_action_text,
     detailed_unstructured_tagging_action_text
 )
+from align_system.utils import logging
 
-def format_choices(choices, available_actions, scenario_state, log):
+log = logging.getLogger(__name__)
+
+def format_choices(choices, available_actions, scenario_state):
     """
     If choices are not unique, format choices to include state information.
     """

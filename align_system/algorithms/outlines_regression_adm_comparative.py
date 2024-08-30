@@ -129,8 +129,7 @@ class OutlinesTransformersComparativeRegressionADM(OutlinesTransformersADM):
         if "number" in incontext_settings and incontext_settings["number"] > 0:
             use_icl = True
             icl_example_generator = incontext_utils.ComparativeRegressionIncontextExampleGenerator(incontext_settings,
-                                                                                                   target_kdmas,
-                                                                                                   log)
+                                                                                                   target_kdmas)
 
         kdma_dialogs = []
         # loop over samples
@@ -142,7 +141,8 @@ class OutlinesTransformersComparativeRegressionADM(OutlinesTransformersADM):
                                                                                                           target_kdma['description'],
                                                                                                           target_kdma['score_examples'])
                 else:
-                    kdma_score_sys_prompt = comparative_kdma_score_prediction_system_prompt(target_kdma['name'], target_kdma['description'])
+                    kdma_score_sys_prompt = comparative_kdma_score_prediction_system_prompt(target_kdma['name'],
+                                                                                            target_kdma['description'])
 
                 icl_examples = []
                 if use_icl:
@@ -251,8 +251,7 @@ class OutlinesTransformersComparativeRegressionADM(OutlinesTransformersADM):
         choices = adm_utils.format_choices(
             [a.unstructured for a in available_actions],
             available_actions,
-            scenario_state,
-            log
+            scenario_state
         )
 
         target_kdmas = alignment_target.kdma_values

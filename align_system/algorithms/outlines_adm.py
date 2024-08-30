@@ -126,8 +126,7 @@ class OutlinesTransformersADM(ActionBasedADM):
         choices = adm_utils.format_choices(
             [a.unstructured for a in actions],
             actions,
-            scenario_state,
-            log
+            scenario_state
         )
 
         scenario_description = scenario_state_description_1(scenario_state)
@@ -219,9 +218,8 @@ class OutlinesTransformersADM(ActionBasedADM):
         choices = adm_utils.format_choices(
             [a.unstructured for a in available_actions],
             available_actions,
-            scenario_state,
-            log
-        )
+            scenario_state
+            )
 
         positive_icl_examples = []
         negative_icl_examples = []

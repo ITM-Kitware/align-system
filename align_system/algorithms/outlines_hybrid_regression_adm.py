@@ -122,8 +122,7 @@ class HybridRegressionADM(OutlinesTransformersADM):
         choices = adm_utils.format_choices(
             [a.unstructured for a in available_actions],
             available_actions,
-            scenario_state,
-            log
+            scenario_state
         )
 
         data_dict = {
