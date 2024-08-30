@@ -18,7 +18,6 @@ class IncontextExampleGenerator(object, metaclass=ABCMeta):
     Abstract class for incontext example generator
     Instances of this class have unique set_icl_datasets() functions for formatting prompt and reponses 
     '''
-    @abstractmethod
     def __init__(self,
                  incontext_settings, 
                  target_kdmas, 
@@ -32,7 +31,7 @@ class IncontextExampleGenerator(object, metaclass=ABCMeta):
         '''
         Sets self.icl_datasets which contains all the ICL examples
         This is specific to each instance of the class because the prompt and response will vary
-        read_icl_dataset_files() is a generic helper method for this step
+        _read_icl_dataset_files() is a generic helper method for this step
 
         The keys of self.icl_datasets are the 'kdma' keys from self.target_kdmas,
         the values are a list of all ICL examples for that kdma,
@@ -42,7 +41,7 @@ class IncontextExampleGenerator(object, metaclass=ABCMeta):
         self.icl_datasets = {}
         pass
 
-    def read_icl_dataset_files(self):
+    def _read_icl_dataset_files(self):
         '''
         Helper function for set_icl_datasets() - reads dataset files and gets examples for target_kdmas
         Returns incontext_data dictionary with format:
@@ -52,17 +51,20 @@ class IncontextExampleGenerator(object, metaclass=ABCMeta):
         # For each kdma
         for target_kdma in self.target_kdmas:
             sys_kdma_name = target_kdma['kdma']
+            # Check if we have dataset files for the target KDMA
+            if sys_kdma_name not in self.incontext_settings["datasets"]:
+                raise RuntimeError(f"No incontext datasets are provided for targeted kdma: {sys_kdma_name}")
             # Add examples for each dataset file
             dset_files = self.incontext_settings["datasets"][sys_kdma_name]
             # If there is only one, make it a list for the following loop
             if not isinstance(dset_files, list):
                 dset_files = [dset_files]
             
+            incontext_data[sys_kdma_name] = []
             # For each dataset file
             for dset_f in dset_files:
                 with open(dset_f) as f:
                     dset = json.load(f)
-                incontext_data[sys_kdma_name] = []
                 # Load each example in the dataset file
                 for icl_sample in dset:
                     # Get state and actions
@@ -144,7 +146,7 @@ class ComparativeRegressionIncontextExampleGenerator(IncontextExampleGenerator):
     
     def set_icl_datasets(self):
         icl_datasets = {}
-        incontext_data = self.read_icl_dataset_files()
+        incontext_data = self._read_icl_dataset_files()
         
         # Add each target to icl_datasets
         for target_kdma in self.target_kdmas:
