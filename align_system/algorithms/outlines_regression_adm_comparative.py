@@ -146,10 +146,15 @@ class OutlinesTransformersComparativeRegressionADM(OutlinesTransformersADM):
 
                 icl_examples = []
                 if use_icl:
-                    selected_icl_examples = icl_example_generator.select_icl_examples(target_kdma['kdma'],
-                                                                                      target_kdma['name'],
-                                                                                      scenario_description,
-                                                                                      choices)
+                    # Exclude outcome prediction in prompt_to_match because ICL examples don't have outcomes
+                    no_outcome_predictions = {}
+                    for choice in choices:
+                        no_outcome_predictions[choice] = {}
+                        no_outcome_predictions[choice]['predicted_outcome'] = None
+                    prompt_to_match = comparative_kdma_score_prediction_prompt(scenario_description,
+                                                                                    no_outcome_predictions,
+                                                                                    target_kdma['name'])
+                    selected_icl_examples = icl_example_generator.select_icl_examples(target_kdma['kdma'], prompt_to_match)
                     for icl_sample in selected_icl_examples:
                         icl_examples.extend([
                             {"role": "user", "content": icl_sample['prompt']},
