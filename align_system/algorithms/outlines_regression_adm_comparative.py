@@ -154,7 +154,9 @@ class OutlinesTransformersComparativeRegressionADM(OutlinesTransformersADM):
                     prompt_to_match = comparative_kdma_score_prediction_prompt(scenario_description,
                                                                                     no_outcome_predictions,
                                                                                     target_kdma['name'])
-                    selected_icl_examples = icl_example_generator.select_icl_examples(target_kdma['kdma'], prompt_to_match)
+                    selected_icl_examples = icl_example_generator.select_icl_examples(target_kdma['kdma'],
+                                                                                      scenario_description, 
+                                                                                      prompt_to_match)
                     for icl_sample in selected_icl_examples:
                         icl_examples.extend([
                             {"role": "user", "content": icl_sample['prompt']},

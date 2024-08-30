@@ -37,8 +37,8 @@ class IncontextExampleGenerator(object, metaclass=ABCMeta):
 
         The keys of self.icl_datasets are the 'kdma' keys from self.target_kdmas,
         the values are a list of all ICL examples for that kdma,
-        each ICL example is a dictionary with keys: 'prompt', 'response'
-        For example: {kdma: [{'prompt':str, 'response':json}, ...], ...}
+        each ICL example is a dictionary with keys: 'scenario_description', 'prompt', 'response'
+        For example: {kdma: [{'scenario_description':str, 'prompt':str, 'response':json}, ...], ...}
         '''
         self.icl_datasets = {}
         pass
@@ -91,7 +91,7 @@ class IncontextExampleGenerator(object, metaclass=ABCMeta):
             
             return incontext_data
 
-    def select_icl_examples(self, sys_kdma_name, prompt_to_match):
+    def select_icl_examples(self, sys_kdma_name, scenario_description_to_match, prompt_to_match):
         '''
         Selects a list of relevant ICL examples
         Input:
@@ -110,11 +110,11 @@ class IncontextExampleGenerator(object, metaclass=ABCMeta):
             raise RuntimeError(f"Not enough possible incontext samples to learn from. Only "
                             f"{len(possible_icl_examples)} samples available while asking for "
                             f"{n_icl_examples} incontext samples.")
-        # If using LOO, don't include example ICL with exact same prompt
+        # If using LOO, don't include example ICL with exact same scenario description
         if self.incontext_settings.get("leave_one_out", False):
             possible_icl_examples = [
                 icl_ex for icl_ex in possible_icl_examples
-                if icl_ex["prompt"] != prompt_to_match
+                if icl_ex["scenario_description"] != scenario_description_to_match
             ]
 
         # Downselect to n_icl_examples via given method
@@ -122,7 +122,15 @@ class IncontextExampleGenerator(object, metaclass=ABCMeta):
         
         if icl_strategy == "random":
             selected_icl_examples = random.sample(possible_icl_examples, n_icl_examples)
-        elif icl_strategy == "bert_similarity":
+        elif icl_strategy == "scenario_bert_similarity":
+            possible_icl_scenarios = [icl_sample["scenario_description"] for icl_sample in possible_icl_examples]
+            # Create similarity scores between the ICL samples and find top-k indices
+            from bert_score import score
+            _, _, F1 = score([scenario_description_to_match]*len(possible_icl_scenarios), possible_icl_scenarios, lang="en")
+            _, indices = torch.topk(F1, n_icl_examples)
+
+            selected_icl_examples = [possible_icl_examples[i] for i in indices]
+        elif icl_strategy == "prompt_bert_similarity":
             possible_icl_prompts = [icl_sample["prompt"] for icl_sample in possible_icl_examples]
             # Create similarity scores between the ICL samples and find top-k indices
             from bert_score import score
@@ -184,6 +192,7 @@ class ComparativeRegressionIncontextExampleGenerator(IncontextExampleGenerator):
 
                 # Add example
                 icl_datasets[sys_kdma_name].append({
+                    "scenario_description": icl_scenario_description,
                     "prompt": icl_prompt,
                     "response": icl_response
                     })

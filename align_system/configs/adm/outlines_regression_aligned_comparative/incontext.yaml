@@ -5,7 +5,7 @@ inference_kwargs:
   generator_batch_size: 5
   incontext:
     number: 5
-    method: bert_similarity
+    method: prompt_bert_similarity
     leave_one_out: false
     datasets:
       MoralDesert: /data/shared/samba/integrated_results_metrics_eval/captured_dataset_for_chris/baseline_adept_high-1715105775-input-output.json
