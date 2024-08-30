@@ -32,7 +32,14 @@ class IncontextExampleGenerator(object, metaclass=ABCMeta):
     @abstractmethod
     def set_icl_datasets(self):
         '''
-        Sets the ICL datasets dictionary to pull examples from
+        Sets self.icl_datasets which contains all the ICL examples
+        This is specific to each instance of the class because the prompt and response will vary
+        read_icl_dataset_files() is a generic helper method for this step
+
+        The keys of self.icl_datasets are the 'kdma' keys from self.target_kdmas,
+        the values are a list of all ICL examples for that kdma,
+        each ICL example is a dictionary with keys: 'scenario_description', 'prompt', 'response'
+        For example: {kdma: [{'scenario_description':str, 'prompt':str, 'response':json}, ...], ...}
         '''
         self.icl_datasets = {}
         pass
@@ -40,9 +47,55 @@ class IncontextExampleGenerator(object, metaclass=ABCMeta):
     @abstractmethod
     def select_icl_examples(self):
         '''
-        Returns relevant examples from self.icl_datasets
+        Returns a subset of self.icl_datasets that are relevant examples
         '''
         pass
+
+    def read_icl_dataset_files(self):
+        '''
+        Helper function, reads dataset files and gets examples for target_kdmas
+        Return incontext_data with format:
+            {kdma:[{state, actions, choices, kdma_values}, ...], ...}
+        '''
+        incontext_data = {}
+        # For each kdma
+        for target_kdma in self.target_kdmas:
+            sys_kdma_name = target_kdma['kdma']
+            # Add examples for each dataset file
+            dset_files = self.incontext_settings["datasets"][sys_kdma_name]
+            # If there is only one, make it a list for the following loop
+            if not isinstance(dset_files, list):
+                dset_files = [dset_files]
+            
+            for dset_f in dset_files:
+                # Load dataset file
+                with open(dset_f) as f:
+                    dset = json.load(f)
+                incontext_data[sys_kdma_name] = []
+                # Load each example in the dataset file
+                for icl_sample in dset:
+                    # Get state
+                    state, actions = hydrate_scenario_state(icl_sample["input"])
+                    # Get choices
+                    choices = adm_utils.format_choices(
+                        [a.unstructured for a in actions],
+                        actions,
+                        state,
+                        self.log
+                    )
+                    # Get KDMA_values
+                    kdma_values = []
+                    for label in icl_sample["label"]:
+                        if sys_kdma_name not in label:
+                            kdma_values.append(None)
+                        else:
+                            kdma_values.append(label[sys_kdma_name])
+                    example = {'state':state, 'actions': actions, 'choices':choices, 'kdma_values':kdma_values}
+                    incontext_data[sys_kdma_name].append(example)
+            
+            # TODO - normalize KDMA values
+            
+            return incontext_data
 
 
 class ComparativeRegressionIncontextExampleGenerator(IncontextExampleGenerator):
@@ -58,50 +111,46 @@ class ComparativeRegressionIncontextExampleGenerator(IncontextExampleGenerator):
     
     def set_icl_datasets(self):
         icl_datasets = {}
-        # Read dataset(s)
+        incontext_data = self.read_icl_dataset_files()
+        
+        # Add each target to icl_datasets
         for target_kdma in self.target_kdmas:
-            dset_kdma = target_kdma['kdma']
-            dset_f = self.incontext_settings["datasets"][dset_kdma]
-            with open(dset_f) as f:
-                dset = json.load(f)
-
-            icl_datasets[dset_kdma] = []
-            for icl_sample in dset:
-                state, actions = hydrate_scenario_state(icl_sample["input"])
-                icl_choices = adm_utils.format_choices(
-                    [a.unstructured for a in actions],
-                    actions,
-                    state,
-                    self.log
-                )
-
+            sys_kdma_name = target_kdma['kdma']
+            icl_datasets[sys_kdma_name] = []
+            kdma_incontext_data = incontext_data[sys_kdma_name]
+            
+            # Add each examples to icl_datasets
+            for example in kdma_incontext_data:
+                # Get example scenario description
+                character_info = outlines_prompts_utils.get_relevant_structured_character_info(example['state'].characters)
+                icl_scenario_description = scenario_state_description_with_relevant_char_info(example['state'], character_info)
+                # Get example prompt
                 icl_choices_with_outcomes = {}
-                for choice in icl_choices:
+                for choice in example['choices']:
                     # TODO: Include outcome prediction for ICL examples?
                     icl_choices_with_outcomes[choice] = {'predicted_outcome':None}
-
-                character_info = outlines_prompts_utils.get_relevant_structured_character_info(state.characters)
-                icl_scenario_description = scenario_state_description_with_relevant_char_info(state, character_info)
                 icl_prompt = comparative_kdma_score_prediction_prompt(icl_scenario_description,
                                                                     icl_choices_with_outcomes,
-                                                                    dset_kdma)
+                                                                    sys_kdma_name)
+                # Get example response
                 icl_reponse = {}
-                for action, icl_choice, label in zip(actions, icl_choices, icl_sample["label"]):
-                    if dset_kdma not in label:
+                for action, choice, kdma_value in zip(example['actions'], example['choices'], example["kdma_values"]):
+                    # Only include choice if there is a ground truth KDMA value available
+                    if kdma_value is None:
                         continue
-
-                    icl_reponse[icl_choice] = {}
-                    icl_reponse[icl_choice]['reasoning'] = get_chain_of_thought_reasoning(target_kdma, action,
-                                                                                            state, icl_choice,
-                                                                                            label[dset_kdma])
+                    icl_reponse[choice] = {}
+                    icl_reponse[choice]['reasoning'] = get_chain_of_thought_reasoning(target_kdma, action,
+                                                                                            example['state'], choice,
+                                                                                            kdma_value)
                     # Predicted scores are 0-10, KDMA values are 0-1
-                    icl_reponse[icl_choice]['score'] = int(label[dset_kdma] * 10)
-
-                icl_datasets[dset_kdma].append({
+                    icl_reponse[choice]['score'] = int(kdma_value * 10)
+                # Add full example
+                icl_datasets[sys_kdma_name].append({
                     "scenario_description": icl_scenario_description,
                     "prompt": icl_prompt,
                     "response": icl_reponse
                     })
+                
         self.icl_datasets = icl_datasets
     
     def select_icl_examples(self, sys_kdma_name, print_kdma_name, scenario_description, choices):
@@ -145,6 +194,7 @@ class ComparativeRegressionIncontextExampleGenerator(IncontextExampleGenerator):
         else:
             raise ValueError(f'"{icl_strategy}" is not a valid incontext method. Please use "random" or '
                                 '"bert_similarity"')
+
         return selected_icl_examples
 
 
