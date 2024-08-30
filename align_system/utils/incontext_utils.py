@@ -136,14 +136,6 @@ class IncontextExampleGenerator(object, metaclass=ABCMeta):
 
 
 class ComparativeRegressionIncontextExampleGenerator(IncontextExampleGenerator):
-    def __init__(self,
-                 incontext_settings, 
-                 target_kdmas, 
-                 **kwargs):
-        self.incontext_settings = incontext_settings
-        self.target_kdmas = target_kdmas
-        self.set_icl_datasets()
-    
     def set_icl_datasets(self):
         icl_datasets = {}
         incontext_data = self._read_icl_dataset_files()
