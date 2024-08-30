@@ -1,4 +1,5 @@
 import json
+from jsonschema import validate
 import torch
 import random
 from copy import deepcopy
@@ -9,7 +10,8 @@ from align_system.utils import outlines_prompts_utils
 from align_system.utils.hydrate_state import hydrate_scenario_state
 from align_system.prompt_engineering.outlines_prompts import (
     scenario_state_description_with_relevant_char_info,
-    comparative_kdma_score_prediction_prompt
+    comparative_kdma_score_prediction_prompt,
+    comparative_kdma_score_prediction_json_schema
 )
 
 
@@ -148,19 +150,10 @@ class ComparativeRegressionIncontextExampleGenerator(IncontextExampleGenerator):
             
             # Add each examples to icl_datasets
             for example in kdma_incontext_data:
-                
-                # Get example prompt
-                character_info = outlines_prompts_utils.get_relevant_structured_character_info(example['state'].characters)
-                icl_scenario_description = scenario_state_description_with_relevant_char_info(example['state'], character_info)
-                icl_choices_with_outcomes = {}
-                for choice in example['choices']:
-                    # TODO: Include outcome prediction for ICL examples?
-                    icl_choices_with_outcomes[choice] = {'predicted_outcome':None}
-                icl_prompt = comparative_kdma_score_prediction_prompt(icl_scenario_description,
-                                                                    icl_choices_with_outcomes,
-                                                                    sys_kdma_name)
+
                 # Get example response
                 icl_response = {}
+                included_choices = []
                 for action, choice, kdma_value in zip(example['actions'], example['choices'], example["kdma_values"]):
                     # Only include choice if there is a ground truth KDMA value available
                     if kdma_value is None:
@@ -172,6 +165,22 @@ class ComparativeRegressionIncontextExampleGenerator(IncontextExampleGenerator):
                                                                                             example['state'], choice,
                                                                                             scaled_kdma_value)
                     icl_response[choice]['score'] = scaled_kdma_value
+                    included_choices.append(choice)
+                # Check if response is valid against json schema
+                correct_schema = json.loads(comparative_kdma_score_prediction_json_schema(included_choices))
+                validate(instance=icl_response, schema=correct_schema)
+                
+                # Get example prompt
+                character_info = outlines_prompts_utils.get_relevant_structured_character_info(example['state'].characters)
+                icl_scenario_description = scenario_state_description_with_relevant_char_info(example['state'], character_info)
+                # Only include choices in the prompt if they are in the response
+                included_icl_choices_with_outcomes = {}
+                for choice in included_choices:
+                    # TODO: Include outcome prediction for ICL examples?
+                    included_icl_choices_with_outcomes[choice] = {'predicted_outcome':None}
+                icl_prompt = comparative_kdma_score_prediction_prompt(icl_scenario_description,
+                                                                    included_icl_choices_with_outcomes,
+                                                                    sys_kdma_name)
 
                 # Add example
                 icl_datasets[sys_kdma_name].append({
