@@ -7,6 +7,7 @@ inference_kwargs:
     number: 5
     method: prompt_bert_similarity
     leave_one_out: false
+    normalization: globalnorm
     datasets:
       MoralDesert: /data/shared/samba/integrated_results_metrics_eval/captured_dataset_for_chris/baseline_adept_high-1715105775-input-output.json
       maximization: /data/shared/samba/integrated_results_metrics_eval/captured_dataset_for_chris/baseline_soartech_high-1716581856-input-output.json

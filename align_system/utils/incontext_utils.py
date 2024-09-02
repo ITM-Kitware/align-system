@@ -7,7 +7,7 @@ from abc import ABCMeta, abstractmethod
 
 from align_system.utils import adm_utils
 from align_system.utils import outlines_prompts_utils
-from align_system.utils.alignment_utils import _check_if_targets_are_scalar
+from align_system.utils import alignment_utils
 from align_system.utils.hydrate_state import hydrate_scenario_state
 from align_system.prompt_engineering.outlines_prompts import (
     action_choice_json_schema,
@@ -25,9 +25,8 @@ class IncontextExampleGenerator(object, metaclass=ABCMeta):
     Instances of this class have unique set_icl_datasets() functions for formatting prompt and reponses 
     '''
     def __init__(self,
-                 incontext_settings, 
-                 target_kdmas, 
-                 **kwargs):
+                 incontext_settings,
+                 target_kdmas):
         self.incontext_settings = incontext_settings
         self.target_kdmas = target_kdmas
         self.set_icl_datasets()
@@ -91,9 +90,50 @@ class IncontextExampleGenerator(object, metaclass=ABCMeta):
                     example = {'state':state, 'actions': actions, 'choices':choices, 'kdma_values':kdma_values}
                     incontext_data[sys_kdma_name].append(example)
             
-            # TODO - add KDMA normalization option
-            
+            # Normalize ground truth KDMA values
+            if 'normalization' in self.incontext_settings:
+                if self.incontext_settings['normalization'] != None or self.incontext_settings['normalization'] != 'rawscores':
+                    if self.incontext_settings['normalization'] == 'globalnorm':
+                        incontext_data = self._global_normalization(incontext_data)
+                    elif self.incontext_settings['normalization'] == 'localnorm':
+                        incontext_data = self._local_normalization(incontext_data)
+                    else:
+                        raise ValueError(f'"{self.normalization}" is not a valid incontext normalization option. '
+                                        'Please use "globalnorm" or "localnorm".')
+
             return incontext_data
+
+    def _global_normalization(self, incontext_data):
+        for kdma in list(incontext_data.keys()):
+            # Get global min and max
+            all_kdma_values = []
+            for example in incontext_data[kdma]:
+                all_kdma_values.extend(example['kdma_values'])
+            all_kdma_values = [i for i in all_kdma_values if i is not None]
+            global_min = min(all_kdma_values)
+            global_max = max(all_kdma_values)
+            # Normalize
+            for example_idx in range(len(incontext_data[kdma])):
+                norm_values = incontext_data[kdma][example_idx]['kdma_values']
+                for value_idx in range(len(norm_values)):
+                    if norm_values[value_idx] is not None:
+                        norm_values[value_idx] = (norm_values[value_idx] - global_min) / (global_max - global_min)
+                incontext_data[kdma][example_idx]['kdma_values'] = norm_values
+        return incontext_data
+
+    def _local_normalization(self, incontext_data):
+        # Normalize per example
+        for kdma in list(incontext_data.keys()):
+            for example_idx in range(len(incontext_data[kdma])):
+                norm_values = incontext_data[kdma][example_idx]['kdma_values']
+                example_values = [i for i in norm_values if i is not None]
+                local_min = np.min(example_values)
+                local_max = np.max(example_values)
+                for value_idx in range(len(norm_values)):
+                    if norm_values[value_idx] is not None:
+                        norm_values[value_idx] = (norm_values[value_idx] - local_min) / (local_max - local_min)
+                incontext_data[kdma][example_idx]['kdma_values'] = norm_values
+        return incontext_data
 
     def select_icl_examples(self, sys_kdma_name, scenario_description_to_match, prompt_to_match):
         '''
@@ -157,7 +197,7 @@ class BaselineIncontextExampleGenerator(IncontextExampleGenerator):
     '''
     def set_icl_datasets(self):
         # Requires scalar targets
-        _check_if_targets_are_scalar(self.target_kdmas)
+        alignment_utils._check_if_targets_are_scalar(self.target_kdmas)
 
         icl_datasets = {}
         incontext_data = self._read_icl_dataset_files()
