@@ -3,6 +3,7 @@ import random
 import itertools
 import numpy as np
 import torch
+import yaml
 
 import outlines
 from outlines.samplers import MultinomialSampler
@@ -17,6 +18,7 @@ from swagger_client.models import (
 
 from align_system.utils import logging
 from align_system.utils import adm_utils
+from align_system.utils import incontext_utils
 from align_system.utils import get_swagger_class_enum_values
 from align_system.utils.voting import (
     calculate_votes,
@@ -106,7 +108,7 @@ class OutlinesTransformersADM(ActionBasedADM):
 
     @staticmethod
     def kdma_value_to_system_prompt(kdma, value):
-        if kdma == "MoralDesert":
+        if kdma == "MoralDesert" or kdma=="Moral judgement":
             if value < 0.5:
                 return low_moral_deservingness_system_prompt()
             else:
@@ -133,46 +135,6 @@ class OutlinesTransformersADM(ActionBasedADM):
         prompt = action_selection_prompt(scenario_description, choices)
 
         return prompt, choices
-
-
-    def _format_single_incontext_prompt(self, sample, tgt_kdma, tgt_kdma_value):
-        """
-        Generate dialog for a single incontext example given the target kdma and value
-        """
-        state = sample["state"]
-        actions = sample["actions"]
-        labels = sample["labels"]
-
-        prompt, choices = self._state_to_top_level_prompt(state, actions)
-
-        # Compute each choice's distance from the target
-        # If the target attribute is not in the scores, assign infinite distance
-        # TODO: Add other metrics for determining "best" answer?
-        dist_to_tgt = [
-            abs(score[tgt_kdma] - tgt_kdma_value) if tgt_kdma in score else float('inf')
-            for score in labels
-        ]
-        # TODO: If there are ties, this always returns the first choice, do we need to chose differently?
-        correct_answer_idx = np.argmin(dist_to_tgt)
-
-        # TODO: Should we shuffle ICL options?
-
-        # TODO: Add chain of thought reasoning?
-        target_wording_mapping = {
-            "MoralDesert": "moral deservingness",
-            "maximization": "maximization"
-        }
-        adjective = "low" if tgt_kdma_value < 0.5 else "high"
-        reasoning_text = f"Per the principle of {adjective} {target_wording_mapping.get(tgt_kdma, tgt_kdma)}, " \
-                         f'\\"{choices[correct_answer_idx]}\\" is the correct answer.'
-
-        # TODO: Validate against schema?
-        answer = f'{{"detailed_reasoning": "{reasoning_text}", "action_choice": "{choices[correct_answer_idx]}"}}'
-
-        return [
-            {"role": "user", "content": prompt},
-            {"role": "assistant", "content": answer}
-        ]
 
     # Function borrowed from
     # https://docs.python.org/3/library/itertools.html#itertools.batched
@@ -203,8 +165,8 @@ class OutlinesTransformersADM(ActionBasedADM):
                                 alignment_target,
                                 num_positive_samples=1,
                                 num_negative_samples=0,
-                                shuffle_choices=False,
                                 generator_batch_size=5,
+                                kdma_descriptions_map='align_system/prompt_engineering/kdma_descriptions.yml',
                                 **kwargs):
         if self.baseline and num_negative_samples > 0:
             raise RuntimeError("No notion of negative samples for baseline run")
@@ -223,6 +185,7 @@ class OutlinesTransformersADM(ActionBasedADM):
 
         positive_icl_examples = []
         negative_icl_examples = []
+        incontext_settings=kwargs.get("incontext", {})
         if not self.baseline and alignment_target is not None:
             kdma_values = alignment_target.kdma_values
 
@@ -237,6 +200,10 @@ class OutlinesTransformersADM(ActionBasedADM):
             value = kdma_value['value']
             # Assumption here is that KDMA values range from 0-1
             negative_value = 1 - value
+            # Get kdma names and descriptions
+            with open(kdma_descriptions_map, 'r') as f:
+                kdma_descriptions = yaml.load(f, Loader=yaml.FullLoader)
+            name = kdma_descriptions[kdma]['name']
 
             positive_system_prompt = self.__class__.kdma_value_to_system_prompt(kdma, value)
             negative_system_prompt = self.__class__.kdma_value_to_system_prompt(kdma, negative_value)
@@ -248,65 +215,40 @@ class OutlinesTransformersADM(ActionBasedADM):
                 raise RuntimeError("Couldn't find system prompt for kdma: {}, and "
                                    "value: {}.".format(kdma, negative_value))
 
-            if "incontext" in kwargs and kwargs["incontext"]["number"] > 0:
-                n_icl_examples = kwargs["incontext"]["number"]
-
-                # Read dataset(s)
-                icl_datasets = {}
-                for dset_kdma, dset in kwargs["incontext"]["datasets"].items():
-                    with open(dset) as f:
-                        icl_datasets[dset_kdma] = json.load(f)
-
-                if kdma not in icl_datasets:
-                    raise RuntimeError(f"No incontext samples for targeted kdma: {kdma}")
-                icl_dataset = icl_datasets[kdma]
-                if len(icl_dataset) < n_icl_examples:
-                    raise RuntimeError(f"Not enough possible incontext samples to learn from. Only "
-                                       f"{len(icl_dataset)} samples available while asking for "
-                                       f"{n_icl_examples} incontext samples.")
-
-                # Populate possible samples from the dataset
-                possible_icl_examples = []
-                for sample in icl_dataset:
-                    state, actions = hydrate_scenario_state(sample["input"])
-                    possible_icl_examples.append({
-                        "state": state,
-                        "actions": actions,
-                        "labels": sample["label"]
-                    })
-
-                # Downselect to n_icl_examples via given method
-                icl_strategy = kwargs["incontext"]["method"]
-                if icl_strategy == "random":
-                    selected_icl_examples = random.sample(possible_icl_examples, n_icl_examples)
-                elif icl_strategy == "bert_similarity":
-                    # Only comparing similarity of prompts, not considering answer options at this time
-                    no_choices_prompt, _ = self._state_to_top_level_prompt(scenario_state, [])
-                    possible_icl_prompts = []
-                    for s in possible_icl_examples:
-                        prompt, _ = self._state_to_top_level_prompt(s["state"], [])
-                        possible_icl_prompts.append(prompt)
-
-                    # Create similarity scores between the ICL samples and find top-k indices
-                    from bert_score import score
-                    _, _, F1 = score([no_choices_prompt]*len(possible_icl_prompts), possible_icl_prompts, lang="en")
-                    _, indices = torch.topk(F1, n_icl_examples)
-
-                    selected_icl_examples = [possible_icl_examples[i] for i in indices]
-                else:
-                    raise ValueError(f'"{icl_strategy}" is not a valid incontext method. Please use "random" or '
-                                      '"bert_similarity"')
-
-                # Create ICL prompts
-                for sample in selected_icl_examples:
-                    positive_icl_examples.extend(
-                        self._format_single_incontext_prompt(sample, kdma, value)
-                    )
-
-                    if num_negative_samples > 0:
-                        negative_icl_examples.extend(
-                            self._format_single_incontext_prompt(sample, kdma, negative_value)
-                        )
+            if "incontext" in kwargs and "number" in incontext_settings and incontext_settings["number"] > 0:
+                scenario_to_match = scenario_state_description_1(scenario_state)
+                prompt_to_match, _ = self._state_to_top_level_prompt(scenario_state, available_actions)
+                
+                # Create positive ICL example generators
+                positive_target = {'kdma': kdma, 'name': name, 'value': value}
+                positive_icl_example_generator = incontext_utils.BaselineIncontextExampleGenerator(incontext_settings,
+                                                                                                    [positive_target])
+                # Get subset of relevant of examples
+                positive_selected_icl_examples = positive_icl_example_generator.select_icl_examples(kdma, 
+                                                                                                    scenario_to_match, 
+                                                                                                    prompt_to_match)
+                # Create positive ICL prompts
+                for icl_sample in positive_selected_icl_examples:
+                    positive_icl_examples.extend([
+                        {"role": "user", "content": icl_sample['prompt']},
+                        {"role": "assistant", "content": f'{icl_sample["response"]}'}
+                    ])
+                
+                # Create negative ICL prompts
+                if num_negative_samples > 0:
+                    # Create negative ICL example generators
+                    negative_target = {'kdma': kdma, 'name': name, 'value': negative_value}
+                    negative_icl_example_generator = incontext_utils.BaselineIncontextExampleGenerator(incontext_settings,
+                                                                                                    [negative_target])
+                    # Get subset of relevant of examples
+                    negative_selected_icl_examples = negative_icl_example_generator.select_icl_examples(kdma, 
+                                                                                                    scenario_to_match, 
+                                                                                                    prompt_to_match)
+                    for icl_sample in negative_selected_icl_examples:
+                        negative_icl_examples.extend([
+                            {"role": "user", "content": icl_sample['prompt']},
+                            {"role": "assistant", "content": f'{icl_sample["response"]}'}
+                        ])
         else:
             positive_system_prompt = baseline_system_prompt()
             if num_negative_samples > 0:

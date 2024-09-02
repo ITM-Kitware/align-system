@@ -2,13 +2,17 @@ import json
 from jsonschema import validate
 import torch
 import random
-from copy import deepcopy
+import numpy as np
 from abc import ABCMeta, abstractmethod
 
 from align_system.utils import adm_utils
 from align_system.utils import outlines_prompts_utils
+from align_system.utils.alignment_utils import _check_if_targets_are_scalar
 from align_system.utils.hydrate_state import hydrate_scenario_state
 from align_system.prompt_engineering.outlines_prompts import (
+    action_choice_json_schema,
+    scenario_state_description_1,
+    action_selection_prompt,
     scenario_state_description_with_relevant_char_info,
     comparative_kdma_score_prediction_prompt,
     comparative_kdma_score_prediction_json_schema
@@ -140,9 +144,61 @@ class IncontextExampleGenerator(object, metaclass=ABCMeta):
             selected_icl_examples = [possible_icl_examples[i] for i in indices]
         else:
             raise ValueError(f'"{icl_strategy}" is not a valid incontext method. Please use "random" or '
-                                '"bert_similarity"')
+                                '"scenario_bert_similarity" or "prompt_bert_similarity"')
 
         return selected_icl_examples
+
+
+class BaselineIncontextExampleGenerator(IncontextExampleGenerator):
+    '''
+    For OutlinesTransformersADM in align_system.algorithms.outlines_adm
+    Given SCALAR targets - select the closest choice as correct
+    Provides a simple binary (either high or low) example reasoning statement
+    '''
+    def set_icl_datasets(self):
+        # Requires scalar targets
+        _check_if_targets_are_scalar(self.target_kdmas)
+
+        icl_datasets = {}
+        incontext_data = self._read_icl_dataset_files()
+        
+        # Add each target to icl_datasets
+        for target_kdma in self.target_kdmas:
+            sys_kdma_name = target_kdma['kdma']
+            icl_datasets[sys_kdma_name] = []
+            kdma_incontext_data = incontext_data[sys_kdma_name]
+            
+            # Add each examples to icl_datasets
+            for example in kdma_incontext_data:
+
+                # Get scenario and prompt
+                icl_scenario_description = scenario_state_description_1(example['state'])
+                icl_prompt = action_selection_prompt(icl_scenario_description, example['choices'])
+
+                # Get example response 
+                dist_to_tgt = [
+                    abs(score - target_kdma['value']) if score is not None else float('inf')
+                    for score in example["kdma_values"]
+                ]
+                correct_answer_idx = np.argmin(dist_to_tgt)
+                correct_choice = example['choices'][correct_answer_idx]
+                adjective = "low" if target_kdma['value'] < 0.5 else "high"
+                reasoning = f"Per the principle of {adjective} {target_kdma['name']}, " \
+                            f'\\"{correct_choice}\\" is the correct answer.'
+                icl_response = {"detailed_reasoning": reasoning,
+                                "action_choice": correct_choice}
+                # Validate response against schema
+                correct_schema = json.loads(action_choice_json_schema(json.dumps(example['choices'])))
+                validate(instance=icl_response, schema=correct_schema)
+
+                # Add example
+                icl_datasets[sys_kdma_name].append({
+                    "scenario_description": icl_scenario_description,
+                    "prompt": icl_prompt,
+                    "response": icl_response
+                    })
+
+        self.icl_datasets = icl_datasets
 
 
 class ComparativeRegressionIncontextExampleGenerator(IncontextExampleGenerator):
