@@ -3,23 +3,31 @@
 This changelog follows the specifications detailed in: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html), although we have not yet reached a `1.0.0` release.
 
-## 0.5.2
+## Unreleased
 
 ### Changed
 
 * Moved incontext learning functionality into `incontext_utils.py` and updated the base outlines and comparative regession ADMS to use this module.
-* Moved the `format_choices()` function from the `OutlinesTransformersADM` class in `outlines_adm.py` to a new utils file: `adm_utils.py` so it can be used across ADMs. 
+* Moved the `format_choices()` function from the `OutlinesTransformersADM` class in `outlines_adm.py` to a new utils file: `adm_utils.py` so it can be used across ADMs.
 
 ### Added
 
 * Added option to normalize KDMA values in incontext examples
+  
+### Fixed
+
+* Fixed KDE target samples to be between 0 and 1
+  
+## 0.5.2
+
+### Added
+
 * Split out our experiment configuration for our aligned DRE ADM to specific configs for SoarTech and Adept
 * Added logging for sampled KDMA target value, and estimated KDMA values in alignment_utils
 
 ### Fixed
 
 * Fixed issue in Oracle ADM which caused an key error exception when logging probabilities
-* Fixed KDE target samples to be between 0 and 1
 
 ## 0.5.1
 
