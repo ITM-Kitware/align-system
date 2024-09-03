@@ -5,8 +5,14 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## 0.5.2
 
+### Changed
+
+* Moved incontext learning functionality into `incontext_utils.py` and updated the base outlines and comparative regession ADMS to use this module.
+* Moved the `format_choices()` function from the `OutlinesTransformersADM` class in `outlines_adm.py` to a new utils file: `adm_utils.py` so it can be used across ADMs. 
+
 ### Added
 
+* Added option to normalize KDMA values in incontext examples
 * Split out our experiment configuration for our aligned DRE ADM to specific configs for SoarTech and Adept
 * Added logging for sampled KDMA target value, and estimated KDMA values in alignment_utils
 
