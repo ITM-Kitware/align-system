@@ -17,9 +17,11 @@ Inputs:
         For example: {'Treat Patient A':{'Moral judgement': [0.1,0.1,0.2], ...}, 'Treat Patient B':{...}, ... }
     - target_kdmas: A list of KDMA alignment targets (typically alignment_target.kdma_values)
         For example: [{'kdma':'Moral judgement', 'value':0}, ...] or [{'kdma':'Moral judgement', 'kdes':{...}}, ...]
-    - misaligned (optional): If true will pick the least alignmed option (default is false)
+    - misaligned (optional): If true will pick the least aligned option (default is false)
     - kde_norm (optional): Normalization to use if target is KDE
         Options: 'rawscores', 'localnorm', 'globalnorm', 'globalnormx_localnormy'
+    - probabilisitic (optional): If true, will select action probabilistically, weighted by distances
+        to alignment target (default is false)
 Returns:
     - The selected choice from kdma_values.keys()
         For example: 'Treat Patient A'
@@ -100,7 +102,7 @@ class AvgDistScalarAlignment(AlignmentFunction):
         selected_choice, probs = self._select_min_dist_choice(choices, distances, misaligned, probabilistic=probabilistic)
         return selected_choice, probs
 
-    def get_best_sample_index(self, kdma_values, target_kdmas, selected_choice, misaligned=False, **kwargs):
+    def get_best_sample_index(self, kdma_values, target_kdmas, selected_choice, misaligned=False):
         sample_distances = []
         sample_indices = range(len(kdma_values[selected_choice][target_kdmas[0]['kdma']]))
         if len(sample_indices) == 1:
@@ -287,7 +289,7 @@ def _check_if_targets_are_kde(target_kdmas):
             target_kdma = target_kdma.to_dict()
 
         if 'kdes' not in target_kdma or target_kdma["kdes"] is None:
-            raise RuntimeError(f"Alignment function requires KDE targets.")
+            raise RuntimeError("Alignment function requires KDE targets.")
 
 def _euclidean_distance(target, score):
     return math.sqrt((target - score)**2)

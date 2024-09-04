@@ -20,7 +20,7 @@ class OracleADM(ActionBasedADM):
 
     def choose_action(self, scenario_state, available_actions, alignment_target,
                       distribution_matching='sample', kde_norm='rawscores',
-                      probabilistic=False **kwargs):
+                      probabilistic=False, **kwargs):
         if available_actions is None or len(available_actions) == 0:
             return None
 
