@@ -6,12 +6,15 @@ from swagger_client.models import (
     Injury,
     Environment,
     DecisionEnvironment,
-    SimEnvironment
+    SimEnvironment,
+    MetaInfo,
 )
+
 
 def hydrate_scenario_state(record):
     """ Hydrate scenario state from record """
     state = State(**record['full_state'])
+    state.meta_info = MetaInfo(**state.meta_info)
     # For some reason this initialization from a dictionary
     # doesn't recursively init; need to manually do it
     state.characters = [Character(**c) for c in state.characters]

@@ -9,6 +9,8 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 * Moved incontext learning functionality into `incontext_utils.py` and updated the base outlines and comparative regession ADMS to use this module.
 * Moved the `format_choices()` function from the `OutlinesTransformersADM` class in `outlines_adm.py` to a new utils file: `adm_utils.py` so it can be used across ADMs.
+* Update example_data/input_output_files to use DRE training scenarios
+* Changed default config to use `outlines_transformers_structured_baseline` (rather than the older `single_kdma_baseline`)
 
 ### Added
 
@@ -17,6 +19,8 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ### Fixed
 
 * Fixed KDE target samples to be between 0 and 1
+* Fixed issue in alignment_utils logging (where kdma values can be a float/int rather than a list)
+* Now properly hydrating the meta_info field of input_output files
   
 ## 0.5.2
 

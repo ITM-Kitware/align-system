@@ -141,8 +141,13 @@ class MinDistToRandomSampleKdeAlignment(AlignmentFunction):
             # should probably done outside of this method
             for choice, kv in kdma_values.items():
                 for k, v in kv.items():
+                    if isinstance(v, float) or isinstance(v, int):
+                        avg = v
+                    else:
+                        avg = sum(v) / len(v)
+
                     log.info('KDMA "{}" Values for "{}": {} (average: {:0.3f})'.format(
-                        k, choice, v, (sum(v) / len(v))))
+                        k, choice, v, avg))
 
             self.sampled_target_kdmas.append(sampled_target_kdma)
 
