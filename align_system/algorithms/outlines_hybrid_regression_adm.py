@@ -2,8 +2,9 @@ from typing import Dict, List
 
 import numpy as np
 import pandas as pd
-from swagger_client.models import KDMAValue
 import torch
+from outlines.samplers import MultinomialSampler
+from swagger_client.models import KDMAValue
 from torch.utils.data import TensorDataset, DataLoader
 from transformers import AutoModelForSequenceClassification, AutoConfig, AutoTokenizer
 
@@ -103,6 +104,15 @@ class BertRegressionModel:
 
 
 class HybridRegressionADM(OutlinesTransformersADM):
+    def __init__(self,
+                 model_name,
+                 device='auto',
+                 baseline=False,
+                 sampler=MultinomialSampler(),
+                 probabilistic=False,
+                 **kwargs):
+        super().__init__(model_name, device, baseline, sampler, **kwargs)
+        self.probabilistic = probabilistic
 
     def top_level_choose_action(self,
                                 scenario_state,
@@ -110,7 +120,6 @@ class HybridRegressionADM(OutlinesTransformersADM):
                                 alignment_target,
                                 distribution_matching='sample',
                                 kde_norm='globalnorm',
-                                probabilistic=False,
                                 **kwargs):
 
         scenario = []
@@ -188,7 +197,7 @@ class HybridRegressionADM(OutlinesTransformersADM):
         if all_scalar_targets:
             alignment_function = alignment_utils.AvgDistScalarAlignment()
             selected_choice, probs = alignment_function(
-                predicted_kdma_values, target_kdmas, probabilistic=probabilistic
+                predicted_kdma_values, target_kdmas, probabilistic=self.probabilistic
             )
         elif all_kde_targets:
             if distribution_matching == 'sample':
@@ -200,7 +209,7 @@ class HybridRegressionADM(OutlinesTransformersADM):
             else:
                 raise RuntimeError(distribution_matching, "distribution matching function unrecognized.")
             selected_choice, probs = alignment_function(
-                predicted_kdma_values, target_kdmas, kde_norm=kde_norm, probabilistic=probabilistic
+                predicted_kdma_values, target_kdmas, kde_norm=kde_norm, probabilistic=self.probabilistic
             )
         else:
             # TODO: Currently we assume all targets either have scalar values or KDES,

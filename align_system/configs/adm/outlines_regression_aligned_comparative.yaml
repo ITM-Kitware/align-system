@@ -3,6 +3,7 @@ instance:
 
   model_name: mistralai/Mistral-7B-Instruct-v0.2
   baseline: false
+  probabilistic: false
 
 inference_kwargs:
   num_samples: 10
@@ -11,4 +12,3 @@ inference_kwargs:
   kde_norm: globalnorm
   generator_batch_size: 5
   kdma_score_example: false
-  probabilistic: false

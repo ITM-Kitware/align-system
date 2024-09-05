@@ -15,12 +15,12 @@ log = logging.getLogger(__name__)
 
 
 class OracleADM(ActionBasedADM):
-    def __init__(self, misaligned: bool=False):
+    def __init__(self, misaligned: bool=False, probabilistic: bool=False):
         self.misaligned = misaligned
+        self.probabilistic = probabilistic
 
     def choose_action(self, scenario_state, available_actions, alignment_target,
-                      distribution_matching='sample', kde_norm='rawscores',
-                      probabilistic=False, **kwargs):
+                      distribution_matching='sample', kde_norm='rawscores', **kwargs):
         if available_actions is None or len(available_actions) == 0:
             return None
 
@@ -49,7 +49,7 @@ class OracleADM(ActionBasedADM):
         if all_scalar_targets:
             alignment_function = alignment_utils.AvgDistScalarAlignment()
             selected_choice_id, probs = alignment_function(
-                gt_kdma_values, target_kdmas, misaligned=self.misaligned, probabilistic=probabilistic
+                gt_kdma_values, target_kdmas, misaligned=self.misaligned, probabilistic=self.probabilistic
             )
 
         elif all_kde_targets:
@@ -62,7 +62,7 @@ class OracleADM(ActionBasedADM):
             else:
                 raise RuntimeError(distribution_matching, "distribution matching function unrecognized.")
             selected_choice_id, probs = alignment_function(
-                gt_kdma_values, target_kdmas, misaligned=self.misaligned, kde_norm=kde_norm, probabilistic=probabilistic
+                gt_kdma_values, target_kdmas, misaligned=self.misaligned, kde_norm=kde_norm, probabilistic=self.probabilistic
             )
         else:
             # TODO: Currently we assume all targets either have scalar values or KDES,

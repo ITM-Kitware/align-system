@@ -2,11 +2,11 @@ instance:
   _target_: align_system.algorithms.outlines_hybrid_regression_adm.HybridRegressionADM
 
   model_name: mistralai/Mistral-7B-Instruct-v0.2
+  probabilistic: false
 
 inference_kwargs:
   distribution_matching: sample
   kde_norm: globalnorm
-  probabilistic: false
   models:
     model_name: 'bert-base-uncased'
     target_checkpoint:
