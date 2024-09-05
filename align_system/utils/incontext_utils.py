@@ -98,7 +98,7 @@ class IncontextExampleGenerator(object, metaclass=ABCMeta):
                     elif self.incontext_settings['normalization'] == 'localnorm':
                         incontext_data = self._local_normalization(incontext_data)
                     else:
-                        raise ValueError(f'{self.incontext_settings['normalization']} is not a valid incontext normalization option. '
+                        raise ValueError(f'{self.incontext_settings["normalization"]} is not a valid incontext normalization option. '
                                         'Please use "globalnorm" or "localnorm".')
 
             return incontext_data
