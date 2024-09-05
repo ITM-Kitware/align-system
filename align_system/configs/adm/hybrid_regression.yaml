@@ -4,6 +4,9 @@ instance:
   model_name: mistralai/Mistral-7B-Instruct-v0.2
 
 inference_kwargs:
+  distribution_matching: sample
+  kde_norm: globalnorm
+  probabilistic: false
   models:
     model_name: 'bert-base-uncased'
     target_checkpoint:

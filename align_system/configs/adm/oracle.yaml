@@ -1,11 +1,8 @@
 instance:
   _target_: align_system.algorithms.oracle_adm.OracleADM
-
-  probabilistic: false
-  upweight_missing_kdmas: false
-  filter_unlabeled_actions: false
   misaligned: false
 
 inference_kwargs:
   distribution_matching: sample
   kde_norm: rawscores
+  probabilistic: false

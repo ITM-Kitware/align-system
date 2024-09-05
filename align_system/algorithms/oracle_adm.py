@@ -15,7 +15,7 @@ log = logging.getLogger(__name__)
 
 
 class OracleADM(ActionBasedADM):
-    def __init__(self, misaligned: bool=False, **kwargs):
+    def __init__(self, misaligned: bool=False):
         self.misaligned = misaligned
 
     def choose_action(self, scenario_state, available_actions, alignment_target,

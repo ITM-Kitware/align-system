@@ -11,3 +11,4 @@ inference_kwargs:
   kde_norm: globalnorm
   generator_batch_size: 5
   kdma_score_example: false
+  probabilistic: false
