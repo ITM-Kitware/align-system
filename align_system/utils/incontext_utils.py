@@ -92,13 +92,13 @@ class IncontextExampleGenerator(object, metaclass=ABCMeta):
             
             # Normalize ground truth KDMA values
             if 'normalization' in self.incontext_settings:
-                if self.incontext_settings['normalization'] != None or self.incontext_settings['normalization'] != 'rawscores':
+                if self.incontext_settings['normalization'] != None and self.incontext_settings['normalization'] != 'rawscores':
                     if self.incontext_settings['normalization'] == 'globalnorm':
                         incontext_data = self._global_normalization(incontext_data)
                     elif self.incontext_settings['normalization'] == 'localnorm':
                         incontext_data = self._local_normalization(incontext_data)
                     else:
-                        raise ValueError(f'"{self.normalization}" is not a valid incontext normalization option. '
+                        raise ValueError(f'{self.incontext_settings['normalization']} is not a valid incontext normalization option. '
                                         'Please use "globalnorm" or "localnorm".')
 
             return incontext_data
