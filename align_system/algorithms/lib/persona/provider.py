@@ -21,6 +21,7 @@ KDMA_TO_PROBE_MAPPING = {
     'Moral judgement': 'moral_judgment',
     'ingroup_bias': 'ingroup_bias',
     'IngroupBias': 'ingroup_bias',
+    'Ingroup Bias': 'ingroup_bias',
     'Ingroup bias': 'ingroup_bias',
     'value_of_life': 'value_of_life',
     'ValueOfLife': 'value_of_life',
