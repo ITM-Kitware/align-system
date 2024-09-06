@@ -18,6 +18,7 @@ class OracleADM(ActionBasedADM):
     def __init__(self, misaligned: bool=False, probabilistic: bool=False):
         self.misaligned = misaligned
         self.probabilistic = probabilistic
+        self.choice_history = {} # Used for cumulative KDE alignment
 
     def choose_action(self, scenario_state, available_actions, alignment_target,
                       distribution_matching='sample', kde_norm='rawscores', **kwargs):
@@ -53,17 +54,24 @@ class OracleADM(ActionBasedADM):
             )
 
         elif all_kde_targets:
-            if distribution_matching == 'sample':
-                alignment_function = alignment_utils.MinDistToRandomSampleKdeAlignment()
-            elif distribution_matching == 'max_likelihood':
-                alignment_function = alignment_utils.MaxLikelihoodKdeAlignment()
-            elif distribution_matching == 'js_divergence':
-                alignment_function = alignment_utils.JsDivergenceKdeAlignment()
+            if distribution_matching == 'cumulative_kde':
+                alignment_function = alignment_utils.CumulativeJsDivergenceKdeAlignment()
+                selected_choice_id, probs, updated_choice_history = alignment_function(
+                    gt_kdma_values, target_kdmas, self.choice_history, misaligned=self.misaligned, probabilistic=self.probabilistic
+                )
+                self.choice_history = updated_choice_history
             else:
-                raise RuntimeError(distribution_matching, "distribution matching function unrecognized.")
-            selected_choice_id, probs = alignment_function(
-                gt_kdma_values, target_kdmas, misaligned=self.misaligned, kde_norm=kde_norm, probabilistic=self.probabilistic
-            )
+                if distribution_matching == 'sample':
+                    alignment_function = alignment_utils.MinDistToRandomSampleKdeAlignment()
+                elif distribution_matching == 'max_likelihood':
+                    alignment_function = alignment_utils.MaxLikelihoodKdeAlignment()
+                elif distribution_matching == 'js_divergence':
+                    alignment_function = alignment_utils.JsDivergenceKdeAlignment()
+                else:
+                    raise RuntimeError(distribution_matching, "distribution matching function unrecognized for KDE targets.")
+                selected_choice_id, probs = alignment_function(
+                    gt_kdma_values, target_kdmas, misaligned=self.misaligned, kde_norm=kde_norm, probabilistic=self.probabilistic
+                )
         else:
             # TODO: Currently we assume all targets either have scalar values or KDES,
             #       Down the line, we should extend to handling multiple targets of mixed types
