@@ -1,0 +1,9 @@
+instance:
+  _target_: align_system.algorithms.outlines_persona_adm.OutlinesPersonaADM
+
+  model_name: mistralai/Mistral-7B-Instruct-v0.2
+  n_personas: 3
+  filter_probes_to_target_kdmas: true
+
+inference_kwargs:
+  shuffle_choices: true
