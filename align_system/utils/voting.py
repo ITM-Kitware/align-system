@@ -44,3 +44,15 @@ def filter_votes_to_responses(votes, responses):
             "No votes left after filtering, was `reponses` empty?")
 
     return filtered_votes
+
+
+def simple_majority_vote(possible_choices, responses):
+    if len(possible_choices) != len(set(possible_choices)):
+        raise RuntimeError("Possible choices for voting are not unique!")
+
+    votes = {k: 0 for k in possible_choices}
+
+    for r in responses:
+        votes[r] += 1
+
+    return votes

@@ -3,12 +3,16 @@ import logging
 import os
 import numpy as np
 import random
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, Callable
 
 from swagger_client.models import  AlignmentTarget
 
 from align_system.algorithms.lib.persona.types import Dialog, Backstory
 from align_system.algorithms.lib.persona.templates import BACKSTORY_ASSISTANT_PROMPT
+# 'personas_pe' imported here to be used as the base directory for the
+# 'backstories.json'; TODO: more consistent / long term plan for
+# storing database files etc. for algorithms
+from align_system.prompt_engineering import personas as personas_pe
 
 
 KDMA_TO_PROBE_MAPPING = {
@@ -32,11 +36,15 @@ KDMA_TO_PROBE_MAPPING = {
 logger = logging.getLogger(__name__)
 
 
+def _default_probe_filter(probe):
+    return True
+
+
 class PersonaProvider:
 
     def __init__(self,
                  backstory_collection: str = os.path.join(
-                    os.path.abspath(os.path.dirname(__file__)), "..", "prompt_engineering", "personas", "backstories.json"
+                    os.path.abspath(os.path.dirname(personas_pe.__file__)), "backstories.json"
                 ),
     ) -> None:
         """
@@ -137,8 +145,7 @@ class PersonaProvider:
         # Return the top N backstories
         return sampled_backstories
 
-
-    def _generate_dialog_from_backstory(self, backstory: Backstory) -> Dialog:
+    def _generate_dialog_from_backstory(self, backstory: Backstory,  probe_filter: Callable[[Dict], bool] = _default_probe_filter) -> Dialog:
         """
         Generates a dialog based on the provided backstory.
 
@@ -158,6 +165,9 @@ class PersonaProvider:
         }]
 
         for i, probe in enumerate(backstory['probes']):
+            if probe_filter is not None and not probe_filter(probe):
+                continue
+
             dialog.extend(
                 (
                     {"role": "user", "content": f'Question {i + 2}: {probe["probe_prompt"]}'}, # Question 2, 3, 4, ... etc.
@@ -167,7 +177,7 @@ class PersonaProvider:
 
         return dialog
 
-    def get_persona_dialogs(self, alignment_target: Optional[type[AlignmentTarget]], n: int, cache: bool = True) -> List[Dialog]:
+    def get_persona_dialogs(self, alignment_target: Optional[type[AlignmentTarget]], n: int, cache: bool = True, filter_probes_to_target_kdmas: bool = True) -> List[Dialog]:
         """
         Retrieves persona dialogs based on the specified alignment target and number.
 
@@ -184,5 +194,14 @@ class PersonaProvider:
         # Step 1: Choose the backstories
         backstories = self._choose_backstories_for_alignment_target(alignment_target, n, cache=cache)
 
+        if filter_probes_to_target_kdmas:
+            kdmas = {KDMA_TO_PROBE_MAPPING[k['kdma']]
+                     for k in alignment_target.kdma_values}
+
+            def _backstory_probe_filter(probe):
+                return probe['probe'] in kdmas
+        else:
+            _backstory_probe_filter = _default_probe_filter
+
         # Step 2: Generate the dialogs
-        return [self._generate_dialog_from_backstory(b) for b in backstories]
+        return [self._generate_dialog_from_backstory(b, _backstory_probe_filter) for b in backstories]
