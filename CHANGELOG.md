@@ -17,6 +17,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 * Added option to normalize KDMA values in incontext examples
 * Added a probabilistic option to alignment utilities. Exposed this option in oracle, comparative regression, and
   hybrid regression ADMs.
+* Example config for deterministic outlines-based ADM runs (`align_system/configs/experiment/examples/outlines_force_determinism.yaml`). Requires setting `force_determinsim` to true and using greedy sampler.
 
 ### Fixed
 

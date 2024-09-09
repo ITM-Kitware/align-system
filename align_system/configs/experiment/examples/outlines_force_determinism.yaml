@@ -1,0 +1,20 @@
+# @package _global_
+defaults:
+  - /alignment_target: "ADEPT-DryRun-Moral judgement-1.0"
+  - override /adm: outlines_transformers_structured_aligned
+
+adm:
+  instance:
+    # greedy sampling for deterministic LLM inferences
+    sampler:
+      _target_: outlines.samplers.GreedySampler
+
+align_to_target: true
+force_determinism: true
+# Setting `force_determinism` to true sets all of the following
+# parameters to the following (default values)
+# random_seed: 0
+# numpy_random_seed: 0
+# torch_random_seed: 0
+# torch_use_deterministic_algorithms: true
+# sort_available_actions: true
