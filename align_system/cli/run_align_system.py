@@ -3,6 +3,7 @@ from copy import deepcopy
 import atexit
 import os
 import yaml
+import re
 
 from rich.logging import RichHandler
 from rich.console import Console
@@ -25,8 +26,14 @@ JSON_HIGHLIGHTER = JSONHighlighter()
 def main(cfg: DictConfig) -> None:
     cfg = instantiate(cfg, recursive=True)
 
+    if 'adm_mappings' in cfg:
+        adm_mappings = cfg.adm_mappings
+    else:
+        adm_mappings = [{'scenario_pattern': '.*',
+                         'alignment_target_pattern': '.*',
+                         'adm': cfg.adm}]
+
     interface = cfg.interface
-    adm = cfg.adm.instance
 
     # Using the hydra generated output directory for the run
     output_dir = hydra.core.hydra_config.HydraConfig.get().runtime.output_dir
@@ -98,12 +105,6 @@ def main(cfg: DictConfig) -> None:
     else:
         sort_available_actions = False
 
-    # HACK: need to invoke 'load_model' for ADMs that require it,
-    # maybe it makes more sense to load_model in the init method for
-    # those ADMs
-    if hasattr(adm, 'load_model'):
-        adm.load_model()
-
     # Capture inputs and outputs in a similar format to what's used by
     # our internal evaluation framework code
     inputs_outputs = []
@@ -148,6 +149,18 @@ def main(cfg: DictConfig) -> None:
 
                 with open(alignment_target_path, "w") as f:
                     yaml.dump(alignment_target.to_dict(), f)
+
+        adm = None
+        for adm_mapping in adm_mappings:
+            if(re.match(adm_mapping['scenario_pattern'], scenario.id()) and
+               re.match(adm_mapping['alignment_target_pattern'], alignment_target.id)):
+                adm = adm_mapping['adm']
+                log.info(f"[bold]*Mapped scenario/target to ADM: {adm}*[/bold]",
+                         extra={"markup": True})
+                break
+
+        if adm is None:
+            raise RuntimeError("Couldn't find an appropriate ADM in adm_mappings")
 
         current_state = scenario.get_state()
         scenario_complete = current_state.scenario_complete
@@ -272,11 +285,11 @@ def main(cfg: DictConfig) -> None:
                 # prevent ADMs from modifying the originals (should
                 # considering doing the same for current_state and
                 # alignment_target)
-                action_to_take = adm.choose_action(
+                action_to_take = adm.instance.choose_action(
                     current_state,
                     [deepcopy(a) for a in available_actions_filtered],
                     alignment_target if cfg.align_to_target else None,
-                    **cfg.adm.get('inference_kwargs', {}))
+                    **adm.get('inference_kwargs', {}))
 
                 end_choose_action = timer()
                 sce_times_s.append(end_choose_action - start_choose_action)

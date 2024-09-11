@@ -1,0 +1,30 @@
+# @package _global_
+defaults:
+  - /adm@adm1: random
+  - /adm@adm2: outlines_transformers_structured_baseline
+  - override /interface: ta3
+
+interface:
+  api_endpoint: "http://127.0.0.1:8089"
+  session_type: eval
+  training_session: false
+  username: "ALIGN-ADM-Random-Multi-Baseline"
+
+align_to_target: true
+save_last_unstructured_state_per_scenario: true
+
+adm2:
+  instance:
+    precision: half
+
+adm_mappings:
+  - scenario_pattern: '^qol.*'
+    alignment_target_pattern: '^qol.*'
+    adm: ${adm2}
+  - scenario_pattern: '.*'
+    alignment_target_pattern: '.*'
+    adm: ${adm1}
+
+hydra:
+  run:
+    dir: 'random_eval_live/${now:%Y-%m-%d__%H-%M-%S}'
