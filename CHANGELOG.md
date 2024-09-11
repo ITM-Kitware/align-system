@@ -25,6 +25,13 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 * Fixed issue in alignment_utils logging (where kdma values can be a float/int rather than a list)
 * Now properly hydrating the meta_info field of input_output files
 
+### Deprecated
+
+* Removed old and unused command-line interface scripts
+* Removed old template files for integrating custom ADMs
+* Removed CLI builder functionality
+* Removed old configuration files from before Hydra
+
 ## 0.5.2
 
 ### Added
