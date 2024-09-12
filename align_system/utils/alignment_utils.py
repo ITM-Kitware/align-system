@@ -227,7 +227,6 @@ class JsDivergenceKdeAlignment(AlignmentFunction):
         '''
         kdma_values = _handle_single_value(kdma_values, target_kdmas)
         _check_if_targets_are_kde(target_kdmas)
-        target_kdma = target_kdmas[0] # TODO extend to multi-KDMA target scenario
 
         # Get predicted KDE for each choice and get distance to target
         distances = []
@@ -261,7 +260,6 @@ class CumulativeJsDivergenceKdeAlignment(AlignmentFunction):
         '''
         kdma_values = _handle_single_value(kdma_values, target_kdmas)
         _check_if_targets_are_kde(target_kdmas)
-        target_kdma = target_kdmas[0] # TODO extend to multi-KDMA target scenario
 
         # Get predicted KDE for each choice and get distance to target
         distances = []
