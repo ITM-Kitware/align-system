@@ -227,7 +227,6 @@ class JsDivergenceKdeAlignment(AlignmentFunction):
         '''
         kdma_values = _handle_single_value(kdma_values, target_kdmas)
         _check_if_targets_are_kde(target_kdmas)
-        target_kdma = target_kdmas[0] # TODO extend to multi-KDMA target scenario
 
         # Get predicted KDE for each choice and get distance to target
         distances = []
@@ -261,7 +260,6 @@ class CumulativeJsDivergenceKdeAlignment(AlignmentFunction):
         '''
         kdma_values = _handle_single_value(kdma_values, target_kdmas)
         _check_if_targets_are_kde(target_kdmas)
-        target_kdma = target_kdmas[0] # TODO extend to multi-KDMA target scenario
 
         # Get predicted KDE for each choice and get distance to target
         distances = []
@@ -293,6 +291,62 @@ class CumulativeJsDivergenceKdeAlignment(AlignmentFunction):
         # Use max likelihood as distance from a sample to the distribution because JS is disitribution to distribution
         ml_alignment_function = MaxLikelihoodKdeAlignment()
         return ml_alignment_function.get_best_sample_index(kdma_values, target_kdmas, selected_choice, misaligned=misaligned, kde_norm=kde_norm)
+
+
+class RankNormalizedCumulativeJsDivergenceKdeAlignment(AlignmentFunction):
+    def __call__(self, kdma_values, target_kdmas, choice_history, misaligned=False, kde_norm='globalnorm', probabilistic=False):
+        '''
+        TODO
+        '''
+        # Get rank normalized KDMA scores
+        kdma_values = _handle_single_value(kdma_values, target_kdmas)
+        average_kdma_values = {}
+        for choice, kdmas in kdma_values.items():
+            average_kdma_values[choice] = {}
+            for kdma_name, kdma_values in kdmas.items():
+                average_kdma_values[choice][kdma_name] = (sum(kdma_values) / len(kdma_values))
+        rank_normalized_kdma_values = self.get_rank_based_kdma_values(average_kdma_values)
+
+        # Use cumulative js div alignment to rank normalized values
+        alignment_function = CumulativeJsDivergenceKdeAlignment()
+        return alignment_function(rank_normalized_kdma_values, target_kdmas, choice_history, misaligned=misaligned, probabilistic=probabilistic)
+
+    def get_rank_based_kdma_values(self, gt_kdma_values):
+        '''
+        Helper function for __call__
+        '''
+        # Reorganize by kdma
+        ranked = {}
+        for choice, kdmas in gt_kdma_values.items():
+            for kdma_name, kdma_value in kdmas.items():
+                if kdma_name not in ranked:
+                    ranked[kdma_name] = {'choices':[], 'values':[]}
+                ranked[kdma_name]['choices'].append(choice)
+                ranked[kdma_name]['values'].append(kdma_value)
+        # Get rank-based value (normalized between 0 and 1)
+        for kdma_name, kdma_dict in ranked.items():
+            sorted_indices = np.argsort(ranked[kdma_name]['values'])
+            ranks = np.zeros(len(ranked[kdma_name]['values']))
+            for rank, index in enumerate(sorted_indices):
+                ranks[index] = rank
+            ranked[kdma_name]['rank_value'] = ranks/(len(ranked[kdma_name]['values'])-1)
+
+        # Get dictionary to return with updated values
+        rank_based_kdma_values = {}
+        for choice, kdmas in gt_kdma_values.items():
+            rank_based_kdma_values[choice] = {}
+            for kdma_name, kdma_value in kdmas.items():
+                choice_index = ranked[kdma_name]['choices'].index(choice)
+                rank_based_kdma_values[choice][kdma_name] = ranked[kdma_name]['rank_value'][choice_index]
+
+        return rank_based_kdma_values
+
+    def get_best_sample_index(self, kdma_values, target_kdmas, selected_choice, misaligned=False, kde_norm=None):
+        # Use max likelihood as distance from a sample to the distribution because JS is disitribution to distribution
+        # TODO - give this more thought
+        ml_alignment_function = MaxLikelihoodKdeAlignment()
+        return ml_alignment_function.get_best_sample_index(kdma_values, target_kdmas, selected_choice, misaligned=misaligned, kde_norm=kde_norm)
+
 
 # If score is a single value, then set it to a list containing that value
 def _handle_single_value(kdma_values, target_kdmas):

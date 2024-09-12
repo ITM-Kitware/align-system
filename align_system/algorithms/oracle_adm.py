@@ -54,8 +54,11 @@ class OracleADM(ActionBasedADM):
             )
 
         elif all_kde_targets:
-            if distribution_matching == 'cumulative_kde':
-                alignment_function = alignment_utils.CumulativeJsDivergenceKdeAlignment()
+            if distribution_matching == 'cumulative_kde' or distribution_matching == 'rank_normalized_cumulative_kde':
+                if distribution_matching == 'cumulative_kde':
+                    alignment_function = alignment_utils.CumulativeJsDivergenceKdeAlignment()
+                elif distribution_matching == 'rank_normalized_cumulative_kde':
+                    alignment_function = alignment_utils.RankNormalizedCumulativeJsDivergenceKdeAlignment()
                 selected_choice_id, probs, updated_choice_history = alignment_function(
                     gt_kdma_values, target_kdmas, self.choice_history, misaligned=self.misaligned, probabilistic=self.probabilistic
                 )
