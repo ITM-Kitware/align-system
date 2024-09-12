@@ -300,6 +300,17 @@ class OutlinesTransformersComparativeRegressionADM(OutlinesTransformersADM):
                                                         kdma_score_examples,
                                                         incontext_settings=kwargs.get("incontext", {}))
 
+        # Log true kdma values if present
+        true_kdma_values = {}
+        for choice_idx in range(len(available_actions)):
+            true_kdma_values[choices[choice_idx]] = available_actions[choice_idx].kdma_association
+        log.info("True KDMA Values:")
+        log.info(json.dumps(true_kdma_values))
+
+        # Log predicted kdma values
+        log.info("Predicted KDMA Values:")
+        log.info(json.dumps(predicted_kdma_values))
+
         # Get type of targets
         all_scalar_targets = True
         all_kde_targets = True
