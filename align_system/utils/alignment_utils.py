@@ -280,12 +280,7 @@ class CumulativeJsDivergenceKdeAlignment(AlignmentFunction):
 
         selected_choice, probs = self._select_min_dist_choice(choices, distances, misaligned, probabilistic=probabilistic)
 
-        updated_choice_history = choice_history
-        for target_kdma in target_kdmas:
-            kdma = target_kdma['kdma']
-            updated_choice_history[kdma].append(np.mean(kdma_values[selected_choice][kdma]))
-
-        return selected_choice, probs, updated_choice_history
+        return selected_choice, probs
 
     def get_best_sample_index(self, kdma_values, target_kdmas, selected_choice, misaligned=False, kde_norm=None):
         # Use max likelihood as distance from a sample to the distribution because JS is disitribution to distribution

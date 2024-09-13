@@ -56,10 +56,9 @@ class OracleADM(ActionBasedADM):
         elif all_kde_targets:
             if distribution_matching == 'cumulative_kde':
                 alignment_function = alignment_utils.CumulativeJsDivergenceKdeAlignment()
-                selected_choice_id, probs, updated_choice_history = alignment_function(
+                selected_choice_id, probs = alignment_function(
                     gt_kdma_values, target_kdmas, self.choice_history, misaligned=self.misaligned, probabilistic=self.probabilistic
                 )
-                self.choice_history = updated_choice_history
             else:
                 if distribution_matching == 'sample':
                     alignment_function = alignment_utils.MinDistToRandomSampleKdeAlignment()
@@ -76,6 +75,13 @@ class OracleADM(ActionBasedADM):
             # TODO: Currently we assume all targets either have scalar values or KDES,
             #       Down the line, we should extend to handling multiple targets of mixed types
             raise ValueError("ADM does not currently support a mix of scalar and KDE targets.")
+
+        # Update choice history
+        for target_kdma in target_kdmas:
+            kdma = target_kdma['kdma']
+            if kdma not in self.choice_history:
+                self.choice_history[kdma] = []
+            self.choice_history[kdma].extend(gt_kdma_values[selected_choice_id][kdma])
 
         for action in available_actions:
             if selected_choice_id == action.action_id:
