@@ -11,6 +11,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 * Moved the `format_choices()` function from the `OutlinesTransformersADM` class in `outlines_adm.py` to a new utils file: `adm_utils.py` so it can be used across ADMs.
 * Update example_data/input_output_files to use DRE training scenarios
 * Changed default config to use `outlines_transformers_structured_baseline` (rather than the older `single_kdma_baseline`)
+* Adjusted `choose_action()` to enable returning an ADM-specific `choice_info` dictionary that is written to the resulting `input_output.json` file
 
 ### Added
 
@@ -19,6 +20,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   hybrid regression ADMs.
 * Example config for deterministic outlines-based ADM runs (`align_system/configs/experiment/examples/outlines_force_determinism.yaml`). Requires setting `force_determinsim` to true and using greedy sampler.
 * Added a history-based/cumulative KDE option to alignment utilities. Exposed this option in oracle and comparative regression.
+* Added true and predicted KDMA values to the log and `input_output.json` file for comparative regression ADM. 
 
 ### Fixed
 
