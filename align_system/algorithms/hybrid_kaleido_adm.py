@@ -14,7 +14,7 @@ class HybridKaleidoADM(ActionBasedADM):
         self.outlines_adm = outlines_adm
 
     def choose_action(self, scenario_state, available_actions, alignment_target, **kwargs):
-        action_to_take = self.kaleido_adm.choose_action(
+        action_to_take, choice_info = self.kaleido_adm.choose_action(
             scenario_state, available_actions, alignment_target, **kwargs)
 
         # Build out initial dialog for the outlines ADM in order to
@@ -30,5 +30,4 @@ class HybridKaleidoADM(ActionBasedADM):
             action_to_take,
             dialog)
 
-        choice_info = {}
         return action_to_take, choice_info
