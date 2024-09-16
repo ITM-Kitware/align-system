@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from typing import Union
+from typing import Union, Tuple, Dict
 from swagger_client.models import State, Action, AlignmentTarget
 
 
@@ -10,7 +10,7 @@ class ActionBasedADM(ABC):
                       scenario_state: State,
                       available_actions: list[Action],
                       alignment_target: Union[type[AlignmentTarget], None],
-                      **kwargs) -> Action:
+                      **kwargs) -> Tuple[Action, Dict]:
         pass
 
 
