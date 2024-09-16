@@ -233,4 +233,6 @@ class OracleADM(ActionBasedADM):
                 ])
 
         action_to_take.justification = "Looked at scores"
-        return action_to_take
+
+        choice_info = {}
+        return action_to_take, choice_info

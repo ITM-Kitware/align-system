@@ -311,6 +311,8 @@ class OutlinesTransformersComparativeRegressionADM(OutlinesTransformersADM):
         log.info("Predicted KDMA Values:")
         log.info(json.dumps(predicted_kdma_values))
 
+        choice_info = {'true_kdma_values':true_kdma_values, 'predicted_kdma_values':predicted_kdma_values}
+
         # Get type of targets
         all_scalar_targets = True
         all_kde_targets = True
@@ -373,4 +375,19 @@ class OutlinesTransformersComparativeRegressionADM(OutlinesTransformersADM):
         dialog = [{'role': 'system', 'content': alignment_system_prompt},
                   {'role': 'user', 'content': prompt}]
 
-        return action_to_take, dialog
+        return action_to_take, dialog, choice_info
+
+
+    def choose_action(self, scenario_state, available_actions, alignment_target, **kwargs):
+        action_to_take, dialog, choice_info = self.top_level_choose_action(
+            scenario_state,
+            available_actions,
+            alignment_target,
+            **kwargs)
+
+        action_to_take, dialog = self.populate_action_parameters(
+            scenario_state,
+            action_to_take,
+            dialog)
+
+        return action_to_take, choice_info

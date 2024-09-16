@@ -30,4 +30,5 @@ class HybridKaleidoADM(ActionBasedADM):
             action_to_take,
             dialog)
 
-        return action_to_take
+        choice_info = {}
+        return action_to_take, choice_info

@@ -258,7 +258,8 @@ class PersonaADM(AlignedDecisionMaker, ActionBasedADM):
                     scenario_state, action_to_take, alignment_target, **kwargs
                 )
 
-        return action_to_take
+        choice_info = {}
+        return action_to_take, choice_info
 
     def populate_treatment_parameters(self, scenario_state, treatment_action, alignment_target, **kwargs):
         from swagger_client.models import ActionTypeEnum

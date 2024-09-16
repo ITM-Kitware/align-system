@@ -61,4 +61,5 @@ class RandomADM(ActionBasedADM):
         # Required since Dry Run Evaluation
         action_to_take.justification = "Random choice"
 
-        return action_to_take
+        choice_info = {}
+        return action_to_take, choice_info

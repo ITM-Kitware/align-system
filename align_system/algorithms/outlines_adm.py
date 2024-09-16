@@ -368,7 +368,8 @@ class OutlinesTransformersADM(ActionBasedADM):
             action_to_take,
             dialog)
 
-        return action_to_take
+        choice_info = {}
+        return action_to_take, choice_info
 
     def populate_action_parameters(self, scenario_state, action_to_take, dialog):
         if action_to_take.action_type in {ActionTypeEnum.APPLY_TREATMENT,

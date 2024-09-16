@@ -272,7 +272,7 @@ def main(cfg: DictConfig) -> None:
                 # prevent ADMs from modifying the originals (should
                 # considering doing the same for current_state and
                 # alignment_target)
-                action_to_take = adm.choose_action(
+                action_to_take, choice_info = adm.choose_action(
                     current_state,
                     [deepcopy(a) for a in available_actions_filtered],
                     alignment_target if cfg.align_to_target else None,
@@ -302,6 +302,7 @@ def main(cfg: DictConfig) -> None:
                                              'state': current_state.unstructured,
                                              'choices': [a.to_dict() for a in available_actions]},
                                    'label': [{} if a.kdma_association is None else a.kdma_association for a in available_actions],
+                                   'choice_info': choice_info,
                                    'output': {'choice': action_choice_idx,
                                               'action': action_to_take.to_dict()}})
 

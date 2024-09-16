@@ -393,4 +393,5 @@ class KaleidoADM(AlignedDecisionMaker, ActionBasedADM):
         action_to_take = available_actions[selected_choice_idx]
         action_to_take.justification = kaleido_results.loc[selected_choice_idx, :].explanation
 
-        return action_to_take
+        choice_info = {}
+        return action_to_take, choice_info
