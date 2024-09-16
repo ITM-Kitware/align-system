@@ -272,11 +272,18 @@ def main(cfg: DictConfig) -> None:
                 # prevent ADMs from modifying the originals (should
                 # considering doing the same for current_state and
                 # alignment_target)
-                action_to_take, choice_info = adm.choose_action(
+                choose_action_result = adm.choose_action(
                     current_state,
                     [deepcopy(a) for a in available_actions_filtered],
                     alignment_target if cfg.align_to_target else None,
                     **cfg.adm.get('inference_kwargs', {}))
+
+                # Handle choose action result (for backwards compatibility if no choice_info)
+                if isinstance(choose_action_result, tuple):
+                    action_to_take, choice_info  = choose_action_result
+                else:
+                    action_to_take = choose_action_result
+                    choice_info = {}
 
                 end_choose_action = timer()
                 sce_times_s.append(end_choose_action - start_choose_action)
