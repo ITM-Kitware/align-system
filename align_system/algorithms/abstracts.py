@@ -10,7 +10,7 @@ class ActionBasedADM(ABC):
                       scenario_state: State,
                       available_actions: list[Action],
                       alignment_target: Union[type[AlignmentTarget], None],
-                      **kwargs) -> Tuple[Action, Dict]:
+                      **kwargs) -> Union[Action, Tuple[Action, Dict]]:
         pass
 
 
