@@ -1,5 +1,6 @@
 import yaml
 import torch
+import json
 import numpy as np
 
 import outlines
