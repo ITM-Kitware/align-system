@@ -61,8 +61,9 @@ class ScalarAlignmentDistanceFunc:
         backstories_with_values = []
         for backstory in backstories:
             value = sum(
-                np.abs(probe['response_value'] - self.probe_values.get(probe['probe'], 0))
+                np.abs(probe['response_value'] - self.probe_values[probe['probe']])
                 for probe in backstory['probes']
+                if probe['probe'] in self.probe_values
             )
             backstories_with_values.append((backstory, value))
 
