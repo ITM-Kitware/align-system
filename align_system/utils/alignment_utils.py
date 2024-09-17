@@ -2,12 +2,19 @@ from abc import ABC, abstractmethod
 import numpy as np
 import math
 import random
+from enum import Enum
 
 from align_system.utils import kde_utils
 from align_system.utils import logging
 from swagger_client.models import KDMAValue
 
 log = logging.getLogger(__name__)
+
+
+class AlignmentTargetType(Enum):
+    SCALAR = 1
+    KDE = 2
+    MIXED = 3
 
 
 '''
@@ -384,3 +391,25 @@ def _check_if_targets_are_kde(target_kdmas):
 
 def _euclidean_distance(target, score):
     return math.sqrt((target - score)**2)
+
+
+def infer_alignment_target_type(alignment_target):
+    if isinstance(alignment_target, dict):
+        target_kdmas = alignment_target['kdma_values']
+    else:
+        target_kdmas = alignment_target.kdma_values
+
+    all_scalar_targets = True
+    all_kde_targets = True
+    for target_kdma in target_kdmas:
+        if 'value' not in target_kdma or target_kdma["value"] is None:
+            all_scalar_targets = False
+        if 'kdes' not in target_kdma or target_kdma["kdes"] is None:
+            all_kde_targets = False
+
+    if all_scalar_targets:
+        return AlignmentTargetType.SCALAR
+    elif all_kde_targets:
+        return AlignmentTargetType.KDE
+    else:
+        return AlignmentTargetType.MIXED
