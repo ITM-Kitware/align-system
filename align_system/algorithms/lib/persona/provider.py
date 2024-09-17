@@ -5,6 +5,7 @@ import numpy as np
 import random
 from typing import List, Optional, Dict, Callable
 
+import yaml
 from swagger_client.models import  AlignmentTarget
 
 from align_system.algorithms.lib.persona.types import Dialog, Backstory
@@ -13,6 +14,10 @@ from align_system.algorithms.lib.persona.templates import BACKSTORY_ASSISTANT_PR
 # 'backstories.json'; TODO: more consistent / long term plan for
 # storing database files etc. for algorithms
 from align_system.prompt_engineering import personas as personas_pe
+from align_system.utils.alignment_utils import (
+    infer_alignment_target_type,
+    AlignmentTargetType)
+from align_system.utils import kde_utils
 
 
 KDMA_TO_PROBE_MAPPING = {
@@ -39,6 +44,72 @@ logger = logging.getLogger(__name__)
 
 def _default_probe_filter(probe):
     return True
+
+
+class ScalarAlignmentDistanceFunc:
+    def __init__(self, alignment_target_dict):
+        self.probe_values = {
+            KDMA_TO_PROBE_MAPPING[k['kdma']]: k['value'] * 10
+            for k in alignment_target_dict.get('kdma_values', [])
+            if k['kdma'] in KDMA_TO_PROBE_MAPPING
+        }
+
+    def __call__(self, backstories):
+        # Now that we have the probe values, we can find a set of
+        # backstories that maximize the value.  For each backstory,
+        # add the value
+        backstories_with_values = []
+        for backstory in backstories:
+            value = sum(
+                np.abs(probe['response_value'] - self.probe_values.get(probe['probe'], 0))
+                for probe in backstory['probes']
+            )
+            backstories_with_values.append((backstory, value))
+
+        # Sort by value (smallest to largest)
+        backstories_with_values.sort(key=lambda x: x[1])
+
+        return [b[0] for b in backstories_with_values]
+
+
+class KDEAlignmentDistanceFunc:
+    def __init__(self, alignment_target_dict, kde_norm='globalnorm'):
+        self.target_kdes = {}
+        for targ in alignment_target_dict['kdma_values']:
+            kdma = targ['kdma']
+            if kdma in KDMA_TO_PROBE_MAPPING:
+                self.target_kdes[KDMA_TO_PROBE_MAPPING[kdma]] =\
+                    kde_utils.load_kde(targ, kde_norm)
+
+    def __call__(self, backstories):
+        likelihoods = []
+        for kdma, kde in self.target_kdes.items():
+            backstory_kdma_values = []
+            for backstory in backstories:
+                probe_responses = [p['response_value']
+                                   for p in backstory['probes']
+                                   if p['probe'] == kdma]
+
+                # Assuming we only have a single probe response for a
+                # given KDMA
+                assert len(probe_responses) == 1
+
+                # Backstory response values are from 1-10; KDE values
+                # are from 0-1
+                backstory_kdma_values.append(probe_responses[0] / 10.0)
+
+            samples = np.array(backstory_kdma_values).reshape(-1, 1)
+            likelihoods.append(
+                np.exp(kde.score_samples(samples)))
+
+        total_likelihoods = sum(likelihoods)
+
+        backstories_with_total_likelihoods = list(zip(backstories, total_likelihoods))
+
+        # Sort by total likelihood (largest to smallest)
+        backstories_with_total_likelihoods.sort(key=lambda x: x[1], reverse=True)
+
+        return [b[0] for b in backstories_with_total_likelihoods]
 
 
 class PersonaProvider:
@@ -83,20 +154,19 @@ class PersonaProvider:
 
             return data
 
-    def _choose_backstories_for_alignment_target(self, alignment_target: Optional[type[AlignmentTarget]], n: int, cache: bool = True) -> List[Backstory]:
+    def _choose_backstories_for_alignment_target(self, alignment_target: Optional[type[AlignmentTarget]], n: int, kde_norm='globalnorm', cache: bool = True) -> List[Backstory]:
         """
         Chooses backstories based on the provided alignment target and number.
 
         Args:
             alignment_target: The type of alignment target to choose backstories for.
             n: The number of backstories to select.
+            kde_norm: Which KDE to use if alignment target is a distribution target (default is "globalnorm")
             cache: A flag indicating whether to cache the selected backstories (default is True).
 
         Returns:
             List[Backstory]: A list of selected backstories based on the alignment target and number provided.
         """
-
-
         if alignment_target is None or len(alignment_target.kdma_values) == 0: # type: ignore
             if cache and 'no_alignment_target' in self._backstory_alignment_cache:
                 return self._backstory_alignment_cache['no_alignment_target']
@@ -111,32 +181,23 @@ class PersonaProvider:
 
         # Map the alignment target to a probe
         alignment_target_dict = alignment_target.to_dict() # type: ignore
-        probe_values = {
-            KDMA_TO_PROBE_MAPPING[k['kdma']]: k['value'] * 10
-            for k in alignment_target_dict.get('kdma_values', [])
-            if k['kdma'] in KDMA_TO_PROBE_MAPPING
-        }
 
         # Serialize the probe values into a repeatable string
-        probe_values_str = json.dumps(probe_values, sort_keys=True)
+        probe_values_str = yaml.dump(alignment_target_dict, sort_keys=True)
         if cache and probe_values_str in self._backstory_alignment_cache:
             return self._backstory_alignment_cache[probe_values_str]
 
-        # Now that we have the probe values, we can find a set of backstories that maximize the value.
-        # For each backstory, add the value
-        backstories_with_values = []
-        for backstory in self._backstories:
-            value = sum(
-                np.abs(probe['response_value'] - probe_values.get(probe['probe'], 0))
-                for probe in backstory['probes']
-            )
-            backstories_with_values.append((backstory, value))
+        target_type = infer_alignment_target_type(alignment_target)
+        if target_type == AlignmentTargetType.SCALAR:
+            backstory_sorter = ScalarAlignmentDistanceFunc(alignment_target_dict)
+        elif target_type == AlignmentTargetType.KDE:
+            backstory_sorter = KDEAlignmentDistanceFunc(alignment_target_dict)
 
-        # Sort by value (largest to smallest)
-        backstories_with_values.sort(key=lambda x: x[1])
+        sorted_backstories = backstory_sorter(self._backstories)
 
         # Cache the panel
-        sampled_backstories = [b[0] for b in backstories_with_values[:n]]
+        sampled_backstories = sorted_backstories[:n]
+
         if cache:
             self._backstory_alignment_cache[probe_values_str] = sampled_backstories
         elif probe_values_str in self._backstory_alignment_cache:
