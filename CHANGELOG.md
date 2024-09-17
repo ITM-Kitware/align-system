@@ -20,13 +20,14 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   hybrid regression ADMs.
 * Example config for deterministic outlines-based ADM runs (`align_system/configs/experiment/examples/outlines_force_determinism.yaml`). Requires setting `force_determinsim` to true and using greedy sampler.
 * Added a history-based/cumulative KDE option to alignment utilities. Exposed this option in oracle and comparative regression.
-* Added true and predicted KDMA values to the log and `input_output.json` file for comparative regression ADM. 
+* Added true and predicted KDMA values to the log and `input_output.json` file for comparative regression ADM.
 
 ### Fixed
 
 * Fixed KDE target samples to be between 0 and 1
 * Fixed issue in alignment_utils logging (where kdma values can be a float/int rather than a list)
 * Now properly hydrating the meta_info field of input_output files
+* Fixed possible divide by zero during misaligned alignment
 
 ### Deprecated
 

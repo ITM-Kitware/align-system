@@ -39,12 +39,18 @@ class AlignmentFunction(ABC):
         pass
 
     def _select_min_dist_choice(self, choices, dists, misaligned=False, probabilistic=False):
+        if len(dists) != len(choices):
+            raise RuntimeError("A distance must be provided for each choice during alignment")
+        if len(choices) == 0:
+            raise RuntimeError("No choices provided")
+
+        eps = 1e-16
         if not misaligned:
             # For aligned, want to minimize to distance to target
             # Invert distances so minimal distances have higher probability
 
             # Small epsilon for a perfect (0 distance) match
-            inv_dists = [1/(distance+1e-16) for distance in dists]
+            inv_dists = [1/(distance+eps) for distance in dists]
 
             # Convert inverse distances to probabilities
             probs = [inv_dist/sum(inv_dists) for inv_dist in inv_dists]
@@ -53,7 +59,8 @@ class AlignmentFunction(ABC):
             # maximize over non-inverted distances
 
             # Convert distances to probabilities
-            probs = [dist/sum(dists) for dist in dists]
+            # Avoid divide by zero if all distances are 0
+            probs = [dist/(sum(dists)+eps) for dist in dists]
 
         if probabilistic:
             selected_choice = np.random.choice(choices, p=probs)
