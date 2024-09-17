@@ -193,6 +193,8 @@ class PersonaProvider:
             backstory_sorter = ScalarAlignmentDistanceFunc(alignment_target_dict)
         elif target_type == AlignmentTargetType.KDE:
             backstory_sorter = KDEAlignmentDistanceFunc(alignment_target_dict)
+        else:
+            raise ValueError("ADM does not currently support a mix of scalar and KDE targets.")
 
         sorted_backstories = backstory_sorter(self._backstories)
 
