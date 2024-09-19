@@ -50,7 +50,7 @@ class TA3CACIActionBasedServiceInterface(Interface):
             **start_session_params)
 
     def start_scenario(self):
-        log.info(f"ADM Name: {self.username}")
+        log.info(f"*ADM Name*: {self.username}")
 
         scenario_request_params = {'session_id': self.session_id}
         if len(self.scenario_ids) > 0:

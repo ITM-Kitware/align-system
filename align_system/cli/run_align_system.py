@@ -162,7 +162,7 @@ def main(cfg: DictConfig) -> None:
         while not scenario_complete:
             current_scene_id = current_state.meta_info.scene_id
             if last_scene_id != current_scene_id:
-                log.info(f"[bold]*CHANGED SCENE TO: {current_scene_id}*[/bold]",
+                log.info(f"[bold]*CHANGED SCENE TO*: {current_scene_id}[/bold]",
                          extra={"markup": True})
                 last_scene_id = current_scene_id
 
@@ -312,6 +312,15 @@ def main(cfg: DictConfig) -> None:
                                    'choice_info': choice_info,
                                    'output': {'choice': action_choice_idx,
                                               'action': action_to_take.to_dict()}})
+            # Save input_output after each action (gets overwritten
+            # each time) so that we don't lose everything if the run
+            # crashes or is interrupted.  Could treat this as we do
+            # the logfile and open the file handle once and close
+            # `atexit` and write each line as it's generated (and make
+            # it a .jsonl file; would need to remove the indent=2)
+            if save_input_output_to_path is not None:
+                with open(save_input_output_to_path, 'w') as f:
+                    json.dump(inputs_outputs, f, indent=2)
 
             last_state = current_state
             try:
@@ -342,7 +351,7 @@ def main(cfg: DictConfig) -> None:
             scenario_complete = current_state.scenario_complete
 
             if scenario_complete:
-                log.info("Final state unstructured: {}".format(
+                log.info("*Final state unstructured*: {}".format(
                     current_state.unstructured))
 
                 if cfg.get('save_last_unstructured_state_per_scenario', False):
@@ -383,10 +392,6 @@ def main(cfg: DictConfig) -> None:
 
         with open(save_timing_to_path, 'w') as f:
             json.dump(action_times, f, indent=2)
-
-    if save_input_output_to_path is not None:
-        with open(save_input_output_to_path, 'w') as f:
-            json.dump(inputs_outputs, f, indent=2)
 
     if len(session_alignment_scores) > 0:
         if save_alignment_score_to_path is not None:

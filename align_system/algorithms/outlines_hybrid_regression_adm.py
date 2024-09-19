@@ -174,7 +174,7 @@ class HybridRegressionADM(OutlinesTransformersADM):
                 model_path=target_models["target_checkpoint"][str(target_kdma_name)]
             )
             predicted_kdma_values = {}
-            log.info("ACTION CHOICES AND REGRESSION MODEL PREDICTIONS:")
+            log.info("*ACTION CHOICES AND REGRESSION MODEL PREDICTIONS*:")
             for pred, choice in zip(predictions_per_kdma, choices):
                 if choice not in predicted_kdma_values:
                     predicted_kdma_values[choice] = {}
