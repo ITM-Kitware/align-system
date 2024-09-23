@@ -186,7 +186,7 @@ class MaxLikelihoodKdeAlignment(AlignmentFunction):
                     target_kdma = target_kdma.to_dict()
 
                 target_kde = kde_utils.load_kde(target_kdma, kde_norm)
-                predicted_samples = kdma_values[choice][target_kdma.kdma]
+                predicted_samples = kdma_values[choice][target_kdma['kdma']]
                 log_likelihoods = target_kde.score_samples(np.array(predicted_samples).reshape(-1, 1))
                 total_likelihood += np.sum(np.exp(log_likelihoods))
             likelihoods.append(total_likelihood)
@@ -269,11 +269,11 @@ class CumulativeJsDivergenceKdeAlignment(AlignmentFunction):
             for target_kdma in target_kdmas:
                 if isinstance(target_kdma, KDMAValue):
                     target_kdma = target_kdma.to_dict()
-                if target_kdma.kdma not in choice_history:
-                    choice_history[target_kdma.kdma] = []
+                if target_kdma['kdma'] not in choice_history:
+                    choice_history[target_kdma['kdma']] = []
                 target_kde = kde_utils.load_kde(target_kdma, kde_norm)
-                predicted_samples = kdma_values[choice][target_kdma.kdma]
-                history_and_predicted_samples = choice_history[target_kdma.kdma] + [np.mean(predicted_samples)]
+                predicted_samples = kdma_values[choice][target_kdma['kdma']]
+                history_and_predicted_samples = choice_history[target_kdma['kdma']] + [np.mean(predicted_samples)]
                 predicted_kde = kde_utils.get_kde_from_samples(history_and_predicted_samples)
                 distance += kde_utils.js_distance(target_kde, predicted_kde, 100)
             distances.append(distance)
