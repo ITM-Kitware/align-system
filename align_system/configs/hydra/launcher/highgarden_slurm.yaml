@@ -1,0 +1,12 @@
+defaults:
+  - submitit_slurm
+
+_target_: hydra_plugins.hydra_submitit_launcher.submitit_launcher.SlurmLauncher
+
+name: ${hydra.job.name}
+cpus_per_task: 4
+gres: "gpu:rtxa6000:1"
+mem_gb: 30
+partition: priority
+account: itm
+
