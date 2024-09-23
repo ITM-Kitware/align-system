@@ -1,0 +1,13 @@
+defaults:
+  - submitit_slurm
+
+_target_: hydra_plugins.hydra_submitit_launcher.submitit_launcher.SlurmLauncher
+
+name: ${hydra.job.name}
+
+gres: "gpu:1"
+nodes: 1
+ntasks_per_node: 4
+time: "24:00:00"
+qos: standard
+account: DARPA5279C626
