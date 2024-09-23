@@ -332,7 +332,7 @@ class OutlinesTransformersComparativeRegressionADM(OutlinesTransformersADM):
             if distribution_matching == 'cumulative_kde':
                 alignment_function = alignment_utils.CumulativeJsDivergenceKdeAlignment()
                 selected_choice, probs = alignment_function(
-                    predicted_kdma_values, target_kdmas, self.choice_history, probabilistic=self.probabilistic
+                    predicted_kdma_values, target_kdmas, self.choice_history, kde_norm=kde_norm, probabilistic=self.probabilistic
                 )
             else:
                 if distribution_matching == 'sample':
