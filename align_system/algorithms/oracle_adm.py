@@ -57,7 +57,7 @@ class OracleADM(ActionBasedADM):
             if distribution_matching == 'cumulative_kde':
                 alignment_function = alignment_utils.CumulativeJsDivergenceKdeAlignment()
                 selected_choice_id, probs = alignment_function(
-                    gt_kdma_values, target_kdmas, self.choice_history, misaligned=self.misaligned, probabilistic=self.probabilistic
+                    gt_kdma_values, target_kdmas, self.choice_history, misaligned=self.misaligned, kde_norm=kde_norm, probabilistic=self.probabilistic
                 )
             else:
                 if distribution_matching == 'sample':
