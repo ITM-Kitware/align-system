@@ -2,7 +2,6 @@ import json
 from copy import deepcopy
 import atexit
 import os
-import yaml
 
 from rich.logging import RichHandler
 from rich.console import Console
@@ -10,7 +9,7 @@ from rich.highlighter import JSONHighlighter
 from swagger_client.models import ActionTypeEnum
 import hydra
 from hydra.utils import instantiate
-from omegaconf import DictConfig
+from omegaconf import DictConfig, OmegaConf
 from timeit import default_timer as timer
 
 from align_system.utils import logging
@@ -133,6 +132,13 @@ def main(cfg: DictConfig) -> None:
 
         if 'alignment_target' in cfg:
             alignment_target = cfg.alignment_target
+
+            # Alignment targets specified in hydra configs require
+            # some nested conversion to dict (from OmegaConf objects)
+            # otherwise this can cause some downstream issues with
+            # serialization
+            alignment_target.kdma_values = [OmegaConf.to_container(c) for c in
+                                            alignment_target.kdma_values]
         elif cfg.align_to_target:
             alignment_target = scenario.get_alignment_target()
         else:
@@ -144,10 +150,10 @@ def main(cfg: DictConfig) -> None:
         else:
             log.info(alignment_target)
             if save_alignment_targets_to_path is not None:
-                alignment_target_path = os.path.join(save_alignment_targets_to_path, f"{alignment_target.id}.yaml")
+                alignment_target_path = os.path.join(save_alignment_targets_to_path, f"{alignment_target.id}.json")
 
                 with open(alignment_target_path, "w") as f:
-                    yaml.dump(alignment_target.to_dict(), f)
+                    json.dump(alignment_target.to_dict(), f, indent=2)
 
         current_state = scenario.get_state()
         scenario_complete = current_state.scenario_complete
@@ -305,6 +311,7 @@ def main(cfg: DictConfig) -> None:
                     break
 
             inputs_outputs.append({'input': {'scenario_id': scenario.id(),
+                                             'alignment_target_id': alignment_target.id if cfg.align_to_target else None,
                                              'full_state': current_state.to_dict(),
                                              'state': current_state.unstructured,
                                              'choices': [a.to_dict() for a in available_actions]},
@@ -365,8 +372,13 @@ def main(cfg: DictConfig) -> None:
             action_times["scenarios"].append(_compute_time_stats(sce_times_s))
 
         if alignment_target is not None:
-            session_alignment = interface.get_session_alignment(
-                alignment_target)
+            try:
+                session_alignment = interface.get_session_alignment(
+                    alignment_target)
+            except Exception:
+                # Could be more specific about what kind of exceptions
+                # to expect here
+                session_alignment = None
 
             if session_alignment is None:
                 log.info("Couldn't get session alignment from interface")

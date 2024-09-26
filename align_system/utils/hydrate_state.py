@@ -6,6 +6,7 @@ from swagger_client.models import (
     Injury,
     Environment,
     DecisionEnvironment,
+    Aid,
     SimEnvironment,
     MetaInfo,
 )
@@ -24,6 +25,9 @@ def hydrate_scenario_state(record):
     state.environment = Environment(**state.environment)
     state.environment.decision_environment = DecisionEnvironment(
         **state.environment.decision_environment)
+    if state.environment.decision_environment.aid is not None:
+        state.environment.decision_environment.aid = [
+            Aid(**a) for a in state.environment.decision_environment.aid]
     state.environment.sim_environment = SimEnvironment(
         **state.environment.sim_environment)
 

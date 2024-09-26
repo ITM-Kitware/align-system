@@ -12,6 +12,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 * Update example_data/input_output_files to use DRE training scenarios
 * Changed default config to use `outlines_transformers_structured_baseline` (rather than the older `single_kdma_baseline`)
 * Adjusted `choose_action()` to enable returning an ADM-specific `choice_info` dictionary that is written to the resulting `input_output.json` file
+* When alignment target is optionally saved out in `run_align_system` save as JSON instead of YAML
 
 ### Added
 
@@ -28,6 +29,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 * Fixed issue in alignment_utils logging (where kdma values can be a float/int rather than a list)
 * Now properly hydrating the meta_info field of input_output files
 * Fixed possible divide by zero during misaligned alignment
+* Properly hydrate Aid list
 
 ### Deprecated
 
