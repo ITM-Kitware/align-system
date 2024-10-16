@@ -281,8 +281,11 @@ class CumulativeJsDivergenceKdeAlignment(AlignmentFunction):
                 target_kde = kde_utils.load_kde(target_kdma, kde_norm)
                 predicted_samples = kdma_values[choice][target_kdma['kdma']]
                 history_and_predicted_samples = choice_history[target_kdma['kdma']] + [np.mean(predicted_samples)]
-                predicted_kde = kde_utils.get_kde_from_samples(history_and_predicted_samples)
-                distance += kde_utils.js_distance(target_kde, predicted_kde, 100)
+                predicted_kde = kde_utils.get_kde_from_samples(history_and_predicted_samples, kde_norm)
+                if kde_norm =='globalnormx_localnormy':
+                    distance += kde_utils.js_distance_2d(target_kde, predicted_kde, 100)
+                else:
+                    distance += kde_utils.js_distance(target_kde, predicted_kde, 100)
             distances.append(distance)
 
         selected_choice, probs = self._select_min_dist_choice(choices, distances, misaligned, probabilistic=probabilistic)
