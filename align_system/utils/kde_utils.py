@@ -18,14 +18,38 @@ def load_kde(target_kdma, norm='globalnorm'):
         target_kdma = target_kdma.to_dict()
 
     if norm == 'globalnorm':
-        target_kde_base64 = target_kdma['kdes']['globalnorm']['kde']
+        target_kde = kde_from_base64(target_kdma['kdes']['globalnorm']['kde'])
     elif norm == 'localnorm':
-        target_kde_base64 = target_kdma['kdes']['localnorm']['kde']
+        target_kde = kde_from_base64(target_kdma['kdes']['localnorm']['kde'])
     elif norm == 'rawscores':
-        target_kde_base64 = target_kdma['kdes']['rawscores']['kde']
+        target_kde = kde_from_base64(target_kdma['kdes']['rawscores']['kde'])
+    elif norm == 'priornorm':
+        norm_factor = 0.2 #TODO - make this a config paramter
+
+        # Load target KDE and get density
+        kde = kde_from_base64(target_kdma['kdes']['rawscores']['kde'])
+        linspace = np.linspace(0, 1, 1000)
+        density = _kde_to_pdf(kde, linspace)
+
+        # Get prior KDE and density
+        prior_data = [0.1]*100 + [0.3]*12 + [0.7]*8 + [0.9]*100 #TODO - get from train yamls rather than hard code (counts*4)
+        prior_kde = get_kde_from_samples(prior_data)
+        prior_density = _kde_to_pdf(prior_kde, linspace)
+
+        # Normalize the target density based on prior density
+        normalized_density = density / (prior_density + 1e-10)
+        # Weight the normalization - linear combo of original density and normalized density
+        normalized_density = (norm_factor*normalized_density) + ((1-norm_factor)*density)
+
+        # Use normalized density to construct normalized KDE from samples
+        norm_samples = []
+        for value in [0.1, 0.3, 0.7, 0.9]:
+            frequency = normalized_density[int(value*len(linspace))]
+            norm_samples += [value]*round(frequency*100) # Count = freq *100 for smoothness
+        target_kde = get_kde_from_samples(norm_samples)
     else:
         raise RuntimeError(norm, "normalization distribution matching not implemented.")
-    return kde_from_base64(target_kde_base64)
+    return target_kde
 
 
 ##### Reference: https://github.com/ITM-Soartech/ta1-server-mvp/blob/dre/submodules/itm/src/itm/kde.py
