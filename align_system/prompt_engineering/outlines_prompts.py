@@ -613,7 +613,7 @@ def comparative_kdma_score_prediction_json_schema(choices):
                     "reasoning": {
                         "type": "string",
                         "minLength": 1,
-                        "maxLength": 512
+                        "maxLength": 4000
                     },
                     "score": {
                         "type": "integer",

@@ -22,7 +22,7 @@ from align_system.prompt_engineering.outlines_prompts import (
 class IncontextExampleGenerator(object, metaclass=ABCMeta):
     '''
     Abstract class for incontext example generator
-    Instances of this class have unique set_icl_datasets() functions for formatting prompt and reponses 
+    Instances of this class have unique set_icl_datasets() functions for formatting prompt and reponses
     '''
     def __init__(self,
                  incontext_settings,
@@ -64,7 +64,7 @@ class IncontextExampleGenerator(object, metaclass=ABCMeta):
             # If there is only one, make it a list for the following loop
             if not isinstance(dset_files, list):
                 dset_files = [dset_files]
-            
+
             incontext_data[sys_kdma_name] = []
             # For each dataset file
             for dset_f in dset_files:
@@ -87,9 +87,20 @@ class IncontextExampleGenerator(object, metaclass=ABCMeta):
                             kdma_values.append(None)
                         else:
                             kdma_values.append(label[sys_kdma_name])
-                    example = {'state':state, 'actions': actions, 'choices':choices, 'kdma_values':kdma_values}
+                    # Get Chain of Thought Reasoning, if it exists
+                    if "chain_of_thought" in icl_sample and sys_kdma_name in icl_sample["chain_of_thought"]:
+                        cot = icl_sample["chain_of_thought"][sys_kdma_name]
+                    else:
+                        cot = None
+                    example = {
+                        'state': state,
+                        'actions': actions,
+                        'choices': choices,
+                        'kdma_values': kdma_values,
+                        'chain_of_thought': cot
+                    }
                     incontext_data[sys_kdma_name].append(example)
-            
+
             # Normalize ground truth KDMA values
             if 'normalization' in self.incontext_settings:
                 if self.incontext_settings['normalization'] != None and self.incontext_settings['normalization'] != 'rawscores':
@@ -163,7 +174,7 @@ class IncontextExampleGenerator(object, metaclass=ABCMeta):
 
         # Downselect to n_icl_examples via given method
         icl_strategy = self.incontext_settings["method"]
-        
+
         if icl_strategy == "random":
             selected_icl_examples = random.sample(possible_icl_examples, n_icl_examples)
         elif icl_strategy == "scenario_bert_similarity":
@@ -201,13 +212,13 @@ class BaselineIncontextExampleGenerator(IncontextExampleGenerator):
 
         icl_datasets = {}
         incontext_data = self._read_icl_dataset_files()
-        
+
         # Add each target to icl_datasets
         for target_kdma in self.target_kdmas:
             sys_kdma_name = target_kdma['kdma']
             icl_datasets[sys_kdma_name] = []
             kdma_incontext_data = incontext_data[sys_kdma_name]
-            
+
             # Add each examples to icl_datasets
             for example in kdma_incontext_data:
 
@@ -215,7 +226,7 @@ class BaselineIncontextExampleGenerator(IncontextExampleGenerator):
                 icl_scenario_description = scenario_state_description_1(example['state'])
                 icl_prompt = action_selection_prompt(icl_scenario_description, example['choices'])
 
-                # Get example response 
+                # Get example response
                 dist_to_tgt = [
                     abs(score - target_kdma['value']) if score is not None else float('inf')
                     for score in example["kdma_values"]
@@ -245,35 +256,47 @@ class ComparativeRegressionIncontextExampleGenerator(IncontextExampleGenerator):
     def set_icl_datasets(self):
         icl_datasets = {}
         incontext_data = self._read_icl_dataset_files()
-        
+
         # Add each target to icl_datasets
         for target_kdma in self.target_kdmas:
             sys_kdma_name = target_kdma['kdma']
             icl_datasets[sys_kdma_name] = []
             kdma_incontext_data = incontext_data[sys_kdma_name]
-            
+
             # Add each examples to icl_datasets
             for example in kdma_incontext_data:
+                if example["chain_of_thought"] is not None and "comparative_regression" in example["chain_of_thought"]:
+                    cot_db = example["chain_of_thought"]["comparative_regression"]
+                else:
+                    cot_db = [None] * len(example["actions"])
 
                 # Get example response
                 icl_response = {}
                 included_choices = []
-                for action, choice, kdma_value in zip(example['actions'], example['choices'], example["kdma_values"]):
+                for action, choice, kdma_value, chain_of_thought in zip(example['actions'], example['choices'], example["kdma_values"], cot_db):
                     # Only include choice if there is a ground truth KDMA value available
                     if kdma_value is None:
                         continue
                     # Predicted scores are 0-10, KDMA values are 0-1
                     scaled_kdma_value = int(kdma_value * 10)
                     icl_response[choice] = {}
-                    icl_response[choice]['reasoning'] = self.get_chain_of_thought_reasoning(target_kdma, action,
-                                                                                            example['state'], choice,
-                                                                                            scaled_kdma_value)
+                    if self.incontext_settings.get("use_cot_db", False) and chain_of_thought is not None:
+                        icl_response[choice]['reasoning'] = chain_of_thought
+                    else:
+                        icl_response[choice]['reasoning'] = self.get_chain_of_thought_reasoning(
+                            target_kdma,
+                            action,
+                            example['state'],
+                            choice,
+                            scaled_kdma_value
+                        )
+
                     icl_response[choice]['score'] = scaled_kdma_value
                     included_choices.append(choice)
                 # Check if response is valid against json schema
                 correct_schema = json.loads(comparative_kdma_score_prediction_json_schema(included_choices))
                 validate(instance=icl_response, schema=correct_schema)
-                
+
                 # Get example prompt
                 character_info = outlines_prompts_utils.get_relevant_structured_character_info(example['state'].characters)
                 icl_scenario_description = scenario_state_description_with_relevant_char_info(example['state'], character_info)
@@ -292,7 +315,7 @@ class ComparativeRegressionIncontextExampleGenerator(IncontextExampleGenerator):
                     "prompt": icl_prompt,
                     "response": icl_response
                     })
-                
+
         self.icl_datasets = icl_datasets
 
     def get_chain_of_thought_reasoning(self, target_kdma, action, state, choice, expected_value):
