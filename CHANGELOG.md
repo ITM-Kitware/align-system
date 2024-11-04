@@ -3,7 +3,7 @@
 This changelog follows the specifications detailed in: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html), although we have not yet reached a `1.0.0` release.
 
-## Unreleased
+## 0.5.3
 
 ### Changed
 
@@ -22,6 +22,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 * Example config for deterministic outlines-based ADM runs (`align_system/configs/experiment/examples/outlines_force_determinism.yaml`). Requires setting `force_determinsim` to true and using greedy sampler.
 * Added a history-based/cumulative KDE option to alignment utilities. Exposed this option in oracle and comparative regression.
 * Added true and predicted KDMA values to the log and `input_output.json` file for comparative regression ADM.
+* Added Phase 1 eval alignment targets for SoarTech
 
 ### Fixed
 
