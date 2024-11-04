@@ -24,7 +24,7 @@ def load_kde(target_kdma, norm='globalnorm'):
     elif norm == 'rawscores':
         target_kde = kde_from_base64(target_kdma['kdes']['rawscores']['kde'])
     elif norm == 'priornorm':
-        norm_factor = 0.2 #TODO - make this a config paramter
+        norm_factor = 0.3 #TODO - make this a config paramter
 
         # Load target KDE and get density
         kde = kde_from_base64(target_kdma['kdes']['rawscores']['kde'])
@@ -32,7 +32,13 @@ def load_kde(target_kdma, norm='globalnorm'):
         density = _kde_to_pdf(kde, linspace)
 
         # Get prior KDE and density
-        prior_data = [0.1]*100 + [0.3]*12 + [0.7]*8 + [0.9]*100 #TODO - get from train yamls rather than hard code (counts*4)
+        #TODO - get prior data counts from train yamls rather than precomputing and hard coding
+        if target_kdma['kdma'] == 'QualityOfLife':
+            prior_data = [0.1]*18 + [0.3]*9 + [0.7]*9 + [0.9]*18
+        elif target_kdma['kdma'] == 'PerceivedQuantityOfLivesSaved':
+            prior_data = [0.1]*18 + [0.3]*12 + [0.7]*6 + [0.9]*18
+        else:
+            raise RuntimeError(f'No prior data for {target_kde['kdma']}')
         prior_kde = get_kde_from_samples(prior_data)
         prior_density = _kde_to_pdf(prior_kde, linspace)
 
