@@ -7,8 +7,11 @@ inference_kwargs:
     number: 5
     method: prompt_bert_similarity
     leave_one_out: false
-    normalization: null
-    sort_actions: true
+    normalization: globalnorm
     datasets:
-      QualityOfLife: /data/shared/samba/phase1_icl/qol_train1_20241105.json
-      PerceivedQuantityOfLivesSaved: /data/shared/samba/phase1_icl/vol_train1_20241105.json
+      MoralDesert: /data/shared/samba/integrated_results_metrics_eval/captured_dataset_for_chris/baseline_adept_high-1715105775-input-output.json
+      maximization: /data/shared/samba/integrated_results_metrics_eval/captured_dataset_for_chris/baseline_soartech_high-1716581856-input-output.json
+      Moral judgement: /data/shared/samba/dry_run/moral_judgement_20240826.json
+      Ingroup Bias: /data/shared/samba/dry_run/ingroup_bias_20240826.json
+      QualityOfLife: /data/shared/samba/dry_run/qol_20240826.json
+      PerceivedQuantityOfLivesSaved: /data/shared/samba/dry_run/vol_20240826.json
