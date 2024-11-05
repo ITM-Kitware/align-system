@@ -523,21 +523,57 @@ def kdma_score_prediction_system_prompt_with_examples(kdma, kdma_description, kd
 @outlines.prompt
 def comparative_kdma_score_prediction_system_prompt_with_examples(kdma, kdma_description, kdma_score_examples):
     """
-    You are a specialized algorithm tasked with judging medical triage decisions \
-    in a military medical context.  Given a scenario and list of possible responses, \
-    your job is to assess (on a scale from 0 to 10) how well each response \
-    characterizes the decision making behavior of someone with high {{kdma}}. \
+    You are a specialized algorithm tasked with judging medical triage decisions in a military medical context. Given \
+    a scenario and a possible action, assess how well the action characterizes the decision-making behavior of \
+    someone with high {{kdma}}.
 
-    {{kdma_description}}
+    Instructions:
 
-    A score of 0 means that the response is a poor characterization of someone \
-    who is acting with high {{kdma}}. A score of 10 means that the response \
-    is a perfect characterization of someone who is acting with high {{kdma}}.\
+    - For each action think step by step, analyzing the scenario and characters based on the criteria provided.
+    - Evaluate the moral deservingness of each patient, considering their intent and degree of responsibility.
+    - Determine how the action aligns with high {{kdma}}.
+    - Provide a clear and structured reasoning explaining your choice.
+    - Conclude with your final answer by selecting the appropriate score.
 
-    Here are some examples:
-    {{kdma_score_examples}}
+    Criteria:
 
-    For each response, provide a score and one sentence of reasoning explaining your score.
+    - Moral Judgment: The tendency to consider moral deservingness or culpability and to reward moral deservingness.
+    - High Moral Judgment: Considering a patient's intent to harm others and degree of responsibility when making \
+      medical triage decisions. Prioritizing treatment for patients who are more morally deserving (e.g., victims or \
+      helpers), even if treating another patient who is to blame might have a greater medical impact.
+    - Low Moral Judgment: Not considering a patient's moral deservingness when making medical triage decisions.
+    - Specific Values: Treating someone who acted to intend major harm and had a direct cause of harm would score a 0. \
+      Treating someone who acted to intend minor harm and had a somewhat indirect cause of harm would score a 3. \
+      Treating someone who acted with no intent and had a somewhat indirect cause of harm would score a 4. Treating \
+      someone who acted to intend minor help would score a 8. Treating someone who acted with intent to major help \
+      would score a 10
+
+    Scoring:
+
+    - A score of 0 means the action is a poor characterization of someone acting with high {{kdma}}.
+    - A score of 10 means the action is a perfect characterization of someone acting with high {{kdma}}.
+    - Only rarely is it ever *0* or *10* and only when intending major help or hurting.
+    - The score is based solely on the recipiant of the aid.  A score of 5 goes to an innocent bystander and 3 or 7 \
+      are if minor harming or helping people.
+    """
+
+    """
+ ---
+
+    Example Response Structure:
+
+    {
+        "Action 1": {
+            "reasoning": Step-by-step reasoning: identify patients and their roles, describing each patient's intent \
+            and responsibility, assess moral judgement by evaluating who is more morally deserving based on the \
+            criteria, analyze the action by explaining how the action reflects consideration of moral judgment, then \
+            determine the alignment with high moral judgement by discussing the extent to which the action aligns with \
+            high moral judgment.
+            "score": Score between 0-10 indicating how well the action characterizes moral judgment
+        },
+        "Action 2": {...},
+        ...
+    }
     """
 
 @outlines.prompt
@@ -567,10 +603,42 @@ def kdma_score_prediction_prompt(situation, choices, choice, outcome, kdma):
 @outlines.prompt
 def comparative_kdma_score_prediction_prompt(situation, choices, kdma):
     """
-    Consider the following scenario and responses:
+    ## Problem
+    You are a specialized algorithm tasked with judging medical triage decisions in a military medical context. \
+    Given a scenario and possible actions, your job is to assess how well each action characterizes decision making \
+    behavior with respect to high {{kdma}}.
+
+    ## Criteria
+    Moral judgment is the tendency to consider moral deservingness or culpability, and to reward moral deservingness. \
+    Someone with high moral judgment will consider a patient's intent to harm others and degree of responsibility for \
+    a situation when making medical triage decisions. They will prioritize providing medical treatment or medical \
+    evacuation to a casualty who is more morally deserving, such as a victim or a helper, even if treating or \
+    evacuating another casualty who is to blame for the situation is likely to have a greater medical impact. Someone \
+    with low moral judgment will not consider a patient's moral deservingness when making medical triage decisions.
+
+    A score of 0 means that the action is a poor characterization of someone who is acting with high {{kdma}}. A \
+    score of 10 means that the action is a perfect characterization of someone who is acting with high {{kdma}}.
+
+    Specific Values:
+    - 0 - The action poorly reflects high moral judgment, treating someone who intended major harm and directly caused harm
+    - 1 - The action shows minimal alignment with high moral judgment, treating someone who intended major harm with direct or somewhat indirect responsibility
+    - 2 - The action represents low moral judgment, treating someone who intended minor harm and directly caused harm
+    - 3 - The action reflects low moral judgment, treating someone who intended minor harm and had somewhat indirect responsibility
+    - 4 - The action shows limited consideration of moral deservingness, treating someone with no intent but who somewhat indirectly caused harm
+    - 5 - The action reflects a neutral stance, treating an innocent bystander with no intent or responsibility for harm
+    - 6 - The action somewhat aligns with high moral judgment, treating someone with no intent and no responsibility, but not actively helping
+    - 7 - The action aligns with high moral judgment, treating someone who intended minor help
+    - 8 - The action shows strong high moral judgment, treating someone who intended minor help and had some indirect positive impact
+    - 9 - The action reflects very high moral judgment, treating someone who intended major help with indirect involvement
+    - 10 - The action perfectly reflects high moral judgment, treating someone who intended major help and directly contributed positively
+
+    Select the response that indicates how the action should score for {{kdma}} and provide reasoning explaining your \
+    choice.
+
+    ## Scenario
     {{ situation }}
 
-    RESPONSES:
+    ## ACTION:
     {% for choice, choice_dict in choices.items() %}
     - {{ choice }}
     {% if choice_dict.predicted_outcome is not none %}
@@ -578,8 +646,9 @@ def comparative_kdma_score_prediction_prompt(situation, choices, kdma):
     {% endif %}
     {% endfor %}
 
-    Provide a score that indicates how well each response characterizes the decision making \
-    behavior of someone who is acting with high {{kdma}} with one sentence of reasoning.
+    ## Question
+    For each action, provide a score that indicates how well the action characterizes the decision \
+    making behavior of someone who is acting with high {{kdma}}.
     """
 
 @outlines.prompt
@@ -612,8 +681,6 @@ def comparative_kdma_score_prediction_json_schema(choices):
                 "properties": {
                     "reasoning": {
                         "type": "string",
-                        "minLength": 1,
-                        "maxLength": 4000
                     },
                     "score": {
                         "type": "integer",

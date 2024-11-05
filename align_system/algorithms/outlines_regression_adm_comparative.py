@@ -2,6 +2,8 @@ import yaml
 import torch
 import json
 import numpy as np
+import signal
+from contextlib import contextmanager
 
 import outlines
 from outlines.samplers import MultinomialSampler
@@ -30,6 +32,19 @@ from align_system.prompt_engineering.outlines_prompts import (
 
 log = logging.getLogger(__name__)
 JSON_HIGHLIGHTER = JSONHighlighter()
+
+class TimeoutException(Exception): pass
+
+@contextmanager
+def time_limit(seconds):
+    def signal_handler(signum, frame):
+        raise TimeoutException("Timed out!")
+    signal.signal(signal.SIGALRM, signal_handler)
+    signal.alarm(seconds)
+    try:
+        yield
+    finally:
+        signal.alarm(0)
 
 
 class OutlinesTransformersComparativeRegressionADM(OutlinesTransformersADM):
@@ -173,14 +188,26 @@ class OutlinesTransformersComparativeRegressionADM(OutlinesTransformersADM):
                 dialog.append({'role': 'user', 'content': predict_kdma_prompt})
                 kdma_dialogs.append(dialog)
 
-        # Need to set the whitespace_pattern to prevent the state
-        # machine from looping indefinitely in some cases, see:
-        # https://github.com/outlines-dev/outlines/issues/690#issuecomment-2102291934
-        kdma_score_generator = outlines.generate.json(
-            self.model,
-            comparative_kdma_score_prediction_json_schema(choices),
-            sampler=self.sampler,
-            whitespace_pattern=r"[ ]?")
+        attempts = 0
+        max_attempts = 4
+        while attempts < max_attempts:
+            try:
+                with time_limit(500):
+                    # Need to set the whitespace_pattern to prevent the state
+                    # machine from looping indefinitely in some cases, see:
+                    # https://github.com/outlines-dev/outlines/issues/690#issuecomment-2102291934
+                    kdma_score_generator = outlines.generate.json(
+                        self.model,
+                        comparative_kdma_score_prediction_json_schema(choices),
+                        sampler=self.sampler,
+                        whitespace_pattern=r"[\t\r\n ]?")
+                break
+            except TimeoutException:
+                attempts += 1
+                log.warning(f"Detected possible indefinite generation. Attempt {attempts} of {max_attempts}")
+        else:
+            raise RuntimeError(f"Failed to generate within time limit")
+
 
         kdma_dialog_texts = [self.dialog_to_prompt(d) for d in kdma_dialogs]
 
