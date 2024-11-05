@@ -74,6 +74,12 @@ class IncontextExampleGenerator(object, metaclass=ABCMeta):
                 for icl_sample in dset:
                     # Get state and actions
                     state, actions = hydrate_scenario_state(icl_sample["input"])
+                    labels = icl_sample["label"]
+                    if self.incontext_settings.sort_actions:
+                        # Impose a fixed ordering of available actions and labels to help with determinism
+                        combined = list(zip(actions, labels))
+                        combined_sorted = sorted(combined, key=lambda x: x[0].unstructured)
+                        actions, labels = zip(*combined_sorted)
                     # Get choices
                     choices = adm_utils.format_choices(
                         [a.unstructured for a in actions],
@@ -82,7 +88,7 @@ class IncontextExampleGenerator(object, metaclass=ABCMeta):
                     )
                     # Get KDMA_values
                     kdma_values = []
-                    for label in icl_sample["label"]:
+                    for label in labels:
                         if sys_kdma_name not in label:
                             kdma_values.append(None)
                         else:
