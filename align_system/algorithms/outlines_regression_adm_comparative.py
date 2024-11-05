@@ -128,10 +128,6 @@ class OutlinesTransformersComparativeRegressionADM(OutlinesTransformersADM):
         - predictions: {choice1:{kdma1:[score1(int), ...], ...}, ...}
         - reasonings: {choice1:{kdma1:[reasoning1(str), ...], ...}, ...}
         '''
-        # Remove irrelevant choices
-        irrelevant_choices = ['TAG CHARACTER'] #TODO - Add others?
-        relevant_choices = [choice for choice in choices if choice not in irrelevant_choices]
-
         use_icl = False
         if "number" in incontext_settings and incontext_settings["number"] > 0:
             use_icl = True
@@ -155,7 +151,7 @@ class OutlinesTransformersComparativeRegressionADM(OutlinesTransformersADM):
                 if use_icl:
                     # Exclude outcome prediction in prompt_to_match because ICL examples don't have outcomes
                     no_outcome_predictions = {}
-                    for choice in relevant_choices:
+                    for choice in choices:
                         no_outcome_predictions[choice] = {}
                         no_outcome_predictions[choice]['predicted_outcome'] = None
                     prompt_to_match = comparative_kdma_score_prediction_prompt(scenario_description,
@@ -186,7 +182,7 @@ class OutlinesTransformersComparativeRegressionADM(OutlinesTransformersADM):
         # https://github.com/outlines-dev/outlines/issues/690#issuecomment-2102291934
         kdma_score_generator = outlines.generate.json(
             self.model,
-            comparative_kdma_score_prediction_json_schema(relevant_choices),
+            comparative_kdma_score_prediction_json_schema(choices),
             sampler=self.sampler,
             whitespace_pattern=r"[ ]?")
 
@@ -222,13 +218,9 @@ class OutlinesTransformersComparativeRegressionADM(OutlinesTransformersADM):
                 kdma_prediction = kdma_score_responses[sample_idx][kdma_idx]
                 kdma_key = target_kdmas[kdma_idx]['kdma']
                 for choice in choices:
-                    if choice in relevant_choices:
-                        reasonings[choice][kdma_key].append(kdma_prediction[choice]['reasoning'])
-                        # Scale score to be between 0 and 1 instead of 0 and 10 to match targets
-                        predictions[choice][kdma_key].append(kdma_prediction[choice]['score']/10)
-                    else:
-                        reasonings[choice][kdma_key].append('Irrelevant response.')
-                        predictions[choice][kdma_key].append(-1)
+                    reasonings[choice][kdma_key].append(kdma_prediction[choice]['reasoning'])
+                    # Scale score to be between 0 and 1 instead of 0 and 10 to match targets
+                    predictions[choice][kdma_key].append(kdma_prediction[choice]['score']/10)
 
         return predictions, reasonings
 
@@ -323,6 +315,7 @@ class OutlinesTransformersComparativeRegressionADM(OutlinesTransformersADM):
         # Log predicted kdma values
         log.info("Predicted KDMA Values:")
         log.info(json.dumps(predicted_kdma_values))
+        input("Continue")
 
         choice_info = {'true_kdma_values':true_kdma_values, 'predicted_kdma_values':predicted_kdma_values}
 
