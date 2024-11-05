@@ -7,6 +7,7 @@ import yaml
 
 import outlines
 from outlines.samplers import MultinomialSampler
+from outlines.models.vllm import VLLM
 import jinja2
 from rich.highlighter import JSONHighlighter
 from swagger_client.models import (
@@ -73,11 +74,10 @@ class OutlinesTransformersADM(ActionBasedADM):
 
             model_kwargs['torch_dtype'] = torch_dtype
 
-        self.model = outlines.models.transformers(
+        self.model = outlines.models.vllm(
             model_name,
-            device=device,
-            model_kwargs=model_kwargs,
-            tokenizer_kwargs=kwargs.get('tokenizer_kwargs', {}))
+            device=device
+        )
         # NOTE: In cases where we want multiple samples, we're passing
         # in a list of prompts (this allows us to shuffle answers in
         # each prompt), rather than setting the number of samples in
@@ -86,7 +86,7 @@ class OutlinesTransformersADM(ActionBasedADM):
         self.sampler = sampler
 
     def dialog_to_prompt(self, dialog):
-        tokenizer = self.model.tokenizer.tokenizer
+        tokenizer = self.model.tokenizer
 
         try:
             encoded_dialog = tokenizer.apply_chat_template(dialog)
@@ -218,32 +218,48 @@ class OutlinesTransformersADM(ActionBasedADM):
             if "incontext" in kwargs and "number" in incontext_settings and incontext_settings["number"] > 0:
                 scenario_to_match = scenario_state_description_1(scenario_state)
                 prompt_to_match, _ = self._state_to_top_level_prompt(scenario_state, available_actions)
-                
+
                 # Create positive ICL example generators
                 positive_target = {'kdma': kdma, 'name': name, 'value': value}
-                positive_icl_example_generator = incontext_utils.BaselineIncontextExampleGenerator(incontext_settings,
-                                                                                                    [positive_target])
+                positive_icl_example_generator = (
+                    incontext_utils.BaselineIncontextExampleGenerator(
+                        incontext_settings,
+                        [positive_target]
+                    )
+                )
                 # Get subset of relevant of examples
-                positive_selected_icl_examples = positive_icl_example_generator.select_icl_examples(kdma, 
-                                                                                                    scenario_to_match, 
-                                                                                                    prompt_to_match)
+                positive_selected_icl_examples = (
+                    positive_icl_example_generator.select_icl_examples(
+                        kdma,
+                        scenario_to_match,
+                        prompt_to_match
+                    )
+                )
                 # Create positive ICL prompts
                 for icl_sample in positive_selected_icl_examples:
                     positive_icl_examples.extend([
                         {"role": "user", "content": icl_sample['prompt']},
                         {"role": "assistant", "content": f'{icl_sample["response"]}'}
                     ])
-                
+
                 # Create negative ICL prompts
                 if num_negative_samples > 0:
                     # Create negative ICL example generators
                     negative_target = {'kdma': kdma, 'name': name, 'value': negative_value}
-                    negative_icl_example_generator = incontext_utils.BaselineIncontextExampleGenerator(incontext_settings,
-                                                                                                    [negative_target])
+                    negative_icl_example_generator = (
+                        incontext_utils.BaselineIncontextExampleGenerator(
+                            incontext_settings,
+                            [negative_target]
+                        )
+                    )
                     # Get subset of relevant of examples
-                    negative_selected_icl_examples = negative_icl_example_generator.select_icl_examples(kdma, 
-                                                                                                    scenario_to_match, 
-                                                                                                    prompt_to_match)
+                    negative_selected_icl_examples = (
+                        negative_icl_example_generator.select_icl_examples(
+                            kdma,
+                            scenario_to_match,
+                            prompt_to_match
+                        )
+                    )
                     for icl_sample in negative_selected_icl_examples:
                         negative_icl_examples.extend([
                             {"role": "user", "content": icl_sample['prompt']},
