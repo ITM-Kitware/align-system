@@ -3,6 +3,16 @@
 This changelog follows the specifications detailed in: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html), although we have not yet reached a `1.0.0` release.
 
+## Unreleased
+
+### Changed
+
+* Changed `incontext` `normalization` setting to be off (null/rawscores)
+
+### Added
+
+* Added `incontext` an option for sorting examples responses: `sort_actions`
+  
 ## 0.5.3
 
 ### Changed
