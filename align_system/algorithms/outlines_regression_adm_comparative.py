@@ -315,7 +315,6 @@ class OutlinesTransformersComparativeRegressionADM(OutlinesTransformersADM):
         # Log predicted kdma values
         log.info("Predicted KDMA Values:")
         log.info(json.dumps(predicted_kdma_values))
-        input("Continue")
 
         choice_info = {'true_kdma_values':true_kdma_values, 'predicted_kdma_values':predicted_kdma_values}
 
