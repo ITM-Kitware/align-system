@@ -6,7 +6,7 @@ inference_kwargs:
   incontext:
     number: 5
     method: prompt_bert_similarity
-    leave_one_out: null
+    leave_one_out_strategy: null
     normalization: null
     sort_actions: true
     datasets:

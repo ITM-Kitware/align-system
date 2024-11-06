@@ -164,20 +164,20 @@ class IncontextExampleGenerator(object, metaclass=ABCMeta):
                             f"{len(possible_icl_examples)} samples available while asking for "
                             f"{n_icl_examples} incontext samples.")
         # If using LOO, don't include example ICL with exact same scenario description
-        loo_setting = self.incontext_settings.get("leave_one_out", None)
-        if loo_setting == "scenario_description":
+        loo_strategy = self.incontext_settings.get("leave_one_out_strategy", None)
+        if loo_strategy == "scenario_description":
             possible_icl_examples = [
                 icl_ex for icl_ex in possible_icl_examples
                 if icl_ex["scenario_description"] != scenario_description_to_match
             ]
-        elif loo_setting == "characters":
+        elif loo_strategy == "characters":
             possible_icl_examples = [
                 icl_ex for icl_ex in possible_icl_examples
                 if icl_ex["state"].characters != state_comparison.characters
             ]
-        elif loo_setting is not None:
+        elif loo_strategy is not None:
             raise ValueError(
-                f"Unknown leave one out setting '{loo_setting}'."
+                f"Unknown leave one out setting '{loo_strategy}'."
                 "Please choose from 'scenario_description' or 'characters'"
             )
 
