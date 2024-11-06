@@ -18,6 +18,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 * Added character-based leave one out option: ``incontext.leave_one_out_strategy=characters``
 * Phase 1 experiments directory
 * Added the option to filter out TAG CHARACTER responses by setting `filter_tag_character` to true
+* Added a history-based alignment function for scalar targets that uses distance to a running mean. To use specify `inference_kwargs.distribution_matching` as `cumulative_average`
 
 ## 0.5.3
 
