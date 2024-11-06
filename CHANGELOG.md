@@ -14,9 +14,10 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Added
 
-* Added `incontext` an option for sorting examples responses: `sort_actions`
+* Added an option for sorting incontext examples responses: `incontext.sort_actions`
 * Added character-based leave one out option: ``incontext.leave_one_out_strategy=characters``
 * Phase 1 experiments directory
+* Added the option to filter out TAG CHARACTER responses by setting `filter_tag_character` to true
 
 ## 0.5.3
 
