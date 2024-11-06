@@ -34,9 +34,9 @@ class OracleADM(ActionBasedADM):
         all_scalar_targets = True
         all_kde_targets = True
         for target_kdma in target_kdmas:
-            if not hasattr(target_kdma, 'value') or target_kdma.value is None:
+            if 'value' not in target_kdma or target_kdma['value'] is None:
                 all_scalar_targets = False
-            if not hasattr(target_kdma, 'kdes') or target_kdma.kdes is None:
+            if 'kdes' not in target_kdma or target_kdma['kdes'] is None:
                 all_kde_targets = False
 
         # get ground truth kdma values

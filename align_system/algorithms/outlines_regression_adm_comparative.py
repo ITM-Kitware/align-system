@@ -113,6 +113,7 @@ class OutlinesTransformersComparativeRegressionADM(OutlinesTransformersADM):
         return predicted_outcomes
 
     def sample_kdma_score_predictions(self,
+                                      scenario_state,
                                       scenario_description,
                                       choices,
                                       target_kdmas,
@@ -156,9 +157,12 @@ class OutlinesTransformersComparativeRegressionADM(OutlinesTransformersADM):
                     prompt_to_match = comparative_kdma_score_prediction_prompt(scenario_description,
                                                                                     no_outcome_predictions,
                                                                                     target_kdma['name'])
-                    selected_icl_examples = icl_example_generator.select_icl_examples(target_kdma['kdma'],
-                                                                                      scenario_description,
-                                                                                      prompt_to_match)
+                    selected_icl_examples = icl_example_generator.select_icl_examples(
+                        sys_kdma_name=target_kdma['kdma'],
+                        scenario_description_to_match=scenario_description,
+                        prompt_to_match=prompt_to_match,
+                        state_comparison=scenario_state,
+                    )
                     for icl_sample in selected_icl_examples:
                         icl_examples.extend([
                             {"role": "user", "content": icl_sample['prompt']},
@@ -295,11 +299,11 @@ class OutlinesTransformersComparativeRegressionADM(OutlinesTransformersADM):
 
 
         # Predict kdma values
-        predicted_kdma_values, reasonings = self.sample_kdma_score_predictions(scenario_description,
-                                                        choices, target_kdmas, outcome_predictions,
-                                                        num_samples, generator_batch_size,
-                                                        kdma_score_examples,
-                                                        incontext_settings=kwargs.get("incontext", {}))
+        predicted_kdma_values, reasonings = self.sample_kdma_score_predictions(
+            scenario_state, scenario_description, choices, target_kdmas, outcome_predictions,
+            num_samples, generator_batch_size, kdma_score_examples,
+            incontext_settings=kwargs.get("incontext", {})
+        )
 
         # Log true kdma values if present
         true_kdma_values = {}

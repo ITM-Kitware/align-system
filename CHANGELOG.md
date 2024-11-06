@@ -8,11 +8,16 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ### Changed
 
 * Changed `incontext` `normalization` setting to be off (null/rawscores)
+* ``incontext.leave_one_out=false`` should now be configured as ``incontext.leave_one_out=null``. Default behavior is **no** leave one out behavior.
+  Previous ``incontext.leave_one_out=true`` should be specified as ``incontext.leave_one_out=scenario_description``. Additionally, duplicate ICL examples,
+  based on the chosen similiarity strategy, are now removed.
 
 ### Added
 
 * Added `incontext` an option for sorting examples responses: `sort_actions`
-  
+* Added character-based leave one out option: ``incontext.leave_one_out=characters``
+* Phase 1 experiments directory
+
 ## 0.5.3
 
 ### Changed

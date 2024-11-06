@@ -22,7 +22,7 @@ from align_system.prompt_engineering.outlines_prompts import (
 class IncontextExampleGenerator(object, metaclass=ABCMeta):
     '''
     Abstract class for incontext example generator
-    Instances of this class have unique set_icl_datasets() functions for formatting prompt and reponses 
+    Instances of this class have unique set_icl_datasets() functions for formatting prompt and reponses
     '''
     def __init__(self,
                  incontext_settings,
@@ -64,7 +64,7 @@ class IncontextExampleGenerator(object, metaclass=ABCMeta):
             # If there is only one, make it a list for the following loop
             if not isinstance(dset_files, list):
                 dset_files = [dset_files]
-            
+
             incontext_data[sys_kdma_name] = []
             # For each dataset file
             for dset_f in dset_files:
@@ -95,7 +95,7 @@ class IncontextExampleGenerator(object, metaclass=ABCMeta):
                             kdma_values.append(label[sys_kdma_name])
                     example = {'state':state, 'actions': actions, 'choices':choices, 'kdma_values':kdma_values}
                     incontext_data[sys_kdma_name].append(example)
-            
+
             # Normalize ground truth KDMA values
             if 'normalization' in self.incontext_settings:
                 if self.incontext_settings['normalization'] != None and self.incontext_settings['normalization'] != 'rawscores':
@@ -141,12 +141,15 @@ class IncontextExampleGenerator(object, metaclass=ABCMeta):
                 incontext_data[kdma][example_idx]['kdma_values'] = norm_values
         return incontext_data
 
-    def select_icl_examples(self, sys_kdma_name, scenario_description_to_match, prompt_to_match):
+    def select_icl_examples(self, sys_kdma_name, scenario_description_to_match, prompt_to_match, state_comparison):
         '''
         Selects a list of relevant ICL examples
         Input:
             sys_kdma_name - key of the target kdma in self.icl_datasets
+            scenario_description_to_match - description of the scenario for similarity and/or LOO
             prompt_to_match - the prompt we are selecting ICL examples for
+            state_comparison - the current state of the system to potentially use for LOO
+
         Output:
             selected_icl_examples - relevant subset of self.icl_datasets
         '''
@@ -161,33 +164,56 @@ class IncontextExampleGenerator(object, metaclass=ABCMeta):
                             f"{len(possible_icl_examples)} samples available while asking for "
                             f"{n_icl_examples} incontext samples.")
         # If using LOO, don't include example ICL with exact same scenario description
-        if self.incontext_settings.get("leave_one_out", False):
+        loo_setting = self.incontext_settings.get("leave_one_out", None)
+        if loo_setting == "scenario_description":
             possible_icl_examples = [
                 icl_ex for icl_ex in possible_icl_examples
                 if icl_ex["scenario_description"] != scenario_description_to_match
             ]
+        elif loo_setting == "characters":
+            possible_icl_examples = [
+                icl_ex for icl_ex in possible_icl_examples
+                if icl_ex["state"].characters != state_comparison.characters
+            ]
+        elif loo_setting is not None:
+            raise ValueError(
+                f"Unknown leave one out setting '{loo_setting}'."
+                "Please choose from 'scenario_description' or 'characters'"
+            )
 
         # Downselect to n_icl_examples via given method
         icl_strategy = self.incontext_settings["method"]
-        
+
         if icl_strategy == "random":
             selected_icl_examples = random.sample(possible_icl_examples, n_icl_examples)
         elif icl_strategy == "scenario_bert_similarity":
-            possible_icl_scenarios = [icl_sample["scenario_description"] for icl_sample in possible_icl_examples]
+            scenario_description_set = set()
+            final_icl_candidates = []
+            for icl_sample in possible_icl_examples:
+                if icl_sample["scenario_description"] not in scenario_description_set:
+                    final_icl_candidates.append(icl_sample)
+                    scenario_description_set.add(icl_sample["scenario_description"])
+            possible_icl_scenarios = [icl_sample["scenario_description"] for icl_sample in final_icl_candidates]
             # Create similarity scores between the ICL samples and find top-k indices
             from bert_score import score
             _, _, F1 = score([scenario_description_to_match]*len(possible_icl_scenarios), possible_icl_scenarios, lang="en")
             _, indices = torch.topk(F1, n_icl_examples)
 
-            selected_icl_examples = [possible_icl_examples[i] for i in indices]
+            selected_icl_examples = [final_icl_candidates[i] for i in indices]
         elif icl_strategy == "prompt_bert_similarity":
-            possible_icl_prompts = [icl_sample["prompt"] for icl_sample in possible_icl_examples]
+            prompt_set = set()
+            final_icl_candidates = []
+            for icl_sample in possible_icl_examples:
+                if icl_sample["prompt"] not in prompt_set:
+                    final_icl_candidates.append(icl_sample)
+                    prompt_set.add(icl_sample["prompt"])
+            possible_icl_prompts = [icl_sample["prompt"] for icl_sample in final_icl_candidates]
             # Create similarity scores between the ICL samples and find top-k indices
             from bert_score import score
             _, _, F1 = score([prompt_to_match]*len(possible_icl_prompts), possible_icl_prompts, lang="en")
             _, indices = torch.topk(F1, n_icl_examples)
 
-            selected_icl_examples = [possible_icl_examples[i] for i in indices]
+            selected_icl_examples = [final_icl_candidates[i] for i in indices]
         else:
             raise ValueError(f'"{icl_strategy}" is not a valid incontext method. Please use "random" or '
                                 '"scenario_bert_similarity" or "prompt_bert_similarity"')
@@ -207,13 +233,13 @@ class BaselineIncontextExampleGenerator(IncontextExampleGenerator):
 
         icl_datasets = {}
         incontext_data = self._read_icl_dataset_files()
-        
+
         # Add each target to icl_datasets
         for target_kdma in self.target_kdmas:
             sys_kdma_name = target_kdma['kdma']
             icl_datasets[sys_kdma_name] = []
             kdma_incontext_data = incontext_data[sys_kdma_name]
-            
+
             # Add each examples to icl_datasets
             for example in kdma_incontext_data:
 
@@ -221,7 +247,7 @@ class BaselineIncontextExampleGenerator(IncontextExampleGenerator):
                 icl_scenario_description = scenario_state_description_1(example['state'])
                 icl_prompt = action_selection_prompt(icl_scenario_description, example['choices'])
 
-                # Get example response 
+                # Get example response
                 dist_to_tgt = [
                     abs(score - target_kdma['value']) if score is not None else float('inf')
                     for score in example["kdma_values"]
@@ -239,6 +265,7 @@ class BaselineIncontextExampleGenerator(IncontextExampleGenerator):
 
                 # Add example
                 icl_datasets[sys_kdma_name].append({
+                    "state": example["state"],
                     "scenario_description": icl_scenario_description,
                     "prompt": icl_prompt,
                     "response": icl_response
@@ -251,13 +278,13 @@ class ComparativeRegressionIncontextExampleGenerator(IncontextExampleGenerator):
     def set_icl_datasets(self):
         icl_datasets = {}
         incontext_data = self._read_icl_dataset_files()
-        
+
         # Add each target to icl_datasets
         for target_kdma in self.target_kdmas:
             sys_kdma_name = target_kdma['kdma']
             icl_datasets[sys_kdma_name] = []
             kdma_incontext_data = incontext_data[sys_kdma_name]
-            
+
             # Add each examples to icl_datasets
             for example in kdma_incontext_data:
 
@@ -279,7 +306,7 @@ class ComparativeRegressionIncontextExampleGenerator(IncontextExampleGenerator):
                 # Check if response is valid against json schema
                 correct_schema = json.loads(comparative_kdma_score_prediction_json_schema(included_choices))
                 validate(instance=icl_response, schema=correct_schema)
-                
+
                 # Get example prompt
                 character_info = outlines_prompts_utils.get_relevant_structured_character_info(example['state'].characters)
                 icl_scenario_description = scenario_state_description_with_relevant_char_info(example['state'], character_info)
@@ -294,11 +321,12 @@ class ComparativeRegressionIncontextExampleGenerator(IncontextExampleGenerator):
 
                 # Add example
                 icl_datasets[sys_kdma_name].append({
+                    "state": example["state"],
                     "scenario_description": icl_scenario_description,
                     "prompt": icl_prompt,
                     "response": icl_response
                     })
-                
+
         self.icl_datasets = icl_datasets
 
     def get_chain_of_thought_reasoning(self, target_kdma, action, state, choice, expected_value):
