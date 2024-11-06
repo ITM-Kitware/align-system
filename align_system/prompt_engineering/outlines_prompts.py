@@ -253,6 +253,34 @@ def followup_clarify_treatment(character,
     {% endfor %}
     """
 
+@outlines.prompt
+def followup_clarify_treatment_from_list(character,
+                                         supplies,
+                                         options_list,
+                                         treated_value=InjuryStatusEnum.TREATED):
+    """
+    Given the casualty description and available supplies listed
+    below, please select a treatment location and which supplies to
+    use from the POSSIBLE_TREATMENTS below
+
+    {{ character.unstructured }}
+    INJURIES:
+    {% for injury in character.injuries %}
+    {% if not injury.status == treated_value %}
+    {"injury_name": {{ injury.name }}, "injury_severity": {{ injury.severity }}, "injury_location": {{ injury.location }} }
+    {% endif %}
+    {% endfor %}
+
+    AVAILABLE SUPPLIES:
+    {% for supply in supplies %}
+    {{ supply.quantity }} x {{ supply.type }}
+    {% endfor %}
+
+    POSSIBLE_TREATMENTS:
+    {% for option in options_list %}
+    {{ option }}
+    {% endfor %}
+    """
 
 @outlines.prompt
 def followup_clarify_tag(character,
@@ -380,6 +408,22 @@ def treatment_choice_json_schema(supplies_json_str, locations_json_str):
      "title": "TreatmentSelection",
      "type": "object"}
     '''
+
+
+@outlines.prompt
+def treatment_choice_from_list_json_schema(treatment_choices_json_str):
+    '''
+    {"$defs": {"TreatmentChoice": {"enum": {{ treatment_choices_json_str }},
+       "title": "TreatmentChoice",
+       "type": "string"}},
+     "properties": {"brief_reasoning": {"title": "Brief Reasoning",
+       "type": "string", "minLength": 1, "maxLength": 512},
+      "treatment_choice": {"$ref": "#/$defs/TreatmentChoice"}},
+     "required": ["brief_reasoning", "treatment_choice"],
+     "title": "TreatmentSelection",
+     "type": "object"}
+    '''
+
 
 @outlines.prompt
 def outcomes_system_prompt():

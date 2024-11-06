@@ -37,12 +37,14 @@ from align_system.prompt_engineering.outlines_prompts import (
     followup_clarify_aid,
     followup_clarify_character,
     followup_clarify_treatment,
+    followup_clarify_treatment_from_list,
     followup_clarify_tag,
     action_choice_json_schema,
     aid_choice_json_schema,
     character_choice_json_schema,
     tag_choice_json_schema,
     treatment_choice_json_schema,
+    treatment_choice_from_list_json_schema,
     detailed_unstructured_treatment_action_text,
     detailed_unstructured_tagging_action_text
 )
@@ -390,8 +392,27 @@ class OutlinesTransformersADM(ActionBasedADM):
                 self.ensure_character_id_is_populated(scenario_state, action_to_take, dialog)
 
         if action_to_take.action_type == ActionTypeEnum.APPLY_TREATMENT:
+            if action_to_take.parameters is None or ('treatment' not in action_to_take.parameters and 'location' not in action_to_take.parameters):
+                # TODO: Add inference kwarg to use herustic treatment options or not
+                from align_system.algorithms.apply_treatment import treatment_options
+
+                character_injuries = [i.to_dict() for i in scenario_state.characters[selected_character_idx].injuries]
+                supplies = [s.to_dict() for s in scenario_state.supplies]
+
+                heuristic_treatment_options = treatment_options(character_injuries, supplies)
+                log.debug("[bold]*HEURISTIC TREATMENT OPTIONS*[/bold]",
+                          extra={"markup": True})
+                log.debug(heuristic_treatment_options)
+                action_to_take, selected_treatment, dialog =\
+                    self.select_treatment_parameters(scenario_state,
+                                                     action_to_take,
+                                                     selected_character,
+                                                     selected_character_idx,
+                                                     dialog,
+                                                     heuristic_treatment_options)
+
             # Use follow up prompt to define treatment and/or location if neccesary
-            if action_to_take.parameters is None or 'treatment' not in action_to_take.parameters or 'location' not in action_to_take.parameters:
+            elif action_to_take.parameters is None or 'treatment' not in action_to_take.parameters or 'location' not in action_to_take.parameters:
                 action_to_take, selected_treatment, dialog =\
                     self.populate_treatment_parameters(scenario_state,
                                                        action_to_take,
@@ -548,6 +569,67 @@ class OutlinesTransformersADM(ActionBasedADM):
                 action_to_take.parameters['treatment'] = selected_treatment['supplies_to_use']
             if 'location' not in action_to_take.parameters:
                 action_to_take.parameters['location'] = selected_treatment['treatment_location']
+
+        return action_to_take, selected_treatment, dialog
+
+    def select_treatment_parameters(self,
+                                    scenario_state,
+                                    action_to_take,
+                                    selected_character,
+                                    selected_character_idx,
+                                    dialog,
+                                    heuristic_treatment_options):
+        possible_treatments = heuristic_treatment_options['treatments']
+
+        # If there is only one treatment location and we have the
+        # treatment, we don't need a follow-up
+        if len(possible_treatments) == 0:
+            #  TODO: Handle this case prior to calling this function
+            raise RuntimeError("No possible treatments from heuristic_treatment_options!")
+        elif len(possible_treatments) == 1:
+            selected_treatment = {'detailed_reasoning': '<Only one heuristic treatment option available>',
+                                  'supplies_to_use': possible_treatments[0]['treatment'],
+                                  'treatment_location': possible_treatments[0]['location']}
+        # If there are multiple treatment locations and/or we are missing the treatment, use follow-up
+        else:
+            available_supplies = [s for s in scenario_state.supplies if s.quantity > 0]
+
+            dialog.append({'role': 'assistant',
+                           'content': '{}  {} should receive the action.'.format(
+                               selected_character['brief_reasoning'],
+                               selected_character['character_choice'])})
+            dialog.append({'role': 'user',
+                           'content': followup_clarify_treatment_from_list(
+                               scenario_state.characters[selected_character_idx],
+                               available_supplies,
+                               possible_treatments)})
+
+            dialog_text = self.dialog_to_prompt(dialog)
+
+            log.info("[bold]*DIALOG PROMPT*[/bold]",
+                     extra={"markup": True})
+            log.info(dialog_text)
+
+            generator = outlines.generate.json(
+                self.model,
+                treatment_choice_from_list_json_schema(
+                    json.dumps(possible_treatments)),
+                sampler=self.sampler,
+                whitespace_pattern=r"[ ]?")
+
+            selected_treatment = generator(dialog_text)
+            log.info("[bold]*STRUCTURED RESPONSE*[/bold]",
+                     extra={"markup": True})
+            log.info(selected_treatment, extra={"highlighter": JSON_HIGHLIGHTER})
+
+            treatment_idx = possible_treatments.index(selected_treatment['treatment_choice'])
+            treatment_parameters = heuristic_treatment_options['parameters'][treatment_idx]
+
+            # Use follow-up response to define only the missing fields
+            if action_to_take.parameters is None:
+                action_to_take.parameters = {}
+
+            action_to_take.parameters = {**action_to_take.parameters, **treatment_parameters}
 
         return action_to_take, selected_treatment, dialog
 
