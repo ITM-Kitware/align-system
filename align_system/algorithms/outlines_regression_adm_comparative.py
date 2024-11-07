@@ -256,6 +256,7 @@ class OutlinesTransformersComparativeRegressionADM(OutlinesTransformersADM):
                                 kdma_descriptions_map='align_system/prompt_engineering/kdma_descriptions.yml',
                                 kdma_score_examples=False,
                                 enum_scores=False,
+                                norm_factor=0.5,
                                 **kwargs):
 
         character_info = outlines_prompts_utils.get_relevant_structured_character_info(scenario_state.characters)
@@ -345,7 +346,8 @@ class OutlinesTransformersComparativeRegressionADM(OutlinesTransformersADM):
             if distribution_matching == 'cumulative_kde':
                 alignment_function = alignment_utils.CumulativeJsDivergenceKdeAlignment()
                 selected_choice, probs = alignment_function(
-                    predicted_kdma_values, target_kdmas, self.choice_history, kde_norm=kde_norm, probabilistic=self.probabilistic
+                    predicted_kdma_values, target_kdmas, self.choice_history, kde_norm=kde_norm,
+                    norm_factor=norm_factor, probabilistic=self.probabilistic
                 )
             else:
                 if distribution_matching == 'sample':

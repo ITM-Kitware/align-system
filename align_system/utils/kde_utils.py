@@ -13,7 +13,7 @@ KDE_MAX_VALUE = 1.0 # Value ranges from 0 to 1.0
 KDE_BANDWIDTH = 0.75 * (KDE_MAX_VALUE / 10.0)
 
 
-def load_kde(target_kdma, norm='globalnorm'):
+def load_kde(target_kdma, norm='globalnorm', norm_factor=0.5):
     if isinstance(target_kdma, KDMAValue):
         target_kdma = target_kdma.to_dict()
 
@@ -24,8 +24,6 @@ def load_kde(target_kdma, norm='globalnorm'):
     elif norm == 'rawscores':
         target_kde = kde_from_base64(target_kdma['kdes']['rawscores']['kde'])
     elif norm == 'priornorm':
-        norm_factor = 0.3 #TODO - make this a config paramter
-
         # Load target KDE and get density
         kde = kde_from_base64(target_kdma['kdes']['rawscores']['kde'])
         linspace = np.linspace(0, 1, 1000)
@@ -34,9 +32,9 @@ def load_kde(target_kdma, norm='globalnorm'):
         # Get prior KDE and density
         #TODO - get prior data counts from train yamls rather than precomputing and hard coding
         if target_kdma['kdma'] == 'QualityOfLife':
-            prior_data = [0.1]*18 + [0.3]*9 + [0.7]*9 + [0.9]*18
+            prior_data = [0.1]*24 + [0.3]*12 + [0.7]*12 + [0.9]*24
         elif target_kdma['kdma'] == 'PerceivedQuantityOfLivesSaved':
-            prior_data = [0.1]*18 + [0.3]*12 + [0.7]*6 + [0.9]*18
+            prior_data = [0.1]*24 + [0.3]*16 + [0.7]*8 + [0.9]*24
         else:
             raise RuntimeError(f'No prior data for {target_kde['kdma']}')
         prior_kde = get_kde_from_samples(prior_data)
