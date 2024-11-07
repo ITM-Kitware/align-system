@@ -15,7 +15,8 @@ adm:
       _target_: outlines.samplers.GreedySampler
   inference_kwargs:
     distribution_matching: cumulative_kde
-    kde_norm: rawscores
+    kde_norm: priornorm
+    norm_factor: 0.5 # priornorm weighting
     kdma_score_examples: true
     num_samples: 1
     predict_outcomes: false
@@ -23,7 +24,7 @@ adm:
     incontext:
       sort_actions: true
       normalization: null
-      number: 1
+      number: 3
       leave_one_out: false # Doing scenario level LOO rather than probe 
      
 force_determinism: true
