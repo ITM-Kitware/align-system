@@ -1,0 +1,18 @@
+# @package _global_
+defaults:
+  - override /adm: oracle
+  - override /interface: ta3
+
+interface:
+  api_endpoint: "http://127.0.0.1:8089"
+  session_type: soartech
+  training_session: true
+
+adm:
+  inference_kwargs:
+    distribution_matching: cumulative_kde
+    kde_norm: priornorm
+    norm_factor: 0.5
+
+align_to_target: true
+sort_available_actions: true
