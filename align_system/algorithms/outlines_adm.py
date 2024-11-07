@@ -218,22 +218,25 @@ class OutlinesTransformersADM(ActionBasedADM):
             if "incontext" in kwargs and "number" in incontext_settings and incontext_settings["number"] > 0:
                 scenario_to_match = scenario_state_description_1(scenario_state)
                 prompt_to_match, _ = self._state_to_top_level_prompt(scenario_state, available_actions)
-                
+
                 # Create positive ICL example generators
                 positive_target = {'kdma': kdma, 'name': name, 'value': value}
                 positive_icl_example_generator = incontext_utils.BaselineIncontextExampleGenerator(incontext_settings,
                                                                                                     [positive_target])
                 # Get subset of relevant of examples
-                positive_selected_icl_examples = positive_icl_example_generator.select_icl_examples(kdma, 
-                                                                                                    scenario_to_match, 
-                                                                                                    prompt_to_match)
+                positive_selected_icl_examples = positive_icl_example_generator.select_icl_examples(
+                    sys_kdma_name=kdma,
+                    scenario_description_to_match=scenario_to_match,
+                    prompt_to_match=prompt_to_match,
+                    state_comparison=scenario_state
+                )
                 # Create positive ICL prompts
                 for icl_sample in positive_selected_icl_examples:
                     positive_icl_examples.extend([
                         {"role": "user", "content": icl_sample['prompt']},
                         {"role": "assistant", "content": f'{icl_sample["response"]}'}
                     ])
-                
+
                 # Create negative ICL prompts
                 if num_negative_samples > 0:
                     # Create negative ICL example generators
@@ -241,9 +244,12 @@ class OutlinesTransformersADM(ActionBasedADM):
                     negative_icl_example_generator = incontext_utils.BaselineIncontextExampleGenerator(incontext_settings,
                                                                                                     [negative_target])
                     # Get subset of relevant of examples
-                    negative_selected_icl_examples = negative_icl_example_generator.select_icl_examples(kdma, 
-                                                                                                    scenario_to_match, 
-                                                                                                    prompt_to_match)
+                    negative_selected_icl_examples = negative_icl_example_generator.select_icl_examples(
+                        sys_kdma_name=kdma,
+                        scenario_description_to_match=scenario_to_match,
+                        prompt_to_match=prompt_to_match,
+                        state_comparison=scenario_state
+                    )
                     for icl_sample in negative_selected_icl_examples:
                         negative_icl_examples.extend([
                             {"role": "user", "content": icl_sample['prompt']},

@@ -129,6 +129,56 @@ class AvgDistScalarAlignment(AlignmentFunction):
         return best_sample_index
 
 
+class CumulativeAvgDistScalarAlignment(AlignmentFunction):
+    def __call__(self, kdma_values, target_kdmas, choice_history, misaligned=False, kde_norm='globalnorm', probabilistic=False):
+        '''
+        Uses choice history to calcualte a running average,
+        selects the choice that brings the running average closeest to the scalar target.
+        '''
+        kdma_values = _handle_single_value(kdma_values, target_kdmas)
+        _check_if_targets_are_scalar(target_kdmas)
+
+        # Get distance from running average to targets
+        distances = []
+        choices = list(kdma_values.keys())
+        for choice in choices:
+            distance = 0.
+            for target_kdma in target_kdmas:
+                if isinstance(target_kdma, KDMAValue):
+                    target_kdma = target_kdma.to_dict()
+                if target_kdma['kdma'] not in choice_history:
+                    choice_history[target_kdma['kdma']] = []
+
+                kdma = target_kdma['kdma']
+                samples = kdma_values[choice][kdma]
+                average_score = (sum(samples) / len(samples))
+                cumulative_choices = choice_history[target_kdma['kdma']] + [average_score]
+                running_average = (sum(cumulative_choices) / len(cumulative_choices))
+                distance += _euclidean_distance(target_kdma['value'], running_average)
+            distances.append(distance)
+
+        selected_choice, probs = self._select_min_dist_choice(choices, distances, misaligned, probabilistic=probabilistic)
+        return selected_choice, probs
+
+    def get_best_sample_index(self, kdma_values, target_kdmas, selected_choice, misaligned=False):
+        sample_distances = []
+        sample_indices = range(len(kdma_values[selected_choice][target_kdmas[0]['kdma']]))
+        if len(sample_indices) == 1:
+            best_sample_index = 0
+        else:
+            # For the selected choice, find the sample closest to the target
+            for sample_idx in sample_indices:
+                sample_dist = 0
+                for target_kdma in target_kdmas:
+                    if isinstance(target_kdma, KDMAValue):
+                        target_kdma = target_kdma.to_dict()
+
+                    sample = kdma_values[selected_choice][target_kdma['kdma']][sample_idx]
+                    sample_dist += _euclidean_distance(target_kdma['value'], sample)
+                sample_distances.append(sample_dist)
+            best_sample_index, _ = self._select_min_dist_choice(sample_indices, sample_distances, misaligned)
+        return best_sample_index
+
 class MinDistToRandomSampleKdeAlignment(AlignmentFunction):
     def __call__(self, kdma_values, target_kdmas, misaligned=False, kde_norm='globalnorm', probabilistic=False):
         '''

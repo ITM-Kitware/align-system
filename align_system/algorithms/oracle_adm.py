@@ -48,10 +48,18 @@ class OracleADM(ActionBasedADM):
                 actions_with_kdma_values.append(action)
 
         if all_scalar_targets:
-            alignment_function = alignment_utils.AvgDistScalarAlignment()
-            selected_choice_id, probs = alignment_function(
-                gt_kdma_values, target_kdmas, misaligned=self.misaligned, probabilistic=self.probabilistic
-            )
+            if distribution_matching == 'average':
+                alignment_function = alignment_utils.AvgDistScalarAlignment()
+                selected_choice_id, probs = alignment_function(
+                    gt_kdma_values, target_kdmas, misaligned=self.misaligned, probabilistic=self.probabilistic
+                )
+            elif distribution_matching == 'cumulative_average':
+                alignment_function = alignment_utils.CumulativeAvgDistScalarAlignment()
+                selected_choice_id, probs = alignment_function(
+                    gt_kdma_values, target_kdmas, self.choice_history, misaligned=self.misaligned, kde_norm=kde_norm, probabilistic=self.probabilistic
+                )
+            else:
+                raise RuntimeError(distribution_matching, "distribution matching function unrecognized for scalar targets.")
 
         elif all_kde_targets:
             if distribution_matching == 'cumulative_kde':

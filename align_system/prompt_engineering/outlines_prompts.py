@@ -629,6 +629,31 @@ def comparative_kdma_score_prediction_json_schema(choices):
     }
     return json.dumps(json_schema)
 
+def enum_comparative_kdma_score_prediction_json_schema(choices, valid_scores):
+    json_schema = {
+        "type": "object",
+        "properties": {
+            choice: {
+                "type": "object",
+                "properties": {
+                    "reasoning": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 512
+                    },
+                    "score": {
+                        "type": "integer",
+                        "enum": valid_scores
+                    }
+                },
+                "required": ["score", "reasoning"]
+            }
+            for choice in choices
+        },
+        "required": list(choices)
+    }
+    return json.dumps(json_schema)
+
 
 @outlines.prompt
 def scenario_description_hybrid_regression(scenario_state):

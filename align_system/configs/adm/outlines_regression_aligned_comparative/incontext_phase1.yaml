@@ -6,9 +6,11 @@ inference_kwargs:
   incontext:
     number: 5
     method: prompt_bert_similarity
-    leave_one_out: false
+    leave_one_out_strategy: null
     normalization: null
     sort_actions: true
     datasets:
       QualityOfLife: /data/shared/samba/phase1_icl/qol_train1_20241105.json
       PerceivedQuantityOfLivesSaved: /data/shared/samba/phase1_icl/vol_train1_20241105.json
+      Moral judgement: /data/shared/samba/phase1_icl/moral_judgement_20241106.json
+      Ingroup Bias: /data/shared/samba/phase1_icl/ingroup_bias_20241106_no_IO2.json

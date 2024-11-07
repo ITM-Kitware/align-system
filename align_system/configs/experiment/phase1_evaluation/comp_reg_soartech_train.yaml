@@ -1,0 +1,30 @@
+# @package _global_
+defaults:
+  - override /adm: outlines_regression_aligned_comparative/incontext_phase1
+  - override /interface: ta3
+
+interface:
+  api_endpoint: "http://127.0.0.1:8089"
+  session_type: soartech
+  training_session: true
+
+adm:
+  instance:
+    precision: half
+    sampler:
+      _target_: outlines.samplers.GreedySampler
+  inference_kwargs:
+    distribution_matching: cumulative_kde
+    kde_norm: rawscores
+    kdma_score_examples: true
+    num_samples: 1
+    predict_outcomes: false
+    generator_batch_size: 5
+    incontext:
+      sort_actions: true
+      normalization: null
+      number: 1
+      leave_one_out: false # Doing scenario level LOO rather than probe 
+     
+force_determinism: true
+align_to_target: true

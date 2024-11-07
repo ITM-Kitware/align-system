@@ -97,6 +97,11 @@ def main(cfg: DictConfig) -> None:
     else:
         sort_available_actions = False
 
+    if 'filter_tag_character' in cfg:
+        filter_tag_character = cfg.get('filter_tag_character', True)
+    else:
+        filter_tag_character = False
+
     # HACK: need to invoke 'load_model' for ADMs that require it,
     # maybe it makes more sense to load_model in the init method for
     # those ADMs
@@ -179,6 +184,13 @@ def main(cfg: DictConfig) -> None:
                 # Impose a fixed ordering of available actions to help
                 # with determinism
                 available_actions = sorted(available_actions, key=lambda a: a.unstructured)
+
+            if filter_tag_character:
+                filtered_actions = []
+                for action in available_actions:
+                    if action.action_type != 'TAG_CHARACTER':
+                        filtered_actions.append(action)
+                available_actions = filtered_actions
 
             log.debug("[bold]*AVAILABLE ACTIONS*[/bold]",
                       extra={"markup": True})
