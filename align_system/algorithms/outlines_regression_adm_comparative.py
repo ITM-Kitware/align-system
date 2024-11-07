@@ -24,6 +24,7 @@ from align_system.prompt_engineering.outlines_prompts import (
     comparative_kdma_score_prediction_system_prompt_with_examples,
     comparative_kdma_score_prediction_prompt,
     comparative_kdma_score_prediction_json_schema,
+    enum_comparative_kdma_score_prediction_json_schema,
     baseline_system_prompt,
     action_selection_prompt
 )
@@ -121,6 +122,7 @@ class OutlinesTransformersComparativeRegressionADM(OutlinesTransformersADM):
                                       num_samples=1,
                                       batch_size=6,
                                       kdma_score_examples=False,
+                                      enum_scores=False,
                                       incontext_settings={}):
         '''
         Samples predictions of kdma scores associated with each choice
@@ -180,9 +182,14 @@ class OutlinesTransformersComparativeRegressionADM(OutlinesTransformersADM):
         # Need to set the whitespace_pattern to prevent the state
         # machine from looping indefinitely in some cases, see:
         # https://github.com/outlines-dev/outlines/issues/690#issuecomment-2102291934
+
+        if enum_scores:
+            score_schema = enum_comparative_kdma_score_prediction_json_schema(choices, target_kdma['valid_scores'])
+        else:
+            score_schema = comparative_kdma_score_prediction_json_schema(choices)
         kdma_score_generator = outlines.generate.json(
             self.model,
-            comparative_kdma_score_prediction_json_schema(choices),
+            score_schema,
             sampler=self.sampler,
             whitespace_pattern=r"[ ]?")
 
@@ -248,6 +255,7 @@ class OutlinesTransformersComparativeRegressionADM(OutlinesTransformersADM):
                                 generator_batch_size=5,
                                 kdma_descriptions_map='align_system/prompt_engineering/kdma_descriptions.yml',
                                 kdma_score_examples=False,
+                                enum_scores=False,
                                 **kwargs):
 
         character_info = outlines_prompts_utils.get_relevant_structured_character_info(scenario_state.characters)
@@ -281,6 +289,7 @@ class OutlinesTransformersComparativeRegressionADM(OutlinesTransformersADM):
                 target_kdmas[kdma_idx]['name'] = kdma_descriptions[kdma]['name']
                 target_kdmas[kdma_idx]['description'] = kdma_descriptions[kdma]['description']
                 target_kdmas[kdma_idx]['score_examples'] = kdma_descriptions[kdma]['score_examples']
+                target_kdmas[kdma_idx]['valid_scores'] = kdma_descriptions[kdma]['valid_scores']
 
 
         # Predict outcome of selecting each choice - optional
@@ -301,7 +310,7 @@ class OutlinesTransformersComparativeRegressionADM(OutlinesTransformersADM):
         # Predict kdma values
         predicted_kdma_values, reasonings = self.sample_kdma_score_predictions(
             scenario_state, scenario_description, choices, target_kdmas, outcome_predictions,
-            num_samples, generator_batch_size, kdma_score_examples,
+            num_samples, generator_batch_size, kdma_score_examples, enum_scores,
             incontext_settings=kwargs.get("incontext", {})
         )
 
