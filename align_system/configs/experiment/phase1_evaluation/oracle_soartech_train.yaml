@@ -12,7 +12,7 @@ adm:
   inference_kwargs:
     distribution_matching: cumulative_kde
     kde_norm: priornorm
-    norm_factor: 0.5
+    priornorm_factor: 0.5
 
 align_to_target: true
 sort_available_actions: true

@@ -22,7 +22,7 @@ class OracleADM(ActionBasedADM):
 
     def choose_action(self, scenario_state, available_actions, alignment_target,
                       distribution_matching='sample', kde_norm='rawscores',
-                      norm_factor=0.5, **kwargs):
+                      priornorm_factor=0.5, **kwargs):
         if available_actions is None or len(available_actions) == 0:
             return None
 
@@ -67,7 +67,7 @@ class OracleADM(ActionBasedADM):
                 alignment_function = alignment_utils.CumulativeJsDivergenceKdeAlignment()
                 selected_choice_id, probs = alignment_function(
                     gt_kdma_values, target_kdmas, self.choice_history, misaligned=self.misaligned,
-                    kde_norm=kde_norm, norm_factor=norm_factor, probabilistic=self.probabilistic
+                    kde_norm=kde_norm, priornorm_factor=priornorm_factor, probabilistic=self.probabilistic
                 )
             else:
                 if distribution_matching == 'sample':

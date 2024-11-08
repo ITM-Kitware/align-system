@@ -13,7 +13,7 @@ KDE_MAX_VALUE = 1.0 # Value ranges from 0 to 1.0
 KDE_BANDWIDTH = 0.75 * (KDE_MAX_VALUE / 10.0)
 
 
-def load_kde(target_kdma, norm='globalnorm', norm_factor=0.5):
+def load_kde(target_kdma, norm='globalnorm', priornorm_factor=0.5):
     if isinstance(target_kdma, KDMAValue):
         target_kdma = target_kdma.to_dict()
 
@@ -43,7 +43,7 @@ def load_kde(target_kdma, norm='globalnorm', norm_factor=0.5):
         # Normalize the target density based on prior density
         normalized_density = density / (prior_density + 1e-10)
         # Weight the normalization - linear combo of original density and normalized density
-        normalized_density = (norm_factor*normalized_density) + ((1-norm_factor)*density)
+        normalized_density = (priornorm_factor*normalized_density) + ((1-priornorm_factor)*density)
 
         # Use normalized density to construct normalized KDE from samples
         norm_samples = []
