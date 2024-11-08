@@ -20,6 +20,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 * Added the option to filter out TAG CHARACTER responses by setting `filter_tag_character` to true
 * Added a history-based alignment function for scalar targets that uses distance to a running mean. To use specify `inference_kwargs.distribution_matching` as `cumulative_average`
 * Added the option to enumerate the valid regression scores in the json schema by specifying `inference_kwargs.enum_scores` as true. Valid score options for each KDMA are added to `align_system/prompt_engineering/kdma_descriptions.yml`
+* Added option to configure ICL example ordering: ``incontext.most_similar_first=true`` for the most similar ICL example first, ``false`` for most similar ICL example last.
 
 ## 0.5.3
 

@@ -218,7 +218,10 @@ class IncontextExampleGenerator(object, metaclass=ABCMeta):
             raise ValueError(f'"{icl_strategy}" is not a valid incontext method. Please use "random" or '
                                 '"scenario_bert_similarity" or "prompt_bert_similarity"')
 
-        return selected_icl_examples
+        if self.incontext_settings.get("most_similar_first", True):
+            return selected_icl_examples
+        else:
+            return selected_icl_examples[::-1]
 
 
 class BaselineIncontextExampleGenerator(IncontextExampleGenerator):
