@@ -310,7 +310,7 @@ class JsDivergenceKdeAlignment(AlignmentFunction):
 
 
 class CumulativeJsDivergenceKdeAlignment(AlignmentFunction):
-    def __call__(self, kdma_values, target_kdmas, choice_history, misaligned=False, kde_norm='globalnorm', norm_factor=0.5, probabilistic=False):
+    def __call__(self, kdma_values, target_kdmas, choice_history, misaligned=False, kde_norm='globalnorm', priornorm_factor=0.5, probabilistic=False):
         '''
         Creates potential cumulative KDEs (with history) for each choice by adding mean of sampled score predictions
         Returns the selected choice resulting in cumulative KDE with minimum JS divergence to target KDE
@@ -328,7 +328,7 @@ class CumulativeJsDivergenceKdeAlignment(AlignmentFunction):
                     target_kdma = target_kdma.to_dict()
                 if target_kdma['kdma'] not in choice_history:
                     choice_history[target_kdma['kdma']] = []
-                target_kde = kde_utils.load_kde(target_kdma, kde_norm, norm_factor)
+                target_kde = kde_utils.load_kde(target_kdma, kde_norm, priornorm_factor)
                 predicted_samples = kdma_values[choice][target_kdma['kdma']]
                 history_and_predicted_samples = choice_history[target_kdma['kdma']] + [np.mean(predicted_samples)]
                 predicted_kde = kde_utils.get_kde_from_samples(history_and_predicted_samples)

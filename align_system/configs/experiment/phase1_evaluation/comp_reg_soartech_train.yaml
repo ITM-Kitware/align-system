@@ -16,7 +16,7 @@ adm:
   inference_kwargs:
     distribution_matching: cumulative_kde
     kde_norm: priornorm
-    norm_factor: 0.5 # priornorm weighting
+    priornorm_factor: 0.5 # priornorm weighting
     kdma_score_examples: true
     num_samples: 1
     predict_outcomes: false
