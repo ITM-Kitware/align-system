@@ -1,5 +1,6 @@
 import yaml
 import torch
+import jinja2
 import json
 import numpy as np
 
@@ -13,7 +14,6 @@ from align_system.utils import adm_utils
 from align_system.utils import outlines_prompts_utils
 from align_system.utils import alignment_utils
 from align_system.utils import incontext_utils
-from align_system.utils.hydrate_state import hydrate_scenario_state
 from align_system.algorithms.outlines_adm import OutlinesTransformersADM
 from align_system.prompt_engineering.outlines_prompts import (
     scenario_state_description_with_relevant_char_info,
@@ -44,6 +44,7 @@ class OutlinesTransformersComparativeRegressionADM(OutlinesTransformersADM):
         self.baseline = baseline
         self.probabilistic = probabilistic
         self.choice_history = {} # Used for cumulative KDE alignment
+        self.environment = jinja2.Environment()
 
         model_kwargs = kwargs.get('model_kwargs', {})
         if 'precision' in kwargs:
@@ -144,12 +145,16 @@ class OutlinesTransformersComparativeRegressionADM(OutlinesTransformersADM):
             # loop over target kdmas
             for target_kdma in target_kdmas:
                 if kdma_score_examples:
+                    template = self.environment.from_string(target_kdma['score_examples'])
+                    score_examples = template.render(kdma_scale_factor=target_kdma['factor'])
                     kdma_score_sys_prompt = comparative_kdma_score_prediction_system_prompt_with_examples(target_kdma['name'],
                                                                                                           target_kdma['description'],
-                                                                                                          target_kdma['score_examples'])
+                                                                                                          score_examples,
+                                                                                                          target_kdma['factor'])
                 else:
                     kdma_score_sys_prompt = comparative_kdma_score_prediction_system_prompt(target_kdma['name'],
-                                                                                            target_kdma['description'])
+                                                                                            target_kdma['description'],
+                                                                                            target_kdma['factor'])
 
                 icl_examples = []
                 if use_icl:
@@ -188,7 +193,7 @@ class OutlinesTransformersComparativeRegressionADM(OutlinesTransformersADM):
         if enum_scores:
             score_schema = enum_comparative_kdma_score_prediction_json_schema(choices, target_kdma['valid_scores'])
         else:
-            score_schema = comparative_kdma_score_prediction_json_schema(choices)
+            score_schema = comparative_kdma_score_prediction_json_schema(choices, target_kdma['factor'])
         kdma_score_generator = outlines.generate.json(
             self.model,
             score_schema,
@@ -226,10 +231,11 @@ class OutlinesTransformersComparativeRegressionADM(OutlinesTransformersADM):
             for kdma_idx in range(len(target_kdmas)):
                 kdma_prediction = kdma_score_responses[sample_idx][kdma_idx]
                 kdma_key = target_kdmas[kdma_idx]['kdma']
+                kdma_factor = target_kdmas[kdma_idx]['factor']
                 for choice in choices:
                     reasonings[choice][kdma_key].append(kdma_prediction[choice]['reasoning'])
-                    # Scale score to be between 0 and 1 instead of 0 and 10 to match targets
-                    predictions[choice][kdma_key].append(kdma_prediction[choice]['score']/10)
+                    # Scale score to be between 0 and 1 to match targets
+                    predictions[choice][kdma_key].append(kdma_prediction[choice]['score'] / kdma_factor)
 
         return predictions, reasonings
 
@@ -291,8 +297,16 @@ class OutlinesTransformersComparativeRegressionADM(OutlinesTransformersADM):
             else:
                 target_kdmas[kdma_idx]['name'] = kdma_descriptions[kdma]['name']
                 target_kdmas[kdma_idx]['description'] = kdma_descriptions[kdma]['description']
+                target_kdmas[kdma_idx]['factor'] = kdma_descriptions[kdma]['factor']
                 target_kdmas[kdma_idx]['score_examples'] = kdma_descriptions[kdma]['score_examples']
-                target_kdmas[kdma_idx]['valid_scores'] = kdma_descriptions[kdma]['valid_scores']
+                if "values" in kdma_descriptions[kdma]['valid_scores']:
+                    target_kdmas[kdma_idx]['valid_scores'] = kdma_descriptions[kdma]['valid_scores']["values"]
+                elif "range" in kdma_descriptions[kdma]['valid_scores']:
+                    r_params = kdma_descriptions[kdma]['valid_scores']['range']
+                    target_kdmas[kdma_idx]['valid_scores'] = list(range(
+                        r_params['min'], r_params['max'] + r_params['step'], r_params['step']))
+                else:
+                    raise RuntimeError("Unknown valid scores option, expecting 'values' or 'range'")
 
 
         # Predict outcome of selecting each choice - optional

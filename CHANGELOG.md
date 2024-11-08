@@ -19,9 +19,11 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 * Phase 1 experiments directory
 * Added the option to filter out TAG CHARACTER responses by setting `filter_tag_character` to true
 * Added a history-based alignment function for scalar targets that uses distance to a running mean. To use specify `inference_kwargs.distribution_matching` as `cumulative_average`
-* Added the option to enumerate the valid regression scores in the json schema by specifying `inference_kwargs.enum_scores` as true. Valid score options for each KDMA are added to `align_system/prompt_engineering/kdma_descriptions.yml`
+* Added the option to enumerate the valid regression scores in the json schema by specifying `inference_kwargs.enum_scores` as true. Valid score options for each KDMA are added to `align_system/prompt_engineering/kdma_descriptions.yml`.
+  Valid score options may be specifed as a list via ``values``, or a ``range`` specifed as dictionary of ``min`` (inclusive), ``max`` (inclusive), ``step``
 * Added option to configure ICL example ordering: ``incontext.most_similar_first=true`` for the most similar ICL example first, ``false`` for most similar ICL example last.
 * Added the option to normalize KDE targets based on prior data. To use, set `adm.inference_kwargs.kde_norm=priornorm` and `adm.inference_kwargs.priornorm_factor` to the normalization weight you want (1 is fully normalized, 0 is no normalization or `rawscores`, default is 0.5.
+* Added KDMA scaling factor option. Scale factors for each KDMA are added to `align_system/prompt_engineering/kdma_descriptions.yml`
 
 ### Fixed
 

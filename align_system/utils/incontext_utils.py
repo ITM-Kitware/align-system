@@ -98,7 +98,7 @@ class IncontextExampleGenerator(object, metaclass=ABCMeta):
 
             # Normalize ground truth KDMA values
             if 'normalization' in self.incontext_settings:
-                if self.incontext_settings['normalization'] != None and self.incontext_settings['normalization'] != 'rawscores':
+                if self.incontext_settings['normalization'] is not None and self.incontext_settings['normalization'] != 'rawscores':
                     if self.incontext_settings['normalization'] == 'globalnorm':
                         incontext_data = self._global_normalization(incontext_data)
                     elif self.incontext_settings['normalization'] == 'localnorm':
@@ -298,8 +298,8 @@ class ComparativeRegressionIncontextExampleGenerator(IncontextExampleGenerator):
                     # Only include choice if there is a ground truth KDMA value available
                     if kdma_value is None:
                         continue
-                    # Predicted scores are 0-10, KDMA values are 0-1
-                    scaled_kdma_value = int(kdma_value * 10)
+                    # Groundtruth KDMA values are 0-1, but ADM may predict on a different scale
+                    scaled_kdma_value = int(kdma_value * target_kdma["factor"])
                     icl_response[choice] = {}
                     icl_response[choice]['reasoning'] = self.get_chain_of_thought_reasoning(target_kdma, action,
                                                                                             example['state'], choice,
@@ -307,7 +307,7 @@ class ComparativeRegressionIncontextExampleGenerator(IncontextExampleGenerator):
                     icl_response[choice]['score'] = scaled_kdma_value
                     included_choices.append(choice)
                 # Check if response is valid against json schema
-                correct_schema = json.loads(comparative_kdma_score_prediction_json_schema(included_choices))
+                correct_schema = json.loads(comparative_kdma_score_prediction_json_schema(included_choices, target_kdma["factor"]))
                 validate(instance=icl_response, schema=correct_schema)
 
                 # Get example prompt
@@ -358,7 +358,7 @@ class ComparativeRegressionIncontextExampleGenerator(IncontextExampleGenerator):
                     cot_reasoning += f"Because {action_character.name} acted to {action_character.intent}"
                 # add directness of causality to reasoning
                 if not hasattr(action_character, 'directness_of_causality') or action_character.directness_of_causality is None or action_character.directness_of_causality == 'none':
-                        cot_reasoning += f" and did not cause of harm"
+                        cot_reasoning += " and did not cause of harm"
                 else:
                     cot_reasoning += f" and had a {action_character.directness_of_causality} cause of harm"
 
@@ -387,7 +387,7 @@ class ComparativeRegressionIncontextExampleGenerator(IncontextExampleGenerator):
                     cot_reasoning += f"Because {action_character.name} would have better quality of life post-treatment"
                     # Sub-optimal treatment
                     if expected_value == 7:
-                        cot_reasoning += f" but it is not the best treatment approach"
+                        cot_reasoning += " but it is not the best treatment approach"
                 # Worse quality of life patient
                 elif expected_value < 5:
                     cot_reasoning += f"Because {action_character.name} would have worse quality of life post-treatment"
@@ -408,7 +408,7 @@ class ComparativeRegressionIncontextExampleGenerator(IncontextExampleGenerator):
                     cot_reasoning += f"Because {action_character.name} would likely survive treatment"
                     # Sub-optimal treatment
                     if expected_value == 7:
-                        cot_reasoning += f" but it is not the best treatment approach"
+                        cot_reasoning += " but it is not the best treatment approach"
                 # Worse quality of life patient
                 elif expected_value < 5:
                     cot_reasoning += f"Because {action_character.name} would likely not survive treatment"
@@ -418,7 +418,7 @@ class ComparativeRegressionIncontextExampleGenerator(IncontextExampleGenerator):
 
         # if a "because" statement has not been added
         if cot_reasoning == '':
-            cot_reasoning = f"Choosing "
+            cot_reasoning = "Choosing "
         # else the reasoning will have form "Because ..., choosing ..."
         else:
             cot_reasoning += ", choosing "

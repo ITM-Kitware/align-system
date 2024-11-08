@@ -484,18 +484,20 @@ def kdma_score_prediction_system_prompt(kdma, kdma_description):
     """
 
 @outlines.prompt
-def comparative_kdma_score_prediction_system_prompt(kdma, kdma_description):
+def comparative_kdma_score_prediction_system_prompt(kdma, kdma_description, kdma_scale_factor):
     """
     You are a specialized algorithm tasked with judging medical triage decisions \
     in a military medical context.  Given a scenario and list of possible responses, \
-    your job is to assess (on a scale from 0 to 10) how well each response \
-    characterizes the decision making behavior of someone with high {{kdma}}. \
+    your job is to assess (on a scale from {{ "%g" | format(0 * kdma_scale_factor) }} to \
+    {{ "%g" | format(1.0 * kdma_scale_factor) }}) how well each response characterizes the \
+    decision making behavior of someone with high {{kdma}}. \
 
     {{kdma_description}}
 
-    A score of 0 means that the response is a poor characterization of someone \
-    who is acting with high {{kdma}}. A score of 10 means that the response \
-    is a perfect characterization of someone who is acting with high {{kdma}}.
+    A score of {{ "%g" | format(0 * kdma_scale_factor) }} means that the response is a poor \
+    characterization of someone who is acting with high {{kdma}}. A score of \
+    {{ "%g" | format(1.0 * kdma_scale_factor) }} means that the response is a perfect \
+    characterization of someone who is acting with high {{kdma}}.
 
     For each response, provide a score and one sentence of reasoning explaining your score.
     """
@@ -521,18 +523,22 @@ def kdma_score_prediction_system_prompt_with_examples(kdma, kdma_description, kd
     """
 
 @outlines.prompt
-def comparative_kdma_score_prediction_system_prompt_with_examples(kdma, kdma_description, kdma_score_examples):
+def comparative_kdma_score_prediction_system_prompt_with_examples(
+    kdma, kdma_description, kdma_score_examples, kdma_scale_factor
+):
     """
     You are a specialized algorithm tasked with judging medical triage decisions \
     in a military medical context.  Given a scenario and list of possible responses, \
-    your job is to assess (on a scale from 0 to 10) how well each response \
-    characterizes the decision making behavior of someone with high {{kdma}}. \
+    your job is to assess (on a scale from {{ "%g" | format(0 * kdma_scale_factor) }} to \
+    {{ "%g" | format(1.0 * kdma_scale_factor) }}) how well each response characterizes the \
+    decision making behavior of someone with high {{kdma}}. \
 
     {{kdma_description}}
 
-    A score of 0 means that the response is a poor characterization of someone \
-    who is acting with high {{kdma}}. A score of 10 means that the response \
-    is a perfect characterization of someone who is acting with high {{kdma}}.\
+    A score of {{ "%g" | format(0 * kdma_scale_factor) }} means that the response is a poor \
+    characterization of someone who is acting with high {{kdma}}. A score of \
+    {{ "%g" | format(1.0 * kdma_scale_factor) }} means that the response is a perfect \
+    characterization of someone who is acting with high {{kdma}}.\
 
     Here are some examples:
     {{kdma_score_examples}}
@@ -603,7 +609,7 @@ def kdma_score_prediction_json_schema():
     '''
 
 
-def comparative_kdma_score_prediction_json_schema(choices):
+def comparative_kdma_score_prediction_json_schema(choices, kdma_scale_factor):
     json_schema = {
         "type": "object",
         "properties": {
@@ -617,8 +623,8 @@ def comparative_kdma_score_prediction_json_schema(choices):
                     },
                     "score": {
                         "type": "integer",
-                        "minimum": 0,
-                        "maximum": 10
+                        "minimum": 0 * kdma_scale_factor,
+                        "maximum": 1 * kdma_scale_factor
                     }
                 },
                 "required": ["score", "reasoning"]

@@ -36,7 +36,7 @@ def load_kde(target_kdma, norm='globalnorm', priornorm_factor=0.5):
         elif target_kdma['kdma'] == 'PerceivedQuantityOfLivesSaved':
             prior_data = [0.1]*24 + [0.3]*16 + [0.7]*8 + [0.9]*24
         else:
-            raise RuntimeError(f'No prior data for {target_kde['kdma']}')
+            raise RuntimeError(f'No prior data for {target_kde["kdma"]}')
         prior_kde = get_kde_from_samples(prior_data)
         prior_density = _kde_to_pdf(prior_kde, linspace)
 
