@@ -1,0 +1,36 @@
+# @package _global_
+defaults:
+  - override /adm: outlines_regression_aligned_comparative/incontext_phase1
+  - override /interface: ta3
+
+interface:
+  api_endpoint: "http://127.0.0.1:8089"
+  session_type: adept
+  scenario_ids:
+    - DryRunEval.IO1
+    - DryRunEval.IO1-w-events
+    - DryRunEval.IO1exp
+    - DryRunEval.IO1v2
+    - DryRunEval.IO2
+    - DryRunEval.IO3
+  training_session: true
+
+adm:
+  instance:
+    precision: half
+    sampler:
+      _target_: outlines.samplers.MultinomialSampler
+      temperature: 0.7
+  inference_kwargs:
+    kdma_score_examples: true
+    num_samples: 5
+    predict_outcomes: false
+    generator_batch_size: 5
+    incontext:
+      sort_actions: true
+      normalization: null
+      number: 5
+      leave_one_out_strategy: characters
+
+sort_available_actions: true
+align_to_target: true
