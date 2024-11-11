@@ -4,6 +4,7 @@ import itertools
 import numpy as np
 import torch
 import yaml
+import copy
 
 import outlines
 from outlines.samplers import MultinomialSampler
@@ -392,27 +393,54 @@ class OutlinesTransformersADM(ActionBasedADM):
                 self.ensure_character_id_is_populated(scenario_state, action_to_take, dialog)
 
         if action_to_take.action_type == ActionTypeEnum.APPLY_TREATMENT:
-            if action_to_take.parameters is None or ('treatment' not in action_to_take.parameters and 'location' not in action_to_take.parameters):
-                # TODO: Add inference kwarg to use herustic treatment options or not
+            if action_to_take.parameters is None or 'treatment' not in action_to_take.parameters or 'location' not in action_to_take.parameters:
+                # TODO: Add inference kwarg to use heurustic treatment options or not
                 from align_system.algorithms.apply_treatment import treatment_options
 
                 character_injuries = [i.to_dict() for i in scenario_state.characters[selected_character_idx].injuries]
                 supplies = [s.to_dict() for s in scenario_state.supplies]
 
                 heuristic_treatment_options = treatment_options(character_injuries, supplies)
-                log.debug("[bold]*HEURISTIC TREATMENT OPTIONS*[/bold]",
-                          extra={"markup": True})
-                log.debug(heuristic_treatment_options)
-                action_to_take, selected_treatment, dialog =\
-                    self.select_treatment_parameters(scenario_state,
-                                                     action_to_take,
-                                                     selected_character,
-                                                     selected_character_idx,
-                                                     dialog,
-                                                     heuristic_treatment_options)
+
+                # Filter heuristic treatment options by already
+                # populated treatment or location
+                if action_to_take.parameters is not None:
+                    att_treatment = action_to_take.parameters.get('treatment')
+                    att_location = action_to_take.parameters.get('location')
+
+                filtered_heuristic_treatments = []
+                filtered_heuristic_params = []
+                for heuristic_treatment, heuristic_params in zip(heuristic_treatment_options.get('treatments', ()),
+                                                                 heuristic_treatment_options.get('parameters', ())):
+                    if att_treatment is not None and heuristic_params['treatment'] != att_treatment:
+                        continue
+                    if att_location is not None and heuristic_params['location'] != att_location:
+                        continue
+
+                    filtered_heuristic_treatments.append(heuristic_treatment)
+                    filtered_heuristic_params.append(heuristic_params)
+
+                filtered_heuristic_treatment_options = copy.deepcopy(heuristic_treatment_options)
+                filtered_heuristic_treatment_options['treatments'] = filtered_heuristic_treatments
+                filtered_heuristic_treatment_options['parameters'] = filtered_heuristic_params
+
+                # Should fall back to subsequent treatment / location
+                # handler if no heuristic treatment options left after
+                # filtering.
+                if len(filtered_heuristic_treatments) > 0:
+                    log.debug("[bold]*HEURISTIC TREATMENT OPTIONS*[/bold]",
+                              extra={"markup": True})
+                    log.debug(heuristic_treatment_options)
+                    action_to_take, selected_treatment, dialog =\
+                        self.select_treatment_parameters(scenario_state,
+                                                         action_to_take,
+                                                         selected_character,
+                                                         selected_character_idx,
+                                                         dialog,
+                                                         filtered_heuristic_treatment_options)
 
             # Use follow up prompt to define treatment and/or location if neccesary
-            elif action_to_take.parameters is None or 'treatment' not in action_to_take.parameters or 'location' not in action_to_take.parameters:
+            if action_to_take.parameters is None or 'treatment' not in action_to_take.parameters or 'location' not in action_to_take.parameters:
                 action_to_take, selected_treatment, dialog =\
                     self.populate_treatment_parameters(scenario_state,
                                                        action_to_take,
