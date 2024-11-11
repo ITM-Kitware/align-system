@@ -20,6 +20,9 @@ class OracleADM(ActionBasedADM):
         self.probabilistic = probabilistic
         self.choice_history = {} # Used for cumulative KDE alignment
 
+    def reset_history(self):
+        self.choice_history = {}
+
     def choose_action(self, scenario_state, available_actions, alignment_target,
                       distribution_matching='sample', kde_norm='rawscores',
                       priornorm_factor=0.5, **kwargs):

@@ -70,6 +70,8 @@ class OutlinesTransformersComparativeRegressionADM(OutlinesTransformersADM):
         # of samples in the sampler may result in unexpected behavior
         self.sampler = sampler
 
+    def reset_history(self):
+        self.choice_history = {}
 
     def sample_outcome_predictions(self,
                                    scenario_description,
