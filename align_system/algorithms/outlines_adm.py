@@ -404,6 +404,8 @@ class OutlinesTransformersADM(ActionBasedADM):
 
                 # Filter heuristic treatment options by already
                 # populated treatment or location
+                att_treatment = None
+                att_location = None
                 if action_to_take.parameters is not None:
                     att_treatment = action_to_take.parameters.get('treatment')
                     att_location = action_to_take.parameters.get('location')
