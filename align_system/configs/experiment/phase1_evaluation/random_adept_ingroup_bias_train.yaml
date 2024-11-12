@@ -13,6 +13,6 @@ interface:
     - DryRunEval.IO1v2
     - DryRunEval.IO2
     - DryRunEval.IO3
-  training_session: true
+  training_session: full
 
 align_to_target: true

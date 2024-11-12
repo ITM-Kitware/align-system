@@ -10,7 +10,7 @@ interface:
     - DryRunEval.MJ1
     - DryRunEval.MJ1-w-events
     - DryRunEval.MJ3
-  training_session: true
+  training_session: full
 
 adm:
   instance:

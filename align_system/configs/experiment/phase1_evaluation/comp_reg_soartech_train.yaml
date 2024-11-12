@@ -6,7 +6,7 @@ defaults:
 interface:
   api_endpoint: "http://127.0.0.1:8089"
   session_type: soartech
-  training_session: true
+  training_session: full
 
 adm:
   instance:

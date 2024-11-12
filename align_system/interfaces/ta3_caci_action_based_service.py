@@ -21,7 +21,7 @@ class TA3CACIActionBasedServiceInterface(Interface):
                  api_endpoint='http://127.0.0.1:8080',
                  session_type='eval',
                  scenario_ids=[],
-                 training_session=False):
+                 training_session=None):
         self.api_endpoint = api_endpoint
         # Append a UUID onto the end of our username, as the TA3
         # server doesn't allow multiple concurrent sessions for the
@@ -43,8 +43,12 @@ class TA3CACIActionBasedServiceInterface(Interface):
         start_session_params = {'adm_name': self.username,
                                 'session_type':  session_type}
 
-        if self.training_session:
-            start_session_params['kdma_training'] = True
+        if self.training_session is not None:
+            if self.training_session not in {'full', 'solo'}:
+                raise RuntimeError("Expecting `training_session` to be "
+                                   "either 'full' or 'solo'")
+
+            start_session_params['kdma_training'] = self.training_session
 
         self.session_id = self.connection.start_session(
             **start_session_params)
@@ -67,7 +71,9 @@ class TA3CACIActionBasedServiceInterface(Interface):
             self.connection, self.session_id, scenario)
 
     def get_session_alignment(self, alignment_target):
-        if self.training_session:
+        if self.training_session == 'full':
+            # 'solo' training sessions are not able to retrieve an
+            # alignment score
             return self.connection.get_session_alignment(
                 self.session_id, alignment_target.id)
         else:
