@@ -11,6 +11,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 * ``incontext.leave_one_out=false`` should now be configured as ``incontext.leave_one_out_strategy=null``. Default behavior is **no** leave one out behavior.
   Previous ``incontext.leave_one_out=true`` should be specified as ``incontext.leave_one_out_strategy=scenario_description``. Additionally, duplicate ICL examples,
   based on the chosen similiarity strategy, are now removed.
+* Changed `training_session` flag for TA3 interface from boolean to string (expecting "full" or "solo" or None)
 
 ### Added
 
