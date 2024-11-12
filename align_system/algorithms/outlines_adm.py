@@ -617,9 +617,13 @@ class OutlinesTransformersADM(ActionBasedADM):
             #  TODO: Handle this case prior to calling this function
             raise RuntimeError("No possible treatments from heuristic_treatment_options!")
         elif len(possible_treatments) == 1:
+            # Assumes correspondence between 'treatments' and 'parameters'
+            assert len(heuristic_treatment_options['parameters']) == 1
+
+            only_treatment_params = heuristic_treatment_options['parameters'][0]
             selected_treatment = {'detailed_reasoning': '<Only one heuristic treatment option available>',
-                                  'supplies_to_use': possible_treatments[0]['treatment'],
-                                  'treatment_location': possible_treatments[0]['location']}
+                                  'supplies_to_use': only_treatment_params['treatment'],
+                                  'treatment_location': only_treatment_params['location']}
         # If there are multiple treatment locations and/or we are missing the treatment, use follow-up
         else:
             available_supplies = [s for s in scenario_state.supplies if s.quantity > 0]
