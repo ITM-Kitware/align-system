@@ -14,6 +14,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 * Changed `training_session` flag for TA3 interface from boolean to string (expecting "full" or "solo" or None)
 * Changed the comparative regression prompt to only include the structured chararcter information listed in `relevant_structured_character_info` in `kdma_descriptions.yaml`. To include all strucutured information that is unique across characters in the prompt (as was previously done automatically), specify `relevant_structured_character_info = ['all_unique']`.
 * Improved the QoL `description` and `score_examples` in `kdma_descriptions.yaml`
+* Changed default treatment parameter selection to use heuristic treatment options
 
 ### Added
 
@@ -27,6 +28,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 * Added option to configure ICL example ordering: ``incontext.most_similar_first=true`` for the most similar ICL example first, ``false`` for most similar ICL example last.
 * Added the option to normalize KDE targets based on prior data. To use, set `adm.inference_kwargs.kde_norm=priornorm` and `adm.inference_kwargs.priornorm_factor` to the normalization weight you want (1 is fully normalized, 0 is no normalization or `rawscores`, default is 0.5.
 * Added KDMA scaling factor option. Scale factors for each KDMA are added to `align_system/prompt_engineering/kdma_descriptions.yml`
+* Added heuristic treatment options component
 
 ### Fixed
 
