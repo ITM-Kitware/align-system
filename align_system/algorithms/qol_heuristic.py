@@ -14,14 +14,15 @@ from align_system.utils import logging
 from align_system.utils import alignment_utils
 from align_system.algorithms.abstracts import ActionBasedADM
 from align_system.utils import get_swagger_class_enum_values
-from align_system.utils.structured_data_utils import flatten, intent_mapping, doc_mapping, action_type_mapping
+from align_system.utils.structured_data_utils import flatten, standardize_injury_loc, injury_type_mapping, \
+    injury_loc_mapping, injury_sev_mapping, treatment_type_mapping, action_type_mapping
 
 log = logging.getLogger(__name__)
 
 
 class HeuristicADM(ActionBasedADM):
     def __init__(self, misaligned: bool=False, probabilistic: bool=False):
-        self.model = joblib.load("knn_mj.pkl")
+        self.model = joblib.load("knn_qol.pkl")
         self.misaligned = misaligned
         self.probabilistic = probabilistic
         self.choice_history = {} # Used for cumulative KDE alignment
@@ -63,19 +64,27 @@ class HeuristicADM(ActionBasedADM):
                 num_injuries = len(character_dict[cid]['injuries'])
                 # Do pre-processing of features
                 feat_vec = [
-                    intent_mapping[character_dict[cid]['intent']],
-                    doc_mapping[character_dict[cid]['directness_of_causality']],
+                    character_dict[cid].get('demographics_age', -1),
+                    injury_type_mapping[character_dict[cid]['injuries'][0].get('name')],
+                    injury_loc_mapping[standardize_injury_loc(character_dict[cid]['injuries'][0].get('location'))],
+                    injury_sev_mapping[character_dict[cid]['injuries'][0].get('severity')]
+                ] + ([
+                    injury_type_mapping[character_dict[cid]['injuries'][1].get('name')],
+                    injury_loc_mapping[standardize_injury_loc(character_dict[cid]['injuries'][1].get('location'))],
+                    injury_sev_mapping[character_dict[cid]['injuries'][1].get('severity')]
+                ] if num_injuries > 1 else [-1, -1, -1]
+                ) + ([
+                    injury_type_mapping[character_dict[cid]['injuries'][2].get('name')],
+                    injury_loc_mapping[standardize_injury_loc(character_dict[cid]['injuries'][2].get('location'))],
+                    injury_sev_mapping[character_dict[cid]['injuries'][2].get('severity')]
+                ] if num_injuries > 2 else [-1, -1, -1]
+                ) + [
+                    treatment_type_mapping[action.parameters.get('treatment')],
                     action_type_mapping[action.action_type]
                 ]
 
                 # Assume single-KDMA for now
                 pred_kdma_values[action.action_id] = {target_kdmas[0]['kdma']: self.model.predict(np.array(feat_vec).reshape(1, -1)).item()}
-                actions_with_chars.append(action)
-
-        if len(actions_with_chars) == 0:
-            for action in available_actions:
-                print(action.action_type)
-                pred_kdma_values[action.action_id] = {target_kdmas[0]['kdma']: random.uniform(0,1)}
                 actions_with_chars.append(action)
 
         if all_scalar_targets:

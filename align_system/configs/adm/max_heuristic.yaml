@@ -1,2 +1,0 @@
-instance:
-  _target_: align_system.algorithms.max_heuristic.HeuristicADM

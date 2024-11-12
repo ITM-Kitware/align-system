@@ -1,5 +1,5 @@
 instance:
-  _target_: align_system.algorithms.io_heuristic.HeuristicADM
+  _target_: align_system.algorithms.vol_heuristic.HeuristicADM
 
 inference_kwargs:
   distribution_matching: sample

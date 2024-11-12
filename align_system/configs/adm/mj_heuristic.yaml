@@ -1,2 +1,6 @@
 instance:
   _target_: align_system.algorithms.mj_heuristic.HeuristicADM
+
+inference_kwargs:
+  distribution_matching: sample
+  kde_norm: rawscores
