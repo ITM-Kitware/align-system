@@ -26,7 +26,8 @@ adm:
       sort_actions: true
       normalization: null
       number: 5
-      leave_one_out_strategy: characters
+      leave_one_out_strategy: characters  # null for eval
+      most_similar_first: false
 
 force_determinism: true
 align_to_target: true
