@@ -12,7 +12,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   Previous ``incontext.leave_one_out=true`` should be specified as ``incontext.leave_one_out_strategy=scenario_description``. Additionally, duplicate ICL examples,
   based on the chosen similiarity strategy, are now removed.
 * Changed `training_session` flag for TA3 interface from boolean to string (expecting "full" or "solo" or None)
-* Changed the comparative regression prompt to only include the structured chararcter information listed in `relevant_structured_character_info` in `kdma_descriptions.yaml` rather than including all unique character information
+* Changed the comparative regression prompt to only include the structured chararcter information listed in `relevant_structured_character_info` in `kdma_descriptions.yaml`. To include all strucutured information that is unique across characters in the prompt (as was previously done automatically), specify `relevant_structured_character_info = ['all_unique']`.
 * Improved the QoL `description` and `score_examples` in `kdma_descriptions.yaml`
 
 ### Added
