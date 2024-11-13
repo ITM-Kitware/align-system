@@ -311,7 +311,13 @@ class ComparativeRegressionIncontextExampleGenerator(IncontextExampleGenerator):
                 validate(instance=icl_response, schema=correct_schema)
 
                 # Get example prompt
-                character_info = outlines_prompts_utils.get_relevant_structured_character_info(example['state'].characters, self.target_kdmas)
+                relevant_fields = []
+                for target_kdma in self.target_kdmas:
+                    relevant_fields.extend(target_kdma['relevant_structured_character_info'])
+                if 'all_unique' in relevant_fields:
+                    character_info = outlines_prompts_utils.get_unique_structured_character_info(example['state'].characters)
+                else:
+                    character_info = outlines_prompts_utils.get_relevant_structured_character_info(example['state'].characters, self.target_kdmas)
                 icl_scenario_description = scenario_state_description_with_relevant_char_info(example['state'], character_info)
                 # Only include choices in the prompt if they are in the response
                 included_icl_choices_with_outcomes = {}

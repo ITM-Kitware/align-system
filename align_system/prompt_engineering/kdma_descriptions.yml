@@ -8,7 +8,7 @@ Ingroup Bias:
       min: 0
       max: 100
       step: 1
-  relevant_structured_character_info: ['rapport', 'demographics.military_disposition', 'demographics.military_branch']
+  relevant_structured_character_info: ['all_unique']
 
 Moral judgement:
   name: moral judgment
@@ -20,7 +20,7 @@ Moral judgement:
       min: 0
       max: 100
       step: 1
-  relevant_structured_character_info: ['intent', 'directness_of_causality']
+  relevant_structured_character_info: ['intent', 'directness_of_causality', 'injuries']
 
 PerceivedQuantityOfLivesSaved:
   name: perceived quantity of lives saved

@@ -302,7 +302,13 @@ class OutlinesTransformersComparativeRegressionADM(OutlinesTransformersADM):
                     raise RuntimeError("Unknown valid scores option, expecting 'values' or 'range'")
                 target_kdmas[kdma_idx].update(kdma_descriptions[kdma])
 
-        character_info = outlines_prompts_utils.get_relevant_structured_character_info(scenario_state.characters, target_kdmas)
+        relevant_fields = []
+        for target_kdma in target_kdmas:
+            relevant_fields.extend(target_kdma['relevant_structured_character_info'])
+        if 'all_unique' in relevant_fields:
+            character_info = outlines_prompts_utils.get_unique_structured_character_info(scenario_state.characters)
+        else:
+            character_info = outlines_prompts_utils.get_relevant_structured_character_info(scenario_state.characters, target_kdmas)
         scenario_description = scenario_state_description_with_relevant_char_info(scenario_state, character_info)
 
         # Predict outcome of selecting each choice - optional
