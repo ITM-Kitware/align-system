@@ -107,7 +107,7 @@ class IncontextExampleGenerator(object, metaclass=ABCMeta):
                         raise ValueError(f'{self.incontext_settings["normalization"]} is not a valid incontext normalization option. '
                                         'Please use "globalnorm" or "localnorm".')
 
-            return incontext_data
+        return incontext_data
 
     def _global_normalization(self, incontext_data):
         for kdma in list(incontext_data.keys()):
