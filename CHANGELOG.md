@@ -31,6 +31,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 * Added KDMA scaling factor option. Scale factors for each KDMA are added to `align_system/prompt_engineering/kdma_descriptions.yml`
 * Added heuristic treatment options component
 * Added incontext examples to the `input_output.json` files for comparative regression
+* Added ICL example selection method that gives larger weight to examples with the same action types as the current probe. To use set `incontext.method` to `matching_actions`.
 
 ### Fixed
 
