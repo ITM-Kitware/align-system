@@ -3,7 +3,7 @@
 This changelog follows the specifications detailed in: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html), although we have not yet reached a `1.0.0` release.
 
-## Unreleased
+## 0.5.4
 
 ### Changed
 
@@ -15,6 +15,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 * Changed the comparative regression prompt to only include the structured chararcter information listed in `relevant_structured_character_info` in `kdma_descriptions.yaml`. To include all strucutured information that is unique across characters in the prompt (as was previously done automatically), specify `relevant_structured_character_info = ['all_unique']`.
 * Improved the QoL `description` and `score_examples` in `kdma_descriptions.yaml`
 * Changed default treatment parameter selection to use heuristic treatment options
+* Updated to transformers>=4.46.2 (and added necessary dependencies) to support newer models
 
 ### Added
 
