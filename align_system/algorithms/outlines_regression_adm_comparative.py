@@ -140,6 +140,7 @@ class OutlinesTransformersComparativeRegressionADM(OutlinesTransformersADM):
                                                                                                    target_kdmas)
 
         kdma_dialogs = []
+        icl_example_responses = []
         # loop over samples
         for sample_idx in range(num_samples):
             # loop over target kdmas
@@ -177,6 +178,8 @@ class OutlinesTransformersComparativeRegressionADM(OutlinesTransformersADM):
                             {"role": "user", "content": icl_sample['prompt']},
                             {"role": "assistant", "content": f'{icl_sample["response"]}'}
                         ])
+                        icl_example_responses.append(icl_sample["response"])
+
 
                 predict_kdma_prompt = comparative_kdma_score_prediction_prompt(scenario_description,
                                                                                outcome_predictions[sample_idx],
@@ -237,7 +240,7 @@ class OutlinesTransformersComparativeRegressionADM(OutlinesTransformersADM):
                     # Scale score to be between 0 and 1 to match targets
                     predictions[choice][kdma_key].append(kdma_prediction[choice]['score'] / kdma_factor)
 
-        return predictions, reasonings
+        return predictions, reasonings, icl_example_responses
 
     # Returns the outcome prediction (if there was one) and score reasoning for the best sample of the selected choice
     def get_selected_choice_reasoning(self, selected_choice, best_sample_index, outcome_predictions, reasonings):
@@ -327,7 +330,7 @@ class OutlinesTransformersComparativeRegressionADM(OutlinesTransformersADM):
 
 
         # Predict kdma values
-        predicted_kdma_values, reasonings = self.sample_kdma_score_predictions(
+        predicted_kdma_values, reasonings, icl_example_responses = self.sample_kdma_score_predictions(
             scenario_state, scenario_description, choices, target_kdmas, outcome_predictions,
             num_samples, generator_batch_size, kdma_score_examples, enum_scores,
             incontext_settings=kwargs.get("incontext", {})
@@ -344,7 +347,7 @@ class OutlinesTransformersComparativeRegressionADM(OutlinesTransformersADM):
         log.info("Predicted KDMA Values:")
         log.info(json.dumps(predicted_kdma_values))
 
-        choice_info = {'true_kdma_values':true_kdma_values, 'predicted_kdma_values':predicted_kdma_values}
+        choice_info = {'true_kdma_values':true_kdma_values, 'predicted_kdma_values':predicted_kdma_values, 'icl_example_responses':icl_example_responses}
 
         # Get type of targets
         all_scalar_targets = True
