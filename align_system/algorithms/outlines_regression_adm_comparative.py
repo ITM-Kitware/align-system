@@ -121,6 +121,7 @@ class OutlinesTransformersComparativeRegressionADM(OutlinesTransformersADM):
                                       scenario_description,
                                       choices,
                                       target_kdmas,
+                                      available_actions,
                                       outcome_predictions,
                                       num_samples=1,
                                       batch_size=6,
@@ -172,6 +173,7 @@ class OutlinesTransformersComparativeRegressionADM(OutlinesTransformersADM):
                         scenario_description_to_match=scenario_description,
                         prompt_to_match=prompt_to_match,
                         state_comparison=scenario_state,
+                        actions=available_actions
                     )
                     for icl_sample in selected_icl_examples:
                         icl_examples.extend([
@@ -331,7 +333,7 @@ class OutlinesTransformersComparativeRegressionADM(OutlinesTransformersADM):
 
         # Predict kdma values
         predicted_kdma_values, reasonings, icl_example_responses = self.sample_kdma_score_predictions(
-            scenario_state, scenario_description, choices, target_kdmas, outcome_predictions,
+            scenario_state, scenario_description, choices, target_kdmas, available_actions, outcome_predictions,
             num_samples, generator_batch_size, kdma_score_examples, enum_scores,
             incontext_settings=kwargs.get("incontext", {})
         )

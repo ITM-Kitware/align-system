@@ -141,7 +141,7 @@ class IncontextExampleGenerator(object, metaclass=ABCMeta):
                 incontext_data[kdma][example_idx]['kdma_values'] = norm_values
         return incontext_data
 
-    def select_icl_examples(self, sys_kdma_name, scenario_description_to_match, prompt_to_match, state_comparison):
+    def select_icl_examples(self, sys_kdma_name, scenario_description_to_match, prompt_to_match, state_comparison, actions):
         '''
         Selects a list of relevant ICL examples
         Input:
@@ -214,6 +214,23 @@ class IncontextExampleGenerator(object, metaclass=ABCMeta):
             _, indices = torch.topk(F1, n_icl_examples)
 
             selected_icl_examples = [final_icl_candidates[i] for i in indices]
+        elif icl_strategy == "matching_actions":
+            action_types = set([action.action_type for action in actions])
+            possible_icl_prompts = [icl_sample["prompt"] for icl_sample in possible_icl_examples]
+            possible_icl_actions = [set([action.action_type for action in icl_sample['actions']]) for icl_sample in possible_icl_examples]
+
+            # Create similarity scores between the ICL samples and find top-k indices
+            from bert_score import score
+            _, _, scores = score([prompt_to_match]*len(possible_icl_prompts), possible_icl_prompts, lang="en")
+
+            # Give examples with the same action types more weight
+            for i in range(len(scores)):
+                if action_types.issubset(possible_icl_actions[i]):
+                    scores[i] += 1
+
+            _, indices = torch.topk(scores, n_icl_examples)
+
+            selected_icl_examples = [possible_icl_examples[i] for i in indices]
         else:
             raise ValueError(f'"{icl_strategy}" is not a valid incontext method. Please use "random" or '
                                 '"scenario_bert_similarity" or "prompt_bert_similarity"')
@@ -333,7 +350,8 @@ class ComparativeRegressionIncontextExampleGenerator(IncontextExampleGenerator):
                     "state": example["state"],
                     "scenario_description": icl_scenario_description,
                     "prompt": icl_prompt,
-                    "response": icl_response
+                    "response": icl_response,
+                    "actions": example['actions']
                     })
 
         self.icl_datasets = icl_datasets
