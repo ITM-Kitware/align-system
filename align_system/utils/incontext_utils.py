@@ -231,6 +231,23 @@ class IncontextExampleGenerator(object, metaclass=ABCMeta):
             _, indices = torch.topk(scores, n_icl_examples)
 
             selected_icl_examples = [possible_icl_examples[i] for i in indices]
+        elif icl_strategy == "matching_characters":
+            action_chars = set([action.character_id for action in actions])
+            possible_icl_prompts = [icl_sample["prompt"] for icl_sample in possible_icl_examples]
+            possible_icl_chars = [set([action.character_id for action in icl_sample['actions']]) for icl_sample in possible_icl_examples]
+
+            # Create similarity scores between the ICL samples and find top-k indices
+            from bert_score import score
+            _, _, scores = score([prompt_to_match]*len(possible_icl_prompts), possible_icl_prompts, lang="en")
+
+            # Give examples with the same character more weight
+            for i in range(len(scores)):
+                if action_chars.issubset(possible_icl_chars[i]):
+                    scores[i] += 1
+
+            _, indices = torch.topk(scores, n_icl_examples)
+
+            selected_icl_examples = [possible_icl_examples[i] for i in indices]
         else:
             raise ValueError(f'"{icl_strategy}" is not a valid incontext method. Please use "random" or '
                                 '"scenario_bert_similarity" or "prompt_bert_similarity"')
