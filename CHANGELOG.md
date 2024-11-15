@@ -32,6 +32,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 * Added heuristic treatment options component
 * Added incontext examples to the `input_output.json` files for comparative regression
 * Added ICL example selection method that gives larger weight to examples with the same action types as the current probe. To use set `incontext.method` to `matching_actions`.
+* Added ICL example selection method that gives larger weight to examples with the same characetr ids as the current probe. To use set `incontext.method` to `matching_characters`.
 
 ### Fixed
 
