@@ -1,0 +1,23 @@
+# @package _global_
+defaults:
+  - override /adm: outlines_transformers_structured_baseline
+  - override /interface: ta3
+
+interface:
+  api_endpoint: "https://darpaitm.caci.com"
+  session_type: eval
+  training_session: null
+  username: "ALIGN-ADM-OutlinesBaseline-Llama-3.1-8B-Instruct"
+
+adm:
+  instance:
+    precision: half
+    model_name: meta-llama/Llama-3.1-8B-Instruct
+
+force_determinism: true
+align_to_target: true
+save_last_unstructured_state_per_scenario: true
+
+hydra:
+  run:
+    dir: 'phase1_eval_live/baseline-Llama-3.1-8B-Instruct/${now:%Y-%m-%d__%H-%M-%S}'

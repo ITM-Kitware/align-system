@@ -1,0 +1,23 @@
+# @package _global_
+defaults:
+  - override /adm: outlines_transformers_structured_baseline
+  - override /interface: ta3
+
+interface:
+  api_endpoint: "https://darpaitm.caci.com"
+  session_type: eval
+  training_session: null
+  username: "ALIGN-ADM-OutlinesBaseline-Phi-3-medium-4k-instruct"
+
+adm:
+  instance:
+    precision: half
+    model_name: microsoft/Phi-3-medium-4k-instruct
+    
+force_determinism: true
+align_to_target: true
+save_last_unstructured_state_per_scenario: true
+
+hydra:
+  run:
+    dir: 'phase1_eval_live/baseline-Phi-3-medium-4k-instruct/${now:%Y-%m-%d__%H-%M-%S}'

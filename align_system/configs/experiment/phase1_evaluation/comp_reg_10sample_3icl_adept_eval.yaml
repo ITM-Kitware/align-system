@@ -1,0 +1,37 @@
+# @package _global_
+defaults:
+  - override /adm: outlines_regression_aligned_comparative/incontext_phase1
+  - override /interface: ta3
+
+interface:
+  api_endpoint: "https://darpaitm.caci.com"
+  session_type: adept
+  training_session: null
+  username: "ALIGN-ADM-ComparativeRegression-Mistral-7B-Instruct-v0.2-ADEPT-10Sample-3ICL"
+
+adm:
+  instance:
+    precision: half
+    sampler:
+      _target_: outlines.samplers.MultinomialSampler
+      temperature: 0.7
+    model_name: mistralai/Mistral-7B-Instruct-v0.2
+  inference_kwargs:
+    kdma_score_examples: true
+    num_samples: 10
+    predict_outcomes: false
+    generator_batch_size: 5
+    incontext:
+      sort_actions: true
+      normalization: null
+      number: 3
+      leave_one_out_strategy: null
+      most_similar_first: false
+
+sort_available_actions: true
+align_to_target: true
+save_last_unstructured_state_per_scenario: true
+
+hydra:
+  run:
+    dir: 'phase1_eval_live/ALIGN-ADM-ComparativeRegression-Mistral-7B-Instruct-v0.2-ADEPT-10Sample-3ICL/${now:%Y-%m-%d__%H-%M-%S}'

@@ -1,0 +1,23 @@
+# @package _global_
+defaults:
+  - override /adm: outlines_transformers_structured_baseline
+  - override /interface: ta3
+
+interface:
+  api_endpoint: "https://darpaitm.caci.com"
+  session_type: eval
+  training_session: null
+  username: "ALIGN-ADM-OutlinesBaseline-Mistral-7B-Instruct-v0.3"
+
+adm:
+  instance:
+    precision: half
+    model_name: mistralai/Mistral-7B-Instruct-v0.3
+
+force_determinism: true
+align_to_target: true
+save_last_unstructured_state_per_scenario: true
+
+hydra:
+  run:
+    dir: 'phase1_eval_live/baseline-Mistral-7B-Instruct-v0.3/${now:%Y-%m-%d__%H-%M-%S}'
