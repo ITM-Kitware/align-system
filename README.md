@@ -112,9 +112,9 @@ captured in a new configuration file.  We manage these experiments in
 delivered ADMs for the Metrics Evaluation (both to run on training
 data, and eval data).
 
-## Dry Run Evaluation ADM Invocations
+## Phase 1 Evaluation ADM Invocations
 
-We've specified Hydra experiments for the Dry Run Evaluation ADMs.
+We've specified Hydra experiments for the Phase 1 Evaluation ADMs.
 Note that by default these configurations attempt to connect to
 `https://darpaitm.caci.com` as the TA3 API endpoint, but this can be
 overridden with `interface.api_endpoint='http://127.0.0.1:8080'` on
@@ -125,32 +125,27 @@ the command line.
 (Good candidate for a smoketest)
 
 ```
-run_align_system +experiment=dry_run_evaluation/random_eval_live
+run_align_system +experiment=phase1_evaluation/random_eval_live
 ```
 
 ### Baseline ADM
 
 ```
-run_align_system +experiment=dry_run_evaluation/outlines_baseline_eval_live
+run_align_system +experiment=phase1_evaluation/baseline_eval_live
 ```
 
-### Aligned ADM 1 (Comparative Regression + ICL + Template ADM) (ADEPT eval scenarios)
+### Aligned ADM Adept (Comparative Regression + ICL + Template ADM) (ADEPT eval scenarios)
 
 ```
-run_align_system +experiment=dry_run_evaluation/comparative_regression_icl_template_eval_live_adept
+run_align_system +experiment=dry_run_evaluation/aligned_adm_adept_eval
 ```
 
-### Aligned ADM 1 (Comparative Regression + ICL + Template ADM) (SoarTech eval scenarios)
+### Aligned ADM SoarTech (Comparative Regression + ICL + Template ADM) (SoarTech eval scenarios)
 
 ```
-run_align_system +experiment=dry_run_evaluation/comparative_regression_icl_template_eval_live_soartech
+run_align_system +experiment=dry_run_evaluation/aligned_adm_soartech_eval
 ```
 
-### Aligned ADM 2 (Hybrid Regression ADM)
-
-```
-run_align_system +experiment=dry_run_evaluation/hybrid_regression_eval_live
-```
 
 ## Implementing a new ADM
 

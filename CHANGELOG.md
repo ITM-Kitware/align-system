@@ -3,6 +3,15 @@
 This changelog follows the specifications detailed in: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html), although we have not yet reached a `1.0.0` release.
 
+## 0.5.5
+
+### Added
+
+* Added Phase 1 Evaluation experiment configuration files
+* Added ICL example selection method that gives larger weight to examples with the same characetr ids as the current probe. To use set `incontext.method` to `matching_characters`.
+* Added ICL example selection method that gives larger weight to examples with the same action types as the current probe. To use set `incontext.method` to `matching_actions`.
+* Added retrieved ICL examples to input-output.json
+
 ## 0.5.4
 
 ### Changed
@@ -31,8 +40,6 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 * Added KDMA scaling factor option. Scale factors for each KDMA are added to `align_system/prompt_engineering/kdma_descriptions.yml`
 * Added heuristic treatment options component
 * Added incontext examples to the `input_output.json` files for comparative regression
-* Added ICL example selection method that gives larger weight to examples with the same action types as the current probe. To use set `incontext.method` to `matching_actions`.
-* Added ICL example selection method that gives larger weight to examples with the same characetr ids as the current probe. To use set `incontext.method` to `matching_characters`.
 
 ### Fixed
 
