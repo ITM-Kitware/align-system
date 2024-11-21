@@ -34,6 +34,10 @@ def main(cfg: DictConfig) -> None:
     if cfg.save_log:
         logfile_path = os.path.join(output_dir, "align_system.log")
 
+    raw_logfile_path = None
+    if cfg.save_raw_log:
+        raw_logfile_path = os.path.join(output_dir, "raw_align_system.log")
+
     save_input_output_to_path = None
     if cfg.save_input_output:
         save_input_output_to_path = os.path.join(output_dir, "input_output.json")
@@ -56,13 +60,29 @@ def main(cfg: DictConfig) -> None:
     root_logger = logging.getLogger()
     root_logger.setLevel(cfg.loglevel)
 
+    def _log_closer_closure(logfile_filehandler):
+        # Capture the logfile filehandler object we want to close
+        # in a closure to keep a reference to it when it comes
+        # time to close it
+        def _close_logfile():
+            logfile_filehandler.close()
+
+        return _close_logfile
+
     if logfile_path is not None:
         logfile = open(logfile_path, 'w')
         # Ensure the opened logfile is closed when the program exits
-        atexit.register(lambda: logfile.close())
+        atexit.register(_log_closer_closure(logfile))
 
         filehandler = RichHandler(
             console=Console(file=logfile, color_system=None))
+        root_logger.addHandler(filehandler)
+
+    if raw_logfile_path is not None:
+        # Using Python stdlib logging.FileHandler
+        from logging import FileHandler
+        filehandler = FileHandler(raw_logfile_path)
+
         root_logger.addHandler(filehandler)
 
     if cfg.get('force_determinism', False) or 'torch_random_seed' in cfg:
