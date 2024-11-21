@@ -5,7 +5,7 @@ defaults:
 
 interface:
   api_endpoint: "https://darpaitm.caci.com"
-  session_type: soartech
+  session_type: eval
   training_session: null
   username: "ALIGN-ADM-OutlinesBaseline"
 
@@ -19,4 +19,4 @@ save_last_unstructured_state_per_scenario: true
 
 hydra:
   run:
-    dir: 'phase1_eval_live/baseline_soartech/${now:%Y-%m-%d__%H-%M-%S}'
+    dir: 'phase1_eval_live/baseline/${now:%Y-%m-%d__%H-%M-%S}'
