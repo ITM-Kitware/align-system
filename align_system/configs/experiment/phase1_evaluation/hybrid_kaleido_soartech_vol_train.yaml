@@ -11,10 +11,10 @@ interface:
   api_endpoint: "http://127.0.0.1:8089"
   session_type: soartech
   scenario_ids:
-    - qol-ph1-train-1
-    - qol-ph1-train-2
-    - qol-ph1-train-3
-    - qol-ph1-train-4
+    - vol-ph1-train-1
+    - vol-ph1-train-2
+    - vol-ph1-train-3
+    - vol-ph1-train-4
   training_session: full
 
 align_to_target: true
