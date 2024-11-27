@@ -115,9 +115,9 @@ class KaleidoADM(AlignedDecisionMaker, ActionBasedADM):
                 allow_extraneous=True,
                 choice=choice, other_choices=other_choices_str)
 
-            log.debug("[bold] ** Kaleido Prompt ** [/bold]",
-                      extra={"markup": True})
-            log.debug(choice_prompt)
+            log.info("[bold] ** Kaleido Prompt ** [/bold]",
+                     extra={"markup": True})
+            log.info(choice_prompt)
 
             for kdma in kdmas:
                 mapped_kdma = kdma_descriptions_map[kdma]
