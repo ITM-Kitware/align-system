@@ -9,6 +9,7 @@ defaults:
 loglevel: "EXPLAIN"
 
 save_log: true
+save_raw_log: true
 save_input_output: true
 save_scoring_output: true
 save_alignment_targets: false

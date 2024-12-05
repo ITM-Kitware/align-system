@@ -7,18 +7,19 @@ import pandas as pd
 from swagger_client.models import (
     kdma_value
 )
+from rich.highlighter import JSONHighlighter
 
 from align_system.algorithms.abstracts import ActionBasedADM
 from align_system.algorithms.lib.kaleido import KaleidoSys
 from align_system.algorithms.abstracts import AlignedDecisionMaker
 from align_system.algorithms.lib.util import format_template
-from align_system.algorithms.outlines_adm import OutlinesTransformersADM
 from align_system.utils import logging
 from align_system.utils import adm_utils
 from align_system.utils import alignment_utils
 
 
 log = logging.getLogger(__name__)
+JSON_HIGHLIGHTER = JSONHighlighter()
 
 pd.set_option('display.max_colwidth', None)
 pd.set_option('display.max_columns', None)
@@ -114,9 +115,9 @@ class KaleidoADM(AlignedDecisionMaker, ActionBasedADM):
                 allow_extraneous=True,
                 choice=choice, other_choices=other_choices_str)
 
-            log.debug("[bold] ** Kaleido Prompt ** [/bold]",
-                      extra={"markup": True})
-            log.debug(choice_prompt)
+            log.info("[bold] ** Kaleido Prompt ** [/bold]",
+                     extra={"markup": True})
+            log.info(choice_prompt)
 
             for kdma in kdmas:
                 mapped_kdma = kdma_descriptions_map[kdma]
@@ -344,9 +345,9 @@ class KaleidoADM(AlignedDecisionMaker, ActionBasedADM):
         all_scalar_targets = True
         all_kde_targets = True
         for target_kdma in target_kdmas:
-            if not hasattr(target_kdma, 'value') or target_kdma.value is None:
+            if 'value' not in target_kdma or target_kdma["value"] is None:
                 all_scalar_targets = False
-            if not hasattr(target_kdma, 'kdes') or target_kdma.kdes is None:
+            if 'kdes' not in target_kdma or target_kdma["kdes"] is None:
                 all_kde_targets = False
 
         # Select aligned choice
@@ -393,5 +394,30 @@ class KaleidoADM(AlignedDecisionMaker, ActionBasedADM):
         action_to_take = available_actions[selected_choice_idx]
         action_to_take.justification = kaleido_results.loc[selected_choice_idx, :].explanation
 
-        choice_info = {}
+        # Log true kdma values if present
+        true_kdma_values = {}
+        predicted_kdma_values = {}
+        for choice_idx, available_action in enumerate(available_actions):
+            true_kdma_values[available_action.unstructured] = available_action.kdma_association
+            # Assumes the ordering of actions isn't different between
+            # our kaleido_results data frame and the original ordering
+
+            pred_kdma_values_for_choice = {}
+            matching_choice_recs = kaleido_results[kaleido_results['choice'] == choices_unstructured[choice_idx]]
+            for kdma, recs in matching_choice_recs.groupby('KDMA'):
+                assert len(recs) == 1, "Assuming only a single record for each choice and KDMA"
+                pred_kdma_values_for_choice[kdma] =\
+                    [float(recs.iloc[0].estimated_kdma_value / 10.0)]
+
+            predicted_kdma_values[available_action.unstructured] = pred_kdma_values_for_choice
+
+        log.info("True KDMA Values:")
+        log.info(true_kdma_values, extra={"highlighter": JSON_HIGHLIGHTER})
+
+        # Log predicted kdma values
+        log.info("Predicted KDMA Values:")
+        log.info(predicted_kdma_values, extra={"highlighter": JSON_HIGHLIGHTER})
+
+        choice_info = {'true_kdma_values': true_kdma_values,
+                       'predicted_kdma_values': predicted_kdma_values}
         return action_to_take, choice_info
