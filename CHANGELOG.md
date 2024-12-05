@@ -3,6 +3,22 @@
 This changelog follows the specifications detailed in: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html), although we have not yet reached a `1.0.0` release.
 
+## Unreleased
+
+### Fixed
+
+* Fixed alignment target parsing for KaleidoADM
+
+### Added
+
+* Added raw log output file (on by default) in addition to rich formatted log output file
+* Added choice_info output to KaleidoADM to support MSE analysis
+
+### Changed
+
+* Changed KaleidoADM prompt log output to "info" instead of "debug"
+
+
 ## 0.5.6
 
 ### Changed
