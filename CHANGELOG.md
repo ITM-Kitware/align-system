@@ -13,6 +13,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 * Added raw log output file (on by default) in addition to rich formatted log output file
 * Added choice_info output to KaleidoADM to support MSE analysis
+* Added multi-KDMA alignment targets for testing
 
 ### Changed
 
