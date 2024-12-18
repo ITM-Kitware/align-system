@@ -348,6 +348,21 @@ def action_choice_json_schema(choices_json_str):
 
 
 @outlines.prompt
+def action_choice_json_schema_untrimmed(choices_json_str):
+    '''
+    {"$defs": {"ActionChoice": {"enum": {{ choices_json_str }},
+    "title": "ActionChoice",
+    "type": "string"}},
+    "properties": {"detailed_reasoning": {"title": "Detailed Reasoning",
+    "type": "string", "minLength": 1},
+    "action_choice": {"$ref": "#/$defs/ActionChoice"}},
+    "required": ["detailed_reasoning", "action_choice"],
+    "title": "ActionSelection",
+    "type": "object"}
+    '''
+
+
+@outlines.prompt
 def character_choice_json_schema(choices_json_str):
     '''
     {"$defs": {"CharacterChoice": {"enum": {{ choices_json_str }},
