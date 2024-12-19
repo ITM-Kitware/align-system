@@ -137,7 +137,7 @@ class AvgDistScalarAlignment(AlignmentFunction):
 
 
 class CumulativeAvgDistScalarAlignment(AlignmentFunction):
-    def __call__(self, kdma_values, target_kdmas, choice_history, misaligned=False, kde_norm='globalnorm', probabilistic=False):
+    def __call__(self, kdma_values, target_kdmas, choice_history={}, misaligned=False, kde_norm='globalnorm', probabilistic=False):
         '''
         Uses choice history to calcualte a running average,
         selects the choice that brings the running average closeest to the scalar target.

@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from functools import reduce, partial
 import inspect
 import yaml
+import numpy as np
 
 import pandas as pd
 from swagger_client.models import (
@@ -81,7 +82,11 @@ class KaleidoADM(AlignedDecisionMaker, ActionBasedADM):
     def __init__(self, **kwargs):
         log.info('Initializing Kaleido..')
         self.kaleido = KaleidoSys(**kwargs)
+        self.choice_history = {} # Used for cumulative KDE alignment
         log.info('..done initializing Kaleido')
+
+    def reset_history(self):
+        self.choice_history = {}
 
     def estimate_kdma_values(self,
                              prompt_template,
@@ -359,15 +364,16 @@ class KaleidoADM(AlignedDecisionMaker, ActionBasedADM):
         if predict_relevance:
             if all_scalar_targets:
                 alignment_function = alignment_utils.RelevanceAvgDistScalarAlignment()
-            # TODO
-            # elif all_kde_targets:
-            #     if not kwargs.get('use_alignment_utils', True):
-            #             raise RuntimeError("Can't handle KDE alignment targets "
-            #                             "without `use_alignment_utils` "
-            #                             "(set to True and retry)")
+            elif all_kde_targets:
+                if not kwargs.get('use_alignment_utils', True):
+                        raise RuntimeError("Can't handle KDE alignment targets "
+                                        "without `use_alignment_utils` "
+                                        "(set to True and retry)")
 
-            #     distribution_matching = kwargs.get('distribution_matching', 'sample')
-            #     alignment_function =
+                alignment_function = alignment_utils.RelevanceCumulativeJsDivergenceKdeAlignment()
+                alignment_function = partial(alignment_function, choice_history=self.choice_history,
+                                             kde_norm=kwargs.get('kde_norm', 'rawscores'),
+                                             priornorm_factor=kwargs.get('priornorm_factor',0.5))
             else:
                 # TODO: Currently we assume all targets either have scalar values or KDES,
                 #       Down the line, we should extend to handling multiple targets of mixed types
@@ -383,18 +389,23 @@ class KaleidoADM(AlignedDecisionMaker, ActionBasedADM):
                                     "without `use_alignment_utils` "
                                     "(set to True and retry)")
 
-                distribution_matching = kwargs.get('distribution_matching', 'sample')
-
-                if distribution_matching == 'sample':
-                    alignment_function = alignment_utils.MinDistToRandomSampleKdeAlignment()
-                elif distribution_matching == 'max_likelihood':
-                    alignment_function = alignment_utils.MaxLikelihoodKdeAlignment()
-                elif distribution_matching == 'js_divergence':
-                    alignment_function = alignment_utils.JsDivergenceKdeAlignment()
+                distribution_matching = kwargs.get('distribution_matching', 'cumulative_kde')
+                if distribution_matching == 'cumulative_kde':
+                    alignment_function = alignment_utils.CumulativeJsDivergenceKdeAlignment()
+                    alignment_function = partial(alignment_function, choice_history=self.choice_history, 
+                                                 kde_norm=kwargs.get('kde_norm', 'rawscores'),
+                                                 priornorm_factor=kwargs.get('priornorm_factor',0.5))
                 else:
-                    raise RuntimeError(distribution_matching, "distribution matching function unrecognized.")
+                    if distribution_matching == 'sample':
+                        alignment_function = alignment_utils.MinDistToRandomSampleKdeAlignment()
+                    elif distribution_matching == 'max_likelihood':
+                        alignment_function = alignment_utils.MaxLikelihoodKdeAlignment()
+                    elif distribution_matching == 'js_divergence':
+                        alignment_function = alignment_utils.JsDivergenceKdeAlignment()
+                    else:
+                        raise RuntimeError(distribution_matching, "distribution matching function unrecognized.")
 
-                alignment_function = partial(alignment_function, kde_norm=kwargs.get('kde_norm', 'globalnorm'))
+                    alignment_function = partial(alignment_function, kde_norm=kwargs.get('kde_norm', 'globalnorm'))
             else:
                 # TODO: Currently we assume all targets either have scalar values or KDES,
                 #       Down the line, we should extend to handling multiple targets of mixed types
@@ -422,27 +433,55 @@ class KaleidoADM(AlignedDecisionMaker, ActionBasedADM):
         # Log true kdma values if present
         true_kdma_values = {}
         predicted_kdma_values = {}
+        true_relevances = {}
+        predicted_relevances = {}
         for choice_idx, available_action in enumerate(available_actions):
             true_kdma_values[available_action.unstructured] = available_action.kdma_association
+            true_relevances[available_action.unstructured] = {}
+            for target_kdma in target_kdmas:
+                if available_action.kdma_association:
+                    if target_kdma['kdma'] in available_action.kdma_association:
+                        true_relevances[available_action.unstructured][target_kdma['kdma']] = 1
+                    else:
+                        true_relevances[available_action.unstructured][target_kdma['kdma']] = 0
+                else:
+                    true_relevances[available_action.unstructured][target_kdma['kdma']] = 0
             # Assumes the ordering of actions isn't different between
             # our kaleido_results data frame and the original ordering
 
             pred_kdma_values_for_choice = {}
+            pred_rel_values_for_choice = {}
             matching_choice_recs = kaleido_results[kaleido_results['choice'] == choices_unstructured[choice_idx]]
             for kdma, recs in matching_choice_recs.groupby('KDMA'):
                 assert len(recs) == 1, "Assuming only a single record for each choice and KDMA"
                 pred_kdma_values_for_choice[kdma] =\
                     [float(recs.iloc[0].estimated_kdma_value / 10.0)]
+                pred_rel_values_for_choice[kdma] = float(recs.iloc[0].relevant)
 
             predicted_kdma_values[available_action.unstructured] = pred_kdma_values_for_choice
+            predicted_relevances[available_action.unstructured] = pred_rel_values_for_choice
+
+        # Update choice history
+        for target_kdma in target_kdmas:
+            kdma = target_kdma['kdma']
+            if kdma not in self.choice_history:
+                self.choice_history[kdma] = []
+            self.choice_history[kdma].append(np.mean(predicted_kdma_values[kaleido_results['choice'][selected_choice_idx]][kdma])) 
 
         log.info("True KDMA Values:")
         log.info(true_kdma_values, extra={"highlighter": JSON_HIGHLIGHTER})
 
-        # Log predicted kdma values
         log.info("Predicted KDMA Values:")
         log.info(predicted_kdma_values, extra={"highlighter": JSON_HIGHLIGHTER})
 
+        log.info("True KDMA Relevances:")
+        log.info(true_relevances, extra={"highlighter": JSON_HIGHLIGHTER})
+
+        log.info("Predicted KDMA Relevances:")
+        log.info(predicted_relevances, extra={"highlighter": JSON_HIGHLIGHTER})
+
         choice_info = {'true_kdma_values': true_kdma_values,
-                       'predicted_kdma_values': predicted_kdma_values}
+                       'predicted_kdma_values': predicted_kdma_values,
+                       'true_relevances': true_relevances,
+                       'predicted_relevances': predicted_relevances}
         return action_to_take, choice_info
