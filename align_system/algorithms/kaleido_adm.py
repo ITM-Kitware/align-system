@@ -482,6 +482,6 @@ class KaleidoADM(AlignedDecisionMaker, ActionBasedADM):
 
         choice_info = {'true_kdma_values': true_kdma_values,
                        'predicted_kdma_values': predicted_kdma_values,
-                       'true_relevances': true_relevances,
-                       'predicted_relevances': predicted_relevances}
+                       'true_relevance': true_relevances,
+                       'predicted_relevance': predicted_relevances}
         return action_to_take, choice_info
