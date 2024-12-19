@@ -466,6 +466,17 @@ class OutlinesTransformersComparativeRegressionADM(OutlinesTransformersADM):
         choice_info = {'true_kdma_values':true_kdma_values, 'predicted_kdma_values':predicted_kdma_values, 'icl_example_responses':icl_example_responses}
 
         if predict_relevance:
+            # Log true relevance if present
+            true_relevance = {}
+            for choice_idx in range(len(available_actions)):
+                true_relevance[choices[choice_idx]] = {
+                    kdma['kdma']: 1 if available_actions[choice_idx].kdma_association is not None and kdma['kdma'] in available_actions[choice_idx].kdma_association else 0
+                    for kdma in target_kdmas
+                }
+            log.info("True Relevance")
+            log.info(json.dumps(true_relevance))
+            choice_info['true_relevance'] = true_relevance
+
             # Log predicted relevance
             log.info("Predicted Relevance Values:")
             log.info(json.dumps(predicted_relevance))
