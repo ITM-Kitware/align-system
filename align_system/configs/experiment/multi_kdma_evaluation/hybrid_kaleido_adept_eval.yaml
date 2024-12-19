@@ -1,0 +1,18 @@
+# @package _global_
+defaults:
+  - override /adm: hybrid_kaleido
+  - override /interface: ta3
+
+adm:
+  inference_kwargs:
+    kdma_descriptions_map: 'align_system/algorithms/lib/templates/kdma_descriptions_short_dry_run_eval.yml'
+    distribution_matching: average # no rel
+    predict_relevance: false # no rel
+
+interface:
+  api_endpoint: "https://darpaitm.caci.com"
+  session_type: adept
+  training_session: null
+  username: "ALIGN-ADM-HybridKaleido-ADEPT"
+
+align_to_target: true

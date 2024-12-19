@@ -5,29 +5,36 @@ defaults:
 
 interface:
   api_endpoint: "http://127.0.0.1:8089"
-  session_type: soartech
+  session_type: adept
+  scenario_ids:
+    - DryRunEval.IO1
+    - DryRunEval.IO1-w-events
+    - DryRunEval.IO1exp
+    - DryRunEval.IO1v2
+    - DryRunEval.IO2
+    - DryRunEval.IO3
   training_session: full
 
 adm:
   instance:
     precision: half
+    model_name: mistralai/Mistral-7B-Instruct-v0.3
     sampler:
       _target_: outlines.samplers.GreedySampler
   inference_kwargs:
-    distribution_matching: relevance_cumulative_kde # use relevance
-    kde_norm: priornorm
-    priornorm_factor: 0.5 # priornorm weighting
+    distribution_matching: relevance_average # use rel
+    predict_relevance: true # use rel
     kdma_score_examples: true
     num_samples: 1
     predict_outcomes: false
-    predict_relevance: true # use relevance
     generator_batch_size: 5
     incontext:
-      most_similar_first: false
+      method: prompt_bert_similarity
       sort_actions: true
       normalization: null
-      number: 3 # Make 4 for eval
-      leave_one_out: false # Doing scenario level LOO rather than probe 
-     
+      number: 5
+      leave_one_out_strategy: characters  # null for eval
+      most_similar_first: false
+
 force_determinism: true
 align_to_target: true

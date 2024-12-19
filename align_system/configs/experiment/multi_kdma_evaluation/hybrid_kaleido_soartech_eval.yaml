@@ -1,0 +1,20 @@
+# @package _global_
+defaults:
+  - override /adm: hybrid_kaleido
+  - override /interface: ta3
+
+adm:
+  inference_kwargs:
+    kdma_descriptions_map: 'align_system/prompt_engineering/kdma_descriptions.yml'
+    distribution_matching: cumulative_kde # no rel
+    predict_relevance: false # no rel
+    kde_norm: priornorm
+    priornorm_factor: 0.5 
+
+interface:
+  api_endpoint: "https://darpaitm.caci.com"
+  session_type: adept
+  training_session: null
+  username: "ALIGN-ADM-HybridKaleido-SoarTech"
+
+align_to_target: true

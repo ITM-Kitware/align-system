@@ -1,0 +1,19 @@
+# @package _global_
+defaults:
+  - override /adm: relevance_oracle
+  - override /interface: ta3
+
+interface:
+  api_endpoint: "http://127.0.0.1:8089"
+  session_type: adept
+  scenario_ids:
+    - DryRunEval.MJ1
+    - DryRunEval.MJ1-w-events
+    - DryRunEval.MJ3
+  training_session: full
+
+adm:
+  inference_kwargs:
+    distribution_matching: relevance_average 
+    
+align_to_target: true
