@@ -569,7 +569,7 @@ class RelevanceIncontextExampleGenerator(IncontextExampleGenerator):
                             icl_response[choice]['reasoning'] = self.get_irrelevant_chain_of_thought_reasoning(target_kdma, choice)
                         # else add generic COT reasoning
                         else:
-                            icl_response[choice]['reasoning'] = f'Selecting this response does not require considering {target_kdma['name']}.'
+                            icl_response[choice]['reasoning'] = f'Selecting this response does not require considering {target_kdma["name"]}.'
                         icl_response[choice]['relevant'] = 'no'
                     included_choices.append(choice)
                 # Check if response is valid against json schema
@@ -653,4 +653,3 @@ class RelevanceIncontextExampleGenerator(IncontextExampleGenerator):
             raise RuntimeError(f"Relevance ICL is not implemented for {target_kdma['kdma']}")
 
         return cot_reasoning
-
