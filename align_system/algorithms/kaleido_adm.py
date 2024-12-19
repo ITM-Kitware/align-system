@@ -218,8 +218,7 @@ class KaleidoADM(AlignedDecisionMaker, ActionBasedADM):
             kdma_values.setdefault(choice, {})[kdma] =\
                 [float(v) for v in (group_records['estimated_kdma_value'] / 10)]
 
-            relevance_values.setdefault(choice, {})[kdma] =\
-                [float(v) for v in (group_records['relevant'])]
+            relevance_values.setdefault(choice, {})[kdma] = float(group_records['relevant'])
 
         if predict_relevance:
             selected_choice, probs = alignment_fn(kdma_values, relevance_values, target_kdmas)
