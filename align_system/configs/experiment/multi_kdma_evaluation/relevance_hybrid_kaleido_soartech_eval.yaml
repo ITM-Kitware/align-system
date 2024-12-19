@@ -6,14 +6,15 @@ defaults:
 adm:
   inference_kwargs:
     kdma_descriptions_map: 'align_system/prompt_engineering/kdma_descriptions.yml'
-    distribution_matching: relevance_cumulative_kde 
+    distribution_matching: relevance_cumulative_kde # use rel
+    predict_relevance: true # use rel
     kde_norm: priornorm
     priornorm_factor: 0.5 
-    predict_relevance: true
 
 interface:
-  api_endpoint: "http://127.0.0.1:8089"
-  session_type: soartech
-  training_session: full
+  api_endpoint: "https://darpaitm.caci.com"
+  session_type: adept
+  training_session: null
+  username: "ALIGN-ADM-RelevanceHybridKaleido-SoarTech"
 
 align_to_target: true

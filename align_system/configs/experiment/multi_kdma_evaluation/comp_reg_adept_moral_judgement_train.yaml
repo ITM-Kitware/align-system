@@ -1,0 +1,37 @@
+# @package _global_
+defaults:
+  - override /adm: outlines_regression_aligned_comparative/incontext_phase1
+  - override /interface: ta3
+
+interface:
+  api_endpoint: "http://127.0.0.1:8089"
+  session_type: adept
+  scenario_ids:
+    - DryRunEval.MJ1
+    - DryRunEval.MJ1-w-events
+    - DryRunEval.MJ3
+  training_session: full
+
+adm:
+  instance:
+    precision: half
+    model_name: mistralai/Mistral-7B-Instruct-v0.3
+    sampler:
+      _target_: outlines.samplers.GreedySampler
+  inference_kwargs:
+    distribution_matching: average # no rel
+    predict_relevance: false # no rel
+    kdma_score_examples: true
+    num_samples: 1
+    predict_outcomes: false
+    generator_batch_size: 5
+    incontext:
+      method: prompt_bert_similarity
+      sort_actions: true
+      normalization: null
+      number: 5
+      leave_one_out_strategy: characters  # null for eval
+      most_similar_first: false
+
+force_determinism: true
+align_to_target: true
