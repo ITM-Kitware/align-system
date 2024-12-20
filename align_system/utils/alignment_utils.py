@@ -137,13 +137,16 @@ class AvgDistScalarAlignment(AlignmentFunction):
 
 
 class CumulativeAvgDistScalarAlignment(AlignmentFunction):
-    def __call__(self, kdma_values, target_kdmas, choice_history={}, misaligned=False, kde_norm='globalnorm', probabilistic=False):
+    def __call__(self, kdma_values, target_kdmas, choice_history=None, misaligned=False, kde_norm='globalnorm', probabilistic=False):
         '''
         Uses choice history to calcualte a running average,
         selects the choice that brings the running average closeest to the scalar target.
         '''
         kdma_values = _handle_single_value(kdma_values, target_kdmas)
         _check_if_targets_are_scalar(target_kdmas)
+
+        if choice_history is None:
+            choice_history = {}
 
         # Get distance from running average to targets
         distances = []
@@ -441,7 +444,7 @@ class RelevanceAvgDistScalarAlignment(RelevanceAlignmentFunction):
                 average_score = (sum(score_samples) / len(score_samples))
                 relevance = relevances[choice][kdma]
                 distance = _euclidean_distance(target_kdma['value'], average_score)
-                prob += relevance * (1/(distance+eps)) # weight by relevance 
+                prob += relevance * (1/(distance+eps)) # weight by relevance
             probs.append(prob)
         selected_choice, probs = self._select_min_dist_choice(choices, probs, misaligned, probabilistic=probabilistic)
         return selected_choice, probs
