@@ -1,0 +1,22 @@
+# @package _global_
+defaults:
+  - override /adm: hybrid_kaleido
+  - override /interface: ta3
+
+adm:
+  inference_kwargs:
+    kdma_descriptions_map: 'align_system/algorithms/lib/templates/kdma_descriptions_short_dry_run_eval.yml'
+    distribution_matching: relevance_average # use rel
+    predict_relevance: true # use rel
+
+interface:
+  api_endpoint: "http://127.0.0.1:8089"
+  session_type: adept
+  scenario_ids:
+    - BonusEval.IO
+    - DryRunEval-MJ2-eval
+    - DryRunEval-MJ4-eval
+    - DryRunEval-MJ5-eval
+  training_session: full
+
+align_to_target: true
