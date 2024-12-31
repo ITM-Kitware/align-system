@@ -15,7 +15,6 @@ interface:
   scenario_ids:
     - BonusEval.IO
     - DryRunEval-MJ2-eval
-    - DryRunEval-MJ4-eval
     - DryRunEval-MJ5-eval
   training_session: full
 
