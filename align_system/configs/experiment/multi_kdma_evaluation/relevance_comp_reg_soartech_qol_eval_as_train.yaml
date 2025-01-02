@@ -1,0 +1,40 @@
+# @package _global_
+defaults:
+  - override /adm: outlines_regression_aligned_comparative/incontext_phase1
+  - override /interface: ta3
+
+interface:
+  api_endpoint: "http://127.0.0.1:8089"
+  session_type: soartech
+  scenario_ids:
+    - qol-ph1-eval-2
+    - qol-ph1-eval-3
+    - qol-ph1-eval-4
+    - qol-ph1-eval-5
+  training_session: full
+
+adm:
+  instance:
+    precision: half
+    sampler:
+      _target_: outlines.samplers.GreedySampler
+    model_name: meta-llama/Llama-3.2-3B-Instruct
+  inference_kwargs:
+    distribution_matching: relevance_cumulative_kde # use rel
+    predict_relevance: true # use rel
+    kde_norm: priornorm
+    priornorm_factor: 0.5 # priornorm weighting
+    kdma_score_examples: true
+    num_samples: 1
+    predict_outcomes: false
+    generator_batch_size: 5
+    incontext:
+      most_similar_first: false
+      sort_actions: true
+      normalization: null
+      number: 4 # Make 4 for eval
+      leave_one_out: false # Doing scenario level LOO rather than probe 
+      method: matching_characters
+     
+force_determinism: true
+align_to_target: true
