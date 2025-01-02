@@ -27,9 +27,9 @@ from align_system.prompt_engineering.outlines_prompts import (
     enum_comparative_kdma_score_prediction_json_schema,
     baseline_system_prompt,
     action_selection_prompt,
-    relevance_classification_system_prompt,
-    relevance_classification_prompt,
-    relevance_classification_json_schema
+    relevance_regression_system_prompt,
+    relevance_regression_prompt,
+    relevance_regression_json_schema
 )
 
 log = logging.getLogger(__name__)
@@ -133,21 +133,21 @@ class OutlinesTransformersComparativeRegressionADM(OutlinesTransformersADM):
         use_icl = False
         if "number" in incontext_settings and incontext_settings["number"] > 0:
             use_icl = True
-            icl_example_generator = incontext_utils.RelevanceIncontextExampleGenerator(incontext_settings,
-                                                                                       target_kdmas)
+            icl_example_generator = incontext_utils.RelevanceRegressionIncontextExampleGenerator(incontext_settings,
+                                                                                                 target_kdmas)
         icl_example_responses = {}
         for target_kdma in target_kdmas:
             icl_example_responses[target_kdma['name']] = []
         relevance_dialogs = []
         # loop over target kdmas
         for target_kdma in target_kdmas:
-            relevance_sys_prompt = relevance_classification_system_prompt(target_kdma['name'],
+            relevance_sys_prompt = relevance_regression_system_prompt(target_kdma['name'],
                                                             target_kdma['description'],
                                                             target_kdma['factor'])
 
             icl_examples = []
             if use_icl:
-                prompt_to_match = relevance_classification_prompt(scenario_description,
+                prompt_to_match = relevance_regression_prompt(scenario_description,
                                                                 choices,
                                                                 target_kdma['name'])
                 selected_icl_examples = icl_example_generator.select_icl_examples(
@@ -164,7 +164,7 @@ class OutlinesTransformersComparativeRegressionADM(OutlinesTransformersADM):
                     ])
                     icl_example_responses[target_kdma['name']].append(icl_sample["response"])
 
-            predict_relevance_prompt = relevance_classification_prompt(scenario_description,
+            predict_relevance_prompt = relevance_regression_prompt(scenario_description,
                                                                     choices,
                                                                     target_kdma['name'])
             dialog = [{'role': 'system', 'content': relevance_sys_prompt}]
@@ -175,7 +175,7 @@ class OutlinesTransformersComparativeRegressionADM(OutlinesTransformersADM):
         # Need to set the whitespace_pattern to prevent the state
         # machine from looping indefinitely in some cases, see:
         # https://github.com/outlines-dev/outlines/issues/690#issuecomment-2102291934
-        relevance_schema = relevance_classification_json_schema(choices, target_kdma['factor'])
+        relevance_schema = relevance_regression_json_schema(choices, target_kdma['factor'])
         relevance_generator = outlines.generate.json(
             self.model,
             relevance_schema,
@@ -209,12 +209,10 @@ class OutlinesTransformersComparativeRegressionADM(OutlinesTransformersADM):
         for kdma_idx in range(len(target_kdmas)):
             rel_prediction = relevance_responses[0][kdma_idx]
             kdma_key = target_kdmas[kdma_idx]['kdma']
+            kdma_factor = target_kdmas[kdma_idx]['factor']
             for choice in choices:
                 reasonings[choice][kdma_key] = rel_prediction[choice]['reasoning']
-                if rel_prediction[choice]['relevant'] == 'yes':
-                    predictions[choice][kdma_key] = 1
-                else:
-                    predictions[choice][kdma_key] = 0
+                predictions[choice][kdma_key] = rel_prediction[choice]['relevance'] / kdma_factor
 
         return predictions, reasonings, icl_example_responses
 
