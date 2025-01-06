@@ -361,11 +361,9 @@ class OutlinesTransformersComparativeRegressionADM(OutlinesTransformersADM):
                 all_kde_targets = False
 
         # Select aligned choice
-        if all_scalar_targets:
-            alignment_function = alignment_utils.AvgDistScalarAlignment()
-            selected_choice, probs = alignment_function(predicted_kdma_values, target_kdmas, probabilistic=self.probabilistic)
-            best_sample_index = alignment_function.get_best_sample_index(predicted_kdma_values, target_kdmas, selected_choice)
-        elif all_kde_targets:
+        if all_kde_targets:
+            log.info(f"Aligning to KDE target using {distribution_matching} strategy")
+
             if distribution_matching == 'cumulative_kde':
                 alignment_function = alignment_utils.CumulativeJsDivergenceKdeAlignment()
                 selected_choice, probs = alignment_function(
@@ -380,13 +378,23 @@ class OutlinesTransformersComparativeRegressionADM(OutlinesTransformersADM):
                 elif distribution_matching == 'js_divergence':
                     alignment_function = alignment_utils.JsDivergenceKdeAlignment()
                 else:
-                    raise RuntimeError(distribution_matching, "distribution matching function unrecognized.")
+                    raise RuntimeError(distribution_matching, "distribution matching function unrecognized for kde targets.")
                 selected_choice, probs = alignment_function(
                     predicted_kdma_values, target_kdmas, kde_norm=kde_norm, probabilistic=self.probabilistic
                 )
+
             best_sample_index = alignment_function.get_best_sample_index(
                 predicted_kdma_values, target_kdmas, selected_choice, kde_norm=kde_norm
             )
+        elif all_scalar_targets:
+            log.info(f"Aligning to scalar target using {distribution_matching} strategy")
+
+            if distribution_matching == "average":
+                alignment_function = alignment_utils.AvgDistScalarAlignment()
+                selected_choice, probs = alignment_function(predicted_kdma_values, target_kdmas, probabilistic=self.probabilistic)
+                best_sample_index = alignment_function.get_best_sample_index(predicted_kdma_values, target_kdmas, selected_choice)
+            else:
+                raise RuntimeError(distribution_matching, "distribution matching function unrecognized for scalar targets.")
         else:
             # TODO: Currently we assume all targets either have scalar values or KDES,
             #       Down the line, we should extend to handling multiple targets of mixed types
