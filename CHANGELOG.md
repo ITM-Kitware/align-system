@@ -3,9 +3,15 @@
 This changelog follows the specifications detailed in: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html), although we have not yet reached a `1.0.0` release.
 
-## Unreleased
+## 0.5.6.hotfix1
+
+### Changed
 
 * Default to using KDE target when both KDE and scalar targets are present
+
+### Fixed
+
+* Fixed README Phase1 Evaluation run invocations for aligned ADMs
 
 ## 0.5.6
 
