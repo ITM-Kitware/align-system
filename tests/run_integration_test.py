@@ -48,6 +48,10 @@ def main():
                         default=False,
                         help="Don't delete temporary output "
                              "directory (useful for debugging)")
+    parser.add_argument("-s", "--show-experiment-stdout",
+                        action='store_true',
+                        default=False,
+                        help="Show stdout from experiment as it's running")
 
     run_integration_test(**vars(parser.parse_args()))
 
@@ -98,15 +102,20 @@ def compare_text_files_with_diff(experiment,
 
 def run_integration_test(experiment,
                          replace_expected_outputs=False,
-                         keep_temporary_outdir=False):
+                         keep_temporary_outdir=False,
+                         show_experiment_stdout=False):
     expected_outputs_dir = os.path.join(
         TESTS_DIR, 'data', 'expected_outputs', experiment)
 
     if replace_expected_outputs:
         # Ensure we're starting fresh for the files we plan to check
         # against
-        os.remove(os.path.join(expected_outputs_dir, 'input_output.json'))
-        os.remove(os.path.join(expected_outputs_dir, 'raw_align_system.log'))
+        expected_input_output_fp = os.path.join(expected_outputs_dir, 'input_output.json')
+        if os.path.exists(expected_input_output_fp):
+            os.remove(expected_input_output_fp)
+        expected_raw_log_fp = os.path.join(expected_outputs_dir, 'raw_align_system.log')
+        if os.path.exists(expected_raw_log_fp):
+            os.remove(expected_raw_log_fp)
 
         run_dir = expected_outputs_dir
 
@@ -149,10 +158,10 @@ def run_integration_test(experiment,
         _ = subprocess.run(
             run_experiment_command,
             check=True,
-            capture_output=True,
+            capture_output=(not show_experiment_stdout),
             encoding='utf-8')
     except subprocess.CalledProcessError as e:
-        log.error(e.stderr, file=sys.stderr)
+        log.error(e.stderr)
         raise e
 
     # Break before doing any checks against expected outputs (since we
