@@ -10,8 +10,7 @@ import logging
 import re
 
 from rich.logging import RichHandler
-from rich.highlighter import RegexHighlighter, NullHighlighter
-from rich.theme import Theme
+from rich.highlighter import NullHighlighter
 
 log = logging.getLogger(__name__)
 LOGGING_FORMAT = "%(message)s"
@@ -21,20 +20,6 @@ logging.basicConfig(
     datefmt="[%X]",
     handlers=[RichHandler(highlighter=NullHighlighter())])
 
-
-# class UnifiedDiffHighlighter(RegexHighlighter):
-#     """Apply style to anything that looks like a unified diff."""
-
-#     base_style = "unified_diff."
-#     highlights = [r'^(?P<file_line>(\-\-\-|\+\+\+)\s.*?)$',
-#                   r'^(?P<removed>\-\s.*?)$',
-#                   r'^(?P<added>\+\s.*?)$']
-
-
-# UNIFIED_DIFF_HIGHLIGHTER = UnifiedDiffHighlighter()
-# UNIFIED_DIFF_HIGHLIGHTER_THEME = Theme({'unified_diff.file_line': 'bold',
-#                                         'unified_diff.removed': 'red',
-#                                         'unified_diff.added': 'green'})
 
 TESTS_DIR = os.path.abspath(os.path.dirname(__file__))
 EXPECTED_OUT_GITIGNORE_CONTENT = '''
@@ -186,6 +171,10 @@ def run_integration_test(experiment,
                                              expected_outputs_dir,
                                              run_dir,
                                              'input_output.json')
+
+    if not all_good:
+        # Exit with status of 1, indicating failure
+        exit(1)
 
 
 if __name__ == "__main__":
