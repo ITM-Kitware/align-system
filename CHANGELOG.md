@@ -8,6 +8,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ### Fixed
 
 * Fixed alignment target parsing for KaleidoADM
+* Fixed issue where action parameters aren't set if there is only 1 remaining heuristic option.
 
 ### Added
 

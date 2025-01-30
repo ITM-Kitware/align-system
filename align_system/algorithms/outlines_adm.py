@@ -430,9 +430,9 @@ class OutlinesTransformersADM(ActionBasedADM):
                 # handler if no heuristic treatment options left after
                 # filtering.
                 if len(filtered_heuristic_treatments) > 0:
-                    log.debug("[bold]*HEURISTIC TREATMENT OPTIONS*[/bold]",
+                    log.debug("[bold]*FILTERED HEURISTIC TREATMENT OPTIONS*[/bold]",
                               extra={"markup": True})
-                    log.debug(heuristic_treatment_options)
+                    log.debug(filtered_heuristic_treatment_options)
                     action_to_take, selected_treatment, dialog =\
                         self.select_treatment_parameters(scenario_state,
                                                          action_to_take,
@@ -440,6 +440,8 @@ class OutlinesTransformersADM(ActionBasedADM):
                                                          selected_character_idx,
                                                          dialog,
                                                          filtered_heuristic_treatment_options)
+                else:
+                    log.debug("[bold]*NO FILTERED HEURISTIC TREATMENT OPTIONS*[/bold]")
 
             # Use follow up prompt to define treatment and/or location if neccesary
             if action_to_take.parameters is None or 'treatment' not in action_to_take.parameters or 'location' not in action_to_take.parameters:
@@ -617,13 +619,15 @@ class OutlinesTransformersADM(ActionBasedADM):
             #  TODO: Handle this case prior to calling this function
             raise RuntimeError("No possible treatments from heuristic_treatment_options!")
         elif len(possible_treatments) == 1:
+            log.debug("[bold]*SELECTING ONLY REMAINING HEURISTIC TREATMENT OPTION*[/bold]")
+
             # Assumes correspondence between 'treatments' and 'parameters'
             assert len(heuristic_treatment_options['parameters']) == 1
 
-            only_treatment_params = heuristic_treatment_options['parameters'][0]
+            treatment_parameters = heuristic_treatment_options['parameters'][0]
             selected_treatment = {'detailed_reasoning': '<Only one heuristic treatment option available>',
-                                  'supplies_to_use': only_treatment_params['treatment'],
-                                  'treatment_location': only_treatment_params['location']}
+                                  'supplies_to_use': treatment_parameters['treatment'],
+                                  'treatment_location': treatment_parameters['location']}
         # If there are multiple treatment locations and/or we are missing the treatment, use follow-up
         else:
             available_supplies = [s for s in scenario_state.supplies if s.quantity > 0]
@@ -659,11 +663,11 @@ class OutlinesTransformersADM(ActionBasedADM):
             treatment_idx = possible_treatments.index(selected_treatment['treatment_choice'])
             treatment_parameters = heuristic_treatment_options['parameters'][treatment_idx]
 
-            # Use follow-up response to define only the missing fields
-            if action_to_take.parameters is None:
-                action_to_take.parameters = {}
+        # Use follow-up response to define only the missing fields
+        if action_to_take.parameters is None:
+            action_to_take.parameters = {}
 
-            action_to_take.parameters = {**action_to_take.parameters, **treatment_parameters}
+        action_to_take.parameters = {**action_to_take.parameters, **treatment_parameters}
 
         return action_to_take, selected_treatment, dialog
 
