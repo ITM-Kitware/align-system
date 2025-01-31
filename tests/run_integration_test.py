@@ -4,7 +4,6 @@ import os
 import tempfile
 import atexit
 import shutil
-import sys
 import subprocess
 import logging
 import re
@@ -28,6 +27,8 @@ EXPECTED_OUT_GITIGNORE_CONTENT = '''
 
 !input_output.json
 !raw_align_system.log'''.lstrip()
+
+LOG_EXEMPTIONS = [r'^Today Date:.*$']
 
 
 def main():
@@ -73,6 +74,14 @@ def markup_diff_lines(diff_lines):
     return marked_up_diff_lines
 
 
+def is_log_line_exempt(line):
+    for exemption_re in LOG_EXEMPTIONS:
+        if re.match(exemption_re, line):
+            return True
+
+    return False
+
+
 def compare_text_files_with_diff(experiment,
                                  expected_outdir,
                                  run_outdir,
@@ -82,11 +91,12 @@ def compare_text_files_with_diff(experiment,
     run_fp = os.path.join(run_outdir, file_basename)
 
     with open(expected_fp) as expected, open(run_fp) as run:
-        diff = unified_diff(list(expected),
-                            list(run),
-                            fromfile=expected_fp,
-                            tofile=run_fp,
-                            lineterm='')
+        diff = unified_diff(
+            [line for line in expected if not is_log_line_exempt(line)],
+            [line for line in run if not is_log_line_exempt(line)],
+            fromfile=expected_fp,
+            tofile=run_fp,
+            lineterm='')
 
         diff_lines = list(diff)
 
