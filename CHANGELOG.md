@@ -20,6 +20,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 * Added a relevance oracle ADM
 * Added an optional relevance prediction step with ICL to the comparative regression ADM
 * Added options to use cumulative KDE and/or relevance weighted alignment function to Kaleido ADM
+* Added integration testing script (`tests/run_integration_test.py`) and associated configs and data files
 
 ### Changed
 
