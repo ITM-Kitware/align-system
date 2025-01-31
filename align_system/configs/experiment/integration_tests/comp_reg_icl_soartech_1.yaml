@@ -1,0 +1,33 @@
+# @package _global_
+defaults:
+  - /alignment_target: qol-synth-HighExtreme-ph1
+  - override /adm: outlines_regression_aligned_comparative/incontext_phase1
+  - override /interface: input_output_file
+
+interface:
+  input_output_filepath: ${test_data_dir}/soartech-qol-dre-1-train-subset.json
+
+adm:
+  instance:
+    precision: half
+    sampler:
+      _target_: outlines.samplers.GreedySampler
+    model_name: meta-llama/Llama-3.2-3B-Instruct
+  inference_kwargs:
+    distribution_matching: cumulative_kde
+    kde_norm: priornorm
+    priornorm_factor: 0.5
+    kdma_score_examples: true
+    num_samples: 1
+    predict_outcomes: false
+    generator_batch_size: 5
+    incontext:
+      most_similar_first: false
+      sort_actions: true
+      normalization: null
+      number: 4
+      leave_one_out_strategy: null
+      method: matching_characters
+
+force_determinism: true
+align_to_target: true

@@ -1,0 +1,9 @@
+# @package _global_
+defaults:
+  - override /adm: random
+  - override /interface: input_output_file
+
+interface:
+  input_output_filepath: ${test_data_dir}/adept-mj1-train-subset.json
+
+force_determinism: true

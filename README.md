@@ -219,6 +219,8 @@ algorithms / models*
 
 [Developer environment setup](docs/developer_setup.md)
 
+[Integration testing](docs/integration_testing.md)
+
 ## Acknowledgments
 
 This research was developed with funding from the Defense Advanced
