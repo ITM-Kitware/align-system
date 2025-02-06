@@ -1,0 +1,32 @@
+# @package _global_
+defaults:
+  - /alignment_target: "multi_target/ADEPT-DryRun-Moral judgement-MJ-high_IO-low"
+  - override /adm: outlines_regression_aligned_comparative/incontext_phase1
+  - override /interface: input_output_file
+
+interface:
+  input_output_filepath: ${test_data_dir}/adept-mj1-train-subset.json
+
+adm:
+  instance:
+    precision: half
+    model_name: mistralai/Mistral-7B-Instruct-v0.3
+    sampler:
+      _target_: outlines.samplers.GreedySampler
+  inference_kwargs:
+    distribution_matching: average # no rel
+    predict_relevance: false # no rel
+    kdma_score_examples: true
+    num_samples: 1
+    predict_outcomes: false
+    generator_batch_size: 5
+    incontext:
+      method: prompt_bert_similarity
+      sort_actions: true
+      normalization: null
+      number: 5
+      leave_one_out_strategy: null
+      most_similar_first: false
+
+force_determinism: true
+align_to_target: true

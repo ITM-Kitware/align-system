@@ -30,6 +30,8 @@ EXPECTED_OUT_GITIGNORE_CONTENT = '''
 
 LOG_EXEMPTIONS = [r'^Today Date:.*$']
 
+RICH_MARKUP_TAG_RE = r'(\[/?[^\]]+\])'
+
 
 def main():
     parser = argparse.ArgumentParser(
@@ -99,6 +101,10 @@ def compare_text_files_with_diff(experiment,
             lineterm='')
 
         diff_lines = list(diff)
+
+        # Escape text that could be interpretted as a rich tag
+        diff_lines = [re.sub(RICH_MARKUP_TAG_RE, '\\\1', line)
+                      for line in diff_lines]
 
         if len(diff_lines) == 0:
             log.info("[green]OK[/green]", extra={"markup": True})

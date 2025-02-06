@@ -1,0 +1,15 @@
+# @package _global_
+defaults:
+  - override /adm: outlines_transformers_structured_baseline
+  - override /interface: input_output_file
+
+interface:
+  input_output_filepath: ${test_data_dir}/adept-mj1-train-subset.json
+
+adm:
+  instance:
+    precision: half
+    sampler:
+      _target_: outlines.samplers.GreedySampler
+
+force_determinism: true
