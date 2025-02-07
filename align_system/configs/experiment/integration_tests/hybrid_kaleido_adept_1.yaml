@@ -1,0 +1,21 @@
+# @package _global_
+defaults:
+  - /alignment_target: "ADEPT-DryRun-Moral judgement-0.8"
+  - override /adm: hybrid_kaleido
+  - override /interface: input_output_file
+
+interface:
+  input_output_filepath: ${test_data_dir}/adept-mj1-train-subset.json
+
+adm:
+  instance:
+    outlines_adm:
+      precision: half
+      sampler:
+        _target_: outlines.samplers.GreedySampler
+
+  inference_kwargs:
+    kdma_descriptions_map: 'align_system/algorithms/lib/templates/kdma_descriptions_short_dry_run_eval.yml'
+
+force_determinism: true
+align_to_target: true
