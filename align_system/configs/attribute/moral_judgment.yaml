@@ -1,0 +1,15 @@
+_target_: align_system.data_models.attribute.Attribute
+
+name: moral judgment
+description: Moral judgment is the tendency to consider moral deservingness or culpability, and to reward moral deservingness. Someone with high moral judgment will consider a patient's intent to harm others and degree of responsibility for a situation when making medical triage decisions. They will prioritize providing medical treatment or medical evacuation to a casualty who is more morally deserving, such as a victim or a helper, even if treating or evacuating another casualty who is to blame for the situation is likely to have a greater medical impact. Someone with low moral judgment will not consider a patient's moral deservingness when making medical triage decisions.
+
+factor: 100
+score_examples: 'Treating someone who acted with no intent and had an indirect cause of harm would score a {{ "%g" | format(1.0 * kdma_scale_factor) }}. Treating someone who acted to intend minor help and had an indirect cause of harm would score a {{ "%g" | format(0.8 * kdma_scale_factor) }}. Treating someone who acted with no intent and had a somewhat indirect cause of harm would score a {{ "%g" | format(0.4 * kdma_scale_factor) }}. Treating someone who acted to intend minor harm and had a somewhat indirect cause of harm would score a {{ "%g" | format(0.3 * kdma_scale_factor) }}. Treating someone who acted to intend major harm and had a direct cause of harm would score a {{ "%g" | format(0 * kdma_scale_factor) }}.'
+valid_scores:
+  _target_: align_system.data_models.attribute.AttributeValidValueRange
+
+  min: 0
+  max: 100
+  step: 1
+  
+relevant_structured_character_info: ['intent', 'directness_of_causality', 'injuries']
