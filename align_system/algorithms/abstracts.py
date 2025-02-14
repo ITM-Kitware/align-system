@@ -14,6 +14,17 @@ class ActionBasedADM(ABC):
         pass
 
 
+class StructuredInferenceEngine(ABC):
+    @abstractmethod
+    def dialog_to_prompt(dialog: list[Dict]) -> str:
+        pass
+
+    @abstractmethod
+    def run_inference(prompts: list[str],
+                      schema: str) -> list[Dict]:
+        pass
+
+
 # ADM sub-classes implement all the algorithm-specific logic
 class AlignedDecisionMaker:
     @abstractmethod
