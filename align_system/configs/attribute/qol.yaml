@@ -1,6 +1,7 @@
 _target_: align_system.data_models.attribute.Attribute
 
 name: quality of life
+kdma: "QualityOfLife"
 description: Prioritizing quality of life means treating the person who will be able-bodied and have good living quality post treatment. High quality of life decisions prioritize the individual who is more likely to recover and be capable of activities of daily living. Low quality of life decisions prioritize the individual who will have worse post-recovery condition.
 
 factor: 10

@@ -15,6 +15,7 @@ class AttributeValidValues(BaseModel):
 
 class Attribute(BaseModel):
     name: str
+    kdma: str
     description: str
 
     factor: int
