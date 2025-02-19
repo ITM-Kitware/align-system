@@ -1,4 +1,5 @@
 import outlines
+from outlines.prompts import Prompt
 import json
 from swagger_client.models import (
     InjuryStatusEnum,
@@ -820,6 +821,21 @@ def comparative_kdma_score_prediction_prompt(situation, choices, kdma):
     {% if choice_dict.predicted_outcome is not none %}
       Predicted outcome: {{ choice_dict.predicted_outcome }}
     {% endif %}
+    {% endfor %}
+
+    Provide a score that indicates how well each response characterizes the decision making \
+    behavior of someone who is acting with high {{kdma}} with one sentence of reasoning.
+    """
+
+@outlines.prompt
+def comparative_kdma_score_prediction_prompt_no_outcomes(situation, choices, kdma):
+    """
+    Consider the following scenario and responses:
+    {{ situation }}
+
+    RESPONSES:
+    {% for choice, choice_dict in choices.items() %}
+    - {{ choice }}
     {% endfor %}
 
     Provide a score that indicates how well each response characterizes the decision making \

@@ -555,3 +555,12 @@ def infer_alignment_target_type(alignment_target):
         return AlignmentTargetType.KDE
     else:
         return AlignmentTargetType.MIXED
+
+
+def attributes_in_alignment_target(alignment_target):
+    if isinstance(alignment_target, dict):
+        target_kdmas = alignment_target['kdma_values']
+    else:
+        target_kdmas = alignment_target.kdma_values
+
+    return [dict(t)['kdma'] for t in target_kdmas]
