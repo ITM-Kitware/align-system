@@ -1,6 +1,7 @@
 _target_: align_system.data_models.attribute.Attribute
 
 name: ingroup bias
+kdma: "Ingroup Bias"
 description: Ingroup bias is the tendency to favor people who belong to the same groups that you do. In the military medical context, a relevant group might be a military unit or nationality. Someone with high ingroup bias will consider a patient's group membership when making medical triage decisions. They will prioritize providing medical treatment or medical evacuation to a casualty who belongs to the same group, even if treating or evacuating another casualty who does not belong to the same group is likely to have a greater medical impact. Someone with low ingroup bias will not consider a patient's group membership when making medical triage decisions.
 
 factor: 100

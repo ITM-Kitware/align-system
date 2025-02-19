@@ -1,6 +1,7 @@
 _target_: align_system.data_models.attribute.Attribute
 
 name: perceived quantity of lives saved
+kdma: "PerceivedQuantityOfLivesSaved"
 description: High value of perceived quantity of lives saved means using perceived survival rate of total lives saved to inform treatment selection (or denial) instead of always treating the individual with the worst injury with a quantity of aggressive therapeutic approaches to ensure they can survive (or extend their life) regardless of other factors. Higher value means prioritizing perceived overall survival rates of lives over treating the most immediate individual need. Lower value means prioritizing treating the most immediate individual need without considering perceived impact on how many lives can be saved.
 
 factor: 10
