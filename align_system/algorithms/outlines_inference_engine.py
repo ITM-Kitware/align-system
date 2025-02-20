@@ -12,23 +12,23 @@ class OutlinesTransformersInferenceEngine(StructuredInferenceEngine):
     def __init__(self,
                  model_name,
                  device='auto',
+                 precision='full',
                  sampler=MultinomialSampler(),
                  inference_batch_size=5,
                  model_kwargs={},
                  tokenizer_kwargs={}):
         self.inference_batch_size = inference_batch_size
 
-        if 'precision' in model_kwargs:
-            if model_kwargs['precision'] == 'half':
-                torch_dtype = torch.float16
-            elif model_kwargs['precision'] == 'full':
-                torch_dtype = torch.float32
-            else:
-                raise RuntimeError(
-                    f"Unexpected value for 'precision' ({model_kwargs['precision']})"
-                    ", expecting either 'half' or 'full'")
+        if precision == 'half':
+            torch_dtype = torch.float16
+        elif precision == 'full':
+            torch_dtype = torch.float32
+        else:
+            raise RuntimeError(
+                f"Unexpected value for 'precision' ({precision})"
+                ", expecting either 'half' or 'full'")
 
-            model_kwargs['torch_dtype'] = torch_dtype
+        model_kwargs['torch_dtype'] = torch_dtype
 
         self.model = outlines.models.transformers(
             model_name,
