@@ -348,6 +348,11 @@ def main(cfg: DictConfig) -> None:
                     action_choice_idx = i
                     break
 
+            # Ensure that 'actions' stored in 'choice_info' are serializable
+            for info in choice_info.values():
+                if 'action' in info:
+                    info['action'] = info['action'].to_dict()
+
             inputs_outputs.append({'input': {'scenario_id': scenario.id(),
                                              'alignment_target_id': alignment_target.id if cfg.align_to_target else None,
                                              'full_state': current_state.to_dict(),
