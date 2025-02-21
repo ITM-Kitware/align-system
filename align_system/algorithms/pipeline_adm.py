@@ -34,9 +34,6 @@ class PipelineADM(ActionBasedADM):
                                                   dialogs,
                                                   alignment_target)
 
-        import xdev
-        xdev.embed()
-
         chosen_choices = {k: v for k, v in choice_evaluation.items() if v.get('chosen')}
 
         if len(chosen_choices) != 1:
@@ -44,6 +41,7 @@ class PipelineADM(ActionBasedADM):
                                "have 'chosen' set to True ({} choices "
                                "chosen)".format(len(chosen_choices)))
 
-        choice, choice_info = chosen_choices.items()[0]
-
-        return choice_info['action'], choice_info
+        for choice, choice_info in chosen_choices.items():
+            # Returning the first "chosen choice"; already asserted
+            # that there should be only one
+            return choice_info['action'], choice_evaluation

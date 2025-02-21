@@ -23,3 +23,7 @@ class Attribute(BaseModel):
     valid_scores: Union[AttributeValidValueRange, AttributeValidValues]
 
     relevant_structured_character_info: List[str]
+
+
+class AttributeTarget(Attribute):
+    value: float
