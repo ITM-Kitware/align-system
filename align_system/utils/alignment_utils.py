@@ -6,6 +6,7 @@ from enum import Enum
 
 from align_system.utils import kde_utils
 from align_system.utils import logging
+from align_system.data_models.attribute import AttributeTarget
 from swagger_client.models import KDMAValue
 
 log = logging.getLogger(__name__)
@@ -564,3 +565,20 @@ def attributes_in_alignment_target(alignment_target):
         target_kdmas = alignment_target.kdma_values
 
     return [dict(t)['kdma'] for t in target_kdmas]
+
+
+def alignment_target_to_attribute_targets(alignment_target,
+                                          attribute_definitions):
+    if isinstance(alignment_target, dict):
+        target_kdmas = alignment_target['kdma_values']
+    else:
+        target_kdmas = alignment_target.kdma_values
+
+    output_attribute_targets = []
+    for t in target_kdmas:
+        attribute = attribute_definitions[dict(t)['kdma']]
+
+        output_attribute_targets.append(
+            AttributeTarget(**dict(attribute), value=dict(t)['value']))
+
+    return output_attribute_targets
