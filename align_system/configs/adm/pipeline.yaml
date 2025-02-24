@@ -1,53 +1,22 @@
 name: pipeline
 
 defaults:
-  - _self_
   - /attribute@mj: moral_judgment
+  - /adm_component/icl@instance.steps.0: regression
+  - /adm_component/regression@instance.steps.1: comparative
+  - /adm_component/alignment@instance.steps.2: avg_dist_scalar
+  - _self_
+
+attribute_definitions:
+  Moral judgement: ${adm.mj}
 
 instance:
   _target_: align_system.algorithms.pipeline_adm.PipelineADM
 
   steps:
-    - _target_: align_system.algorithms.icl_adm_component.ICLADMComponent
-
+    "0":
+      attributes: ${adm.attribute_definitions}
       icl_generator:
-        _target_: align_system.utils.incontext_utils.ComparativeRegressionIncontextExampleGenerator
-        incontext_settings:
-          number: 2
-          method: prompt_bert_similarity
-          leave_one_out_strategy: null
-          normalization: null
-          sort_actions: true
-          most_similar_first: false
-          datasets:
-            QualityOfLife: /data/shared/samba/phase1_icl/qol_all_20241217.json
-            PerceivedQuantityOfLivesSaved: /data/shared/samba/phase1_icl/vol_all_20241217.json
-            Moral judgement: /data/shared/samba/phase1_icl/moral_judgement_20241106.json
-            Ingroup Bias: /data/shared/samba/phase1_icl/ingroup_bias_20241106_no_IO2.json
-
         target_kdmas:
           - ${adm.mj}
 
-      attributes:
-        Moral judgement: ${adm.mj}
-
-    - _target_: align_system.algorithms.comparative_regression_adm_component.ComparativeRegressionADMComponent
-
-      num_samples: 2
-      attributes:
-        Moral judgement: ${adm.mj}
-      structured_inference_engine:
-        _target_: align_system.algorithms.outlines_inference_engine.OutlinesTransformersInferenceEngine
-        model_name: mistralai/Mistral-7B-Instruct-v0.3
-        precision: half
-        sampler:
-          _target_: outlines.samplers.MultinomialSampler
-          temperature: 0.7
-
-    - _target_: align_system.algorithms.alignment_adm_component.AlignmentADMComponent
-
-      alignment_function:
-        _target_: align_system.utils.alignment_utils.AvgDistScalarAlignment
-
-      attributes:
-        Moral judgement: ${adm.mj}
