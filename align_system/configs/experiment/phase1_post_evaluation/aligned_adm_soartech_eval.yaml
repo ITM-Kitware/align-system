@@ -1,0 +1,49 @@
+# @package _global_
+defaults:
+  - override /adm: outlines_regression_aligned_comparative/incontext_phase1
+  - override /interface: ta3
+
+interface:
+  api_endpoint: "http://127.0.0.1:8089"
+  session_type: soartech
+  scenario_ids:
+    - qol-ph1-eval-2
+    - qol-ph1-eval-3
+    - qol-ph1-eval-4
+    - vol-ph1-eval-2
+    - vol-ph1-eval-3
+    - vol-ph1-eval-4
+  training_session: full
+  username: "ALIGN-ADM-ComparativeRegression-DeepSeek-R1-Distill-Llama-70B-SoarTech-MatchingChars"
+adm:
+  instance:
+    precision: half
+    sampler:
+      _target_: outlines.samplers.GreedySampler
+    model_name: deepseek-ai/DeepSeek-R1-Distill-Llama-70B
+    # LGAI-EXAONE/EXAONE-3.5-32B-Instruct
+    # google/gemma-2-27b-it
+    # meta-llama/Llama-3.3-70B-Instruct
+  inference_kwargs:
+    distribution_matching: cumulative_kde
+    kde_norm: priornorm
+    priornorm_factor: 0.5
+    kdma_score_examples: true
+    num_samples: 1
+    predict_outcomes: false
+    generator_batch_size: 5
+    incontext:
+      most_similar_first: false
+      sort_actions: true
+      normalization: null
+      number: 4
+      leave_one_out_strategy: null
+      method: matching_characters
+
+force_determinism: true
+align_to_target: true
+save_last_unstructured_state_per_scenario: true
+
+hydra:
+  run:
+    dir: '/data/shared/new_backbones/phase1_post_eval_local/ALIGN-ADM-ComparativeRegression-DeepSeek-R1-Distill-Llama-70B-SoarTech-MatchingChars/${now:%Y-%m-%d__%H-%M-%S}'
