@@ -1,0 +1,22 @@
+name: pipeline
+
+defaults:
+  - /attribute@mj: moral_judgment
+  - /adm_component/icl@instance.steps.0: regression
+  - /adm_component/regression@instance.steps.1: comparative
+  - /adm_component/alignment@instance.steps.2: avg_dist_scalar
+  - _self_
+
+attribute_definitions:
+  Moral judgement: ${adm.mj}
+
+instance:
+  _target_: align_system.algorithms.pipeline_adm.PipelineADM
+
+  steps:
+    "0":
+      attributes: ${adm.attribute_definitions}
+      icl_generator:
+        target_kdmas:
+          - ${adm.mj}
+
