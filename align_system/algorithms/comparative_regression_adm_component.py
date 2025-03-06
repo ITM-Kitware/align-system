@@ -24,12 +24,18 @@ JSON_HIGHLIGHTER = JSONHighlighter()
 class ComparativeRegressionADMComponent(ADMComponent):
     def __init__(self,
                  structured_inference_engine,
+                 scenario_description_template,
+                 prompt_template,
+                 score_schema_template,
                  attributes={},
                  inject_system_prompt=True,
                  score_examples_in_system_prompt=False,
                  num_samples=1,
                  enum_scores=False):
         self.structured_inference_engine = structured_inference_engine
+        self.scenario_description_template = scenario_description_template
+        self.prompt_template = prompt_template
+        self.score_schema_template = score_schema_template
 
         self.attributes = attributes
 
@@ -38,24 +44,6 @@ class ComparativeRegressionADMComponent(ADMComponent):
 
         self.num_samples = num_samples
         self.enum_scores = enum_scores
-
-    def _build_scenario_description(self,
-                                    scenario_state,
-                                    target_attributes):
-        relevant_fields = []
-        for attribute in target_attributes:
-            relevant_fields.extend(attribute.relevant_structured_character_info)
-
-        if 'all_unique' in relevant_fields:
-            character_info = get_unique_structured_character_info(scenario_state.characters)
-        else:
-            character_info = get_relevant_structured_character_info(
-                scenario_state.characters,
-                [dict(v) for v in self.attributes.values()])
-
-        scenario_description = scenario_state_description_with_relevant_char_info(scenario_state, character_info)
-
-        return scenario_description
 
     def _build_system_prompt(self, target_attribute):
         if self.score_examples_in_system_prompt:
@@ -95,19 +83,15 @@ class ComparativeRegressionADMComponent(ADMComponent):
 
         target_attributes = [self.attributes[n] for n in target_attribute_names]
 
-        scenario_description = self._build_scenario_description(
-            scenario_state, target_attributes)
-
         choices = list(choice_evaluation.keys())
-
-        # Pull in predicted outcomes from `cohice_evaluation` if populated
-        outcome_predictions =\
-            {k: {'predicted_outcome': v.get('predicted_outcomes', None)}
-             for k, v in choice_evaluation.items()}
 
         output_dialogs = []
         for attribute in target_attributes:
             attribute_dialogs = []
+
+            scenario_description = self.scenario_description_template(
+                scenario_state, alignment_target, {attribute.name,})
+
             for _dialog in dialogs:
                 for sample_idx in range(self.num_samples):
                     # Want to make a copy as we may modify the same dialog
@@ -122,10 +106,11 @@ class ComparativeRegressionADMComponent(ADMComponent):
                                                        namespace='.',
                                                        tags=['regression']))
 
-                    predict_kdma_prompt = comparative_kdma_score_prediction_prompt(
+                    predict_kdma_prompt = self.prompt_template(
+                        scenario_state,
                         scenario_description,
-                        outcome_predictions,
-                        attribute.name)
+                        choice_evaluation,
+                        {attribute.name,})
 
                     dialog.append(DialogElement(role='user',
                                                 content=predict_kdma_prompt,
@@ -134,12 +119,8 @@ class ComparativeRegressionADMComponent(ADMComponent):
 
                     attribute_dialogs.append(dialog)
 
-            if self.enum_scores:
-                score_schema = enum_comparative_kdma_score_prediction_json_schema(
-                    choices, attribute.valid_scores)
-            else:
-                score_schema = comparative_kdma_score_prediction_json_schema(
-                    choices, attribute.factor)
+            score_schema = self.score_schema_template(
+                choices, {attribute.name,})
 
             dialog_prompts = [self.structured_inference_engine.dialog_to_prompt(d)
                               for d in attribute_dialogs]
