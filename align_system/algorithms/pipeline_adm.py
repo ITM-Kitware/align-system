@@ -1,4 +1,4 @@
-from align_system.algorithms.abstracts import ActionBasedADM
+from align_system.algorithms.abstracts import ActionBasedADM, ADMComponent
 from align_system.utils import adm_utils
 from align_system.utils import logging
 
@@ -6,8 +6,7 @@ log = logging.getLogger(__name__)
 
 
 class PipelineADM(ActionBasedADM):
-    def __init__(self,
-                 steps={}):
+    def __init__(self, steps: dict[str, ADMComponent]):
         '''
         Expecting `steps` to be a dictionary of {"<step number>":
         <ADMComponent instance>}.  E.g. {"0":

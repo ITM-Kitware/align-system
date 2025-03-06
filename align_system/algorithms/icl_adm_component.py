@@ -10,57 +10,18 @@ from align_system.prompt_engineering.outlines_prompts import (
 from align_system.data_models.dialog import DialogElement
 
 
-class ICLPromptBuilderScorePrediction():
-    def __call__(self,
-                 scenario_state,
-                 scenario_description,
-                 choice_evaluation,
-                 target_attribute):
-        return comparative_kdma_score_prediction_prompt_no_outcomes(
-            scenario_description,
-            choice_evaluation,
-            target_attribute.kdma)
-
-
-class ICLPromptBuilderRelevance():
-    def __call__(self,
-                 scenario_state,
-                 scenario_description,
-                 choice_evaluation,
-                 target_attribute):
-        return relevance_classification_prompt(scenario_description,
-                                               choice_evaluation.keys(),
-                                               target_attribute.kdma)
-
-
 class ICLADMComponent(ADMComponent):
     def __init__(self,
                  icl_generator,
+                 scenario_description_template,
+                 prompt_template,
                  attributes={},
-                 prompt_builder=ICLPromptBuilderScorePrediction(),
                  system_prompt=None):
         self.icl_generator = icl_generator
+        self.scenario_description_template = scenario_description_template
         self.attributes = attributes
-        self.prompt_builder = prompt_builder
+        self.prompt_template = prompt_template
         self.system_prompt = system_prompt
-
-    def _build_scenario_description(self,
-                                    scenario_state,
-                                    target_attributes):
-        relevant_fields = []
-        for attribute in target_attributes:
-            relevant_fields.extend(attribute.relevant_structured_character_info)
-
-        if 'all_unique' in relevant_fields:
-            character_info = get_unique_structured_character_info(scenario_state.characters)
-        else:
-            character_info = get_relevant_structured_character_info(
-                scenario_state.characters,
-                [dict(v) for v in self.attributes.values()])
-
-        scenario_description = scenario_state_description_with_relevant_char_info(scenario_state, character_info)
-
-        return scenario_description
 
     def run(self,
             scenario_state,
@@ -76,13 +37,13 @@ class ICLADMComponent(ADMComponent):
 
         target_attributes = [self.attributes[n] for n in target_attribute_names]
 
-        scenario_description = self._build_scenario_description(
-            scenario_state, target_attributes)
-
         icl_dialog_elements = []
         for attribute in target_attributes:
-            prompt_to_match = self.prompt_builder(
-                scenario_state, scenario_description, choice_evaluation, attribute)
+            scenario_description = self.scenario_description_template(
+                scenario_state, alignment_target, {attribute.name,})
+
+            prompt_to_match = self.prompt_template(
+                scenario_state, scenario_description, choice_evaluation, {attribute.name,})
 
             selected_icl_examples = self.icl_generator.select_icl_examples(
                 sys_kdma_name=attribute.kdma,

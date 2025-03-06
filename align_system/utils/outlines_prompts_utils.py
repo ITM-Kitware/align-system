@@ -1,7 +1,7 @@
 import yaml
 import json
 import outlines
-import copy 
+import copy
 from functools import reduce
 
 
@@ -31,11 +31,11 @@ def remove_identical_attributes(dicts):
         all_keys = set()
 
         norm_dicts = normalize_dicts(dicts)
-        
+
         # Collect all keys from all dictionaries
         for d in dicts:
             all_keys.update(d.keys())
-        
+
         for key in all_keys:
             values = [d.get(key) for d in norm_dicts]
             if isinstance(values[0], dict):
@@ -52,14 +52,14 @@ def remove_identical_attributes(dicts):
                 # Handle non-dictionary, non-list values
                 if all(value == values[0] for value in values):
                     common[key] = values[0]
-        
+
         return common
-    
+
     def filter_dict(d, common):
         """Filter out common attributes from the dictionary."""
         if not isinstance(d, dict):
             return d
-        
+
         filtered = {}
         for k, v in d.items():
             if k in common:
@@ -76,9 +76,9 @@ def remove_identical_attributes(dicts):
                         filtered[k] = v
             else:
                 filtered[k] = v
-        
+
         return filtered
-    
+
     # Get common attributes
     common_values = get_common_values(dicts)
 
@@ -113,7 +113,7 @@ def get_unique_structured_character_info(characters):
         # Serialize as strings for prompt
         return_character_dict['relevant_structured'] = json.dumps(relevant_structured_dicts[i])
         return_character_dicts.append(return_character_dict)
-        
+
     return return_character_dicts
 
 def remove_null_values(data):
@@ -131,7 +131,30 @@ def get_relevant_structured_character_info(characters, target_kdmas):
     relevant_fields = []
     for target_kdma in target_kdmas:
         relevant_fields.extend(target_kdma['relevant_structured_character_info'])
+    return_character_dicts = []
+    for character in characters:
+        character_dict = character.to_dict()
+        return_character_dict = {}
+        return_character_dict['name'] = character_dict['name']
+        return_character_dict['id'] = character_dict['id']
+        return_character_dict['unstructured'] = character_dict['unstructured']
+        relevant_structured_dict = {}
+        for field in relevant_fields:
+            value = reduce(lambda d, key: d.get(key) if d else None, field.split('.'), character_dict)
+            relevant_structured_dict[field] = remove_null_values(value)
+        if relevant_structured_dict:
+            return_character_dict['relevant_structured'] = json.dumps(relevant_structured_dict)
+        else:
+            return_character_dict['relevant_structured'] = None
+        return_character_dicts.append(return_character_dict)
 
+    return return_character_dicts
+
+def new_get_relevant_structured_character_info(characters, relevant_fields):
+    '''
+    Returns a list of character dicts with: name, unstrucutured, id, and relevant_structured
+    where relevant_structured is a string of relevant strucutured character info
+    '''
     return_character_dicts = []
     for character in characters:
         character_dict = character.to_dict()
