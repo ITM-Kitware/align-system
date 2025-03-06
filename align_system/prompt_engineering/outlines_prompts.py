@@ -5,6 +5,10 @@ from swagger_client.models import (
     InjuryStatusEnum,
 )
 
+from align_system.utils.outlines_prompts_utils import (
+    get_unique_structured_character_info,
+    new_get_relevant_structured_character_info)
+
 
 @outlines.prompt
 def baseline_system_prompt():
@@ -1000,3 +1004,91 @@ class opinion_qa_action_selection():
 class opinion_qa_baseline_system_prompt():
     def __call__(self):
         return "Please answer the survey question"
+
+
+class ScenarioDescriptionWithRelevantCharInfo():
+    def __init__(self, relevant_structured_char_info_lookup):
+        self.relevant_structured_char_info_lookup = relevant_structured_char_info_lookup
+
+    def __call__(self,
+                 scenario_state,
+                 alignment_target,
+                 attributes_of_interest):
+        relevant_fields = []
+
+        for attribute in attributes_of_interest:
+            relevant_fields.extend(
+                self.relevant_structured_char_info_lookup[attribute])
+
+        if 'all_unique' in relevant_fields:
+            character_info = get_unique_structured_character_info(scenario_state.characters)
+        else:
+            character_info = new_get_relevant_structured_character_info(
+                scenario_state.characters,
+                relevant_fields)
+
+        return scenario_state_description_with_relevant_char_info(
+            scenario_state, character_info)
+
+
+class ComparativeKDMAScorePredictionPromptNoOutcomes():
+    def __call__(self,
+                 scenario_state,
+                 scenario_description,
+                 choice_evaluation,
+                 attributes_of_interest):
+        if len(attributes_of_interest) != 1:
+            raise RuntimeError("Assuming a single attribute of interest, "
+                               "found {}".format(len(attributes_of_interest)))
+        attribute, *_ = attributes_of_interest
+
+        return comparative_kdma_score_prediction_prompt_no_outcomes(
+            scenario_description,
+            choice_evaluation,
+            attribute)
+
+
+class RelevanceScorePredictionPrompt():
+    def __call__(self,
+                 scenario_state,
+                 scenario_description,
+                 choice_evaluation,
+                 attributes_of_interest):
+        if len(attributes_of_interest) != 1:
+            raise RuntimeError("Assuming a single attribute of interest, "
+                               "found {}".format(len(attributes_of_interest)))
+        attribute, *_ = attributes_of_interest
+
+        return relevance_classification_prompt(scenario_description,
+                                               choice_evaluation.keys(),
+                                               attribute)
+
+
+class ComparativeKDMAScorePredictionEnumSchema():
+    def __init__(self, valid_scores_lookup):
+        self.valid_scores_lookup = valid_scores_lookup
+
+    def __call__(self, choices, attributes_of_interest):
+        if len(attributes_of_interest) != 1:
+            raise RuntimeError("Assuming a single attribute of interest, "
+                               "found {}".format(len(attributes_of_interest)))
+        attribute, *_ = attributes_of_interest
+
+        return enum_comparative_kdma_score_prediction_json_schema(
+                    choices, self.valid_scores_lookup[attribute])
+
+
+class ComparativeKDMAScorePredictionSchema():
+    def __init__(self, factor_lookup, default_factor=None):
+        self.factor_lookup = factor_lookup
+        self.default_factor = default_factor
+
+    def __call__(self, choices, attributes_of_interest):
+        if len(attributes_of_interest) != 1:
+            raise RuntimeError("Assuming a single attribute of interest, "
+                               "found {}".format(len(attributes_of_interest)))
+        attribute, *_ = attributes_of_interest
+
+        return comparative_kdma_score_prediction_json_schema(
+                    choices,
+                    self.factor_lookup.get(attribute, self.default_factor))
