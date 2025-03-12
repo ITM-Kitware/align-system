@@ -1,4 +1,5 @@
 from omegaconf import DictConfig, ListConfig, OmegaConf
+from omegaconf.errors import InterpolationResolutionError
 from hydra.utils import instantiate
 
 def initialize_with_custom_references(cfg):
@@ -19,6 +20,11 @@ def initialize_with_custom_references(cfg):
     # take up a tremendous amount of resources (e.g. LLMs)
     def _custom_resolver(path, *, _root_):
         node = OmegaConf.select(_root_, path)
+
+        if node is None:
+            raise InterpolationResolutionError(
+                f"Couldn't find referenced node '${{ref:{path}}}'")
+
         *prefixes, base = path.split('.')
 
         prefix = '.'.join(prefixes)
