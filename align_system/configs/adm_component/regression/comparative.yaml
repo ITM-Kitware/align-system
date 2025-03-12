@@ -1,13 +1,7 @@
+defaults:
+  - /inference_engine@structured_inference_engine: outlines_structured_inference_engine
+
 _target_: align_system.algorithms.comparative_regression_adm_component.ComparativeRegressionADMComponent
 
 num_samples: 2
 attributes: ${adm.attribute_definitions}
-structured_inference_engine:
-  _target_: align_system.algorithms.outlines_inference_engine.OutlinesTransformersInferenceEngine
-  
-  model_name: mistralai/Mistral-7B-Instruct-v0.3
-  precision: half
-  sampler:
-    _target_: outlines.samplers.MultinomialSampler
-    
-    temperature: 0.7

@@ -2,6 +2,10 @@ name: pipeline
 
 defaults:
   - /attribute@mj: moral_judgment
+  - /inference_engine@structured_inference_engine: outlines_structured_inference_engine
+  - /template/scenario_description@scenario_description_template: default
+  - /template/prompt@prompt_template: comparative_regression
+  - /template/output_schema@comparative_regression_choice_schema: comparative_regression_choice
   - /adm_component/icl@instance.steps.0: regression
   - /adm_component/regression@instance.steps.1: comparative
   - /adm_component/alignment@instance.steps.2: avg_dist_scalar
@@ -9,27 +13,6 @@ defaults:
 
 attribute_definitions:
   Moral judgement: ${adm.mj}
-
-scenario_description_template:
-  _target_: align_system.prompt_engineering.outlines_prompts.ScenarioDescriptionWithRelevantCharInfo
-
-  relevant_structured_char_info_lookup:
-    moral judgment: ['intent', 'directness_of_causality', 'injuries']
-    ingroup bias: ['all_unique']
-    quality of life: ['demographics.age', 'injuries', 'vitals']
-    perceived quantity of lives saved: []
-
-prompt_template:
-  _target_: align_system.prompt_engineering.outlines_prompts.ComparativeKDMAScorePredictionPromptNoOutcomes
-
-comparative_regression_choice_schema:
-  _target_: align_system.prompt_engineering.outlines_prompts.ComparativeKDMAScorePredictionSchema
-
-  factor_lookup:
-    moral judgment: 100
-    ingroup bias: 100
-    quality of life: 10
-    perceived quantity of lives saved: 10
 
 instance:
   _target_: align_system.algorithms.pipeline_adm.PipelineADM
@@ -43,6 +26,7 @@ instance:
         target_kdmas:
           - ${adm.mj}
     "1":
+      structured_inference_engine: ${ref:adm.structured_inference_engine}
       scenario_description_template: ${ref:adm.scenario_description_template}
       prompt_template: ${ref:adm.prompt_template}
       score_schema_template: ${adm.comparative_regression_choice_schema}
