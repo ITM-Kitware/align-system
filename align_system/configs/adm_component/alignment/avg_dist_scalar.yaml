@@ -3,4 +3,4 @@ _target_: align_system.algorithms.alignment_adm_component.AlignmentADMComponent
 alignment_function:
   _target_: align_system.utils.alignment_utils.AvgDistScalarAlignment
 
-attributes: ${adm.attribute_definitions}
+attributes: ${ref:adm.attribute_definitions}

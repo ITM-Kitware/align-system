@@ -22,8 +22,8 @@ class StructuredInferenceEngine(ABC):
         pass
 
     @abstractmethod
-    def run_inference(prompts: list[str],
-                      schema: str) -> list[Dict]:
+    def run_inference(prompts: Union[str, list[str]],
+                      schema: str) -> Union[Dict, list[Dict]]:
         pass
 
 

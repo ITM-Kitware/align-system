@@ -9,6 +9,7 @@ defaults:
   - /adm_component/icl@instance.steps.0: regression
   - /adm_component/regression@instance.steps.1: comparative
   - /adm_component/alignment@instance.steps.2: avg_dist_scalar
+  - /adm_component/misc@instance.steps.3: action_parameter_completion
   - _self_
 
 attribute_definitions:
@@ -26,7 +27,6 @@ instance:
         target_kdmas:
           - ${adm.mj}
     "1":
-      structured_inference_engine: ${ref:adm.structured_inference_engine}
       scenario_description_template: ${ref:adm.scenario_description_template}
       prompt_template: ${ref:adm.prompt_template}
       score_schema_template: ${adm.comparative_regression_choice_schema}
