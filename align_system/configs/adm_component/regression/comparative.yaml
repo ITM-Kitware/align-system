@@ -1,7 +1,5 @@
-defaults:
-  - /inference_engine@structured_inference_engine: outlines_structured_inference_engine
-
 _target_: align_system.algorithms.comparative_regression_adm_component.ComparativeRegressionADMComponent
 
+structured_inference_engine: ${ref:adm.structured_inference_engine}
 num_samples: 2
-attributes: ${adm.attribute_definitions}
+attributes: ${ref:adm.attribute_definitions}

@@ -1,4 +1,5 @@
 import itertools
+from collections.abc import Iterable
 
 import outlines
 from outlines.samplers import MultinomialSampler
@@ -51,7 +52,8 @@ class OutlinesTransformersInferenceEngine(StructuredInferenceEngine):
             # Assume that the tokenizer chat template doesn't accept
             # system messages; combine system message first user
             # message
-            system_msg, user_msg, *rest = dialog
+            # Ensure each dialog element is a dict
+            system_msg, user_msg, *rest = [dict(d) for d in dialog]
 
             assert user_msg['role'] == 'user'
 
@@ -93,5 +95,11 @@ class OutlinesTransformersInferenceEngine(StructuredInferenceEngine):
             sampler=self.sampler,
             whitespace_pattern=r"[ ]?")
 
-        return self.run_in_batches(
-            generator, prompts, self.inference_batch_size)
+        if isinstance(prompts, str):
+            return generator(prompts)
+        elif isinstance(prompts, Iterable):
+            return self.run_in_batches(
+                generator, prompts, self.inference_batch_size)
+        else:
+            raise TypeError("Don't know how to run inference on provided "
+                            "`prompts` object")
