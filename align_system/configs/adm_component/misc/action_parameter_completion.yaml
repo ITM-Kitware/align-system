@@ -1,0 +1,3 @@
+_target_: align_system.algorithms.action_parameter_completion_adm_component.ActionParameterCompletionADMComponent
+
+structured_inference_engine: ${ref:adm.structured_inference_engine}
