@@ -103,6 +103,7 @@ POSSIBLE_TREATMENTS:
 Treat the major Internal of the internal with a Blood applied to the right bicep.
 Treat the major Internal of the internal with a Pain Medications applied to the head.
  [/INST]
+PyTorch version 2.3.1+cu118 available.
 [bold]*STRUCTURED RESPONSE*[/bold]
 {'brief_reasoning': "Given the patient's critical condition, with major internal injuries and not breathing spontaneously, the priority should be to address his airway and breathing first. The available supplies suggest that a nasopharyngeal airway and vented chest seal could be used to help with this. The nasopharyngeal airway can be inserted to maintain an open airway, while the vented chest seal can help prevent tension pneumothorax, a condition where air accumulates in the chest cavity and compresses the lungs. Once the air", 'treatment_choice': 'Treat the major Internal of the internal with a Blood applied to the right bicep.'}
 [bold]*ACTION BEING TAKEN*[/bold]

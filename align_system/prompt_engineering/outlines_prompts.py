@@ -174,6 +174,7 @@ def scenario_state_description_2(scenario_state):
     {% for event in scenario_state.events %}
     - {{ event.unstructured.rstrip() }}
     {% endfor %}
+    {% endif %}
     """
 
 @outlines.prompt
