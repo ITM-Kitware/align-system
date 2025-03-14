@@ -1004,17 +1004,22 @@
     ],
     "choice_info": {},
     "output": {
-      "choice": 5,
+      "choice": 7,
       "action": {
-        "action_id": "sitrep",
-        "action_type": "SITREP",
+        "action_id": "treat_patient_a",
+        "action_type": "APPLY_TREATMENT",
         "intent_action": false,
-        "unstructured": "SITREP",
-        "character_id": null,
+        "unstructured": "Treat Patient A",
+        "character_id": "P3 Patient A",
         "threat_state": null,
-        "parameters": null,
-        "justification": "Based on the given information, both Patient A and Patient B have sustained injuries from the explosion and require immediate medical attention due to not spontaneously starting to breathe after having their airways repositioned. However, it is crucial to prioritize treatment based on the severity of their injuries and the potential for saving lives.  SITREP (Situation Report) would be the first step to assess the overall situation. This would involve checking the vital signs of both patients, such as heart",
-        "kdma_association": null
+        "parameters": {
+          "treatment": "Blood",
+          "location": "right bicep"
+        },
+        "justification": "Based on the given information, both Patient A and Patient B have sustained injuries from the explosion and are in a critical condition, requiring immediate medical attention. However, the priority of treatment depends on their condition and the severity of their injuries. Since both patients have had their airways repositioned but have not spontaneously started breathing, it is a clear indication of a respiratory emergency. This situation is a medical triage priority, and the ABCDE approach should be used.",
+        "kdma_association": {
+          "Moral judgement": 0.2
+        }
       }
     }
   },
@@ -1351,7 +1356,7 @@
         "character_id": null,
         "threat_state": null,
         "parameters": null,
-        "justification": "Given the critical situation with both patients requiring immediate medical attention and the limited resources available as an Army medic, it is essential to prioritize actions based on the urgency and potential impact on patient outcomes. In this scenario, the absence of spontaneous breathing in both patients indicates a severe injury or condition that requires advanced medical intervention.  Therefore, the first step would be to perform a SITREP (Situation Report) to assess the overall scene, identify if",
+        "justification": "Given the critical condition of both patients, A and B, who have been involved in a major crash and require immediate medical attention, it is essential to prioritize the treatment based on their current condition and potential for survival. In this scenario, since both patients have been repositioned and neither of them is spontaneously breathing, it is crucial to assess their vital signs and perform basic life support measures. However, due to the nature of Patient A's condition - driving a large vehicle,",
         "kdma_association": null
       }
     }
