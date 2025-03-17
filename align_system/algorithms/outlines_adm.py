@@ -384,6 +384,7 @@ class OutlinesTransformersADM(ActionBasedADM):
     def populate_action_parameters(self, scenario_state, action_to_take, dialog):
         scenario_state_copy = copy.deepcopy(scenario_state)
         # Don't consider the elapsed_time of the state when caching
+        scenario_state_copy.elapsed_time = 0
         depends = '\n'.join((
             repr(self.model.model),
             repr(scenario_state_copy),
