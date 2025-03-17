@@ -211,9 +211,6 @@ class ActionParameterCompletionADMComponent(ADMComponent):
                 dialog_text,
                 character_choice_json_schema(json.dumps(character_names)))
 
-            import xdev
-            xdev.embed()
-
             selected_character_idx = character_names.index(selected_character['character_choice'])
 
             log.info("[bold]*STRUCTURED RESPONSE*[/bold]",
