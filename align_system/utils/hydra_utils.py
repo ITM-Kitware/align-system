@@ -2,10 +2,21 @@ from omegaconf import DictConfig, ListConfig, OmegaConf
 from omegaconf.errors import InterpolationResolutionError
 from hydra.utils import instantiate
 
+
 def initialize_with_custom_references(cfg):
     # Need to 'allow_objects' to allow arbitrary objects to be stored
     # in the OmegaConf config
     cfg = OmegaConf.create(cfg, flags={"allow_objects": True})
+
+    # Need to do an interpolation first pass where non-"ref"
+    # interpolations are resolved.  This eliminates a race condition
+    # where depending on the config order, normal reference
+    # (i.e. "{path}") coming after "ref" references could point to the
+    # same object.
+    OmegaConf.register_new_resolver('ref', lambda path: f'${{ref:{path}}}')
+    OmegaConf.resolve(cfg)
+    # Remove our custom resolver
+    OmegaConf.clear_resolver('ref')
 
     # Creating a custom resolver here to ensure that when our custom
     # "ref" (${ref:<path_to_referenced_object>}) variable in the
@@ -46,4 +57,9 @@ def initialize_with_custom_references(cfg):
     # Hydra hits our custom references our custom resolver should
     # instantiate the original object first and point to it rather
     # than make a new copy
-    return instantiate(cfg, recursive=True)
+    cfg = instantiate(cfg, recursive=True)
+
+    # Remove our custom resolver
+    OmegaConf.clear_resolver('ref')
+
+    return cfg
