@@ -3,11 +3,13 @@ import torch
 import jinja2
 import json
 import numpy as np
+import copy
 
 import outlines
 from outlines.samplers import MultinomialSampler
 from rich.highlighter import JSONHighlighter
 from swagger_client.models import kdma_value
+import ubelt as ub
 
 from align_system.utils import logging
 from align_system.utils import adm_utils
@@ -236,6 +238,26 @@ class OutlinesTransformersComparativeRegressionADM(OutlinesTransformersADM):
         - predictions: {choice1:{kdma1:[score1(int), ...], ...}, ...}
         - reasonings: {choice1:{kdma1:[reasoning1(str), ...], ...}, ...}
         '''
+        scenario_state_copy = copy.deepcopy(scenario_state)
+        # Don't consider the elapsed_time of the state when caching
+        scenario_state_copy.elapsed_time = 0
+        depends = '\n'.join((
+            repr(self.model.model),
+            repr(scenario_state_copy),
+            repr(choices),
+            repr(available_actions),
+            repr(outcome_predictions),
+            repr(kdma_score_examples),
+            repr(enum_scores),
+            repr(incontext_settings)))
+
+        cacher = ub.Cacher('comp_reg_kdma_estimation', depends, verbose=4)
+        log.debug(f'cacher.fpath={cacher.fpath}')
+
+        cached_output = cacher.tryload()
+        if cached_output is not None:
+            return cached_output
+
         use_icl = False
         if "number" in incontext_settings and incontext_settings["number"] > 0:
             use_icl = True
@@ -346,7 +368,10 @@ class OutlinesTransformersComparativeRegressionADM(OutlinesTransformersADM):
                     # Scale score to be between 0 and 1 to match targets
                     predictions[choice][kdma_key].append(kdma_prediction[choice]['score'] / kdma_factor)
 
-        return predictions, reasonings, icl_example_responses
+        outputs = (predictions, reasonings, icl_example_responses)
+        cacher.save(outputs)
+
+        return outputs
 
     # Returns the outcome prediction (if there was one) and score reasoning for the best sample of the selected choice
     def get_selected_choice_reasoning(self, selected_choice, best_sample_index, outcome_predictions, reasonings, relevance_reasonings=None):
