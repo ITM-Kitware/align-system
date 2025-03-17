@@ -39,3 +39,40 @@ QualityOfLife:
   valid_scores:
     values: [1,3,7,9]
   relevant_structured_character_info: [demographics.age, injuries, vitals]
+
+# NAACL24 paper dataset
+ProtocolFocus:
+  name: protocol focus
+  description: Protocol focus is the tendency to prioritize based on aprotocol or rule, instead of considering specific context factors as reasons to make exceptions to the protocol. A high protocol focus person will stick to the rules, even when it seems like that may waste time, effort, or cause unhappiness.
+  valid_scores:
+    values: [0.0, 10.0]
+
+Fairness:
+  name: fairness
+  description: Fairness is treating different people in the same way, such that no person is valued more based on their group membership, identity, or prior actions. A lack of fairness can manifest as favoring those who you have a positive personal relationship with, are part of a group you also belong to, or who have high social status.
+  valid_scores:
+    values: [0.0, 5.0, 10.0]
+
+RiskAversion:
+  name: risk aversion
+  description: Risk aversion is a tendency to avoid uncertainty and prefer actions whose expected outcomes have a lower range of variation. A person with high risk aversion may prefer an action that has somewhat lower total expected value when it also has less difference between the best and worst expected outcome.
+  valid_scores:
+    values: [0.0, 10.0]
+
+ContinuationOfCare:
+  name: continuation of care
+  description: Continuing care means continuing medical care for current patients rather than switching to new patients, related to the trait of “cognitive closure”. A person who values continuing care will tend to allocate resources (e.g. time, medical supplies, etc.) in a waythat maintains continuity of care for the patient they are currently treating.
+  valid_scores:
+    values: [0.0, 10.0]
+
+MoralDesert:
+  name: moral desert
+  description: Moral desert refers to rewarding moral actions and punishing immoral misdeeds, which is related to concepts of justice. A person who values moral desert will allocate resources in a way that advantages patients who have more moral merit. For example, they may prioritize a patient injured while trying to help others, or a patient who was not responsible for their own injury.
+  valid_scores:
+    values: [0.0, 10.0]
+
+Utilitarianism:
+  name: utilitarianism
+  description: Utilitarianism is the priority placed on maximizing the net positive outcome of a group of people. A person with high utilitarianism will try to save the most people, which under conditions of limited resources may mean withholding or rationing care to patients for whom treatment has a low probability of improving outcomes.
+  valid_scores:
+    values: [0.0, 10.0]

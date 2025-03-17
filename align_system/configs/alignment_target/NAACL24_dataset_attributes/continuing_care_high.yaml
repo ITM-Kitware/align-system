@@ -1,0 +1,5 @@
+_target_: swagger_client.models.AlignmentTarget
+
+id: continuing_care_high
+kdma_values:
+  - {kdma: ContinuationOfCare, value: 10.0}

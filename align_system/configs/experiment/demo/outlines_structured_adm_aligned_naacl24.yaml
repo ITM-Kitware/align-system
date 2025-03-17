@@ -1,0 +1,26 @@
+# @package _global_
+defaults:
+  - override /adm: outlines_transformers_structured_aligned
+  - override /interface: input_output_file
+
+interface:
+  input_output_filepath: 'example_data/input_output_files/NAACL24_dataset_split/oracle_continuing_care_training_input_output.json'
+  # possible input-output json filepaths
+  # 'example_data/input_output_files/NAACL24_dataset_split/oracle_fairness_training_input_output.json'
+  # 'example_data/input_output_files/NAACL24_dataset_split/oracle_moral_desert_training_input_output.json'
+  # 'example_data/input_output_files/NAACL24_dataset_split/oracle_protocol_focus_training_input_output.json'
+  # 'example_data/input_output_files/NAACL24_dataset_split/oracle_risk_aversion_training_input_output.json'
+  # 'example_data/input_output_files/NAACL24_dataset_split/oracle_utilitarianism_training_input_output.json'
+adm:
+  instance:
+    precision: half
+    model_name: mistralai/Mistral-7B-Instruct-v0.3
+
+force_determinism: true
+align_to_target: true
+save_last_unstructured_state_per_scenario: true
+
+inference_kwargs:
+  num_positive_samples: 1
+  num_negative_samples: 0
+  shuffle_choices: false

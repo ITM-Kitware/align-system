@@ -47,7 +47,17 @@ from align_system.prompt_engineering.outlines_prompts import (
     treatment_choice_json_schema,
     treatment_choice_from_list_json_schema,
     detailed_unstructured_treatment_action_text,
-    detailed_unstructured_tagging_action_text
+    detailed_unstructured_tagging_action_text,
+    high_risk_aversion_system_prompt,
+    low_risk_aversion_system_prompt,
+    high_continuing_care_system_prompt,
+    low_continuing_care_system_prompt,
+    high_fairness_system_prompt,
+    low_fairness_system_prompt,
+    high_protocol_focus_system_prompt,
+    low_protocol_focus_system_prompt,
+    high_utilitarianism_care_system_prompt,
+    low_utilitarianism_system_prompt
 )
 
 log = logging.getLogger(__name__)
@@ -111,7 +121,7 @@ class OutlinesTransformersADM(ActionBasedADM):
 
     @staticmethod
     def kdma_value_to_system_prompt(kdma, value):
-        if kdma == "MoralDesert" or kdma=="Moral judgement":
+        if kdma=="Moral judgement":
             if value < 0.5:
                 return low_moral_deservingness_system_prompt()
             else:
@@ -121,6 +131,36 @@ class OutlinesTransformersADM(ActionBasedADM):
                 return low_maximization_system_prompt()
             else:
                 return high_maximization_system_prompt()
+        elif kdma == "ProtocolFocus":
+            if value == 0.0:
+                return low_protocol_focus_system_prompt()
+            else:
+                return high_protocol_focus_system_prompt()
+        elif kdma == "Fairness":
+            if value == 0.0:
+                return low_fairness_system_prompt()
+            else:
+                return high_fairness_system_prompt()
+        elif kdma == "RiskAversion":
+            if value == 0.0:
+                return low_risk_aversion_system_prompt()
+            else:
+                return high_risk_aversion_system_prompt()
+        elif kdma == "ContinuationOfCare":
+            if value == 0.0:
+                return low_continuing_care_system_prompt()
+            else:
+                return high_continuing_care_system_prompt()
+        elif kdma == "MoralDesert":
+            if value == 0.0:
+                return low_moral_deservingness_system_prompt()
+            else:
+                return high_moral_deservingness_system_prompt()
+        elif kdma == "Utilitarianism":
+            if value == 0.0:
+                return low_utilitarianism_system_prompt()
+            else:
+                return high_utilitarianism_care_system_prompt()
         else:
             return None
 

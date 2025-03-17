@@ -1,0 +1,5 @@
+_target_: swagger_client.models.AlignmentTarget
+
+id: protocol_focus_low
+kdma_values:
+  - {kdma: ProtocolFocus, value: 0.0}
