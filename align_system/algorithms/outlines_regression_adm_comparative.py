@@ -251,11 +251,12 @@ class OutlinesTransformersComparativeRegressionADM(OutlinesTransformersADM):
             repr(enum_scores),
             repr(incontext_settings)))
 
-        cacher = ub.Cacher('comp_reg_kdma_estimation', depends, verbose=4)
+        cacher = ub.Cacher('comp_reg_kdma_estimation', depends, verbose=0)
         log.debug(f'cacher.fpath={cacher.fpath}')
 
         cached_output = cacher.tryload()
         if cached_output is not None:
+            log.info("Cache hit for `sample_kdma_score_predictions` returning cached output")
             return cached_output
 
         use_icl = False
