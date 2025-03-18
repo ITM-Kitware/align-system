@@ -9,9 +9,12 @@ from swagger_client.models import (
 )
 
 from align_system.utils import logging
+from align_system.utils import adm_utils
 from align_system.utils import get_swagger_class_enum_values
 from align_system.algorithms.abstracts import ADMComponent
 from align_system.prompt_engineering.outlines_prompts import (
+    action_selection_prompt,
+    scenario_state_description_1,
     followup_clarify_aid,
     followup_clarify_character,
     followup_clarify_treatment,
@@ -33,6 +36,22 @@ class ActionParameterCompletionADMComponent(ADMComponent):
                  structured_inference_engine):
         self.structured_inference_engine = structured_inference_engine
 
+    # TODO: Copied from outlines_adm.py; should use a common template/prompt
+    def _state_to_top_level_prompt(self, scenario_state, actions):
+        """
+        Generate prompt dialog based on given state and actions
+        """
+        choices = adm_utils.format_choices(
+            [a.unstructured for a in actions],
+            actions,
+            scenario_state
+        )
+
+        scenario_description = scenario_state_description_1(scenario_state)
+        prompt = action_selection_prompt(scenario_description, choices)
+
+        return prompt, choices
+
     def run(self,
             scenario_state,
             choice_evaluation,
@@ -45,6 +64,18 @@ class ActionParameterCompletionADMComponent(ADMComponent):
         #     raise RuntimeError("Assumption violated: only expecting a single "
         #                        "dialog at this point")
         dialog = dialogs[0]
+
+        if len(dialog) == 0:
+            # If prior steps didn't provide any dialog/context, use a
+            # sensible default:
+            prompt, _ = self._state_to_top_level_prompt(
+                scenario_state,
+                [v['action'] for k, v in choice_evaluation.items()])
+
+            dialog.append(DialogElement(role='user',
+                                        content=prompt,
+                                        namespace='.',
+                                        tags=['parameter_completion']))
 
         # If last dialog message is an 'assistant' message, remove it
         # as we'll generate one for each follow-up needed.  (Dialogs
