@@ -1,0 +1,17 @@
+name: pipeline_kaleido
+
+defaults:
+  - /attribute@mj: moral_judgment
+  - /inference_engine@structured_inference_engine: outlines_structured_inference_engine
+  - /template/scenario_description@scenario_description_template: default
+  - /adm_component/regression@instance.steps.0: kaleido
+  - /adm_component/alignment@instance.steps.1: avg_dist_scalar
+  - /adm_component/misc@instance.steps.2: action_parameter_completion
+  - _self_
+
+attribute_definitions:
+  Moral judgement: ${adm.mj}
+
+instance:
+  _target_: align_system.algorithms.pipeline_adm.PipelineADM
+
