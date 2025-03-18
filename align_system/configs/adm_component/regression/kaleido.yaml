@@ -1,0 +1,32 @@
+_target_: align_system.algorithms.kaleido_adm_component.KaleidoADMComponent
+
+kaleido_instance:
+  _target_: align_system.algorithms.lib.kaleido.KaleidoSys
+
+  model_name: 'tsor13/kaleido-large'
+  use_tqdm: False
+
+estimator_fn:
+  _target_: align_system.algorithms.kaleido_adm.SimpleKDMAEstimator
+
+kdma_descriptions_map:
+  Moral judgement:
+    name: Moral Judgement
+    description: Favoring victims or bystanders over those who are perpetrators or otherwise potentially blame-worthy
+    vrd: Value
+
+  Ingroup Bias:
+    name: Ingroup Bias
+    description: Favoring casualties who are members of your same group, such as family, military unit, coalition, nationality, or region of origin over those who are not part of your group
+    vrd: Value
+
+  QualityOfLife:
+    name: Quality of Life
+    description: Favoring casualties deemed most likely to have the highest quality of life once treated and rehabilitated over those whose injuries are more permanently debilitating
+    vrd: Value
+
+  PerceivedQuantityOfLivesSaved:
+    name: Value of Life
+    description: Choosing actions deemed likely to result in the greatest number of lives saved regardless of other factors, consequences or values
+    vrd: Value
+
