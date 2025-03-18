@@ -132,32 +132,32 @@ class OutlinesTransformersADM(ActionBasedADM):
             else:
                 return high_maximization_system_prompt()
         elif kdma == "ProtocolFocus":
-            if value == 0.0:
+            if value < 0.5:
                 return low_protocol_focus_system_prompt()
             else:
                 return high_protocol_focus_system_prompt()
         elif kdma == "Fairness":
-            if value == 0.0:
+            if value < 0.5:
                 return low_fairness_system_prompt()
             else:
                 return high_fairness_system_prompt()
         elif kdma == "RiskAversion":
-            if value == 0.0:
+            if value < 0.5:
                 return low_risk_aversion_system_prompt()
             else:
                 return high_risk_aversion_system_prompt()
         elif kdma == "ContinuationOfCare":
-            if value == 0.0:
+            if value < 0.5:
                 return low_continuing_care_system_prompt()
             else:
                 return high_continuing_care_system_prompt()
         elif kdma == "MoralDesert":
-            if value == 0.0:
+            if value < 0.5:
                 return low_moral_deservingness_system_prompt()
             else:
                 return high_moral_deservingness_system_prompt()
         elif kdma == "Utilitarianism":
-            if value == 0.0:
+            if value < 0.5:
                 return low_utilitarianism_system_prompt()
             else:
                 return high_utilitarianism_care_system_prompt()
