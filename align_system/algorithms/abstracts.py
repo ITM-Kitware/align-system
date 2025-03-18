@@ -1,7 +1,9 @@
 from abc import ABC, abstractmethod
 
-from typing import Union, Tuple, Dict
+from typing import Union, Tuple, Dict, List
 from swagger_client.models import State, Action, AlignmentTarget
+
+from align_system.data_models.dialog import Dialog
 
 
 class ActionBasedADM(ABC):
@@ -12,6 +14,28 @@ class ActionBasedADM(ABC):
                       alignment_target: Union[type[AlignmentTarget], None],
                       **kwargs) -> Union[Action, Tuple[Action, Dict]]:
         pass
+
+
+class StructuredInferenceEngine(ABC):
+    @abstractmethod
+    def dialog_to_prompt(dialog: list[Dict]) -> str:
+        pass
+
+    @abstractmethod
+    def run_inference(prompts: Union[str, list[str]],
+                      schema: str) -> Union[Dict, list[Dict]]:
+        pass
+
+
+class ADMComponent(ABC):
+    @abstractmethod
+    def run(self,
+            scenario_state: State,
+            choice_evaluation: Dict,
+            dialogs: List[Dialog],
+            alignment_target: Union[type[AlignmentTarget], None]) -> Tuple[Dict, List[Dialog]]:
+        pass
+
 
 
 # ADM sub-classes implement all the algorithm-specific logic
