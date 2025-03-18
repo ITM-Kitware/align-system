@@ -1,6 +1,6 @@
 # @package _global_
 defaults:
-  - override /adm: outlines_transformers_structured_aligned
+  - override /adm: outlines_transformers_structured_baseline
   - override /interface: input_output_file
 
 interface:
@@ -15,18 +15,12 @@ adm:
   instance:
     precision: half
     model_name: mistralai/Mistral-7B-Instruct-v0.3
+    baseline: true
     # Required by certain backbones, for instance: "LGAI-EXAONE/EXAONE-3.5-32B-Instruct"
     # model_kwargs:
     #   trust_remote_code: true
     # tokenizer_kwargs:
     #   trust_remote_code: true
 
-  inference_kwargs:
-    kdma_descriptions_map: 'align_system/prompt_engineering/naacl24_kdma_descriptions.yml'
-    num_positive_samples: 1
-    num_negative_samples: 0
-    shuffle_choices: false
-
 force_determinism: true
-align_to_target: true
 save_last_unstructured_state_per_scenario: true
