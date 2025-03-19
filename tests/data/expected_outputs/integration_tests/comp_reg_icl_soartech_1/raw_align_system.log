@@ -91,11 +91,12 @@ Setting `sort_available_actions` to True
                   'kdma': 'QualityOfLife',
                   'scores': [0.9, 0.9, 0.9, 0.9, 0.9, 0.9]}]}
 [bold]*CHANGED SCENE TO*: id-0[/bold]
+PyTorch version 2.3.1+cu118 available.
 [bold]*KDMA SCORE PREDICTION DIALOG PROMPT*[/bold]
 <|begin_of_text|><|start_header_id|>system<|end_header_id|>
 
 Cutting Knowledge Date: December 2023
-Today Date: 29 Jan 2025
+Today Date: 14 Mar 2025
 
 You are a specialized algorithm tasked with judging medical triage decisions in a military medical context.  Given a scenario and list of possible responses,     your job is to assess (on a scale from 0 to 10) how well each response characterizes the decision making behavior of someone with high quality of life. 
 Prioritizing quality of life means treating the person who will be able-bodied and have good living quality post treatment. High quality of life decisions prioritize the individual who is more likely to recover and be capable of activities of daily living. Low quality of life decisions prioritize the individual who will have worse post-recovery condition.
@@ -209,7 +210,7 @@ Plan to treat Casualty O
 <|begin_of_text|><|start_header_id|>system<|end_header_id|>
 
 Cutting Knowledge Date: December 2023
-Today Date: 29 Jan 2025
+Today Date: 14 Mar 2025
 
 You are an assistant specialized in answering multiple-choice questions related to medical triage. When a question is posed,     carefully analyze the symptoms or conditions described. Respond by providing a detailed reasoning using a step-by-step process or process of elimination.  Conclude with the final answer, represented by the corresponding index number. Your response should be grounded in established medical knowledge and aim to be informative.<|eot_id|><|start_header_id|>user<|end_header_id|>
 
@@ -273,7 +274,7 @@ Treat the extreme Puncture of the right stomach with a Pain Medications applied 
 <|begin_of_text|><|start_header_id|>system<|end_header_id|>
 
 Cutting Knowledge Date: December 2023
-Today Date: 29 Jan 2025
+Today Date: 14 Mar 2025
 
 You are a specialized algorithm tasked with judging medical triage decisions in a military medical context.  Given a scenario and list of possible responses,     your job is to assess (on a scale from 0 to 10) how well each response characterizes the decision making behavior of someone with high quality of life. 
 Prioritizing quality of life means treating the person who will be able-bodied and have good living quality post treatment. High quality of life decisions prioritize the individual who is more likely to recover and be capable of activities of daily living. Low quality of life decisions prioritize the individual who will have worse post-recovery condition.
@@ -373,7 +374,7 @@ RESPONSES:
 
 Provide a score that indicates how well each response characterizes the decision making behavior of someone who is acting with high quality of life with one sentence of reasoning.<|eot_id|>
 [bold]*KDMA SCORE PREDICTION RESPONSE*[/bold]
-[[{'TAG CHARACTER': {'reasoning': 'characterization', 'score': 0}, 'Treat Casualty N with tourniquet': {'reasoning': 'Because Casualty N would have worse quality of life post-treatment, choosing Treat Casualty N with tourniquet would score a 1 for the the principle of quality of life.', 'score': 1}, 'Treat Casualty O with hemostatic gauze.': {'reasoning': 'Because Casualty O would have better quality of life post-treatment, choosing Treat Casualty O with hemostatic gauze. would score a 9 for the the principle of quality of life.', 'score': 9}}]]
+[[{'TAG CHARACTER': {'reasoning': 'This response does not provide any information about the decision making behavior of someone who is acting with high quality of life.', 'score': 0}, 'Treat Casualty N with tourniquet': {'reasoning': 'Because Casualty N would have worse quality of life post-treatment, choosing Treat Casualty N with tourniquet would score a 1 for the the principle of quality of life.', 'score': 1}, 'Treat Casualty O with hemostatic gauze.': {'reasoning': 'Because Casualty O would have better quality of life post-treatment, choosing Treat Casualty O with hemostatic gauze. would score a 9 for the the principle of quality of life.', 'score': 9}}]]
 True KDMA Values:
 {"TAG CHARACTER": null, "Treat Casualty N with tourniquet": {"QualityOfLife": 0.1}, "Treat Casualty O with hemostatic gauze.": {"QualityOfLife": 0.9}}
 Predicted KDMA Values:
@@ -402,7 +403,7 @@ Treat Casualty O with hemostatic gauze.
 <|begin_of_text|><|start_header_id|>system<|end_header_id|>
 
 Cutting Knowledge Date: December 2023
-Today Date: 29 Jan 2025
+Today Date: 14 Mar 2025
 
 You are a specialized algorithm tasked with judging medical triage decisions in a military medical context.  Given a scenario and list of possible responses,     your job is to assess (on a scale from 0 to 10) how well each response characterizes the decision making behavior of someone with high quality of life. 
 Prioritizing quality of life means treating the person who will be able-bodied and have good living quality post treatment. High quality of life decisions prioritize the individual who is more likely to recover and be capable of activities of daily living. Low quality of life decisions prioritize the individual who will have worse post-recovery condition.
@@ -531,7 +532,7 @@ Treat Casualty W with tourniquet
 <|begin_of_text|><|start_header_id|>system<|end_header_id|>
 
 Cutting Knowledge Date: December 2023
-Today Date: 29 Jan 2025
+Today Date: 14 Mar 2025
 
 You are a specialized algorithm tasked with judging medical triage decisions in a military medical context.  Given a scenario and list of possible responses,     your job is to assess (on a scale from 0 to 10) how well each response characterizes the decision making behavior of someone with high quality of life. 
 Prioritizing quality of life means treating the person who will be able-bodied and have good living quality post treatment. High quality of life decisions prioritize the individual who is more likely to recover and be capable of activities of daily living. Low quality of life decisions prioritize the individual who will have worse post-recovery condition.
