@@ -1,0 +1,67 @@
+# Minimum contents to prevent ADM from throwing an error (due to ICL)
+
+CREGION_Northeast:
+  name: CREGION_Northeast
+
+CREGION_South:
+  name: CREGION_South
+
+EDUCATION_College graduate/some postgrad:
+  name: EDUCATION_College graduate/some postgrad
+
+EDUCATION_Less than high school:
+  name: EDUCATION_Less than high school
+
+INCOME_$100,000 or more:
+  name: INCOME_$100,000 or more
+
+INCOME_Less than $30,000:
+  name: INCOME_Less than $30,000
+
+POLIDEOLOGY_Conservative:
+  name: POLIDEOLOGY_Conservative
+
+POLIDEOLOGY_Liberal:
+  name: POLIDEOLOGY_Liberal
+
+POLIDEOLOGY_Moderate:
+  name: POLIDEOLOGY_Moderate
+
+POLPARTY_Democrat:
+  name: POLPARTY_Democrat
+
+POLPARTY_Republican:
+  name: POLPARTY_Republican
+
+RACE_Asian:
+  name: RACE_Asian
+
+RACE_Black:
+  name: RACE_Black
+
+RACE_Hispanic:
+  name: RACE_Hispanic
+
+RACE_White:
+  name: RACE_White
+
+RELIG_Atheist:
+  name: RELIG_Atheist
+
+RELIG_Hindu:
+  name: RELIG_Hindu
+
+RELIG_Jewish:
+  name: RELIG_Jewish
+
+RELIG_Muslim:
+  name: RELIG_Muslim
+
+RELIG_Protestant:
+  name: RELIG_Protestant
+
+SEX_Female:
+  name: SEX_Female
+
+SEX_Male:
+  name: SEX_Male

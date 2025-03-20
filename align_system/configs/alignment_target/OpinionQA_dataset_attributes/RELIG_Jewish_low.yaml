@@ -1,0 +1,5 @@
+_target_: swagger_client.models.AlignmentTarget
+id: RELIG_Jewish_low
+kdma_values:
+- kdma: RELIG_Jewish
+  value: 0.0

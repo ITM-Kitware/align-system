@@ -1,0 +1,5 @@
+_target_: swagger_client.models.AlignmentTarget
+id: INCOME_Less_than_$30,000_high
+kdma_values:
+- kdma: INCOME_Less than $30,000
+  value: 1.0

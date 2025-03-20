@@ -1,0 +1,5 @@
+_target_: swagger_client.models.AlignmentTarget
+id: RACE_White_low
+kdma_values:
+- kdma: RACE_White
+  value: 0.0
