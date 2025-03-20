@@ -57,7 +57,8 @@ from align_system.prompt_engineering.outlines_prompts import (
     high_protocol_focus_system_prompt,
     low_protocol_focus_system_prompt,
     high_utilitarianism_care_system_prompt,
-    low_utilitarianism_system_prompt
+    low_utilitarianism_system_prompt,
+    opinion_qa_system_prompt,
 )
 
 log = logging.getLogger(__name__)
@@ -70,6 +71,9 @@ class OutlinesTransformersADM(ActionBasedADM):
                  device='auto',
                  baseline=False,
                  sampler=MultinomialSampler(),
+                 scenario_description_template=scenario_state_description_1,
+                 action_selection_prompt_template=action_selection_prompt,
+                 baseline_system_prompt=baseline_system_prompt,
                  **kwargs):
         self.baseline = baseline
 
@@ -97,6 +101,10 @@ class OutlinesTransformersADM(ActionBasedADM):
         # the sampler itself (which defaults to 1); setting the number
         # of samples in the sampler may result in unexpected behavior
         self.sampler = sampler
+
+        self.scenario_description_template = scenario_description_template
+        self.action_selection_prompt_template = action_selection_prompt_template
+        self.baseline_system_prompt = baseline_system_prompt
 
     def dialog_to_prompt(self, dialog):
         tokenizer = self.model.tokenizer.tokenizer
@@ -161,6 +169,29 @@ class OutlinesTransformersADM(ActionBasedADM):
                 return low_utilitarianism_system_prompt()
             else:
                 return high_utilitarianism_care_system_prompt()
+        elif kdma in {"CREGION_Northeast",
+                      "CREGION_South",
+                      "EDUCATION_College graduate/some postgrad",
+                      "EDUCATION_Less than high school",
+                      "INCOME_$100,000 or more",
+                      "INCOME_Less than $30,000",
+                      "POLIDEOLOGY_Conservative",
+                      "POLIDEOLOGY_Liberal",
+                      "POLIDEOLOGY_Moderate",
+                      "POLPARTY_Democrat",
+                      "POLPARTY_Republican",
+                      "RACE_Asian",
+                      "RACE_Black",
+                      "RACE_Hispanic",
+                      "RACE_White",
+                      "RELIG_Atheist",
+                      "RELIG_Hindu",
+                      "RELIG_Jewish",
+                      "RELIG_Muslim",
+                      "RELIG_Protestant",
+                      "SEX_Female",
+                      "SEX_Male"}:
+            return opinion_qa_system_prompt(kdma, value)
         else:
             return None
 
@@ -174,8 +205,8 @@ class OutlinesTransformersADM(ActionBasedADM):
             scenario_state
         )
 
-        scenario_description = scenario_state_description_1(scenario_state)
-        prompt = action_selection_prompt(scenario_description, choices)
+        scenario_description = self.scenario_description_template(scenario_state)
+        prompt = self.action_selection_prompt_template(scenario_description, choices)
 
         return prompt, choices
 
@@ -216,7 +247,7 @@ class OutlinesTransformersADM(ActionBasedADM):
         if self.baseline and "incontext" in kwargs and kwargs["incontext"]["number"] > 0:
             raise RuntimeError("No notion of incontext examples for baseline run")
 
-        scenario_description = scenario_state_description_1(scenario_state)
+        scenario_description = self.scenario_description_template(scenario_state)
         # Important that the choices stay in the same order as the
         # available actions as we'll use the selected index later to
         # map to the corresponding action
@@ -259,7 +290,7 @@ class OutlinesTransformersADM(ActionBasedADM):
                                    "value: {}.".format(kdma, negative_value))
 
             if "incontext" in kwargs and "number" in incontext_settings and incontext_settings["number"] > 0:
-                scenario_to_match = scenario_state_description_1(scenario_state)
+                scenario_to_match = self.scenario_description_template(scenario_state)
                 prompt_to_match, _ = self._state_to_top_level_prompt(scenario_state, available_actions)
 
                 # Create positive ICL example generators
@@ -299,7 +330,7 @@ class OutlinesTransformersADM(ActionBasedADM):
                             {"role": "assistant", "content": f'{icl_sample["response"]}'}
                         ])
         else:
-            positive_system_prompt = baseline_system_prompt()
+            positive_system_prompt = self.baseline_system_prompt()
             if num_negative_samples > 0:
                 raise RuntimeError("No notion of negative samples for baseline run")
             if "incontext" in kwargs and kwargs["incontext"]["number"] > 0:
@@ -309,7 +340,7 @@ class OutlinesTransformersADM(ActionBasedADM):
         for _ in range(num_positive_samples):
             shuffled_choices = random.sample(choices, len(choices))
 
-            prompt = action_selection_prompt(scenario_description, shuffled_choices)
+            prompt = self.action_selection_prompt_template(scenario_description, shuffled_choices)
             dialog = [{'role': 'system', 'content': positive_system_prompt}]
             dialog.extend(positive_icl_examples)
             dialog.append({'role': 'user', 'content': prompt})
@@ -320,7 +351,7 @@ class OutlinesTransformersADM(ActionBasedADM):
         for _ in range(num_negative_samples):
             shuffled_choices = random.sample(choices, len(choices))
 
-            prompt = action_selection_prompt(scenario_description, shuffled_choices)
+            prompt = self.action_selection_prompt_template(scenario_description, shuffled_choices)
             dialog = [{'role': 'system', 'content': negative_system_prompt}]
             dialog.extend(negative_icl_examples)
             dialog.append({'role': 'user', 'content': prompt})
