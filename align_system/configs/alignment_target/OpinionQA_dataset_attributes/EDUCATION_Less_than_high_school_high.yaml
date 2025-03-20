@@ -1,0 +1,5 @@
+_target_: swagger_client.models.AlignmentTarget
+id: EDUCATION_Less_than_high_school_high
+kdma_values:
+- kdma: EDUCATION_Less than high school
+  value: 1.0

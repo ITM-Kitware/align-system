@@ -1,0 +1,5 @@
+_target_: swagger_client.models.AlignmentTarget
+id: POLIDEOLOGY_Moderate_high
+kdma_values:
+- kdma: POLIDEOLOGY_Moderate
+  value: 1.0

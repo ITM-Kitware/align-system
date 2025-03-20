@@ -1,0 +1,5 @@
+_target_: swagger_client.models.AlignmentTarget
+id: RACE_Asian_high
+kdma_values:
+- kdma: RACE_Asian
+  value: 1.0
