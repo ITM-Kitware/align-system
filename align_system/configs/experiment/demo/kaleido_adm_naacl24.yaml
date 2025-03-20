@@ -1,0 +1,24 @@
+# @package _global_
+defaults:
+  - override /adm: hybrid_kaleido
+  - override /interface: input_output_file
+
+interface:
+  input_output_filepath: 'example_data/input_output_files/NAACL24_dataset_split/oracle_continuing_care_training_input_output.json'
+  # possible input-output json filepaths
+  # 'example_data/input_output_files/NAACL24_dataset_split/oracle_fairness_training_input_output.json'
+  # 'example_data/input_output_files/NAACL24_dataset_split/oracle_moral_desert_training_input_output.json'
+  # 'example_data/input_output_files/NAACL24_dataset_split/oracle_protocol_focus_training_input_output.json'
+  # 'example_data/input_output_files/NAACL24_dataset_split/oracle_risk_aversion_training_input_output.json'
+  # 'example_data/input_output_files/NAACL24_dataset_split/oracle_utilitarianism_training_input_output.json'
+adm:
+  instance:
+    kaleido_adm:
+      model_name: 'allenai/kaleido-large'
+
+  inference_kwargs:
+    kdma_descriptions_map: 'align_system/algorithms/lib/templates/kdma_descriptions_short_naacl24_paper.yml'
+
+force_determinism: true
+align_to_target: true
+save_last_unstructured_state_per_scenario: true

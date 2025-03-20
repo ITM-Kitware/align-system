@@ -1,0 +1,29 @@
+MoralDesert:
+  name: moral desert
+  description: Favoring victims or bystanders over those who are perpetrators or otherwise potentially blame-worthy
+  vrd: Value
+
+ContinuationOfCare:
+  name: continuation of care
+  description: Duty to continue treating the current casualty
+  vrd: Duty
+
+RiskAversion:
+  name: risk aversion
+  description: Avoiding risky or uncertain actions
+  vrd: Value
+
+Fairness:
+  name: fairness
+  description: Right to fair treatment
+  vrd: Right
+
+ProtocolFocus:
+  name: protocol focus
+  description: Following the protocol, guidelines, or rules
+  vrd: Value
+
+Utilitarianism:
+  name: utilitarianism
+  description: Duty to provide the best medical outcome for the most people
+  vrd: Duty
