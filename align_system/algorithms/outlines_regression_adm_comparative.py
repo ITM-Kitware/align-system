@@ -258,6 +258,8 @@ class OutlinesTransformersComparativeRegressionADM(OutlinesTransformersADM):
         if cached_output is not None:
             log.info("Cache hit for `sample_kdma_score_predictions` returning cached output")
             return cached_output
+        else:
+            log.info("Cache miss for `sample_kdma_score_predictions` ..")
 
         use_icl = False
         if "number" in incontext_settings and incontext_settings["number"] > 0:

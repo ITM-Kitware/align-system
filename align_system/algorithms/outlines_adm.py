@@ -398,6 +398,8 @@ class OutlinesTransformersADM(ActionBasedADM):
         if cached_output is not None:
             log.info("Cache hit for `populate_action_parameters` returning cached output")
             return cached_output
+        else:
+            log.info("Cache miss for `populate_action_parameters` ..")
 
         if action_to_take.action_type in {ActionTypeEnum.APPLY_TREATMENT,
                                           ActionTypeEnum.TAG_CHARACTER,
