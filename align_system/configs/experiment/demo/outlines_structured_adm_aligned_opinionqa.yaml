@@ -1,0 +1,35 @@
+# @package _global_
+defaults:
+  - override /adm: outlines_transformers_structured_aligned
+  - override /interface: input_output_file
+
+interface:
+  input_output_filepath: 'example_data/input_output_files/OpinionQA_dataset_split/RELIG_Atheist_input_output.json'
+  # possible input-output json filepaths
+adm:
+  instance:
+    precision: half
+    model_name: mistralai/Mistral-7B-Instruct-v0.3
+    # Required by certain backbones, for instance: "LGAI-EXAONE/EXAONE-3.5-32B-Instruct"
+    # model_kwargs:
+    #   trust_remote_code: true
+    # tokenizer_kwargs:
+    #   trust_remote_code: true
+    sampler:
+      _target_: outlines.samplers.GreedySampler
+    scenario_description_template:
+      _target_: align_system.prompt_engineering.outlines_prompts.opinion_qa_scenario_description
+    action_selection_prompt_template:
+      _target_: align_system.prompt_engineering.outlines_prompts.opinion_qa_action_selection
+    baseline_system_prompt:
+      _target_: align_system.prompt_engineering.outlines_prompts.opinion_qa_baseline_system_prompt
+
+  inference_kwargs:
+    kdma_descriptions_map: 'align_system/prompt_engineering/opinionqa_kdma_descriptions.yml'
+    num_positive_samples: 1
+    num_negative_samples: 0
+    shuffle_choices: false
+
+force_determinism: true
+align_to_target: true
+save_last_unstructured_state_per_scenario: true

@@ -1,0 +1,5 @@
+_target_: swagger_client.models.AlignmentTarget
+id: CREGION_Northeast_low
+kdma_values:
+- kdma: CREGION_Northeast
+  value: 0.0

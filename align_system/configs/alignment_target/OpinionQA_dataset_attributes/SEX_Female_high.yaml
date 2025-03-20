@@ -1,0 +1,5 @@
+_target_: swagger_client.models.AlignmentTarget
+id: SEX_Female_high
+kdma_values:
+- kdma: SEX_Female
+  value: 1.0

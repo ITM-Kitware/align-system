@@ -945,12 +945,22 @@ def scenario_description_hybrid_regression(scenario_state):
 def opinion_qa_system_prompt(kdma, value):
     category, attribute = kdma.split('_')
 
-    # TODO: Move outside of this function
-    category_remap = {"RELIG": "religion"}
+    # TODO: Maybe move outside of this function
+    category_remap = {"RELIG": "religious affiliation",
+                      "CREGION": "regional locality in the US",
+                      "EDUCATION": "education level",
+                      "INCOME": "income level",
+                      "POLIDEOLOGY": "political idealogy",
+                      "POLPARTY": "political party affiliation",
+                      "RACE": "race",
+                      "SEX": "gender"}
 
     category_remapped = category_remap.get(category, category)
 
-    return f"Below you will be asked to provide a short description of your {category_remapped} affiliation and then answer some questions.\nDescription: In terms of {category_remapped}, you are {attribute}."
+    if value < 0.5:
+        return f"Below you will be asked to provide a short description of your {category_remapped} and then answer some questions.\nDescription: In terms of {category_remapped}, you are NOT {attribute}."
+    else:
+        return f"Below you will be asked to provide a short description of your {category_remapped} and then answer some questions.\nDescription: In terms of {category_remapped}, you are {attribute}."
 
 
 class opinion_qa_scenario_description():

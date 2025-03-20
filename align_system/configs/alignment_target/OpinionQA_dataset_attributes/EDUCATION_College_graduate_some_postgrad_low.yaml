@@ -1,0 +1,5 @@
+_target_: swagger_client.models.AlignmentTarget
+id: EDUCATION_College_graduate_some_postgrad_low
+kdma_values:
+- kdma: EDUCATION_College graduate/some postgrad
+  value: 0.0
