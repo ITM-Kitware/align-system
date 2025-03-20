@@ -940,3 +940,33 @@ def scenario_description_hybrid_regression(scenario_state):
     """
     {{ scenario_state.unstructured.rstrip() }} {% for character in scenario_state.characters %}{{  character.name }} - {{ character.unstructured.rstrip()}} {% endfor %}
     """
+
+
+def opinion_qa_system_prompt(kdma, value):
+    category, attribute = kdma.split('_')
+
+    # TODO: Move outside of this function
+    category_remap = {"RELIG": "religion"}
+
+    category_remapped = category_remap.get(category, category)
+
+    return f"Below you will be asked to provide a short description of your {category_remapped} affiliation and then answer some questions.\nDescription: In terms of {category_remapped}, you are {attribute}."
+
+
+class opinion_qa_scenario_description():
+    def __call__(self, scenario_state):
+        question, _ = scenario_state.unstructured.split('\nOptions:')
+
+        return question
+
+
+class opinion_qa_action_selection():
+    def __call__(self, scenario_description, choices):
+        choices_str = "\n".join([f"{chr(i+65)}. {c}" for i, c in enumerate(choices)])
+
+        return f"{scenario_description}\n\nOptions:\n{choices_str}"
+
+
+class opinion_qa_baseline_system_prompt():
+    def __call__(self):
+        return "Please answer the survey question"
