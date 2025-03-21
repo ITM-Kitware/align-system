@@ -132,6 +132,28 @@ class OutlinesTransformersComparativeRegressionADM(OutlinesTransformersADM):
         '''
         Samples prediction of the relevance of each response to each KDMA
         '''
+        scenario_state_copy = copy.deepcopy(scenario_state)
+        # Don't consider the elapsed_time of the state when caching
+        scenario_state_copy.elapsed_time = 0
+        depends = '\n'.join((
+            repr(self.model.model),
+            repr(scenario_state_copy),
+            repr(scenario_description),
+            repr(choices),
+            repr(target_kdmas),
+            repr(available_actions),
+            repr(incontext_settings)))
+
+        cacher = ub.Cacher('comp_reg_relevance', depends, verbose=0)
+        log.debug(f'cacher.fpath={cacher.fpath}')
+
+        cached_output = cacher.tryload()
+        if cached_output is not None:
+            log.info("Cache hit for `sample_relevance_predictions` returning cached output")
+            return cached_output
+        else:
+            log.info("Cache miss for `sample_relevance_predictions` ..")
+
         use_icl = False
         if "number" in incontext_settings and incontext_settings["number"] > 0:
             use_icl = True
@@ -218,7 +240,10 @@ class OutlinesTransformersComparativeRegressionADM(OutlinesTransformersADM):
                 else:
                     predictions[choice][kdma_key] = 0
 
-        return predictions, reasonings, icl_example_responses
+        outputs = (predictions, reasonings, icl_example_responses)
+        cacher.save(outputs)
+
+        return outputs
 
     def sample_kdma_score_predictions(self,
                                       scenario_state,
