@@ -1,10 +1,10 @@
 import json
 import random
 import itertools
-import numpy as np
 import torch
 import yaml
 import copy
+from functools import partial
 
 import outlines
 from outlines.samplers import MultinomialSampler
@@ -25,7 +25,6 @@ from align_system.utils.voting import (
     calculate_votes,
     filter_votes_to_responses,
 )
-from align_system.utils.hydrate_state import hydrate_scenario_state
 from align_system.algorithms.abstracts import ActionBasedADM
 from align_system.prompt_engineering.outlines_prompts import (
     baseline_system_prompt,
@@ -46,8 +45,6 @@ from align_system.prompt_engineering.outlines_prompts import (
     tag_choice_json_schema,
     treatment_choice_json_schema,
     treatment_choice_from_list_json_schema,
-    detailed_unstructured_treatment_action_text,
-    detailed_unstructured_tagging_action_text,
     high_risk_aversion_system_prompt,
     low_risk_aversion_system_prompt,
     high_continuing_care_system_prompt,
@@ -64,6 +61,7 @@ from align_system.prompt_engineering.outlines_prompts import (
 log = logging.getLogger(__name__)
 JSON_HIGHLIGHTER = JSONHighlighter()
 
+MAX_GENERATOR_TOKENS = 8092
 
 class OutlinesTransformersADM(ActionBasedADM):
     def __init__(self,
@@ -241,6 +239,9 @@ class OutlinesTransformersADM(ActionBasedADM):
                                 num_negative_samples=0,
                                 generator_batch_size=5,
                                 kdma_descriptions_map='align_system/prompt_engineering/kdma_descriptions.yml',
+                                reasoning_max_length=512,
+                                generator_seed = -1,
+                                shuffle_choices=True,
                                 **kwargs):
         if self.baseline and num_negative_samples > 0:
             raise RuntimeError("No notion of negative samples for baseline run")
@@ -338,7 +339,7 @@ class OutlinesTransformersADM(ActionBasedADM):
 
         positive_dialogs = []
         for _ in range(num_positive_samples):
-            shuffled_choices = random.sample(choices, len(choices))
+            shuffled_choices = random.sample(choices, len(choices)) if shuffle_choices else choices
 
             prompt = self.action_selection_prompt_template(scenario_description, shuffled_choices)
             dialog = [{'role': 'system', 'content': positive_system_prompt}]
@@ -349,7 +350,7 @@ class OutlinesTransformersADM(ActionBasedADM):
 
         negative_dialogs = []
         for _ in range(num_negative_samples):
-            shuffled_choices = random.sample(choices, len(choices))
+            shuffled_choices = random.sample(choices, len(choices)) if shuffle_choices else choices
 
             prompt = self.action_selection_prompt_template(scenario_description, shuffled_choices)
             dialog = [{'role': 'system', 'content': negative_system_prompt}]
@@ -363,9 +364,16 @@ class OutlinesTransformersADM(ActionBasedADM):
         # https://github.com/outlines-dev/outlines/issues/690#issuecomment-2102291934
         generator = outlines.generate.json(
             self.model,
-            action_choice_json_schema(json.dumps(choices)),
+            action_choice_json_schema(json.dumps(choices), reasoning_max_length),
             sampler=self.sampler,
             whitespace_pattern=r"[ ]?")
+        
+        if generator_seed >= 0:
+            torch.manual_seed(generator_seed)
+            if torch.cuda.is_available():
+                torch.cuda.manual_seed(generator_seed)
+        generator = partial(generator, max_tokens=MAX_GENERATOR_TOKENS)
+
 
         dialog_texts = [self.dialog_to_prompt(d) for d in
                         itertools.chain(positive_dialogs, negative_dialogs)]

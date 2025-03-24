@@ -510,13 +510,16 @@ def followup_clarify_aid(character, available_aids):
 
 
 @outlines.prompt
-def action_choice_json_schema(choices_json_str):
+def action_choice_json_schema(choices_json_str, reasoning_max_length=512):
     '''
     {"$defs": {"ActionChoice": {"enum": {{ choices_json_str }},
        "title": "ActionChoice",
        "type": "string"}},
-     "properties": {"detailed_reasoning": {"title": "Detailed Reasoning",
-       "type": "string", "minLength": 1, "maxLength": 512},
+     "properties": {"detailed_reasoning": {
+       "title": "Detailed Reasoning",
+       "type": "string",
+       "minLength": 1{% if reasoning_max_length > 0 %}, "maxLength": {{ reasoning_max_length }}{% endif %}
+       },
       "action_choice": {"$ref": "#/$defs/ActionChoice"}},
      "required": ["detailed_reasoning", "action_choice"],
      "title": "ActionSelection",
