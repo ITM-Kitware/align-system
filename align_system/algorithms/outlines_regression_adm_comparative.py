@@ -140,7 +140,7 @@ class OutlinesTransformersComparativeRegressionADM(OutlinesTransformersADM):
             repr(scenario_state_copy),
             repr(scenario_description),
             repr(choices),
-            repr(target_kdmas),
+            repr([t['kdma'] for t in target_kdmas]),
             repr(available_actions),
             repr(incontext_settings)))
 
