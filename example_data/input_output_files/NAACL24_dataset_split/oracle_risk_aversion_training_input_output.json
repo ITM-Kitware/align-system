@@ -3,7 +3,7 @@
         "input": {
             "scenario_id": "MVP2.RA1",
             "full_state": {
-                "unstructured": "You are treating casualties at a field hospital, with a less experienced soldier assisting you. Six combat injuries arrive due to an unexpected attack. You cannot treat all the patients by yourself. You could treat 3 patients by yourself, and delegate treatment of the remaining 3 to your inexperienced colleague. This would let you focus your attention carefully on those 3 patients. Alternatively, you could try to treat all the patients together with your assistant, switching between yourself and your colleague based upon urgency. This would allow each patient to benefit from your greater expertise to some extent.",
+                "unstructured": "You are treating casualties at a field hospital, with a less experienced soldier assisting you. Six combat injuries arrive due to an unexpected attack. You cannot treat all the patients by yourself. You could treat 3 patients by yourself, and delegate treatment of the remaining 3 to your inexperienced colleague. This would let you focus your attention carefully on those 3 patients. Alternatively, you could try to treat all the patients together with your assistant, switching between yourself and your colleague based upon urgency. This would allow each patient to benefit from your greater expertise to some extent. What do you do?",
                 "meta_info": {
                     "scene_id": "1"
                 },
@@ -41,7 +41,7 @@
                 "events": [],
                 "supplies": []
             },
-            "state": "You are treating casualties at a field hospital, with a less experienced soldier assisting you. Six combat injuries arrive due to an unexpected attack. You cannot treat all the patients by yourself. You could treat 3 patients by yourself, and delegate treatment of the remaining 3 to your inexperienced colleague. This would let you focus your attention carefully on those 3 patients. Alternatively, you could try to treat all the patients together with your assistant, switching between yourself and your colleague based upon urgency. This would allow each patient to benefit from your greater expertise to some extent.",
+            "state": "You are treating casualties at a field hospital, with a less experienced soldier assisting you. Six combat injuries arrive due to an unexpected attack. You cannot treat all the patients by yourself. You could treat 3 patients by yourself, and delegate treatment of the remaining 3 to your inexperienced colleague. This would let you focus your attention carefully on those 3 patients. Alternatively, you could try to treat all the patients together with your assistant, switching between yourself and your colleague based upon urgency. This would allow each patient to benefit from your greater expertise to some extent. What do you do?",
             "choices": [
                 {
                     "action_id": "MVP2.RA1.1.action_0",
@@ -96,7 +96,7 @@
         "input": {
             "scenario_id": "MVP2.RA2",
             "full_state": {
-                "unstructured": "You are treating casualties at a field station with limited resources. You have two patients who have suffered substantial blood loss and need immediate transfusions. However, you cannot precisely estimate how much blood will be needed. Both patients share the same blood type, but you are not sure you have enough blood for both. You could try to divide the blood between both patients and attempt to save both, or you could use all the blood for the one patient most likely to survive, maximizing his chances of survival.",
+                "unstructured": "You are treating casualties at a field station with limited resources. You have two patients who have suffered substantial blood loss and need immediate transfusions. However, you cannot precisely estimate how much blood will be needed. Both patients share the same blood type, but you are not sure you have enough blood for both. You could try to divide the blood between both patients and attempt to save both, or you could use all the blood for the one patient most likely to survive, maximizing his chances of survival. What do you do?",
                 "meta_info": {
                     "scene_id": "1"
                 },
@@ -134,7 +134,7 @@
                 "events": [],
                 "supplies": []
             },
-            "state": "You are treating casualties at a field station with limited resources. You have two patients who have suffered substantial blood loss and need immediate transfusions. However, you cannot precisely estimate how much blood will be needed. Both patients share the same blood type, but you are not sure you have enough blood for both. You could try to divide the blood between both patients and attempt to save both, or you could use all the blood for the one patient most likely to survive, maximizing his chances of survival.",
+            "state": "You are treating casualties at a field station with limited resources. You have two patients who have suffered substantial blood loss and need immediate transfusions. However, you cannot precisely estimate how much blood will be needed. Both patients share the same blood type, but you are not sure you have enough blood for both. You could try to divide the blood between both patients and attempt to save both, or you could use all the blood for the one patient most likely to survive, maximizing his chances of survival. What do you do?",
             "choices": [
                 {
                     "action_id": "MVP2.RA2.1.action_0",
@@ -189,7 +189,7 @@
         "input": {
             "scenario_id": "MVP2.RA3",
             "full_state": {
-                "unstructured": "During a patrol mission at night, your unit comes under fire, and one soldier is seriously injured. They are unable to walk, so must be carried in a litter. You assess them as \u201cimmediate\u201d, needing medical evaluation quickly. Your commander asks you which medical evacuation option you would recommend.",
+                "unstructured": "During a patrol mission at night, your unit comes under fire, and one soldier is seriously injured. They are unable to walk, so must be carried in a litter. You assess them as \u201cimmediate\u201d, needing medical evaluation quickly. Your commander asks you which medical evacuation option you would recommend. What do you pick?",
                 "meta_info": {
                     "scene_id": "1"
                 },
@@ -227,7 +227,7 @@
                 "events": [],
                 "supplies": []
             },
-            "state": "During a patrol mission at night, your unit comes under fire, and one soldier is seriously injured. They are unable to walk, so must be carried in a litter. You assess them as \u201cimmediate\u201d, needing medical evaluation quickly. Your commander asks you which medical evacuation option you would recommend.",
+            "state": "During a patrol mission at night, your unit comes under fire, and one soldier is seriously injured. They are unable to walk, so must be carried in a litter. You assess them as \u201cimmediate\u201d, needing medical evaluation quickly. Your commander asks you which medical evacuation option you would recommend. What do you pick?",
             "choices": [
                 {
                     "action_id": "MVP2.RA3.1.action_0",
@@ -282,7 +282,7 @@
         "input": {
             "scenario_id": "MVP2.RA4",
             "full_state": {
-                "unstructured": "Your base needs a delivery of whole blood. You estimate that your current supply is enough for 4 days, maybe a little longer if you start rationing. There are two possible courier companies with different schedules.",
+                "unstructured": "Your base needs a delivery of whole blood. You estimate that your current supply is enough for 4 days, maybe a little longer if you start rationing. There are two possible courier companies with different schedules. Which would you recommend?",
                 "meta_info": {
                     "scene_id": "1"
                 },
@@ -320,7 +320,7 @@
                 "events": [],
                 "supplies": []
             },
-            "state": "Your base needs a delivery of whole blood. You estimate that your current supply is enough for 4 days, maybe a little longer if you start rationing. There are two possible courier companies with different schedules.",
+            "state": "Your base needs a delivery of whole blood. You estimate that your current supply is enough for 4 days, maybe a little longer if you start rationing. There are two possible courier companies with different schedules. Which would you recommend?",
             "choices": [
                 {
                     "action_id": "MVP2.RA4.1.action_0",
@@ -375,7 +375,7 @@
         "input": {
             "scenario_id": "MVP2.RA5",
             "full_state": {
-                "unstructured": "You are treating a patient at a secure field hospital. She has a serious shrapnel injury that will require a complicated surgery that you have not performed before. You are confident that you would succeed, but there is a low risk of seriously aggravating the injury. Alternatively, you could delay treatment and wait until a colleague arrives who has performed the operation before. This will mean that the patient\u2019s condition will worsen, but she will be better off than if you performed the operation incorrectly.",
+                "unstructured": "You are treating a patient at a secure field hospital. She has a serious shrapnel injury that will require a complicated surgery that you have not performed before. You are confident that you would succeed, but there is a low risk of seriously aggravating the injury. Alternatively, you could delay treatment and wait until a colleague arrives who has performed the operation before. This will mean that the patient\u2019s condition will worsen, but she will be better off than if you performed the operation incorrectly. What do you do?",
                 "meta_info": {
                     "scene_id": "1"
                 },
@@ -413,7 +413,7 @@
                 "events": [],
                 "supplies": []
             },
-            "state": "You are treating a patient at a secure field hospital. She has a serious shrapnel injury that will require a complicated surgery that you have not performed before. You are confident that you would succeed, but there is a low risk of seriously aggravating the injury. Alternatively, you could delay treatment and wait until a colleague arrives who has performed the operation before. This will mean that the patient\u2019s condition will worsen, but she will be better off than if you performed the operation incorrectly.",
+            "state": "You are treating a patient at a secure field hospital. She has a serious shrapnel injury that will require a complicated surgery that you have not performed before. You are confident that you would succeed, but there is a low risk of seriously aggravating the injury. Alternatively, you could delay treatment and wait until a colleague arrives who has performed the operation before. This will mean that the patient\u2019s condition will worsen, but she will be better off than if you performed the operation incorrectly. What do you do?",
             "choices": [
                 {
                     "action_id": "MVP2.RA5.1.action_0",
@@ -468,7 +468,7 @@
         "input": {
             "scenario_id": "MVP2.RA6",
             "full_state": {
-                "unstructured": "You are treating a casualty at a local medical center with limited resources. The patient is currently stable, but would benefit from resources that you lack for further treatment. You could transfer the patient to a larger, regional medical center with the requisite resources, but worry that there is a small possibility that her injuries might be aggravated in transport.",
+                "unstructured": "You are treating a casualty at a local medical center with limited resources. The patient is currently stable, but would benefit from resources that you lack for further treatment. You could transfer the patient to a larger, regional medical center with the requisite resources, but worry that there is a small possibility that her injuries might be aggravated in transport. What do you do?",
                 "meta_info": {
                     "scene_id": "1"
                 },
@@ -506,7 +506,7 @@
                 "events": [],
                 "supplies": []
             },
-            "state": "You are treating a casualty at a local medical center with limited resources. The patient is currently stable, but would benefit from resources that you lack for further treatment. You could transfer the patient to a larger, regional medical center with the requisite resources, but worry that there is a small possibility that her injuries might be aggravated in transport.",
+            "state": "You are treating a casualty at a local medical center with limited resources. The patient is currently stable, but would benefit from resources that you lack for further treatment. You could transfer the patient to a larger, regional medical center with the requisite resources, but worry that there is a small possibility that her injuries might be aggravated in transport. What do you do?",
             "choices": [
                 {
                     "action_id": "MVP2.RA6.1.action_0",
@@ -561,7 +561,7 @@
         "input": {
             "scenario_id": "MVP2.RA7",
             "full_state": {
-                "unstructured": "You are treating an unconscious patient with severe sepsis, at a remote location with limited resources. Ordinarily, you would use an antibiotic to combat the infection. However, the limited data you have on the patient\u2019s medical history suggests that he may be allergic to the only antibiotic drug available in sufficient quantity.",
+                "unstructured": "You are treating an unconscious patient with severe sepsis, at a remote location with limited resources. Ordinarily, you would use an antibiotic to combat the infection. However, the limited data you have on the patient\u2019s medical history suggests that he may be allergic to the only antibiotic drug available in sufficient quantity. What do you do?",
                 "meta_info": {
                     "scene_id": "1"
                 },
@@ -599,7 +599,7 @@
                 "events": [],
                 "supplies": []
             },
-            "state": "You are treating an unconscious patient with severe sepsis, at a remote location with limited resources. Ordinarily, you would use an antibiotic to combat the infection. However, the limited data you have on the patient\u2019s medical history suggests that he may be allergic to the only antibiotic drug available in sufficient quantity.",
+            "state": "You are treating an unconscious patient with severe sepsis, at a remote location with limited resources. Ordinarily, you would use an antibiotic to combat the infection. However, the limited data you have on the patient\u2019s medical history suggests that he may be allergic to the only antibiotic drug available in sufficient quantity. What do you do?",
             "choices": [
                 {
                     "action_id": "MVP2.RA7.1.action_0",
@@ -654,7 +654,7 @@
         "input": {
             "scenario_id": "MVP2.RA8",
             "full_state": {
-                "unstructured": "You are a medic deployed in a submarine. You are called to respond to a chemical explosion in the area where equipment maintenance supplies are stored. When you get there, an emergency door is closed, sealing off the compartment where the explosion occurred. A maintenance specialist tells you that he came out of the compartment before the door automatically shut, to get help for his colleague, who was seriously burned on the face and neck. You know that there is a risk of toxic fumes from whatever chemical exploded, or from damage to nearby containers. The maintenance specialist tells you that nothing else was damaged or leaking, and that the solvent that exploded isn\u2019t toxic.",
+                "unstructured": "You are a medic deployed in a submarine. You are called to respond to a chemical explosion in the area where equipment maintenance supplies are stored. When you get there, an emergency door is closed, sealing off the compartment where the explosion occurred. A maintenance specialist tells you that he came out of the compartment before the door automatically shut, to get help for his colleague, who was seriously burned on the face and neck. You know that there is a risk of toxic fumes from whatever chemical exploded, or from damage to nearby containers. The maintenance specialist tells you that nothing else was damaged or leaking, and that the solvent that exploded isn\u2019t toxic. What do you do?",
                 "meta_info": {
                     "scene_id": "1"
                 },
@@ -692,7 +692,7 @@
                 "events": [],
                 "supplies": []
             },
-            "state": "You are a medic deployed in a submarine. You are called to respond to a chemical explosion in the area where equipment maintenance supplies are stored. When you get there, an emergency door is closed, sealing off the compartment where the explosion occurred. A maintenance specialist tells you that he came out of the compartment before the door automatically shut, to get help for his colleague, who was seriously burned on the face and neck. You know that there is a risk of toxic fumes from whatever chemical exploded, or from damage to nearby containers. The maintenance specialist tells you that nothing else was damaged or leaking, and that the solvent that exploded isn\u2019t toxic.",
+            "state": "You are a medic deployed in a submarine. You are called to respond to a chemical explosion in the area where equipment maintenance supplies are stored. When you get there, an emergency door is closed, sealing off the compartment where the explosion occurred. A maintenance specialist tells you that he came out of the compartment before the door automatically shut, to get help for his colleague, who was seriously burned on the face and neck. You know that there is a risk of toxic fumes from whatever chemical exploded, or from damage to nearby containers. The maintenance specialist tells you that nothing else was damaged or leaking, and that the solvent that exploded isn\u2019t toxic. What do you do?",
             "choices": [
                 {
                     "action_id": "MVP2.RA8.1.action_0",
