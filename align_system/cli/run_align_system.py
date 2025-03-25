@@ -400,9 +400,14 @@ def main(cfg: DictConfig) -> None:
                     current_state.unstructured))
 
                 if cfg.get('save_last_unstructured_state_per_scenario', False):
+                    if alignment_target is None:
+                        alignment_target_id = None
+                    else:
+                        alignment_target_id = alignment_target.id
+
                     final_scenario_state_output_path = os.path.join(
                         output_dir, "{}.{}.final_state_unstructured.json".format(
-                            scenario.id(), alignment_target.id))
+                            scenario.id(), alignment_target_id))
                     with open(final_scenario_state_output_path, "w") as f:
                         print(current_state.unstructured, file=f)
 

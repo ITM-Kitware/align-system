@@ -23,4 +23,4 @@ adm:
     #   trust_remote_code: true
 
 force_determinism: true
-save_last_unstructured_state_per_scenario: true
+save_last_unstructured_state_per_scenario: false
