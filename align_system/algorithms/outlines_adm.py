@@ -16,6 +16,7 @@ from swagger_client.models import (
     CharacterTagEnum,
     KDMAValue
 )
+import ubelt as ub
 
 from align_system.utils import logging
 from align_system.utils import adm_utils
@@ -452,6 +453,25 @@ class OutlinesTransformersADM(ActionBasedADM):
         return action_to_take, choice_info
 
     def populate_action_parameters(self, scenario_state, action_to_take, dialog):
+        scenario_state_copy = copy.deepcopy(scenario_state)
+        # Don't consider the elapsed_time of the state when caching
+        scenario_state_copy.elapsed_time = 0
+        depends = '\n'.join((
+            repr(self.model.model),
+            repr(scenario_state_copy),
+            repr(action_to_take),
+            repr(dialog)))
+
+        cacher = ub.Cacher('outlines_adm_populate_action_params', depends, verbose=0)
+        log.debug(f'cacher.fpath={cacher.fpath}')
+
+        cached_output = cacher.tryload()
+        if cached_output is not None:
+            log.info("Cache hit for `populate_action_parameters` returning cached output")
+            return cached_output
+        else:
+            log.info("Cache miss for `populate_action_parameters` ..")
+
         if action_to_take.action_type in {ActionTypeEnum.APPLY_TREATMENT,
                                           ActionTypeEnum.TAG_CHARACTER,
                                           ActionTypeEnum.CHECK_ALL_VITALS,
@@ -540,7 +560,10 @@ class OutlinesTransformersADM(ActionBasedADM):
                                                  selected_character_idx,
                                                  dialog)
 
-        return action_to_take, dialog
+        outputs = (action_to_take, dialog)
+        cacher.save(outputs)
+
+        return outputs
 
     def ensure_character_id_is_populated(self,
                                          scenario_state,
