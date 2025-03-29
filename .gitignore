@@ -3,3 +3,5 @@ run.bash
 venv/
 __pycache__/
 outputs
+
+.vscode/
