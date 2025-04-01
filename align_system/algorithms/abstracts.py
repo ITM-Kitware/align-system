@@ -1,9 +1,7 @@
 from abc import ABC, abstractmethod
 
-from typing import Union, Tuple, Dict, List
+from typing import Union, Tuple, Dict, Any, Iterable
 from swagger_client.models import State, Action, AlignmentTarget
-
-from align_system.data_models.dialog import Dialog
 
 
 class ActionBasedADM(ABC):
@@ -29,13 +27,16 @@ class StructuredInferenceEngine(ABC):
 
 class ADMComponent(ABC):
     @abstractmethod
-    def run(self,
-            scenario_state: State,
-            choice_evaluation: Dict,
-            dialogs: List[Dialog],
-            alignment_target: Union[type[AlignmentTarget], None]) -> Tuple[Dict, List[Dialog]]:
+    def run(self, *args, **kwargs) -> Any:
         pass
 
+    @abstractmethod
+    def run_returns(self) -> Union[str, Iterable[str]]:
+        '''
+        This method should return string identifiers for each of the
+        returns expect from the `run` method
+        '''
+        pass
 
 
 # ADM sub-classes implement all the algorithm-specific logic

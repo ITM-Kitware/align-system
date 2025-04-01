@@ -1,3 +1,6 @@
+from collections.abc import Iterable
+import inspect
+
 from align_system.algorithms.abstracts import ActionBasedADM, ADMComponent
 from align_system.utils import adm_utils
 from align_system.utils import logging
@@ -32,28 +35,39 @@ class PipelineADM(ActionBasedADM):
             available_actions,
             scenario_state)
 
-        choice_evaluation = {}
-        for choice, action in zip(choices, available_actions):
-            if choice in choice_evaluation:
-                raise RuntimeError("Assumption violated that each 'choice' is "
-                                   "unique, aborting")
-            choice_evaluation[choice] = {"action": action}
-
-        dialogs = [[]]
+        working_output = {'scenario_state': scenario_state,
+                          'choices': choices,
+                          'actions': available_actions,
+                          'alignment_target': alignment_target}
         for step in self._steps_iterator():
-            choice_evaluation, dialogs = step.run(scenario_state,
-                                                  choice_evaluation,
-                                                  dialogs,
-                                                  alignment_target)
+            step_returns = step.run_returns()
 
-        chosen_choices = {k: v for k, v in choice_evaluation.items() if v.get('chosen')}
+            # TODO: May need more robust checking around parameter types here
+            args = (working_output[p] for p
+                    in inspect.signature(step.run).parameters)
+            run_output = step.run(*args)
 
-        if len(chosen_choices) != 1:
-            raise RuntimeError("Assumption violated that one 'choice' would "
-                               "have 'chosen' set to True ({} choices "
-                               "chosen)".format(len(chosen_choices)))
+            if isinstance(step_returns, str):
+                if step_returns in working_output:
+                    log.debug(f"Updating '{step_returns}'")
 
-        for choice, choice_info in chosen_choices.items():
-            # Returning the first "chosen choice"; already asserted
-            # that there should be only one
-            return choice_info['action'], choice_evaluation
+                working_output[step_returns] = run_output
+            elif isinstance(step_returns, Iterable):
+                for r, o in zip(step_returns, run_output):
+                    if r in working_output:
+                        log.debug(f"Updating '{r}'")
+
+                    working_output[r] = o
+            else:
+                raise TypeError("Don't know how to deal with step returns")
+
+        if 'chosen_action' not in working_output:
+            if 'chosen_choice' in working_output:
+                chosen_choice_idx = working_output['choices'].index(
+                    working_output['chosen_choice'])
+                working_output['chosen_action'] = working_output['actions'][chosen_choice_idx]
+            else:
+                raise RuntimeError("Expecting a 'chosen_action' or "
+                                   "'chosen_choice' at the end of pipeline run")
+
+        return working_output['chosen_action']
