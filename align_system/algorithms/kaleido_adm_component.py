@@ -46,19 +46,25 @@ class KaleidoADMComponent(ADMComponent):
 
         return partial_template
 
+    def run_returns(self):
+        return ('kdma_prediction_reasonings',
+                'relevance_prediction_scores',
+                'kdma_prediction_scores')
+
     def run(self,
             scenario_state,
-            choice_evaluation,
-            dialogs,
+            choices,
             alignment_target=None):
+        """
+        Returns:
+            kdma_prediction_reasonings
+            relevance_prediction_scores
+            kdma_prediction_scores
+        """
         if alignment_target is None:
             target_attribute_names = []
         else:
             target_attribute_names = attributes_in_alignment_target(alignment_target)
-
-        # TODO: Maybe need to force ordering of the choices here
-        # (don't trust dict ordering)
-        choices = list(choice_evaluation.keys())
 
         partial_template = self._build_partial_template(scenario_state)
 
@@ -113,21 +119,25 @@ class KaleidoADMComponent(ADMComponent):
             display_results[['relevant', 'supports', 'opposes', 'either', 'estimated_kdma_value']].map(lambda x: f"{float(x):.2f}")
         log.explain(display_results[['choice', 'VRD', 'KDMA', 'kdma_description', 'relevant', 'supports', 'opposes', 'either', 'estimated_kdma_value']])
 
+        reasonings = {}
+        relevances = {}
+        scores = {}
         for group_key, group_records in results.groupby(['choice', 'KDMA']):
             # group_key is a single element tuple in this case
             choice, kdma = group_key
 
-            reasonings = choice_evaluation[choice].setdefault('kdma_prediction_reasonings', {})
-            relevances = choice_evaluation[choice].setdefault('relevance_prediction_scores', {})
-            scores = choice_evaluation[choice].setdefault('kdma_prediction_scores', {})
+            reasonings.setdefault(choice, {})
+            relevances.setdefault(choice, {})
+            scores.setdefault(choice, {})
 
-            reasonings.setdefault(kdma, []).append(str(group_records['explanation'].iloc[0]))
+            reasonings[choice].setdefault(kdma, []).append(
+                str(group_records['explanation'].iloc[0]))
 
             # alignment functions expecting values to be 0-1 (rather than 0-10)
-            scores.setdefault(kdma, []).extend(
+            scores[choice].setdefault(kdma, []).extend(
                 [float(v) for v in (group_records['estimated_kdma_value'] / 10)])
 
-            relevances.setdefault(kdma, []).append(
+            relevances[choice].setdefault(kdma, []).append(
                 float(group_records['relevant'].iloc[0]))
 
-        return choice_evaluation, dialogs
+        return reasonings, relevances, scores
