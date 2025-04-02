@@ -3,12 +3,13 @@
 This changelog follows the specifications detailed in: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html), although we have not yet reached a `1.0.0` release.
 
-## Unreleased
+## 0.5.7
 
 ### Fixed
 
 * Fixed alignment target parsing for KaleidoADM
 * Fixed issue where action parameters aren't set if there is only 1 remaining heuristic option.
+* Fixed crash when using `save_last_unstructured` flag without alignment target
 
 ### Added
 
@@ -22,10 +23,13 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 * Added an optional relevance prediction step with ICL to the comparative regression ADM
 * Added options to use cumulative KDE and/or relevance weighted alignment function to Kaleido ADM
 * Added integration testing script (`tests/run_integration_test.py`) and associated configs and data files
+* Added basic support for NAACL24 and OpinionQA datasets
+* Initial API support for ALIGN-App
 
 ### Changed
 
 * Changed KaleidoADM prompt log output to "info" instead of "debug"
+* Exposed `get_dialogs` as a static method for `outlines_adm.py` to support ALIGN-App
 
 
 ## 0.5.6
