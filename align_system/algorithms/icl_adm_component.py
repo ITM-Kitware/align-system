@@ -3,10 +3,6 @@ from align_system.algorithms.abstracts import ADMComponent
 from align_system.utils.outlines_prompts_utils import (
     get_unique_structured_character_info,
     get_relevant_structured_character_info)
-from align_system.prompt_engineering.outlines_prompts import (
-    comparative_kdma_score_prediction_prompt_no_outcomes,
-    relevance_classification_prompt,
-    scenario_state_description_with_relevant_char_info)
 from align_system.data_models.dialog import DialogElement
 
 
@@ -23,13 +19,14 @@ class ICLADMComponent(ADMComponent):
         self.prompt_template = prompt_template
         self.system_prompt = system_prompt
 
+    def run_returns(self):
+        return 'icl_dialog_elements'
+
     def run(self,
             scenario_state,
-            choice_evaluation,
-            dialogs,
+            choices,
+            actions,
             alignment_target=None):
-        available_actions = [ce['action'] for ce in choice_evaluation.values()]
-
         if alignment_target is None:
             target_attribute_names = []
         else:
@@ -43,14 +40,14 @@ class ICLADMComponent(ADMComponent):
                 scenario_state, alignment_target, {attribute.name,})
 
             prompt_to_match = self.prompt_template(
-                scenario_state, scenario_description, choice_evaluation, {attribute.name,})
+                scenario_state, scenario_description, {c: None for c in choices}, {attribute.name,})
 
             selected_icl_examples = self.icl_generator.select_icl_examples(
                 sys_kdma_name=attribute.kdma,
                 scenario_description_to_match=scenario_description,
                 prompt_to_match=prompt_to_match,
                 state_comparison=scenario_state,
-                actions=available_actions)
+                actions=actions)
 
             for icl_sample in selected_icl_examples:
                 icl_dialog_elements.append(DialogElement(role='user',
@@ -62,7 +59,4 @@ class ICLADMComponent(ADMComponent):
                                                          namespace='.icl',
                                                          tags=['icl']))
 
-        for dialog in dialogs:
-            dialog.extend(icl_dialog_elements)
-
-        return choice_evaluation, dialogs
+        return icl_dialog_elements

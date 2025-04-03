@@ -64,18 +64,16 @@ class ComparativeRegressionADMComponent(ADMComponent):
 
         return kdma_score_sys_prompt
 
+    def run_returns(self):
+        return ('attribute_prediction_reasonings',
+                'attribute_prediction_scores',
+                'attribute_dialogs')
+
     def run(self,
             scenario_state,
-            choice_evaluation,
-            dialogs,
+            choices,
+            icl_dialog_elements=[],
             alignment_target=None):
-        # Assuming we only have a single dialog coming in at this
-        # point.  Perhaps the code / architecture should be more
-        # robust to the fanning out of dialogs
-        if len(dialogs) != 1:
-            raise RuntimeError("Assumption violated: only expecting a single "
-                               "dialog at this point")
-
         if alignment_target is None:
             target_attribute_names = []
         else:
@@ -83,80 +81,63 @@ class ComparativeRegressionADMComponent(ADMComponent):
 
         target_attributes = [self.attributes[n] for n in target_attribute_names]
 
-        choices = list(choice_evaluation.keys())
-
-        output_dialogs = []
+        attribute_dialogs = {}
+        attribute_prediction_scores = {}
+        attribute_prediction_reasonings = {}
         for attribute in target_attributes:
-            attribute_dialogs = []
-
             scenario_description = self.scenario_description_template(
                 scenario_state, alignment_target, {attribute.name,})
 
-            for _dialog in dialogs:
-                for sample_idx in range(self.num_samples):
-                    # Want to make a copy as we may modify the same dialog
-                    # more than once due to samples and/or multiple-kdmas
-                    dialog = copy.deepcopy(_dialog)
+            dialog = []
+            if self.inject_system_prompt:
+                system_prompt = self._build_system_prompt(attribute)
 
-                    if self.inject_system_prompt:
-                        system_prompt = self._build_system_prompt(attribute)
+            dialog.insert(0, DialogElement(role='system',
+                                           content=system_prompt,
+                                           namespace='.',
+                                           tags=['regression']))
 
-                        dialog.insert(0, DialogElement(role='system',
-                                                       content=system_prompt,
-                                                       namespace='.',
-                                                       tags=['regression']))
+            if len(icl_dialog_elements) > 0:
+                dialog.extend(icl_dialog_elements)
 
-                    predict_kdma_prompt = self.prompt_template(
-                        scenario_state,
-                        scenario_description,
-                        choice_evaluation,
-                        {attribute.name,})
+            predict_kdma_prompt = self.prompt_template(
+                scenario_state,
+                scenario_description,
+                choices,
+                {attribute.name,})
 
-                    dialog.append(DialogElement(role='user',
-                                                content=predict_kdma_prompt,
-                                                namespace='.',
-                                                tags=['regression']))
+            dialog.append(DialogElement(role='user',
+                                        content=predict_kdma_prompt,
+                                        namespace='.',
+                                        tags=['regression']))
 
-                    attribute_dialogs.append(dialog)
+            for sample_idx in range(self.num_samples):
+                attribute_dialogs.append(dialog)
 
             score_schema = self.score_schema_template(
                 choices, {attribute.name,})
 
-            dialog_prompts = [self.structured_inference_engine.dialog_to_prompt(d)
-                              for d in attribute_dialogs]
+            dialog_prompt = self.structured_inference_engine.dialog_to_prompt(dialog)
 
             log.info("[bold]*KDMA SCORE PREDICTION DIALOG PROMPT*[/bold]",
                      extra={"markup": True})
-            log.info(dialog_prompts[0])
+            log.info(dialog_prompt)
 
-            attribute_score_responses =\
-                self.structured_inference_engine.run_inference(
-                    dialog_prompts, score_schema)
+            responses = self.structured_inference_engine.run_inference(
+                    [dialog_prompt] * self.num_samples, score_schema)
 
-            for dialog, response in zip(attribute_dialogs, attribute_score_responses):
-                dialog.append(DialogElement(role='assistant',
-                                            content=str(response),
-                                            namespace='.',
-                                            tags=['regression']))
-
-            # Adds a copy of the dialog for each sample; could
-            # consider only adding a single dialog since they're
-            # duplicated for each sample (at least with current
-            # implementation)
-            output_dialogs.extend(attribute_dialogs)
-
-            for i, response in enumerate(attribute_score_responses):
-                for choice, choice_eval in choice_evaluation.items():
-                    reasonings = choice_eval.setdefault('kdma_prediction_reasonings', {})
-                    scores = choice_eval.setdefault('kdma_prediction_scores', {})
-
-                    reasonings.setdefault(attribute.kdma, []).append(
-                        response[choice]['reasoning'])
-                    scores.setdefault(attribute.kdma, []).append(
-                        response[choice]['score'] / attribute.factor)
-
+            for i, response in enumerate(responses):
                 log.info("[bold]*KDMA SCORE PREDICTION RESPONSE ({}, sample #{})*[/bold]".format(
                     attribute.kdma, i), extra={"markup": True})
                 log.info(response, extra={"highlighter": JSON_HIGHLIGHTER})
 
-        return choice_evaluation, output_dialogs
+                for choice in choices:
+                    attribute_prediction_scores[choice].setdefault(
+                        attribute.kdma, []).append(response[choice]['score'] / attribute.factor)
+
+                    attribute_prediction_reasonings[choice].setdefault(
+                        attribute.kdma, []).append(response[choice]['reasoning'])
+
+            attribute_dialogs[attribute.kdma] = dialog
+
+        return attribute_prediction_reasonings, attribute_prediction_scores, attribute_dialogs

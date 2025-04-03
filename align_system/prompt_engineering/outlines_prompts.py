@@ -1035,7 +1035,7 @@ class ComparativeKDMAScorePredictionPromptNoOutcomes():
     def __call__(self,
                  scenario_state,
                  scenario_description,
-                 choice_evaluation,
+                 choices,
                  attributes_of_interest):
         if len(attributes_of_interest) != 1:
             raise RuntimeError("Assuming a single attribute of interest, "
@@ -1044,7 +1044,7 @@ class ComparativeKDMAScorePredictionPromptNoOutcomes():
 
         return comparative_kdma_score_prediction_prompt_no_outcomes(
             scenario_description,
-            choice_evaluation,
+            choices,
             attribute)
 
 
@@ -1052,7 +1052,7 @@ class RelevanceScorePredictionPrompt():
     def __call__(self,
                  scenario_state,
                  scenario_description,
-                 choice_evaluation,
+                 choices,
                  attributes_of_interest):
         if len(attributes_of_interest) != 1:
             raise RuntimeError("Assuming a single attribute of interest, "
@@ -1060,7 +1060,7 @@ class RelevanceScorePredictionPrompt():
         attribute, *_ = attributes_of_interest
 
         return relevance_classification_prompt(scenario_description,
-                                               choice_evaluation.keys(),
+                                               choices,
                                                attribute)
 
 

@@ -14,7 +14,7 @@ class AlignmentADMComponent(ADMComponent):
                 'best_sample_idx')
 
     def run(self,
-            kdma_prediction_scores,
+            attribute_prediction_scores,
             alignment_target=None):
         if alignment_target is None:
             raise RuntimeError("Assumption violated: `alignment_target` "
@@ -28,11 +28,11 @@ class AlignmentADMComponent(ADMComponent):
         target_kdmas = [dict(t) for t in target_kdmas]
 
         selected_choice, probs = self.alignment_function(
-            kdma_prediction_scores,
+            attribute_prediction_scores,
             target_kdmas)
 
         best_sample_idx = self.alignment_function.get_best_sample_index(
-            kdma_prediction_scores,
+            attribute_prediction_scores,
             target_kdmas,
             selected_choice)
 
