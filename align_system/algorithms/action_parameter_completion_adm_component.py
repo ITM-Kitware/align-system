@@ -52,25 +52,23 @@ class ActionParameterCompletionADMComponent(ADMComponent):
 
         return prompt, choices
 
+    def run_returns(self):
+        return ('chosen_action',
+                'action_parameter_completion_dialog')
+
     def run(self,
             scenario_state,
-            choice_evaluation,
-            dialogs,
+            actions,
+            choices,
+            chosen_choice,
+            dialog=None,
             alignment_target=None):
-        # Assuming we only have a single dialog coming in at this
-        # point.  Perhaps the code / architecture should be more
-        # robust to the fanning out of dialogs
-        # if len(dialogs) != 1:
-        #     raise RuntimeError("Assumption violated: only expecting a single "
-        #                        "dialog at this point")
-        dialog = dialogs[0]
-
-        if len(dialog) == 0:
+        if dialog is None:
             # If prior steps didn't provide any dialog/context, use a
             # sensible default:
             prompt, _ = self._state_to_top_level_prompt(
                 scenario_state,
-                [v['action'] for k, v in choice_evaluation.items()])
+                actions)
 
             dialog.append(DialogElement(role='user',
                                         content=prompt,
@@ -83,26 +81,13 @@ class ActionParameterCompletionADMComponent(ADMComponent):
         if dialog[-1].role == 'assistant':
             dialog.pop()
 
-        chosen_choices = {k: v for k, v in choice_evaluation.items()
-                          if v.get('chosen')}
+        chosen_choice_idx = choices.index(chosen_choice)
+        chosen_action = actions[chosen_choice_idx]
 
-        if len(chosen_choices) != 1:
-            raise RuntimeError("Assumption violated that one 'choice' would "
-                               "have 'chosen' set to True ({} choices "
-                               "chosen)".format(len(chosen_choices)))
+        action_to_take, output_dialog = self.populate_action_parameters(
+                scenario_state, chosen_action, dialog)
 
-        for choice, choice_info in chosen_choices.items():
-            # already asserted that there should be only one; breaking
-            # after first
-            action_to_take = choice_info['action']
-            # Update with parameters
-            action_to_take, output_dialog = self.populate_action_parameters(
-                scenario_state, action_to_take, dialog)
-            choice_info['action'] = action_to_take
-
-            break
-
-        return choice_evaluation, [output_dialog]
+        return action_to_take, output_dialog
 
     def populate_action_parameters(self, scenario_state, action_to_take, dialog):
         if action_to_take.action_type in {ActionTypeEnum.APPLY_TREATMENT,
