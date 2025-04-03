@@ -47,9 +47,9 @@ class KaleidoADMComponent(ADMComponent):
         return partial_template
 
     def run_returns(self):
-        return ('kdma_prediction_reasonings',
+        return ('attribute_prediction_reasonings',
                 'relevance_prediction_scores',
-                'kdma_prediction_scores')
+                'attribute_prediction_scores')
 
     def run(self,
             scenario_state,
