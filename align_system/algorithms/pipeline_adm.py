@@ -1,10 +1,7 @@
 from collections.abc import Iterable
-import inspect
-from inspect import Parameter
 
 from align_system.algorithms.abstracts import ActionBasedADM, ADMComponent
-from align_system.utils import adm_utils
-from align_system.utils import logging
+from align_system.utils import adm_utils, logging, call_with_coerced_args
 
 log = logging.getLogger(__name__)
 
@@ -43,26 +40,7 @@ class PipelineADM(ActionBasedADM):
         for step in self._steps_iterator():
             step_returns = step.run_returns()
 
-            # TODO: May need more robust checking around parameter types here
-            args = []
-            kwargs = {}
-            for name, param in inspect.signature(step.run).parameters.items():
-                if name in working_output:
-                    if param.kind == Parameter.POSITIONAL_ONLY:
-                        # Rare case, usually parameters are of kind
-                        # POSITIONAL_OR_KEYWORD
-                        args.append(working_output[name])
-                    else:
-                        kwargs[name] = working_output[name]
-                elif param.default != inspect._empty:
-                    pass  # Don't need to add to the arg/kwarg list
-                else:
-                    raise RuntimeError(f"Don't have expected parameter "
-                                       f"('{name}') in working_output")
-
-            log.debug(f"Args for next step: {args}")
-            log.debug(f"Kwargs for next step: {kwargs}")
-            run_output = step.run(*args, **kwargs)
+            run_output = call_with_coerced_args(step.run, working_output)
 
             if isinstance(step_returns, str):
                 if step_returns in working_output:
