@@ -14,7 +14,7 @@ priority = "supplemental"
 [tool.poetry.dependencies]
 python = ">=3.9,<4.0"
 torch = { version = "^2.0.1", source = "pytorch" }
-transformers = ">=4.46.2"
+transformers = "==4.46.2"
 llama-index = "^0.8.21"
 langchain = "^0.0.308"
 sentence-transformers = "^2.2.2"
