@@ -70,10 +70,10 @@ class ActionParameterCompletionADMComponent(ADMComponent):
                 scenario_state,
                 actions)
 
-            dialog.append(DialogElement(role='user',
-                                        content=prompt,
-                                        namespace='.',
-                                        tags=['parameter_completion']))
+            dialog = [DialogElement(role='user',
+                                    content=prompt,
+                                    namespace='.',
+                                    tags=['parameter_completion'])]
 
         # If last dialog message is an 'assistant' message, remove it
         # as we'll generate one for each follow-up needed.  (Dialogs
