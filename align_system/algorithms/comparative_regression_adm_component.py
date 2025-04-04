@@ -103,16 +103,13 @@ class ComparativeRegressionADMComponent(ADMComponent):
             predict_kdma_prompt = self.prompt_template(
                 scenario_state,
                 scenario_description,
-                choices,
+                {c: None for c in choices},
                 {attribute.name,})
 
             dialog.append(DialogElement(role='user',
                                         content=predict_kdma_prompt,
                                         namespace='.',
                                         tags=['regression']))
-
-            for sample_idx in range(self.num_samples):
-                attribute_dialogs.append(dialog)
 
             score_schema = self.score_schema_template(
                 choices, {attribute.name,})
@@ -132,9 +129,11 @@ class ComparativeRegressionADMComponent(ADMComponent):
                 log.info(response, extra={"highlighter": JSON_HIGHLIGHTER})
 
                 for choice in choices:
+                    attribute_prediction_scores.setdefault(choice, {})
                     attribute_prediction_scores[choice].setdefault(
                         attribute.kdma, []).append(response[choice]['score'] / attribute.factor)
 
+                    attribute_prediction_reasonings.setdefault(choice, {})
                     attribute_prediction_reasonings[choice].setdefault(
                         attribute.kdma, []).append(response[choice]['reasoning'])
 
