@@ -1,0 +1,14 @@
+# @package _global_
+defaults:
+  - override /adm: pipeline
+
+adm:
+  step_definitions:
+    comparative_regression:
+      num_samples: 5
+
+  instance:
+    steps:
+      - ${ref:adm.step_definitions.comparative_regression}
+      - ${ref:adm.step_definitions.scalar_alignment}
+      - ${ref:adm.step_definitions.action_parameter_completion}
