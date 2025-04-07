@@ -7,7 +7,7 @@ log = logging.getLogger(__name__)
 
 
 class PipelineADM(ActionBasedADM):
-    def __init__(self, steps: dict[str, ADMComponent]):
+    def __init__(self, steps: list[ADMComponent]):
         '''
         Expecting `steps` to be a dictionary of {"<step number>":
         <ADMComponent instance>}.  E.g. {"0":
@@ -16,12 +16,6 @@ class PipelineADM(ActionBasedADM):
         not being able to set values in a list from the defaults list
         '''
         self.steps = steps
-
-    def _steps_iterator(self):
-        sorted_step_nums = sorted([int(k) for k in self.steps.keys()])
-
-        for s in sorted_step_nums:
-            yield self.steps[str(s)]
 
     def choose_action(self,
                       scenario_state,
@@ -37,7 +31,7 @@ class PipelineADM(ActionBasedADM):
                           'choices': choices,
                           'actions': available_actions,
                           'alignment_target': alignment_target}
-        for step in self._steps_iterator():
+        for step in self.steps:
             step_returns = step.run_returns()
 
             run_output = call_with_coerced_args(step.run, working_output)

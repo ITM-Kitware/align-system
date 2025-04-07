@@ -1,5 +1,4 @@
 import outlines
-from outlines.prompts import Prompt
 import json
 from swagger_client.models import (
     InjuryStatusEnum,
