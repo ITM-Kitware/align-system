@@ -1,12 +1,18 @@
 name: pipeline_kaleido
 
 defaults:
+  # Import defaults into this namspace (adm) as @name, for further
+  # customization
+
+  # Shared variables / components
   - /attribute@mj: moral_judgment
   - /inference_engine@structured_inference_engine: outlines_structured_inference_engine
   - /template/scenario_description@scenario_description_template: default
-  - /adm_component/regression@instance.steps.0: kaleido
-  - /adm_component/alignment@instance.steps.1: avg_dist_scalar
-  - /adm_component/misc@instance.steps.2: action_parameter_completion
+  # ADM components to be used in "steps"
+  - /adm_component/regression@step_definitions.kaleido: kaleido
+  - /adm_component/alignment@step_definitions.scalar_alignment: avg_dist_scalar
+  - /adm_component/misc@step_definitions.action_parameter_completion: action_parameter_completion
+  # Use definitions in this file to override defaults defined above
   - _self_
 
 attribute_definitions:
@@ -15,3 +21,8 @@ attribute_definitions:
 instance:
   _target_: align_system.algorithms.pipeline_adm.PipelineADM
 
+  steps:
+    # Reference the step instances we want to use in order
+    - ${ref:adm.step_definitions.kaleido}
+    - ${ref:adm.step_definitions.scalar_alignment}
+    - ${ref:adm.step_definitions.action_parameter_completion}
