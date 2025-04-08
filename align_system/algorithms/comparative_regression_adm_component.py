@@ -52,8 +52,12 @@ class ComparativeRegressionADMComponent(ADMComponent):
         attribute_prediction_scores = {}
         attribute_prediction_reasonings = {}
         for attribute in target_attributes:
-            scenario_description = self.scenario_description_template(
-                scenario_state, alignment_target, {attribute.name,})
+            scenario_description = call_with_coerced_args(
+                self.scenario_description_template,
+                {'scenario_state': scenario_state,
+                 'alignment_target': alignment_target,
+                 'attribute': attribute.name,
+                 'attributes_of_interest': {attribute.name,}})
 
             dialog = []
             if self.system_prompt_template is not None:
@@ -72,19 +76,23 @@ class ComparativeRegressionADMComponent(ADMComponent):
             if len(icl_dialog_elements) > 0:
                 dialog.extend(icl_dialog_elements)
 
-            predict_kdma_prompt = self.prompt_template(
-                scenario_state,
-                scenario_description,
-                {c: None for c in choices},
-                {attribute.name,})
+            predict_kdma_prompt = call_with_coerced_args(
+                self.prompt_template,
+                {'scenario_state': scenario_state,
+                 'scenario_description': scenario_description,
+                 'choices': choices,
+                 'choice_outcomes': {c: None for c in choices},
+                 'attribute': attribute.name})
 
             dialog.append(DialogElement(role='user',
                                         content=predict_kdma_prompt,
                                         namespace='.',
                                         tags=['regression']))
 
-            score_schema = self.score_schema_template(
-                choices, {attribute.name,})
+            score_schema = call_with_coerced_args(
+                self.score_schema_template,
+                {'choices': choices,
+                 'attribute': attribute.name})
 
             dialog_prompt = self.structured_inference_engine.dialog_to_prompt(dialog)
 
