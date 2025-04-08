@@ -1033,34 +1033,22 @@ class ScenarioDescriptionWithRelevantCharInfo():
 
 class ComparativeKDMAScorePredictionPromptNoOutcomes():
     def __call__(self,
-                 scenario_state,
                  scenario_description,
                  choices,
-                 attributes_of_interest):
-        if len(attributes_of_interest) != 1:
-            raise RuntimeError("Assuming a single attribute of interest, "
-                               "found {}".format(len(attributes_of_interest)))
-        attribute, *_ = attributes_of_interest
-
+                 attribute):
         return comparative_kdma_score_prediction_prompt_no_outcomes(
             scenario_description,
-            choices,
+            {c: None for c in choices},
             attribute)
 
 
 class RelevanceScorePredictionPrompt():
     def __call__(self,
-                 scenario_state,
                  scenario_description,
-                 choices,
-                 attributes_of_interest):
-        if len(attributes_of_interest) != 1:
-            raise RuntimeError("Assuming a single attribute of interest, "
-                               "found {}".format(len(attributes_of_interest)))
-        attribute, *_ = attributes_of_interest
-
+                 choice_outcomes,
+                 attribute):
         return relevance_classification_prompt(scenario_description,
-                                               choices,
+                                               choice_outcomes,
                                                attribute)
 
 
@@ -1068,12 +1056,7 @@ class ComparativeKDMAScorePredictionEnumSchema():
     def __init__(self, valid_scores_lookup):
         self.valid_scores_lookup = valid_scores_lookup
 
-    def __call__(self, choices, attributes_of_interest):
-        if len(attributes_of_interest) != 1:
-            raise RuntimeError("Assuming a single attribute of interest, "
-                               "found {}".format(len(attributes_of_interest)))
-        attribute, *_ = attributes_of_interest
-
+    def __call__(self, choices, attribute):
         return enum_comparative_kdma_score_prediction_json_schema(
                     choices, self.valid_scores_lookup[attribute])
 
@@ -1083,12 +1066,7 @@ class ComparativeKDMAScorePredictionSchema():
         self.factor_lookup = factor_lookup
         self.default_factor = default_factor
 
-    def __call__(self, choices, attributes_of_interest):
-        if len(attributes_of_interest) != 1:
-            raise RuntimeError("Assuming a single attribute of interest, "
-                               "found {}".format(len(attributes_of_interest)))
-        attribute, *_ = attributes_of_interest
-
+    def __call__(self, choices, attribute):
         return comparative_kdma_score_prediction_json_schema(
                     choices,
                     self.factor_lookup.get(attribute, self.default_factor))
