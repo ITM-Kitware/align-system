@@ -17,11 +17,8 @@ class KaleidoADMComponent(ADMComponent):
                  kdma_descriptions_map,
                  prompt_template='What action do you take? "{{choice}}" instead of {{other_choices}}.  In the context of the following scenario: {{scene_state}} {{mission}} {{decision_environment}} With the following casualties:\n{{characters_str}}'):
         self.kaleido_instance = kaleido_instance
-
         self.estimator_fn = estimator_fn
-
         self.kdma_descriptions_map = kdma_descriptions_map
-
         self.prompt_template = prompt_template
 
     # TODO: Move to separate class (alongside the other ADM component
