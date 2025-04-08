@@ -6,6 +6,8 @@ adm:
   step_definitions:
     comparative_regression:
       num_samples: 5
+      system_prompt_template:
+        _target_: align_system.prompt_engineering.outlines_prompts.ComparativeKDMASystemPromptWithTemplate
 
   instance:
     steps:
