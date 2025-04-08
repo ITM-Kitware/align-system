@@ -1,3 +1,4 @@
+import jinja2
 import outlines
 import json
 from swagger_client.models import (
@@ -1091,3 +1092,27 @@ class ComparativeKDMAScorePredictionSchema():
         return comparative_kdma_score_prediction_json_schema(
                     choices,
                     self.factor_lookup.get(attribute, self.default_factor))
+
+
+class ComparativeKDMASystemPromptWithTemplate():
+    def __init__(self):
+        self.environment = jinja2.Environment()
+
+    def __call__(self, target_attribute):
+        template = self.environment.from_string(
+            target_attribute.score_examples)
+        score_examples = template.render(
+            kdma_scale_factor=target_attribute.factor)
+        return comparative_kdma_score_prediction_system_prompt_with_examples(
+            target_attribute.name,
+            target_attribute.description,
+            score_examples,
+            target_attribute.factor)
+
+
+class ComparativeKDMASystemPrompt():
+    def __call__(self, target_attribute):
+        return comparative_kdma_score_prediction_system_prompt(
+            target_attribute.name,
+            target_attribute.description,
+            target_attribute.factor)
