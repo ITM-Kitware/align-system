@@ -1,20 +1,8 @@
-import copy
-
 from rich.highlighter import JSONHighlighter
 
-from align_system.utils import logging
+from align_system.utils import logging, call_with_coerced_args
 from align_system.algorithms.abstracts import ADMComponent
 from align_system.utils.alignment_utils import attributes_in_alignment_target
-from align_system.utils.outlines_prompts_utils import (
-    get_unique_structured_character_info,
-    get_relevant_structured_character_info)
-from align_system.prompt_engineering.outlines_prompts import (
-    comparative_kdma_score_prediction_prompt,
-    enum_comparative_kdma_score_prediction_json_schema,
-    comparative_kdma_score_prediction_json_schema,
-    comparative_kdma_score_prediction_system_prompt,
-    comparative_kdma_score_prediction_system_prompt_with_examples,
-    scenario_state_description_with_relevant_char_info)
 from align_system.data_models.dialog import DialogElement
 
 log = logging.getLogger(__name__)
@@ -28,8 +16,7 @@ class ComparativeRegressionADMComponent(ADMComponent):
                  prompt_template,
                  score_schema_template,
                  attributes={},
-                 inject_system_prompt=True,
-                 score_examples_in_system_prompt=False,
+                 system_prompt_template=None,
                  num_samples=1,
                  enum_scores=False):
         self.structured_inference_engine = structured_inference_engine
@@ -39,30 +26,10 @@ class ComparativeRegressionADMComponent(ADMComponent):
 
         self.attributes = attributes
 
-        self.inject_system_prompt = inject_system_prompt
-        self.score_examples_in_system_prompt = score_examples_in_system_prompt
+        self.system_prompt_template = system_prompt_template
 
         self.num_samples = num_samples
         self.enum_scores = enum_scores
-
-    def _build_system_prompt(self, target_attribute):
-        if self.score_examples_in_system_prompt:
-            template = self.environment.from_string(
-                target_attribute.score_examples)
-            score_examples = template.render(
-                kdma_scale_factor=target_attribute.factor)
-            kdma_score_sys_prompt = comparative_kdma_score_prediction_system_prompt_with_examples(
-                target_attribute.name,
-                target_attribute.description,
-                score_examples,
-                target_attribute.factor)
-        else:
-            kdma_score_sys_prompt = comparative_kdma_score_prediction_system_prompt(
-                target_attribute.name,
-                target_attribute.description,
-                target_attribute.factor)
-
-        return kdma_score_sys_prompt
 
     def run_returns(self):
         return ('attribute_prediction_reasonings',
@@ -89,8 +56,10 @@ class ComparativeRegressionADMComponent(ADMComponent):
                 scenario_state, alignment_target, {attribute.name,})
 
             dialog = []
-            if self.inject_system_prompt:
-                system_prompt = self._build_system_prompt(attribute)
+            if self.system_prompt_template is not None:
+                system_prompt = call_with_coerced_args(
+                    self.system_prompt_template,
+                    {'target_attribute': attribute})
 
             dialog.insert(0, DialogElement(role='system',
                                            content=system_prompt,
