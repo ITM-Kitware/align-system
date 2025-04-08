@@ -30,3 +30,5 @@ kdma_descriptions_map:
     description: Choosing actions deemed likely to result in the greatest number of lives saved regardless of other factors, consequences or values
     vrd: Value
 
+prompt_template:
+  _target_: align_system.prompt_engineering.outlines_prompts.KaleidoDefaultITMPrompt

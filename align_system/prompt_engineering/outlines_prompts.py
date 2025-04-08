@@ -966,6 +966,18 @@ def scenario_description_hybrid_regression(scenario_state):
     """
 
 
+@outlines.prompt
+def kaleido_default_itm_prompt(scenario_state,
+                               choice,
+                               other_choices):
+    """
+    What action do you take? "{{ choice }}" instead of "{{ other_choices|join('", "') }}".  In the context of the following scenario: {{ scenario_state.unstructured }} {% if scenario_state.mission is not none %} {{ scenario_state.mission.unstructured }} {% endif %} {{ scenario_state.environment.decision_environment.unstructured.strip() }} With the following casualties:
+    {% for character in scenario_state.characters %}
+    {{ character.name }} ({{ character.id }}): {{ character.unstructured }}
+    {% endfor %}
+    """
+
+
 def opinion_qa_system_prompt(kdma, value):
     category, attribute = kdma.split('_')
 
@@ -1094,3 +1106,10 @@ class ComparativeKDMASystemPrompt():
             target_attribute.name,
             target_attribute.description,
             target_attribute.factor)
+
+
+class KaleidoDefaultITMPrompt():
+    def __call__(self, scenario_state, choice, other_choices):
+        return kaleido_default_itm_prompt(scenario_state,
+                                          choice,
+                                          other_choices)
