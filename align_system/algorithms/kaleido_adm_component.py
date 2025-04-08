@@ -1,9 +1,8 @@
 from rich.highlighter import JSONHighlighter
 import pandas as pd
 
-from align_system.utils import logging
+from align_system.utils import logging, call_with_coerced_args
 from align_system.algorithms.abstracts import ADMComponent
-from align_system.algorithms.lib.util import format_template
 from align_system.utils.alignment_utils import attributes_in_alignment_target
 
 log = logging.getLogger(__name__)
@@ -15,33 +14,11 @@ class KaleidoADMComponent(ADMComponent):
                  kaleido_instance,
                  estimator_fn,
                  kdma_descriptions_map,
-                 prompt_template='What action do you take? "{{choice}}" instead of {{other_choices}}.  In the context of the following scenario: {{scene_state}} {{mission}} {{decision_environment}} With the following casualties:\n{{characters_str}}'):
+                 prompt_template):
         self.kaleido_instance = kaleido_instance
         self.estimator_fn = estimator_fn
         self.kdma_descriptions_map = kdma_descriptions_map
         self.prompt_template = prompt_template
-
-    # TODO: Move to separate class (alongside the other ADM component
-    # prompt templates)
-    def _build_partial_template(self, scenario_state):
-        if scenario_state.mission is None:
-            mission_str = ''
-        else:
-            mission_str = scenario_state.mission.unstructured
-
-        characters_str = '\n'.join(
-            ['{} ({}): {}'.format(c.name, c.id, c.unstructured)
-             for c in scenario_state.characters])
-
-        partial_template = format_template(
-            self.prompt_template,
-            partial=True,
-            scene_state=scenario_state.unstructured,
-            mission=mission_str,
-            decision_environment=scenario_state.environment.decision_environment.unstructured.strip(),
-            characters_str=characters_str)
-
-        return partial_template
 
     def run_returns(self):
         return ('attribute_prediction_reasonings',
@@ -63,16 +40,17 @@ class KaleidoADMComponent(ADMComponent):
         else:
             target_attribute_names = attributes_in_alignment_target(alignment_target)
 
-        partial_template = self._build_partial_template(scenario_state)
+        partial_template = call_with_coerced_args(
+            self.prompt_template,
+            {'scenario_state': scenario_state},
+            partial=True)
 
         rows = []
         for choice in choices:
-            other_choices_str = ', '.join(
-                ['"{}"'.format(c) for c in choices if c != choice])
-            choice_prompt = format_template(
+            choice_prompt = call_with_coerced_args(
                 partial_template,
-                allow_extraneous=True,
-                choice=choice, other_choices=other_choices_str)
+                {'choice': choice,
+                 'other_choices': [c for c in choices if c != choice]})
 
             log.info("[bold] ** Kaleido Prompt ** [/bold]",
                      extra={"markup": True})
