@@ -15,7 +15,7 @@ class AlignmentADMComponent(ADMComponent):
 
     def run(self,
             attribute_prediction_scores,
-            alignment_target=None):
+            alignment_target):
         if alignment_target is None:
             raise RuntimeError("Assumption violated: `alignment_target` "
                                "was None")
