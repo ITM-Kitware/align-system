@@ -30,7 +30,13 @@ class IncontextExampleGenerator(object, metaclass=ABCMeta):
                  incontext_settings,
                  target_kdmas):
         self.incontext_settings = incontext_settings
-        self.target_kdmas = target_kdmas
+        self.target_kdmas = []
+        for target_kdma in target_kdmas:
+            if not isinstance(target_kdma, dict):
+                self.target_kdmas.append(dict(target_kdma))
+            else:
+                self.target_kdmas.append(target_kdma)
+
         self.set_icl_datasets()
 
     @abstractmethod

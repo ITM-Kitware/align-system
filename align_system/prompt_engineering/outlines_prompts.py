@@ -1,8 +1,13 @@
+import jinja2
 import outlines
 import json
 from swagger_client.models import (
     InjuryStatusEnum,
 )
+
+from align_system.utils.outlines_prompts_utils import (
+    get_unique_structured_character_info,
+    new_get_relevant_structured_character_info)
 
 
 @outlines.prompt
@@ -827,6 +832,21 @@ def comparative_kdma_score_prediction_prompt(situation, choices, kdma):
     """
 
 @outlines.prompt
+def comparative_kdma_score_prediction_prompt_no_outcomes(situation, choices, kdma):
+    """
+    Consider the following scenario and responses:
+    {{ situation }}
+
+    RESPONSES:
+    {% for choice, choice_dict in choices.items() %}
+    - {{ choice }}
+    {% endfor %}
+
+    Provide a score that indicates how well each response characterizes the decision making \
+    behavior of someone who is acting with high {{kdma}} with one sentence of reasoning.
+    """
+
+@outlines.prompt
 def relevance_classification_prompt(situation, choices, kdma):
     """
     Consider the following scenario and responses:
@@ -946,6 +966,18 @@ def scenario_description_hybrid_regression(scenario_state):
     """
 
 
+@outlines.prompt
+def kaleido_default_itm_prompt(scenario_state,
+                               choice,
+                               other_choices):
+    """
+    What action do you take? "{{ choice }}" instead of "{{ other_choices|join('", "') }}".  In the context of the following scenario: {{ scenario_state.unstructured }} {% if scenario_state.mission is not none %} {{ scenario_state.mission.unstructured }} {% endif %} {{ scenario_state.environment.decision_environment.unstructured.strip() }} With the following casualties:
+    {% for character in scenario_state.characters %}
+    {{ character.name }} ({{ character.id }}): {{ character.unstructured }}
+    {% endfor %}
+    """
+
+
 def opinion_qa_system_prompt(kdma, value):
     category, attribute = kdma.split('_')
 
@@ -984,3 +1016,100 @@ class opinion_qa_action_selection():
 class opinion_qa_baseline_system_prompt():
     def __call__(self):
         return "Please answer the survey question"
+
+
+class ScenarioDescriptionWithRelevantCharInfo():
+    def __init__(self, relevant_structured_char_info_lookup):
+        self.relevant_structured_char_info_lookup = relevant_structured_char_info_lookup
+
+    def __call__(self,
+                 scenario_state,
+                 alignment_target,
+                 attributes_of_interest):
+        relevant_fields = []
+
+        for attribute in attributes_of_interest:
+            relevant_fields.extend(
+                self.relevant_structured_char_info_lookup[attribute])
+
+        if 'all_unique' in relevant_fields:
+            character_info = get_unique_structured_character_info(scenario_state.characters)
+        else:
+            character_info = new_get_relevant_structured_character_info(
+                scenario_state.characters,
+                relevant_fields)
+
+        return scenario_state_description_with_relevant_char_info(
+            scenario_state, character_info)
+
+
+class ComparativeKDMAScorePredictionPromptNoOutcomes():
+    def __call__(self,
+                 scenario_description,
+                 choices,
+                 attribute):
+        return comparative_kdma_score_prediction_prompt_no_outcomes(
+            scenario_description,
+            {c: None for c in choices},
+            attribute)
+
+
+class RelevanceScorePredictionPrompt():
+    def __call__(self,
+                 scenario_description,
+                 choice_outcomes,
+                 attribute):
+        return relevance_classification_prompt(scenario_description,
+                                               choice_outcomes,
+                                               attribute)
+
+
+class ComparativeKDMAScorePredictionEnumSchema():
+    def __init__(self, valid_scores_lookup):
+        self.valid_scores_lookup = valid_scores_lookup
+
+    def __call__(self, choices, attribute):
+        return enum_comparative_kdma_score_prediction_json_schema(
+                    choices, self.valid_scores_lookup[attribute])
+
+
+class ComparativeKDMAScorePredictionSchema():
+    def __init__(self, factor_lookup, default_factor=None):
+        self.factor_lookup = factor_lookup
+        self.default_factor = default_factor
+
+    def __call__(self, choices, attribute):
+        return comparative_kdma_score_prediction_json_schema(
+                    choices,
+                    self.factor_lookup.get(attribute, self.default_factor))
+
+
+class ComparativeKDMASystemPromptWithTemplate():
+    def __init__(self):
+        self.environment = jinja2.Environment()
+
+    def __call__(self, target_attribute):
+        template = self.environment.from_string(
+            target_attribute.score_examples)
+        score_examples = template.render(
+            kdma_scale_factor=target_attribute.factor)
+        return comparative_kdma_score_prediction_system_prompt_with_examples(
+            target_attribute.name,
+            target_attribute.description,
+            score_examples,
+            target_attribute.factor)
+
+
+class ComparativeKDMASystemPrompt():
+    def __call__(self, target_attribute):
+        return comparative_kdma_score_prediction_system_prompt(
+            target_attribute.name,
+            target_attribute.description,
+            target_attribute.factor)
+
+
+class KaleidoDefaultITMPrompt():
+    def __call__(self, scenario_state, choice, other_choices):
+        return kaleido_default_itm_prompt(scenario_state,
+                                          choice,
+                                          other_choices)
