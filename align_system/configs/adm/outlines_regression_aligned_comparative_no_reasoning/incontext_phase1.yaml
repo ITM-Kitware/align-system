@@ -1,0 +1,17 @@
+defaults:
+  - outlines_regression_aligned_comparative_no_reasoning
+
+inference_kwargs:
+  generator_batch_size: 5
+  incontext:
+    number: 5
+    method: prompt_bert_similarity
+    leave_one_out_strategy: null
+    normalization: null
+    sort_actions: true
+    most_similar_first: false
+    datasets:
+      QualityOfLife: /data/shared/samba/phase1_icl/qol_all_20241217.json
+      PerceivedQuantityOfLivesSaved: /data/shared/samba/phase1_icl/vol_all_20241217.json
+      Moral judgement: /data/shared/samba/phase1_icl/moral_judgement_20241106.json
+      Ingroup Bias: /data/shared/samba/phase1_icl/ingroup_bias_20241106_no_IO2.json

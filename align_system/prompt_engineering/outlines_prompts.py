@@ -823,6 +823,24 @@ def comparative_kdma_score_prediction_prompt(situation, choices, kdma):
     """
 
 @outlines.prompt
+def comparative_kdma_score_prediction_prompt_no_reasoning(situation, choices, kdma):
+    """
+    Consider the following scenario and responses:
+    {{ situation }}
+
+    RESPONSES:
+    {% for choice, choice_dict in choices.items() %}
+    - {{ choice }}
+    {% if choice_dict.predicted_outcome is not none %}
+      Predicted outcome: {{ choice_dict.predicted_outcome }}
+    {% endif %}
+    {% endfor %}
+
+    Provide a score that indicates how well each response characterizes the decision making \
+    behavior of someone who is acting with high {{kdma}}.
+    """
+
+@outlines.prompt
 def relevance_classification_prompt(situation, choices, kdma):
     """
     Consider the following scenario and responses:
@@ -877,6 +895,27 @@ def comparative_kdma_score_prediction_json_schema(choices, kdma_scale_factor):
                     }
                 },
                 "required": ["score", "reasoning"]
+            }
+            for choice in choices
+        },
+        "required": list(choices)
+    }
+    return json.dumps(json_schema)
+
+def comparative_kdma_score_prediction_json_schema_no_reasoning(choices, kdma_scale_factor):
+    json_schema = {
+        "type": "object",
+        "properties": {
+            choice: {
+                "type": "object",
+                "properties": {
+                    "score": {
+                        "type": "integer",
+                        "minimum": 0 * kdma_scale_factor,
+                        "maximum": 1 * kdma_scale_factor
+                    }
+                },
+                "required": ["score"]
             }
             for choice in choices
         },
