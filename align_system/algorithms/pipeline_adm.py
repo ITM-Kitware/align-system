@@ -8,20 +8,12 @@ log = logging.getLogger(__name__)
 
 class PipelineADM(ActionBasedADM):
     def __init__(self, steps: list[ADMComponent]):
-        '''
-        Expecting `steps` to be a dictionary of {"<step number>":
-        <ADMComponent instance>}.  E.g. {"0":
-        <MyADMComponent1>}. `steps` is a dictionary instead of a
-        simple list due to limitations with Hydra configurations and
-        not being able to set values in a list from the defaults list
-        '''
         self.steps = steps
 
     def choose_action(self,
                       scenario_state,
                       available_actions,
                       alignment_target=None):
-        # Seed the `choice_evaluation`
         choices = adm_utils.format_choices(
             [a.unstructured for a in available_actions],
             available_actions,
