@@ -1,3 +1,4 @@
+from align_system.utils import call_with_coerced_args
 from align_system.algorithms.abstracts import ADMComponent
 from align_system.utils.alignment_utils import alignment_target_to_attribute_targets
 
@@ -15,7 +16,8 @@ class AlignmentADMComponent(ADMComponent):
 
     def run(self,
             attribute_prediction_scores,
-            alignment_target):
+            alignment_target,
+            attribute_relevance_binary=None):
         if alignment_target is None:
             raise RuntimeError("Assumption violated: `alignment_target` "
                                "was None")
@@ -27,9 +29,11 @@ class AlignmentADMComponent(ADMComponent):
         # Alignment function below is expecting target_kdmas to be dicts
         target_kdmas = [dict(t) for t in target_kdmas]
 
-        selected_choice, probs = self.alignment_function(
-            attribute_prediction_scores,
-            target_kdmas)
+        selected_choice, probs = call_with_coerced_args(
+            self.alignment_function,
+            {'kdma_values': attribute_prediction_scores,
+             'relevances': attribute_relevance_binary,
+             'target_kdmas': target_kdmas})
 
         best_sample_idx = self.alignment_function.get_best_sample_index(
             attribute_prediction_scores,
