@@ -1153,4 +1153,3 @@ class RelevanceClassificationSchema():
         return relevance_classification_json_schema(
                     choices,
                     self.factor_lookup.get(attribute, self.default_factor))
->>>>>>> Adding pipeline_relevance ADM
