@@ -1178,4 +1178,22 @@ class PromptBasedBinaryITMSystemPrompt():
                 return low_utilitarianism_system_prompt()
             else:
                 return high_utilitarianism_care_system_prompt()
->>>>>>> Adding pipeline_relevance ADM
+
+class ChoiceRelevanceClassificationSystemPrompt():
+    def __call__(self, target_attribute):
+        return relevance_classification_system_prompt(
+            target_attribute.name,
+            target_attribute.description,
+            target_attribute.factor)
+
+
+class RelevanceClassificationSchema():
+    def __init__(self, factor_lookup, default_factor=None):
+        self.factor_lookup = factor_lookup
+        self.default_factor = default_factor
+
+    def __call__(self, choices, attribute):
+        return relevance_classification_json_schema(
+                    choices,
+                    self.factor_lookup.get(attribute, self.default_factor))
+
