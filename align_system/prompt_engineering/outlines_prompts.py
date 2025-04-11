@@ -1054,7 +1054,7 @@ class ComparativeKDMAScorePredictionPromptNoOutcomes():
             attribute)
 
 
-class RelevanceScorePredictionPrompt():
+class RelevanceClassificationPrompt():
     def __call__(self,
                  scenario_description,
                  choice_outcomes,
@@ -1178,3 +1178,4 @@ class PromptBasedBinaryITMSystemPrompt():
                 return low_utilitarianism_system_prompt()
             else:
                 return high_utilitarianism_care_system_prompt()
+>>>>>>> Adding pipeline_relevance ADM
