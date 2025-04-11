@@ -17,7 +17,7 @@ defaults:
   - /adm_component/relevance@step_definitions.relevance_classification: choice_classification
   - /adm_component/icl@step_definitions.regression_icl: regression
   - /adm_component/regression@step_definitions.comparative_regression: comparative
-  - /adm_component/alignment@step_definitions.scalar_alignment: avg_dist_scalar
+  - /adm_component/alignment@step_definitions.relevance_scalar_alignment: relevance_avg_dist_scalar
   - /adm_component/misc@step_definitions.action_parameter_completion: action_parameter_completion
   # Use definitions in this file to override defaults defined above
   - _self_
@@ -61,5 +61,5 @@ instance:
     - ${ref:adm.step_definitions.relevance_classification}
     - ${ref:adm.step_definitions.regression_icl}
     - ${ref:adm.step_definitions.comparative_regression}
-    - ${ref:adm.step_definitions.scalar_alignment}
+    - ${ref:adm.step_definitions.relevance_scalar_alignment}
     - ${ref:adm.step_definitions.action_parameter_completion}
