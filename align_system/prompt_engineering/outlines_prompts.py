@@ -1113,3 +1113,19 @@ class KaleidoDefaultITMPrompt():
         return kaleido_default_itm_prompt(scenario_state,
                                           choice,
                                           other_choices)
+
+
+class DefaultITMScenarioDescription():
+    def __call__(self, scenario_state):
+        return scenario_state_description_1(scenario_state)
+
+
+class DefaultITMPrompt():
+    def __call__(self, scenario_description, choices):
+        return action_selection_prompt(scenario_description, choices)
+
+
+class DefaultChoiceSelectionSchema():
+    def __call__(self, choices, reasoning_max_length=512):
+        return action_choice_json_schema(
+            json.dumps(choices), reasoning_max_length),
