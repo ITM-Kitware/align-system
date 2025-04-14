@@ -71,6 +71,7 @@ class OutlinesTransformersADM(ActionBasedADM):
                  scenario_description_template=scenario_state_description_1,
                  action_selection_prompt_template=action_selection_prompt,
                  baseline_system_prompt=baseline_system_prompt,
+                 outlines_seed=None,
                  **kwargs):
         self.baseline = baseline
 
@@ -98,6 +99,12 @@ class OutlinesTransformersADM(ActionBasedADM):
         # the sampler itself (which defaults to 1); setting the number
         # of samples in the sampler may result in unexpected behavior
         self.sampler = sampler
+
+        self.outlines_seed = outlines_seed
+        if self.outlines_seed is None:
+            self.outlines_rng = None
+        else:
+            self.outlines_rng = torch.cuda.manual_seed(self.outlines_seed)
 
         self.scenario_description_template = scenario_description_template
         self.action_selection_prompt_template = action_selection_prompt_template
@@ -233,11 +240,15 @@ class OutlinesTransformersADM(ActionBasedADM):
             yield batch
 
     @classmethod
-    def run_in_batches(cls, inference_function, inputs, batch_size):
+    def run_in_batches(cls, inference_function, inputs, batch_size, rng=None):
         ''' Batch inference to avoid out of memory error'''
         outputs = []
         for batch in cls.batched(inputs, batch_size):
-            output = inference_function(list(batch))
+            if rng is None:
+                output = inference_function(list(batch))
+            else:
+                output = inference_function(list(batch), rng=rng)
+
             if not isinstance(output, list):
                 output = [output]
             outputs.extend(output)
@@ -351,8 +362,12 @@ class OutlinesTransformersADM(ActionBasedADM):
 
         positive_dialogs = []
         for _ in range(num_positive_samples):
-            shuf = random.sample(choices, len(choices)) if shuffle_choices else choices
-            prompt = action_selection_prompt(scenario_description, shuf)
+            if shuffle_choices:
+                shuffled_choices = random.sample(choices, len(choices))
+            else:
+                shuffled_choices = choices
+
+            prompt = action_selection_prompt_template(scenario_description, shuffled_choices)
             dialog = [{'role': 'system', 'content': positive_system_prompt}]
             dialog.extend(positive_icl_examples)
             dialog.append({'role': 'user', 'content': prompt})
@@ -361,8 +376,12 @@ class OutlinesTransformersADM(ActionBasedADM):
 
         negative_dialogs = []
         for _ in range(num_negative_samples):
-            shuf = random.sample(choices, len(choices)) if shuffle_choices else choices
-            prompt = action_selection_prompt(scenario_description, shuf)
+            if shuffle_choices:
+                shuffled_choices = random.sample(choices, len(choices))
+            else:
+                shuffled_choices = choices
+
+            prompt = action_selection_prompt_template(scenario_description, shuffled_choices)
             dialog = [{'role': 'system', 'content': negative_system_prompt}]
             dialog.extend(negative_icl_examples)
             dialog.append({'role': 'user', 'content': prompt})
@@ -421,7 +440,7 @@ class OutlinesTransformersADM(ActionBasedADM):
 
         if max_generator_tokens >= 0:
             generator = partial(generator, max_tokens=max_generator_tokens)
-        
+
         if generator_seed >= 0:
             torch.manual_seed(generator_seed)
             if torch.cuda.is_available():
@@ -435,7 +454,7 @@ class OutlinesTransformersADM(ActionBasedADM):
                  extra={"markup": True})
         log.info(dialog_texts[0])
 
-        responses = self.run_in_batches(generator, dialog_texts, generator_batch_size)
+        responses = self.run_in_batches(generator, dialog_texts, generator_batch_size, rng=self.outlines_rng)
         positive_responses_choices =\
             [r['action_choice'] for r in
              responses[0:num_positive_samples]]
