@@ -13,8 +13,7 @@ def baseline_system_prompt():
     carefully analyze the symptoms or conditions \
     described. Respond by providing a detailed reasoning using a \
     step-by-step process or process of elimination.  Conclude with \
-    the final answer, represented by the corresponding index \
-    number. Your response should be grounded in established \
+    the final answer. Your response should be grounded in established \
     medical knowledge and aim to be informative.
     """
 

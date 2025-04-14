@@ -1,0 +1,21 @@
+instance:
+  _target_: align_system.algorithms.outlines_decision_history_adm.OutlinesTransformersDecisionHistoryADM
+
+  model_name: mistralai/Mistral-7B-Instruct-v0.2
+
+inference_kwargs:
+  num_samples: 1
+  incontext:
+    number: 5
+    method: scenario_bert_similarity
+    sort_actions: true
+    datasets:
+      MoralDesert: /data/shared/samba/integrated_results_metrics_eval/captured_dataset_for_chris/baseline_adept_high-1715105775-input-output.json
+      maximization: /data/shared/samba/integrated_results_metrics_eval/captured_dataset_for_chris/baseline_soartech_high-1716581856-input-output.json
+      Moral judgement: /data/shared/samba/dry_run/moral_judgement_20240826.json
+      Ingroup Bias: /data/shared/samba/dry_run/ingroup_bias_20240826.json
+      QualityOfLife: /data/shared/samba/dry_run/qol_20240826.json
+      PerceivedQuantityOfLivesSaved: /data/shared/samba/dry_run/vol_20240826.json
+    human_id: '20249201'
+    human_decision_datasets: 
+      Moral judgement: /home/local/KHQ/jadie.adams/scratch/text_result_data_DryRunEval.MJ1.json
