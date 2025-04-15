@@ -1128,4 +1128,9 @@ class DefaultITMPrompt():
 class DefaultChoiceSelectionSchema():
     def __call__(self, choices, reasoning_max_length=512):
         return action_choice_json_schema(
-            json.dumps(choices), reasoning_max_length),
+            json.dumps(choices), reasoning_max_length)
+
+
+class DefaultITMBaselineSystemPrompt():
+    def __call__(self):
+        return baseline_system_prompt()
