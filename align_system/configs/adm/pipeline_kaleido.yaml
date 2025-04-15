@@ -9,9 +9,11 @@ defaults:
   - /inference_engine@structured_inference_engine: outlines_structured_inference_engine
   - /template/scenario_description@scenario_description_template: default
   # ADM components to be used in "steps"
+  - /adm_component/misc@step_definitions.format_choices: itm_format_choices
   - /adm_component/regression@step_definitions.kaleido: kaleido
   - /adm_component/alignment@step_definitions.scalar_alignment: avg_dist_scalar
   - /adm_component/misc@step_definitions.action_parameter_completion: action_parameter_completion
+  - /adm_component/misc@step_definitions.ensure_chosen_action: ensure_chosen_action
   # Use definitions in this file to override defaults defined above
   - _self_
 
@@ -23,6 +25,8 @@ instance:
 
   steps:
     # Reference the step instances we want to use in order
+    - ${ref:adm.step_definitions.format_choices}
     - ${ref:adm.step_definitions.kaleido}
     - ${ref:adm.step_definitions.scalar_alignment}
     - ${ref:adm.step_definitions.action_parameter_completion}
+    - ${ref:adm.step_definitions.ensure_chosen_action}
