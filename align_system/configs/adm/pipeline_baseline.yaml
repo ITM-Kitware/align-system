@@ -1,0 +1,21 @@
+name: pipeline_baseline
+
+defaults:
+  # Import defaults into this namspace (adm) as @name, for further
+  # customization
+
+  # Shared variables / components
+  - /inference_engine@structured_inference_engine: outlines_structured_inference_engine
+  # ADM components to be used in "steps"
+  - /adm_component/direct@step_definitions.outlines_baseline: outlines_baseline
+  - /adm_component/misc@step_definitions.action_parameter_completion: action_parameter_completion
+  # Use definitions in this file to override defaults defined above
+  - _self_
+
+instance:
+  _target_: align_system.algorithms.pipeline_adm.PipelineADM
+
+  steps:
+    # Reference the step instances we want to use in order
+    - ${ref:adm.step_definitions.outlines_baseline}
+    - ${ref:adm.step_definitions.action_parameter_completion}
