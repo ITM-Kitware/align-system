@@ -29,7 +29,7 @@ class OutlinesBaselineADMComponent(ADMComponent):
         self.vote_calculator_fn = vote_calculator_fn
 
     def run_returns(self):
-        return ('chosen_choice', 'dialog')
+        return ('chosen_choice', 'justification', 'dialog')
 
     def run(self,
             scenario_state,
@@ -82,4 +82,12 @@ class OutlinesBaselineADMComponent(ADMComponent):
         # Take top choice by score (votes is a dictionary of choice: score)
         top_choice, top_choice_score = max(votes.items(), key=lambda x: x[1])
 
-        return top_choice, dialog
+        # Grab justification for top_choice (just taking first
+        # instance we find)
+        top_choice_justification = ""
+        for response in responses:
+            if response['action_choice'] == top_choice:
+                top_choice_justification = response['detailed_reasoning']
+                break
+
+        return top_choice, top_choice_justification, dialog

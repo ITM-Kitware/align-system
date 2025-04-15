@@ -51,4 +51,9 @@ class PipelineADM(ActionBasedADM):
                 raise RuntimeError("Expecting a 'chosen_action' or "
                                    "'chosen_choice' at the end of pipeline run")
 
+        if (hasattr(working_output['chosen_action'], 'justification')
+                and working_output['chosen_action'].justification is None
+                and 'justification' in working_output):
+            working_output['chosen_action'].justification = working_output['justification']
+
         return working_output['chosen_action']
