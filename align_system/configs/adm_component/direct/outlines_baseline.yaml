@@ -9,6 +9,6 @@ prompt_template:
 output_schema_template:
   _target_: align_system.prompt_engineering.outlines_prompts.DefaultChoiceSelectionSchema
 system_prompt_template:
-  _target_: align_system.prompt_engineering.outlines_prompts.ComparativeKDMASystemPrompt
+  _target_: align_system.prompt_engineering.outlines_prompts.DefaultITMBaselineSystemPrompt
 
 num_samples: 1
