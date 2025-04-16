@@ -39,3 +39,22 @@ class ITMFormatChoicesADMComponent(ADMComponent):
             scenario_state)
 
         return choices
+
+
+class JustificationFromReasonings(ADMComponent):
+    def run_returns(self):
+        return 'justification'
+
+    def run(self,
+            attribute_prediction_reasonings,
+            chosen_choice,
+            best_sample_idx):
+        # Expecting that for `attribute_prediction_reasonings` for
+        # each possible choice we have a dictionary of KDMA to
+        # justification; just concatenating these together for now to
+        # take into account all KDMAs
+        best_sample_reasonings = []
+        for attribute, reasonings in attribute_prediction_reasonings[chosen_choice].items():
+            best_sample_reasonings.append(reasonings[best_sample_idx])
+
+        return "\n".join(best_sample_reasonings)
