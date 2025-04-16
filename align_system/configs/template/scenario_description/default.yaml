@@ -1,7 +1,1 @@
-_target_: align_system.prompt_engineering.outlines_prompts.ScenarioDescriptionWithRelevantCharInfo
-
-relevant_structured_char_info_lookup:
-  moral judgment: ['intent', 'directness_of_causality', 'injuries']
-  ingroup bias: ['all_unique']
-  quality of life: ['demographics.age', 'injuries', 'vitals']
-  perceived quantity of lives saved: []
+_target_: align_system.prompt_engineering.outlines_prompts.DefaultITMScenarioDescription

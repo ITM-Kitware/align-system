@@ -1134,3 +1134,47 @@ class DefaultChoiceSelectionSchema():
 class DefaultITMBaselineSystemPrompt():
     def __call__(self):
         return baseline_system_prompt()
+
+
+class PromptBasedBinaryITMSystemPrompt():
+    def __call__(self, target_kdma, target_value):
+        if target_kdma == "Moral judgement":
+            if target_value < 0.5:
+                return low_moral_deservingness_system_prompt()
+            else:
+                return high_moral_deservingness_system_prompt()
+        elif target_kdma == "maximization":
+            if target_value < 0.5:
+                return low_maximization_system_prompt()
+            else:
+                return high_maximization_system_prompt()
+        elif target_kdma == "ProtocolFocus":
+            if target_value < 0.5:
+                return low_protocol_focus_system_prompt()
+            else:
+                return high_protocol_focus_system_prompt()
+        elif target_kdma == "Fairness":
+            if target_value < 0.5:
+                return low_fairness_system_prompt()
+            else:
+                return high_fairness_system_prompt()
+        elif target_kdma == "RiskAversion":
+            if target_value < 0.5:
+                return low_risk_aversion_system_prompt()
+            else:
+                return high_risk_aversion_system_prompt()
+        elif target_kdma == "ContinuationOfCare":
+            if target_value < 0.5:
+                return low_continuing_care_system_prompt()
+            else:
+                return high_continuing_care_system_prompt()
+        elif target_kdma == "MoralDesert":
+            if target_value < 0.5:
+                return low_moral_deservingness_system_prompt()
+            else:
+                return high_moral_deservingness_system_prompt()
+        elif target_kdma == "Utilitarianism":
+            if target_value < 0.5:
+                return low_utilitarianism_system_prompt()
+            else:
+                return high_utilitarianism_care_system_prompt()
