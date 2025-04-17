@@ -430,6 +430,7 @@ class RelevanceAvgDistScalarAlignment(RelevanceAlignmentFunction):
         Returns the selected choice.
         '''
         kdma_values = _handle_single_value(kdma_values, target_kdmas)
+        relevances = _handle_single_value(relevances, target_kdmas)
         _check_if_targets_are_scalar(target_kdmas)
 
         # Get distance from average of predicted scores to targets
@@ -443,9 +444,10 @@ class RelevanceAvgDistScalarAlignment(RelevanceAlignmentFunction):
                 kdma = target_kdma['kdma']
                 score_samples = kdma_values[choice][kdma]
                 average_score = (sum(score_samples) / len(score_samples))
-                relevance = relevances[choice][kdma]
+                rel_samples = relevances[choice][target_kdma['kdma']]
+                average_relevance = (sum(rel_samples) / len(rel_samples))
                 distance = _euclidean_distance(target_kdma['value'], average_score)
-                prob += relevance * (1/(distance+eps)) # weight by relevance
+                prob += average_relevance * (1/(distance+eps)) # weight by relevance
             probs.append(prob)
         selected_choice, probs = self._select_min_dist_choice(choices, probs, misaligned, probabilistic=probabilistic)
         return selected_choice, probs
