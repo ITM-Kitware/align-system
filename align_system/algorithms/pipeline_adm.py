@@ -29,6 +29,10 @@ class PipelineADM(ActionBasedADM):
 
                 working_output[step_returns] = run_output
             elif isinstance(step_returns, Iterable):
+                if len(step_returns) != len(run_output):
+                    raise RuntimeError(
+                        "step_returns and run_output aren't equal length")
+
                 for r, o in zip(step_returns, run_output):
                     if r in working_output:
                         log.debug(f"Updating '{r}'")
