@@ -6,6 +6,7 @@ defaults:
 
   # Shared variables / components
   - /attribute@mj: moral_judgment
+  - /attribute@ib: ingroup_bias
   - /inference_engine@structured_inference_engine: outlines_structured_inference_engine
   - /template/scenario_description@scenario_description_template: default
   - /template/prompt@relevance_prompt_template: relevance_classification
@@ -24,6 +25,7 @@ defaults:
 
 attribute_definitions:
   Moral judgement: ${adm.mj}
+  Ingroup Bias: ${adm.ib}
 
 step_definitions:
   relevance_icl:
@@ -33,6 +35,7 @@ step_definitions:
     icl_generator:
       target_kdmas:
         - ${adm.mj}
+        - ${adm.ib}
 
   relevance_classification:
     scenario_description_template: ${ref:adm.scenario_description_template}
@@ -46,6 +49,7 @@ step_definitions:
     icl_generator:
       target_kdmas:
         - ${adm.mj}
+        - ${adm.ib}
 
   comparative_regression:
     scenario_description_template: ${ref:adm.scenario_description_template}
