@@ -1,6 +1,6 @@
 from functools import lru_cache
 
-from swagger_client.models import KDMAValue
+from swagger_client.models import AlignmentTarget
 
 from align_system.utils import logging, call_with_coerced_args
 from align_system.utils.alignment_utils import attributes_in_alignment_target
@@ -79,30 +79,29 @@ class ICLADMComponent(ADMComponent):
 @lru_cache
 def init_posneg_icl_engines_from_target(icl_generator_partial,
                                         attributes,
-                                        alignment_target):
+                                        kdma_values):
     log.debug("Initializing positive/negative ICL generators for target")
-    kdma_values = alignment_target.kdma_values
     if len(kdma_values) != 1:
         raise RuntimeError("This ADM assumes a single KDMA target, aborting!")
-    kdma_value = kdma_values[0]
-    if isinstance(kdma_value, KDMAValue):
-        kdma_value = kdma_value.to_dict()
 
-    kdma = kdma_value['kdma']
-    value = kdma_value['value']
+    kdma, value = kdma_values[0]
+
     # Assumption here is that KDMA values range from 0-1
     negative_value = 1 - value
 
     positive_target = [{'kdma': kdma,
                         'name': attributes[kdma].name,
                         'value': value}]
-    positive_icl_generator = icl_generator_partial(positive_target)
+
+    positive_icl_generator = icl_generator_partial(
+        target_kdmas=positive_target)
 
     negative_target = [{'kdma': kdma,
                         'name': attributes[kdma].name,
                         'value': negative_value}]
 
-    negative_icl_generator = icl_generator_partial(negative_target)
+    negative_icl_generator = icl_generator_partial(
+        target_kdmas=negative_target)
 
     return positive_icl_generator, negative_icl_generator
 
@@ -154,16 +153,28 @@ class PromptBasedICLADMComponent(ADMComponent):
                  'choice_outcomes': {c: None for c in choices},
                  'attribute': attribute.name})
 
+        if isinstance(alignment_target, AlignmentTarget):
+            alignment_target_dict = alignment_target.to_dict()
+        else:
+            alignment_target_dict = alignment_target
+
+        # Convert alignment target into kdma values (all that's needed
+        # for building the icl engines, and need something that's
+        # hashable for caching, dicts aren't hashable)
+        kdma_values = tuple((val['kdma'], val['value'])
+                            for val in alignment_target_dict['kdma_values'])
+
         pos_icl_gen, neg_icl_gen = init_posneg_icl_engines_from_target(
             self.icl_generator_partial,
             self.attributes,
-            alignment_target)
+            kdma_values)
 
         pos_selected_icl_examples = pos_icl_gen.select_icl_examples(
             sys_kdma_name=attribute.kdma,
             scenario_description_to_match=scenario_description,
             prompt_to_match=prompt_to_match,
-            state_comparison=scenario_state)
+            state_comparison=scenario_state,
+            actions=actions)
         pos_icl_dialog_elements = []
         for pos_icl_sample in pos_selected_icl_examples:
             pos_icl_dialog_elements.append(
@@ -181,7 +192,8 @@ class PromptBasedICLADMComponent(ADMComponent):
             sys_kdma_name=attribute.kdma,
             scenario_description_to_match=scenario_description,
             prompt_to_match=prompt_to_match,
-            state_comparison=scenario_state)
+            state_comparison=scenario_state,
+            actions=actions)
         neg_icl_dialog_elements = []
         for neg_icl_sample in neg_selected_icl_examples:
             neg_icl_dialog_elements.append(
