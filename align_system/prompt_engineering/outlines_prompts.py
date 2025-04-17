@@ -1136,6 +1136,7 @@ class DefaultITMBaselineSystemPrompt():
         return baseline_system_prompt()
 
 
+<<<<<<< HEAD
 class PromptBasedBinaryITMSystemPrompt():
     def __call__(self, target_kdma, target_value):
         if target_kdma == "Moral judgement":
@@ -1179,6 +1180,8 @@ class PromptBasedBinaryITMSystemPrompt():
             else:
                 return high_utilitarianism_care_system_prompt()
 
+=======
+>>>>>>> 0b4f6334b9ca2680ee33b54142c7152613822bb8
 class ChoiceRelevanceClassificationSystemPrompt():
     def __call__(self, target_attribute):
         return relevance_classification_system_prompt(
