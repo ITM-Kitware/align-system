@@ -30,7 +30,7 @@ step_definitions:
   prompt_based_aligned:
     scenario_description_template: ${ref:adm.scenario_description_template}
     prompt_template: ${ref:adm.prompt_template}
-    num_negative_samples: 5
+    num_negative_samples: 0
 
 instance:
   _target_: align_system.algorithms.pipeline_adm.PipelineADM
@@ -38,6 +38,7 @@ instance:
   steps:
     # Reference the step instances we want to use in order
     - ${ref:adm.step_definitions.format_choices}
+    - ${ref:adm.step_definitions.icl}
     - ${ref:adm.step_definitions.prompt_based_aligned}
     - ${ref:adm.step_definitions.action_parameter_completion}
     - ${ref:adm.step_definitions.ensure_chosen_action}
