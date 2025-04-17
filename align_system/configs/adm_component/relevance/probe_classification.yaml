@@ -1,0 +1,7 @@
+_target_: align_system.algorithms.comparative_regression_adm_component.ProbeRelevanceClassificationComponent
+
+structured_inference_engine: ${ref:adm.structured_inference_engine}
+num_samples: 2
+attributes: ${ref:adm.attribute_definitions}
+system_prompt_template:
+  _target_: align_system.prompt_engineering.outlines_prompts.ProbeRelevanceClassificationSystemPrompt

@@ -17,7 +17,9 @@ from align_system.prompt_engineering.outlines_prompts import (
     comparative_kdma_score_prediction_prompt,
     comparative_kdma_score_prediction_json_schema,
     relevance_classification_prompt,
-    relevance_classification_json_schema
+    relevance_classification_json_schema,
+    probe_relevance_classification_prompt,
+    probe_relevance_classification_json_schema
 )
 
 
@@ -579,7 +581,7 @@ class RelevanceIncontextExampleGenerator(IncontextExampleGenerator):
                         icl_response[choice]['relevant'] = 'no'
                     included_choices.append(choice)
                 # Check if response is valid against json schema
-                correct_schema = json.loads(relevance_classification_json_schema(included_choices, target_kdma["factor"]))
+                correct_schema = json.loads(relevance_classification_json_schema(included_choices))
                 validate(instance=icl_response, schema=correct_schema)
 
                 # Get example prompt
@@ -654,6 +656,108 @@ class RelevanceIncontextExampleGenerator(IncontextExampleGenerator):
         # VoL
         elif target_kdma['kdma'] == 'PerceivedQuantityOfLivesSaved':
             cot_reasoning = f'The response is irrelevant because the patients have similar likelihood of survival, so perceived quantity of lives saved is not a consideration in choosing {choice}'
+
+        else:
+            raise RuntimeError(f"Relevance ICL is not implemented for {target_kdma['kdma']}")
+
+        return cot_reasoning
+
+
+class ProbeRelevanceIncontextExampleGenerator(IncontextExampleGenerator):
+    def set_icl_datasets(self):
+        icl_datasets = {}
+        incontext_data = self._read_relevance_icl_dataset_files()
+
+        # Add each target to icl_datasets
+        for target_kdma in self.target_kdmas:
+            icl_datasets[target_kdma['kdma']] = []
+            kdma_incontext_data = incontext_data[target_kdma['kdma']]
+
+            # Add each examples to icl_datasets
+            for example in kdma_incontext_data:
+                # Get example response
+                icl_response = {}
+                probe_relevance = False
+                for kdma_value in example["kdma_values"]:
+                    if kdma_value is not None:
+                        probe_relevance = True
+                if probe_relevance:
+                    icl_response['reasoning'] = self.get_relevant_chain_of_thought_reasoning(target_kdma)
+                    icl_response['relevant'] = 'yes'
+                else:
+                    icl_response['reasoning'] = self.get_irrelevant_chain_of_thought_reasoning(target_kdma)
+                    icl_response['relevant'] = 'no'
+                # Check if response is valid against json schema
+                correct_schema = json.loads(probe_relevance_classification_json_schema())
+                validate(instance=icl_response, schema=correct_schema)
+
+                # Get example prompt
+                relevant_fields = []
+                for char_target_kdma in self.target_kdmas:
+                    relevant_fields.extend(char_target_kdma['relevant_structured_character_info'])
+                if 'all_unique' in relevant_fields:
+                    character_info = outlines_prompts_utils.get_unique_structured_character_info(example['state'].characters)
+                else:
+                    character_info = outlines_prompts_utils.get_relevant_structured_character_info(example['state'].characters, self.target_kdmas)
+                icl_scenario_description = scenario_state_description_with_relevant_char_info(example['state'], character_info)
+                icl_prompt = probe_relevance_classification_prompt(icl_scenario_description,
+                                                                    example['choices'],
+                                                                    target_kdma['name'])
+                # Add example
+                icl_datasets[target_kdma['kdma']].append({
+                    "state": example["state"],
+                    "scenario_description": icl_scenario_description,
+                    "prompt": icl_prompt,
+                    "response": icl_response,
+                    "actions": example['actions']
+                    })
+
+        self.icl_datasets = icl_datasets
+
+    def get_relevant_chain_of_thought_reasoning(self, target_kdma):
+        '''
+        Helper function for set_icl_datasets() - constructs example reasoning statements for relevant responses
+        '''
+        # Moral deserivngess or moral judgement
+        if target_kdma['kdma'] == 'MoralDesert' or  target_kdma['kdma'] == 'Moral judgement':
+            cot_reasoning = f'Moral judgment is a relevant consideration because the patients are not equally morally deserving.'
+
+        # Ingroup bias
+        elif target_kdma['kdma'] == 'Ingroup Bias':
+            cot_reasoning = f'Ingroup bias is a relevant consideration because the patients are not in the same group.'
+
+        # QoL
+        elif target_kdma['kdma'] == 'QualityOfLife':
+            cot_reasoning = f'Quality of life is a relevant consideration because the patients will not have the same quality of life post treatment.'
+
+        # VoL
+        elif target_kdma['kdma'] == 'PerceivedQuantityOfLivesSaved':
+            cot_reasoning = f'Perceived quantity of lives saved a relevant consideration because the patients do not have the same likelihood of survival.'
+
+        else:
+            raise RuntimeError(f"Relevance ICL is not implemented for {target_kdma['kdma']}")
+
+        return cot_reasoning
+
+    def get_irrelevant_chain_of_thought_reasoning(self, target_kdma):
+        '''
+        Helper function for set_icl_datasets() - constructs example reasoning statements for irrelevant responses
+        '''
+        # Moral deserivngess or moral judgement
+        if target_kdma['kdma'] == 'MoralDesert' or  target_kdma['kdma'] == 'Moral judgement':
+            cot_reasoning = f'Moral judgment is an irrelevant consideration because the patients are equally morally deserving.'
+
+        # Ingroup bias
+        elif target_kdma['kdma'] == 'Ingroup Bias':
+            cot_reasoning = f'Ingroup bias is an irrelevant consideration because the patients are in the same group.'
+
+        # QoL
+        elif target_kdma['kdma'] == 'QualityOfLife':
+            cot_reasoning = f'Quality of life is aan irelevant consideration because the patients will have the same quality of life post-treatment.'
+
+        # VoL
+        elif target_kdma['kdma'] == 'PerceivedQuantityOfLivesSaved':
+            cot_reasoning = f'Perceived quantity of lives saved an irrelevant consideration because the patients have similar likelihood of survival.'
 
         else:
             raise RuntimeError(f"Relevance ICL is not implemented for {target_kdma['kdma']}")

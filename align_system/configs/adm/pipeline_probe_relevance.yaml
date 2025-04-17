@@ -9,13 +9,13 @@ defaults:
   - /attribute@ib: ingroup_bias
   - /inference_engine@structured_inference_engine: outlines_structured_inference_engine
   - /template/scenario_description@scenario_description_template: with_relevant_char_info
-  - /template/prompt@relevance_prompt_template: choice_relevance_classification
-  - /template/output_schema@relevance_classification_schema: choice_relevance_classification
+  - /template/prompt@relevance_prompt_template: probe_relevance_classification
+  - /template/output_schema@relevance_classification_schema: probe_relevance_classification
   - /template/prompt@prompt_template: comparative_regression
   - /template/output_schema@comparative_regression_choice_schema: comparative_regression_choice
   # ADM components to be used in "steps"
-  - /adm_component/icl@step_definitions.relevance_icl: choice_relevance
-  - /adm_component/relevance@step_definitions.relevance_classification: choice_classification
+  - /adm_component/icl@step_definitions.relevance_icl: probe_relevance
+  - /adm_component/relevance@step_definitions.relevance_classification: probe_classification
   - /adm_component/misc@step_definitions.format_choices: itm_format_choices
   - /adm_component/icl@step_definitions.regression_icl: regression
   - /adm_component/regression@step_definitions.comparative_regression: comparative

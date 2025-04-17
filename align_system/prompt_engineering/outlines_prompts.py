@@ -644,6 +644,20 @@ def relevance_classification_system_prompt(kdma, kdma_description, kdma_scale_fa
     yes or no, where yes means {{kdma}} is relevant and no means {{kdma}} is irrelevant.
     """
 
+
+@outlines.prompt
+def probe_relevance_classification_system_prompt(kdma, kdma_description, kdma_scale_factor):
+    """
+    You are a specialized algorithm tasked with considering medical triage decisions \
+    in a military medical context.  Given a scenario and list of possible responses, \
+    your job is to assess the relevance of {{kdma}} in making the decision.
+
+    {{kdma_description}}
+
+    Provide a sentence of reasoning and your answer of either \
+    yes or no, where yes means {{kdma}} is relevant and no means {{kdma}} is irrelevant.
+    """
+
 @outlines.prompt
 def outcome_prediction_prompt(situation, choices, choice):
     """
@@ -862,6 +876,21 @@ def relevance_classification_prompt(situation, choices, kdma):
     """
 
 @outlines.prompt
+def probe_relevance_classification_prompt(situation, choices, kdma):
+    """
+    Consider the following scenario and responses:
+    {{ situation }}
+
+    RESPONSES:
+    {% for choice in choices %}
+    - {{ choice }}
+    {% endfor %}
+
+    Inidicate whether or not {{kdma}} is relevant to the situation with either yes (relevant) \
+    or no (irrelevant) and provide one sentence of reasoning.
+    """
+
+@outlines.prompt
 def kdma_score_prediction_json_schema():
     '''
     {"properties": {
@@ -908,7 +937,7 @@ def comparative_kdma_score_prediction_json_schema(choices, kdma_scale_factor):
     }
     return json.dumps(json_schema)
 
-def relevance_classification_json_schema(choices, kdma_scale_factor):
+def relevance_classification_json_schema(choices):
     json_schema = {
         "type": "object",
         "properties": {
@@ -932,6 +961,26 @@ def relevance_classification_json_schema(choices, kdma_scale_factor):
         "required": list(choices)
     }
     return json.dumps(json_schema)
+
+def probe_relevance_classification_json_schema():
+    json_schema = {
+        "type": "object",
+        "properties": {
+            "reasoning": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 512
+            },
+            "relevant": {
+                "type": "string",
+                "enum": ["yes", "no"]
+            }
+        },
+        "required": ["reasoning", "relevant"],
+        "additionalProperties": False
+    }
+    return json.dumps(json_schema)
+
 
 def enum_comparative_kdma_score_prediction_json_schema(choices, valid_scores):
     json_schema = {
@@ -1054,16 +1103,6 @@ class ComparativeKDMAScorePredictionPromptNoOutcomes():
             attribute)
 
 
-class RelevanceClassificationPrompt():
-    def __call__(self,
-                 scenario_description,
-                 choice_outcomes,
-                 attribute):
-        return relevance_classification_prompt(scenario_description,
-                                               choice_outcomes,
-                                               attribute)
-
-
 class ComparativeKDMAScorePredictionEnumSchema():
     def __init__(self, valid_scores_lookup):
         self.valid_scores_lookup = valid_scores_lookup
@@ -1179,6 +1218,7 @@ class PromptBasedBinaryITMSystemPrompt():
             else:
                 return high_utilitarianism_care_system_prompt()
 
+
 class ChoiceRelevanceClassificationSystemPrompt():
     def __call__(self, target_attribute):
         return relevance_classification_system_prompt(
@@ -1186,13 +1226,37 @@ class ChoiceRelevanceClassificationSystemPrompt():
             target_attribute.description,
             target_attribute.factor)
 
+class ChoiceRelevanceClassificationPrompt():
+    def __call__(self,
+                 scenario_description,
+                 choice_outcomes,
+                 attribute):
+        return relevance_classification_prompt(scenario_description,
+                                               choice_outcomes,
+                                               attribute)
 
-class RelevanceClassificationSchema():
-    def __init__(self, factor_lookup, default_factor=None):
-        self.factor_lookup = factor_lookup
-        self.default_factor = default_factor
-
-    def __call__(self, choices, attribute):
+class ChoiceRelevanceClassificationSchema():
+       def __call__(self, choices, attribute):
         return relevance_classification_json_schema(
-                    choices,
-                    self.factor_lookup.get(attribute, self.default_factor))
+                    choices)
+
+
+class ProbeRelevanceClassificationSystemPrompt():
+    def __call__(self, target_attribute):
+        return probe_relevance_classification_system_prompt(
+            target_attribute.name,
+            target_attribute.description,
+            target_attribute.factor)
+
+class ProbeRelevanceClassificationPrompt():
+    def __call__(self,
+                 scenario_description,
+                 choice_outcomes,
+                 attribute):
+        return probe_relevance_classification_prompt(scenario_description,
+                                                     choice_outcomes,
+                                                     attribute)
+
+class ProbeRelevanceClassificationSchema():
+    def __call__(self, choices, attribute):
+        return probe_relevance_classification_json_schema()
