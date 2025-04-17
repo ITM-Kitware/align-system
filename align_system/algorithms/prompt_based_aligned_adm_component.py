@@ -41,12 +41,14 @@ class PromptBasedAlignedADMComponent(ADMComponent):
         self.shuffle_choices = shuffle_choices
 
     def run_returns(self):
-        return ('chosen_choice', 'dialog')
+        return ('chosen_choice', 'justification', 'dialog')
 
     def run(self,
             scenario_state,
             choices,
-            alignment_target):
+            alignment_target,
+            positive_icl_dialog_elements=[],
+            negative_icl_dialog_elements=[]):
         kdma_values = alignment_target.kdma_values
         if len(kdma_values) != 1:
             raise RuntimeError("This ADM assumes a single KDMA target, aborting!")
@@ -82,6 +84,9 @@ class PromptBasedAlignedADMComponent(ADMComponent):
                                  namespace='.',
                                  tags=['regression']))
 
+        if len(positive_icl_dialog_elements) > 0:
+            positive_dialog.extend(positive_icl_dialog_elements)
+
         positive_dialog.append(
             DialogElement(role='user',
                           content=prompt,
@@ -90,6 +95,10 @@ class PromptBasedAlignedADMComponent(ADMComponent):
 
         positive_dialog_prompt = self.structured_inference_engine.dialog_to_prompt(
             positive_dialog)
+
+        log.info("[bold]*POSITIVE DIALOG PROMPT*[/bold]",
+                 extra={"markup": True})
+        log.info(positive_dialog_prompt)
 
         if self.num_negative_samples > 0:
             negative_dialog = []
@@ -105,31 +114,43 @@ class PromptBasedAlignedADMComponent(ADMComponent):
                                      namespace='.',
                                      tags=['regression']))
 
-                negative_dialog.append(
-                    DialogElement(role='user',
-                                  content=prompt,
-                                  namespace='.',
-                                  tags=['regression']))
+            if len(negative_icl_dialog_elements) > 0:
+                negative_dialog.extend(negative_icl_dialog_elements)
+
+            negative_dialog.append(
+                DialogElement(role='user',
+                              content=prompt,
+                              namespace='.',
+                              tags=['regression']))
 
             negative_dialog_prompt = self.structured_inference_engine.dialog_to_prompt(
                 negative_dialog)
+
+            log.info("[bold]*NEGATIVE DIALOG PROMPT*[/bold]",
+                     extra={"markup": True})
+            log.info(negative_dialog_prompt)
 
         output_schema = call_with_coerced_args(
             self.output_schema_template,
             {'choices': choices})
 
-        log.info("[bold]*KDMA SCORE PREDICTION POSITIVE DIALOG PROMPT*[/bold]",
-                 extra={"markup": True})
-        log.info(positive_dialog_prompt)
-
         positive_responses = self.structured_inference_engine.run_inference(
             [positive_dialog_prompt] * self.num_positive_samples, output_schema)
         positive_choices = [r['action_choice'] for r in positive_responses]
+        for i, positive_response in enumerate(positive_responses):
+            log.info("[bold]*POSITIVE RESPONSE ({}, sample #{})*[/bold]".format(
+                     kdma, i), extra={"markup": True})
+            log.info(positive_response, extra={"highlighter": JSON_HIGHLIGHTER})
 
         if self.num_negative_samples > 0:
             negative_responses = self.structured_inference_engine.run_inference(
                 [negative_dialog_prompt] * self.num_negative_samples, output_schema)
             negative_choices = [r['action_choice'] for r in negative_responses]
+            for i, negative_response in enumerate(negative_responses):
+                log.info("[bold]*NEGATIVE RESPONSE ({}, sample #{})*[/bold]".format(
+                         kdma, i), extra={"markup": True})
+                log.info(negative_response, extra={"highlighter": JSON_HIGHLIGHTER})
+
         else:
             negative_choices = None
 
