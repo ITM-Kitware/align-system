@@ -8,7 +8,7 @@ defaults:
   - /attribute@mj: moral_judgment
   - /attribute@ib: ingroup_bias
   - /inference_engine@structured_inference_engine: outlines_structured_inference_engine
-  - /template/scenario_description@scenario_description_template: default
+  - /template/scenario_description@scenario_description_template: with_relevant_char_info
   - /template/prompt@relevance_prompt_template: relevance_classification
   - /template/output_schema@relevance_classification_schema: relevance_classification_choice
   - /template/prompt@prompt_template: comparative_regression
@@ -16,10 +16,13 @@ defaults:
   # ADM components to be used in "steps"
   - /adm_component/icl@step_definitions.relevance_icl: choice_relevance
   - /adm_component/relevance@step_definitions.relevance_classification: choice_classification
+  - /adm_component/misc@step_definitions.format_choices: itm_format_choices
   - /adm_component/icl@step_definitions.regression_icl: regression
   - /adm_component/regression@step_definitions.comparative_regression: comparative
-  - /adm_component/alignment@step_definitions.relevance_scalar_alignment: relevance_avg_dist_scalar
+  - /adm_component/alignment@step_definitions.scalar_alignment: relevance_avg_dist_scalar
+  - /adm_component/misc@step_definitions.justification_from_reasonings: justification_from_reasonings
   - /adm_component/misc@step_definitions.action_parameter_completion: action_parameter_completion
+  - /adm_component/misc@step_definitions.ensure_chosen_action: ensure_chosen_action
   # Use definitions in this file to override defaults defined above
   - _self_
 
@@ -61,9 +64,12 @@ instance:
 
   steps:
     # Reference the step instances we want to use in order
+    - ${ref:adm.step_definitions.format_choices}
     - ${ref:adm.step_definitions.relevance_icl}
     - ${ref:adm.step_definitions.relevance_classification}
     - ${ref:adm.step_definitions.regression_icl}
     - ${ref:adm.step_definitions.comparative_regression}
-    - ${ref:adm.step_definitions.relevance_scalar_alignment}
+    - ${ref:adm.step_definitions.scalar_alignment}
+    - ${ref:adm.step_definitions.justification_from_reasonings}
     - ${ref:adm.step_definitions.action_parameter_completion}
+    - ${ref:adm.step_definitions.ensure_chosen_action}
