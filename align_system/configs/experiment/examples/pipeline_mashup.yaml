@@ -1,0 +1,24 @@
+# @package _global_
+defaults:
+  - /adm_component/regression@adm.step_definitions.kaleido: kaleido
+  - /adm_component/misc@adm.step_definitions.rename_kaleido_relevance_variables: rename_variables
+  - /adm_component/alignment@adm.step_definitions.relevance_scalar_alignment: relevance_avg_dist_scalar
+  - override /adm: pipeline
+
+adm:
+  step_definitions:
+    rename_kaleido_relevance_variables:
+      remapping:
+        relevance_prediction_scores: attribute_relevance_binary
+
+  instance:
+    steps:
+      - ${ref:adm.step_definitions.format_choices}
+      - ${ref:adm.step_definitions.kaleido}
+      - ${ref:adm.step_definitions.rename_kaleido_relevance_variables}
+      - ${ref:adm.step_definitions.regression_icl}
+      - ${ref:adm.step_definitions.comparative_regression}
+      - ${ref:adm.step_definitions.relevance_scalar_alignment}
+      - ${ref:adm.step_definitions.justification_from_reasonings}
+      - ${ref:adm.step_definitions.action_parameter_completion}
+      - ${ref:adm.step_definitions.ensure_chosen_action}
