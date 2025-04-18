@@ -1,0 +1,45 @@
+name: pipeline_decision_history_icl_baseline
+
+defaults:
+  # Import defaults into this namspace (adm) as @name, for further
+  # customization
+
+  # Shared variables / components
+  - /attribute@mj: moral_judgment
+  - /inference_engine@structured_inference_engine: outlines_structured_inference_engine
+  - /template/scenario_description@scenario_description_template: default
+  - /template/prompt@prompt_template: default
+  # ADM components to be used in "steps"
+  - /adm_component/misc@step_definitions.format_choices: itm_format_choices
+  - /adm_component/icl@step_definitions.decision_history_icl: decision_history
+  - /adm_component/direct@step_definitions.outlines_baseline: outlines_baseline
+  - /adm_component/misc@step_definitions.action_parameter_completion: action_parameter_completion
+  - /adm_component/misc@step_definitions.ensure_chosen_action: ensure_chosen_action
+  # Use definitions in this file to override defaults defined above
+  - _self_
+
+attribute_definitions:
+  Moral judgement: ${adm.mj}
+
+step_definitions:
+  icl:
+  decision_history_icl:
+    scenario_description_template: ${ref:adm.scenario_description_template}
+    attributes: ${adm.attribute_definitions}
+    prompt_template: ${ref:adm.prompt_template}
+    icl_generator:
+      target_kdmas:
+        - ${adm.mj}
+      incontext_settings:
+        human_id: '20249202'
+
+instance:
+  _target_: align_system.algorithms.pipeline_adm.PipelineADM
+
+  steps:
+    # Reference the step instances we want to use in order
+    - ${ref:adm.step_definitions.format_choices}
+    - ${ref:adm.step_definitions.decision_history_icl}
+    - ${ref:adm.step_definitions.outlines_baseline}
+    - ${ref:adm.step_definitions.action_parameter_completion}
+    - ${ref:adm.step_definitions.ensure_chosen_action}

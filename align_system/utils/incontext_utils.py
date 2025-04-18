@@ -101,7 +101,12 @@ class IncontextExampleGenerator(object, metaclass=ABCMeta):
                             kdma_values.append(None)
                         else:
                             kdma_values.append(label[sys_kdma_name])
-                    example = {'state':state, 'actions': actions, 'choices':choices, 'kdma_values':kdma_values}
+                    example = {'state':state,
+                               'actions': actions,
+                               'choices':choices,
+                               'kdma_values':kdma_values,
+                               'scenario_id':icl_sample['input']['scenario_id'],
+                               'probe_id':icl_sample['input']['full_state']['meta_info']['scene_id']}
                     incontext_data[sys_kdma_name].append(example)
 
             # Normalize ground truth KDMA values
@@ -547,6 +552,80 @@ class ComparativeRegressionIncontextExampleGenerator(IncontextExampleGenerator):
         cot_reasoning += f"{choice} would score a {expected_value} for the the principle of {target_kdma['name']}."
 
         return cot_reasoning
+
+
+class DecisionHistoryBaselineIncontextExampleGenerator(IncontextExampleGenerator):
+    # Return dictionary of {scenario_id:{probe_id: {human_id: choice}, ...}, ...}
+    def _read_human_past_decisions(self):
+        human_decisions = {}
+        # For each kdma
+        for target_kdma in self.target_kdmas:
+            sys_kdma_name = target_kdma['kdma']
+            # Check if we have dataset files for the target KDMA
+            if sys_kdma_name not in self.incontext_settings["human_decision_datasets"]:
+                raise RuntimeError(f"No incontext human decision files are provided for targeted kdma: {sys_kdma_name}")
+            # Add examples for each dataset file
+            dset_files = self.incontext_settings["human_decision_datasets"][sys_kdma_name]
+            # If there is only one, make it a list for the following loop
+            if not isinstance(dset_files, list):
+                dset_files = [dset_files]
+
+            human_decisions[sys_kdma_name] = {}
+            # For each dataset file
+            for dset_f in dset_files:
+                with open(dset_f) as f:
+                    dset = json.load(f)
+                human_decisions[sys_kdma_name].update(dset)
+        return human_decisions
+    '''
+    For OutlinesTransformersADM in align_system.algorithms.outlines_adm
+    Given SCALAR targets - select the closest choice as correct
+    Provides a simple binary (either high or low) example reasoning statement
+    '''
+    def set_icl_datasets(self):
+        icl_datasets = {}
+        incontext_data = self._read_icl_dataset_files()
+        human_decisions = self._read_human_past_decisions()
+
+        # Add each target to icl_datasets
+        for target_kdma in self.target_kdmas:
+            sys_kdma_name = target_kdma['kdma']
+            icl_datasets[sys_kdma_name] = []
+            kdma_incontext_data = incontext_data[sys_kdma_name]
+
+            # Add each examples to icl_datasets
+            for example in kdma_incontext_data:
+
+                # Get scenario and prompt
+                icl_scenario_description = scenario_state_description_1(example['state'])
+                icl_prompt = action_selection_prompt(icl_scenario_description, example['choices'])
+                scenario_id = example['scenario_id']
+                probe_id = example['probe_id']
+                human_id = self.incontext_settings.human_id
+
+                # Get individuals choice
+                try:
+                    correct_choice = human_decisions[target_kdma['kdma']][scenario_id][probe_id][human_id]
+                # skip example if we don't have human_ids decision
+                except:
+                    continue
+                # Get example response
+                reasoning = f'{correct_choice} is the best action to take.' # TODO - think about this template
+                icl_response = {"detailed_reasoning": reasoning,
+                                "action_choice": correct_choice}
+                # Validate response against schema
+                correct_schema = json.loads(action_choice_json_schema(json.dumps(example['choices'])))
+                validate(instance=icl_response, schema=correct_schema)
+
+                # Add example
+                icl_datasets[sys_kdma_name].append({
+                    "state": example["state"],
+                    "scenario_description": icl_scenario_description,
+                    "prompt": icl_prompt,
+                    "response": icl_response
+                    })
+
+        self.icl_datasets = icl_datasets
 
 
 class RelevanceIncontextExampleGenerator(IncontextExampleGenerator):

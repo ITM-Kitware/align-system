@@ -33,7 +33,8 @@ class OutlinesBaselineADMComponent(ADMComponent):
 
     def run(self,
             scenario_state,
-            choices):
+            choices,
+            icl_dialog_elements=[]):
         scenario_description = call_with_coerced_args(
             self.scenario_description_template,
             {'scenario_state': scenario_state})
@@ -47,6 +48,12 @@ class OutlinesBaselineADMComponent(ADMComponent):
                                            content=system_prompt,
                                            namespace='.',
                                            tags=['regression']))
+
+        # If we get icl_dialog_elements, include them in the
+        # dialog, maybe a more explicit argument (wether or not to
+        # use icl) makes more sense?
+        if len(icl_dialog_elements) > 0:
+            dialog.extend(icl_dialog_elements)
 
         prompt = call_with_coerced_args(
             self.prompt_template,
