@@ -8,11 +8,11 @@ from rich.console import Console
 from rich.highlighter import JSONHighlighter
 from swagger_client.models import ActionTypeEnum
 import hydra
-from hydra.utils import instantiate
 from omegaconf import DictConfig, OmegaConf
 from timeit import default_timer as timer
 
 from align_system.utils import logging
+from align_system.utils.hydra_utils import initialize_with_custom_references
 
 log = logging.getLogger(__name__)
 JSON_HIGHLIGHTER = JSONHighlighter()
@@ -22,7 +22,7 @@ JSON_HIGHLIGHTER = JSONHighlighter()
             config_path="../configs",
             config_name="action_based")
 def main(cfg: DictConfig) -> None:
-    cfg = instantiate(cfg, recursive=True)
+    cfg = initialize_with_custom_references(cfg)
 
     interface = cfg.interface
     adm = cfg.adm.instance
@@ -320,6 +320,7 @@ def main(cfg: DictConfig) -> None:
                     current_state,
                     [deepcopy(a) for a in available_actions_filtered],
                     alignment_target if cfg.align_to_target else None,
+                    scenario_id=scenario.id(),
                     **cfg.adm.get('inference_kwargs', {}))
 
                 # Handle choose action result (for backwards compatibility if no choice_info)
@@ -347,6 +348,11 @@ def main(cfg: DictConfig) -> None:
                 if a.action_id == action_to_take.action_id:
                     action_choice_idx = i
                     break
+
+            # Ensure that 'actions' stored in 'choice_info' are serializable
+            for info in choice_info.values():
+                if 'action' in info:
+                    info['action'] = info['action'].to_dict()
 
             inputs_outputs.append({'input': {'scenario_id': scenario.id(),
                                              'alignment_target_id': alignment_target.id if cfg.align_to_target else None,

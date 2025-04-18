@@ -1,10 +1,9 @@
-defaults:
-  - outlines_regression_aligned_comparative
+_target_: align_system.algorithms.icl_adm_component.ICLADMComponent
 
-inference_kwargs:
-  generator_batch_size: 5
-  incontext:
-    number: 5
+icl_generator:
+  _target_: align_system.utils.incontext_utils.ComparativeRegressionIncontextExampleGenerator
+  incontext_settings:
+    number: 2
     method: prompt_bert_similarity
     leave_one_out_strategy: null
     normalization: null

@@ -1,0 +1,7 @@
+_target_: align_system.prompt_engineering.outlines_prompts.ComparativeKDMAScorePredictionSchema
+
+factor_lookup:
+  moral judgment: 100
+  ingroup bias: 100
+  quality of life: 10
+  perceived quantity of lives saved: 10

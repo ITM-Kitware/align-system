@@ -1,0 +1,16 @@
+# @package _global_
+defaults:
+  - override /adm: pipeline
+
+adm:
+  step_definitions:
+    comparative_regression:
+      num_samples: 5
+      system_prompt_template:
+        _target_: align_system.prompt_engineering.outlines_prompts.ComparativeKDMASystemPromptWithTemplate
+
+  instance:
+    steps:
+      - ${ref:adm.step_definitions.comparative_regression}
+      - ${ref:adm.step_definitions.scalar_alignment}
+      - ${ref:adm.step_definitions.action_parameter_completion}

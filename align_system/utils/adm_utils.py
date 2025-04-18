@@ -1,3 +1,6 @@
+import inspect
+from inspect import Parameter
+
 from swagger_client.models import (
     ActionTypeEnum
 )

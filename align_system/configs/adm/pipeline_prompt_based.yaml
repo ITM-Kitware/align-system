@@ -1,0 +1,44 @@
+name: pipeline_prompt_based
+
+defaults:
+  # Import defaults into this namspace (adm) as @name, for further
+  # customization
+
+  # Shared variables / components
+  - /attribute@mj: moral_judgment
+  - /inference_engine@structured_inference_engine: outlines_structured_inference_engine
+  - /template/scenario_description@scenario_description_template: default
+  - /template/prompt@prompt_template: default
+  # ADM components to be used in "steps"
+  - /adm_component/icl@step_definitions.icl: prompt_based
+  - /adm_component/misc@step_definitions.format_choices: itm_format_choices
+  - /adm_component/direct@step_definitions.prompt_based_aligned: prompt_based_aligned
+  - /adm_component/misc@step_definitions.action_parameter_completion: action_parameter_completion
+  - /adm_component/misc@step_definitions.ensure_chosen_action: ensure_chosen_action
+  # Use definitions in this file to override defaults defined above
+  - _self_
+
+attribute_definitions:
+  Moral judgement: ${adm.mj}
+
+step_definitions:
+  icl:
+    scenario_description_template: ${ref:adm.scenario_description_template}
+    attributes: ${adm.attribute_definitions}
+    prompt_template: ${ref:adm.prompt_template}
+
+  prompt_based_aligned:
+    scenario_description_template: ${ref:adm.scenario_description_template}
+    prompt_template: ${ref:adm.prompt_template}
+    num_negative_samples: 0
+
+instance:
+  _target_: align_system.algorithms.pipeline_adm.PipelineADM
+
+  steps:
+    # Reference the step instances we want to use in order
+    - ${ref:adm.step_definitions.format_choices}
+    - ${ref:adm.step_definitions.icl}
+    - ${ref:adm.step_definitions.prompt_based_aligned}
+    - ${ref:adm.step_definitions.action_parameter_completion}
+    - ${ref:adm.step_definitions.ensure_chosen_action}

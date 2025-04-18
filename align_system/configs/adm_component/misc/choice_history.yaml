@@ -1,0 +1,4 @@
+_target_: align_system.algorithms.choice_history_adm_component.ChoiceKDMAValueHistoryADMComponent
+
+historical_context_fn:
+  _target_: align_system.algorithms.choice_history_adm_component.ScenarioIDHistoricalContextFunc

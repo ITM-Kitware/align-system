@@ -1,0 +1,16 @@
+_target_: align_system.algorithms.prompt_based_aligned_adm_component.PromptBasedAlignedADMComponent
+
+structured_inference_engine: ${ref:adm.structured_inference_engine}
+
+scenario_description_template:
+  _target_: align_system.prompt_engineering.outlines_prompts.DefaultITMScenarioDescription
+prompt_template:
+  _target_: align_system.prompt_engineering.outlines_prompts.DefaultITMPrompt
+output_schema_template:
+  _target_: align_system.prompt_engineering.outlines_prompts.DefaultChoiceSelectionSchema
+
+system_prompt_template:
+  _target_: align_system.prompt_engineering.outlines_prompts.PromptBasedBinaryITMSystemPrompt
+
+num_positive_samples: 5
+num_negative_samples: 0
