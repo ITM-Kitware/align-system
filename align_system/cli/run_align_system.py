@@ -320,6 +320,7 @@ def main(cfg: DictConfig) -> None:
                     current_state,
                     [deepcopy(a) for a in available_actions_filtered],
                     alignment_target if cfg.align_to_target else None,
+                    scenario_id=scenario.id(),
                     **cfg.adm.get('inference_kwargs', {}))
 
                 # Handle choose action result (for backwards compatibility if no choice_info)

@@ -1,0 +1,25 @@
+# @package _global_
+defaults:
+  - /adm_component/misc@adm.step_definitions.choice_history: choice_history
+  - /adm_component/alignment@adm.step_definitions.cumulative_scalar_alignment: cumulative_avg_dist_scalar
+  - override /adm: pipeline
+
+adm:
+  step_definitions:
+    choice_history:
+      attributes: ${adm.attribute_definitions}
+
+  instance:
+    steps:
+      # Reference the step instances we want to use in order
+      - ${ref:adm.step_definitions.format_choices}
+      - ${ref:adm.step_definitions.regression_icl}
+      - ${ref:adm.step_definitions.comparative_regression}
+      # Retrieve choice_history for alignment
+      - ${ref:adm.step_definitions.choice_history}
+      - ${ref:adm.step_definitions.cumulative_scalar_alignment}
+      # Update choice_history
+      - ${ref:adm.step_definitions.choice_history}
+      - ${ref:adm.step_definitions.justification_from_reasonings}
+      - ${ref:adm.step_definitions.action_parameter_completion}
+      - ${ref:adm.step_definitions.ensure_chosen_action}
