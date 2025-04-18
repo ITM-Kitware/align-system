@@ -13,11 +13,14 @@ class PipelineADM(ActionBasedADM):
     def choose_action(self,
                       scenario_state,
                       available_actions,
-                      alignment_target=None):
+                      alignment_target=None,
+                      **kwargs):
 
         working_output = {'scenario_state': scenario_state,
                           'actions': available_actions,
-                          'alignment_target': alignment_target}
+                          'alignment_target': alignment_target,
+                          **kwargs}
+
         for step in self.steps:
             step_returns = step.run_returns()
 
