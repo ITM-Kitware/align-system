@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from typing import Union, Tuple, Dict, Any, Iterable
+from typing import Union, Any, Iterable
 from swagger_client.models import State, Action, AlignmentTarget
 
 
@@ -10,18 +10,18 @@ class ActionBasedADM(ABC):
                       scenario_state: State,
                       available_actions: list[Action],
                       alignment_target: Union[type[AlignmentTarget], None],
-                      **kwargs) -> Union[Action, Tuple[Action, Dict]]:
+                      **kwargs) -> Union[Action, tuple[Action, dict]]:
         pass
 
 
 class StructuredInferenceEngine(ABC):
     @abstractmethod
-    def dialog_to_prompt(dialog: list[Dict]) -> str:
+    def dialog_to_prompt(dialog: list[dict]) -> str:
         pass
 
     @abstractmethod
     def run_inference(prompts: Union[str, list[str]],
-                      schema: str) -> Union[Dict, list[Dict]]:
+                      schema: str) -> Union[dict, list[dict]]:
         pass
 
 
