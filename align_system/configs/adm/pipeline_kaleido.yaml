@@ -6,6 +6,9 @@ defaults:
 
   # Shared variables / components
   - /attribute@mj: moral_judgment
+  - /attribute@ib: ingroup_bias
+  - /attribute@qol: qol
+  - /attribute@vol: vol
   - /inference_engine@structured_inference_engine: outlines_structured_inference_engine
   - /template/scenario_description@scenario_description_template: default
   # ADM components to be used in "steps"
@@ -20,6 +23,9 @@ defaults:
 
 attribute_definitions:
   Moral judgement: ${adm.mj}
+  Ingroup Bias: ${adm.ib}
+  QualityOfLife: ${adm.qol}
+  PerceivedQuantityOfLivesSaved: ${adm.vol}
 
 instance:
   _target_: align_system.algorithms.pipeline_adm.PipelineADM
