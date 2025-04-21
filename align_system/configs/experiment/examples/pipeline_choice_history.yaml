@@ -2,7 +2,7 @@
 defaults:
   - /adm_component/misc@adm.step_definitions.choice_history: choice_history
   - /adm_component/alignment@adm.step_definitions.cumulative_scalar_alignment: cumulative_avg_dist_scalar
-  - override /adm: pipeline
+  - override /adm: pipeline_comparative_regression
 
 adm:
   step_definitions:
