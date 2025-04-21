@@ -3,7 +3,7 @@ defaults:
   - /adm_component/regression@adm.step_definitions.kaleido: kaleido
   - /adm_component/misc@adm.step_definitions.rename_kaleido_relevance_variables: rename_variables
   - /adm_component/alignment@adm.step_definitions.relevance_scalar_alignment: relevance_avg_dist_scalar
-  - override /adm: pipeline
+  - override /adm: pipeline_comparative_regression
 
 adm:
   step_definitions:
