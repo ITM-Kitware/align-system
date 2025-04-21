@@ -45,7 +45,6 @@ class OutlinesBaselineADMComponent(ADMComponent):
 
             dialog.insert(0, DialogElement(role='system',
                                            content=system_prompt,
-                                           namespace='.',
                                            tags=['regression']))
 
         prompt = call_with_coerced_args(
@@ -56,7 +55,6 @@ class OutlinesBaselineADMComponent(ADMComponent):
 
         dialog.append(DialogElement(role='user',
                                     content=prompt,
-                                    namespace='.',
                                     tags=['regression']))
 
         output_schema = call_with_coerced_args(
