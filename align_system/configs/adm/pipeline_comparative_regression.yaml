@@ -1,4 +1,4 @@
-name: pipeline
+name: pipeline_comparative_regression
 
 defaults:
   # Import defaults into this namspace (adm) as @name, for further
@@ -6,6 +6,9 @@ defaults:
 
   # Shared variables / components
   - /attribute@mj: moral_judgment
+  - /attribute@ib: ingroup_bias
+  - /attribute@qol: qol
+  - /attribute@vol: vol
   - /inference_engine@structured_inference_engine: outlines_structured_inference_engine
   - /template/scenario_description@scenario_description_template: with_relevant_char_info
   - /template/prompt@prompt_template: comparative_regression
@@ -23,6 +26,9 @@ defaults:
 
 attribute_definitions:
   Moral judgement: ${adm.mj}
+  Ingroup Bias: ${adm.ib}
+  QualityOfLife: ${adm.qol}
+  PerceivedQuantityOfLivesSaved: ${adm.vol}
 
 step_definitions:
   regression_icl:
