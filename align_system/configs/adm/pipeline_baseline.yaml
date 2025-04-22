@@ -11,6 +11,7 @@ defaults:
   - /adm_component/direct@step_definitions.outlines_baseline: outlines_baseline
   - /adm_component/misc@step_definitions.action_parameter_completion: action_parameter_completion
   - /adm_component/misc@step_definitions.ensure_chosen_action: ensure_chosen_action
+  - /adm_component/misc@step_definitions.populate_choice_info: populate_choice_info
   # Use definitions in this file to override defaults defined above
   - _self_
 
@@ -23,3 +24,4 @@ instance:
     - ${ref:adm.step_definitions.outlines_baseline}
     - ${ref:adm.step_definitions.action_parameter_completion}
     - ${ref:adm.step_definitions.ensure_chosen_action}
+    - ${ref:adm.step_definitions.populate_choice_info}
