@@ -44,4 +44,4 @@ class PipelineADM(ActionBasedADM):
             else:
                 raise TypeError("Don't know how to deal with step returns")
 
-        return working_output['chosen_action']
+        return working_output['chosen_action'], working_output

@@ -15,10 +15,14 @@ class ICLADMComponent(ADMComponent):
                  icl_generator,
                  scenario_description_template,
                  prompt_template,
-                 attributes={}):
+                 attributes=None):
         self.icl_generator = icl_generator
         self.scenario_description_template = scenario_description_template
+
+        if attributes is None:
+            attributes = {}
         self.attributes = attributes
+
         self.prompt_template = prompt_template
 
     def run_returns(self):
@@ -63,11 +67,9 @@ class ICLADMComponent(ADMComponent):
             for icl_sample in selected_icl_examples:
                 icl_dialog_elements.append(DialogElement(role='user',
                                                          content=icl_sample['prompt'],
-                                                         namespace='.icl',
                                                          tags=['icl']))
                 icl_dialog_elements.append(DialogElement(role='assistant',
                                                          content=str(icl_sample['response']),
-                                                         namespace='.icl',
                                                          tags=['icl']))
 
         return icl_dialog_elements
@@ -111,10 +113,14 @@ class PromptBasedICLADMComponent(ADMComponent):
                  icl_generator_partial,
                  scenario_description_template,
                  prompt_template,
-                 attributes={}):
+                 attributes=None):
         self.icl_generator_partial = icl_generator_partial
         self.scenario_description_template = scenario_description_template
+
+        if attributes is None:
+            attributes = {}
         self.attributes = attributes
+
         self.prompt_template = prompt_template
 
     def run_returns(self):
@@ -180,12 +186,10 @@ class PromptBasedICLADMComponent(ADMComponent):
             pos_icl_dialog_elements.append(
                 DialogElement(role='user',
                               content=pos_icl_sample['prompt'],
-                              namespace='.icl',
                               tags=['icl']))
             pos_icl_dialog_elements.append(
                 DialogElement(role='assistant',
                               content=str(pos_icl_sample['response']),
-                              namespace='.icl',
                               tags=['icl']))
 
         neg_selected_icl_examples = neg_icl_gen.select_icl_examples(
@@ -199,12 +203,10 @@ class PromptBasedICLADMComponent(ADMComponent):
             neg_icl_dialog_elements.append(
                 DialogElement(role='user',
                               content=neg_icl_sample['prompt'],
-                              namespace='.icl',
                               tags=['icl']))
             neg_icl_dialog_elements.append(
                 DialogElement(role='assistant',
                               content=str(neg_icl_sample['response']),
-                              namespace='.icl',
                               tags=['icl']))
 
         return pos_icl_dialog_elements, neg_icl_dialog_elements

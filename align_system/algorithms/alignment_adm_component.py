@@ -6,8 +6,11 @@ from align_system.utils.alignment_utils import alignment_target_to_attribute_tar
 class AlignmentADMComponent(ADMComponent):
     def __init__(self,
                  alignment_function,
-                 attributes={}):
+                 attributes=None):
         self.alignment_function = alignment_function
+
+        if attributes is None:
+            attributes = {}
         self.attributes = attributes
 
     def run_returns(self):

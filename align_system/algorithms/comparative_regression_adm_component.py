@@ -15,7 +15,7 @@ class ComparativeRegressionADMComponent(ADMComponent):
                  scenario_description_template,
                  prompt_template,
                  score_schema_template,
-                 attributes={},
+                 attributes=None,
                  system_prompt_template=None,
                  num_samples=1,
                  enum_scores=False):
@@ -24,6 +24,8 @@ class ComparativeRegressionADMComponent(ADMComponent):
         self.prompt_template = prompt_template
         self.score_schema_template = score_schema_template
 
+        if attributes is None:
+            attributes = {}
         self.attributes = attributes
 
         self.system_prompt_template = system_prompt_template
@@ -67,7 +69,6 @@ class ComparativeRegressionADMComponent(ADMComponent):
 
                 dialog.insert(0, DialogElement(role='system',
                                                content=system_prompt,
-                                               namespace='.',
                                                tags=['regression']))
 
             # If we get icl_dialog_elements, include them in the
@@ -86,7 +87,6 @@ class ComparativeRegressionADMComponent(ADMComponent):
 
             dialog.append(DialogElement(role='user',
                                         content=predict_kdma_prompt,
-                                        namespace='.',
                                         tags=['regression']))
 
             score_schema = call_with_coerced_args(

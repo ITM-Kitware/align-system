@@ -7,7 +7,6 @@ class DialogElement(BaseModel):
     role: str
     content: str
 
-    namespace: str
     tags: List[str]
 
 
