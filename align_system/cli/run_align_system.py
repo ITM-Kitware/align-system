@@ -325,7 +325,10 @@ def main(cfg: DictConfig) -> None:
 
                 # Handle choose action result (for backwards compatibility if no choice_info)
                 if isinstance(choose_action_result, tuple):
-                    action_to_take, choice_info  = choose_action_result
+                    action_to_take, choice_info = choose_action_result
+                    if 'choice_info' in choice_info:
+                        # Handle pipeline_adm
+                        choice_info = choice_info['choice_info']
                 else:
                     action_to_take = choose_action_result
                     choice_info = {}
