@@ -26,3 +26,4 @@ adm:
       - ${ref:adm.step_definitions.justification_from_reasonings}
       - ${ref:adm.step_definitions.action_parameter_completion}
       - ${ref:adm.step_definitions.ensure_chosen_action}
+      - ${ref:adm.step_definitions.populate_choice_info}

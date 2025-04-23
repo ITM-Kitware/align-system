@@ -1,13 +1,9 @@
 # @package _global_
 defaults:
   - override /adm: pipeline_comparative_regression
+  - override /inference_engine@adm.structured_inference_engine: outlines_structured_multinomial
 
 adm:
-  structured_inference_engine:
-    sampler:
-      _target_: outlines.samplers.MultinomialSampler
-      temperature: 0.7
-
   step_definitions:
     comparative_regression:
       num_samples: 5
@@ -22,3 +18,4 @@ adm:
       - ${ref:adm.step_definitions.justification_from_reasonings}
       - ${ref:adm.step_definitions.action_parameter_completion}
       - ${ref:adm.step_definitions.ensure_chosen_action}
+      - ${ref:adm.step_definitions.populate_choice_info}
