@@ -9,7 +9,7 @@ defaults:
   - /attribute@ib: ingroup_bias
   - /attribute@qol: qol
   - /attribute@vol: vol
-  - /inference_engine@structured_inference_engine: outlines_structured_inference_engine
+  - /inference_engine@structured_inference_engine: outlines_structured_greedy
   - /template/scenario_description@scenario_description_template: with_relevant_char_info
   - /template/prompt@prompt_template: comparative_regression
   - /template/output_schema@comparative_regression_choice_schema: comparative_regression_choice

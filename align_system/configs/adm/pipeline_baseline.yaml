@@ -5,7 +5,7 @@ defaults:
   # customization
 
   # Shared variables / components
-  - /inference_engine@structured_inference_engine: outlines_structured_inference_engine
+  - /inference_engine@structured_inference_engine: outlines_structured_multinomial
   # ADM components to be used in "steps"
   - /adm_component/misc@step_definitions.format_choices: itm_format_choices
   - /adm_component/direct@step_definitions.outlines_baseline: outlines_baseline
@@ -14,11 +14,6 @@ defaults:
   - /adm_component/misc@step_definitions.populate_choice_info: populate_choice_info
   # Use definitions in this file to override defaults defined above
   - _self_
-
-structured_inference_engine:
-  sampler:
-    _target_: outlines.samplers.MultinomialSampler
-    temperature: 0.7
 
 instance:
   _target_: align_system.algorithms.pipeline_adm.PipelineADM
