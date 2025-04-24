@@ -3,7 +3,7 @@ _target_: align_system.algorithms.icl_adm_component.ICLADMComponent
 icl_generator:
   _target_: align_system.utils.incontext_utils.ComparativeRegressionIncontextExampleGenerator
   incontext_settings:
-    number: 2
+    number: 5
     method: prompt_bert_similarity
     leave_one_out_strategy: null
     normalization: null
