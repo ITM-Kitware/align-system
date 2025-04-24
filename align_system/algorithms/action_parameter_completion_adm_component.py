@@ -289,8 +289,8 @@ class ActionParameterCompletionADMComponent(ADMComponent):
                      extra={"markup": True})
             log.info(dialog_text)
 
-            selected_treatment = self.structured_inference_engine(
-                [dialog_text],
+            selected_treatment = self.structured_inference_engine.run_inference(
+                dialog_text,
                 treatment_choice_json_schema(
                     json.dumps([s.type for s in available_supplies]),
                     json.dumps(valid_treatment_locations)))

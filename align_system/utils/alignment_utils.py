@@ -566,7 +566,14 @@ def attributes_in_alignment_target(alignment_target):
     else:
         target_kdmas = alignment_target.kdma_values
 
-    return [dict(t)['kdma'] for t in target_kdmas]
+    out_attributes = []
+    for t in target_kdmas:
+        if hasattr(t, "to_dict"):
+            t = t.to_dict()
+
+        out_attributes.append(t['kdma'])
+
+    return out_attributes
 
 
 def alignment_target_to_attribute_targets(alignment_target,
@@ -578,9 +585,12 @@ def alignment_target_to_attribute_targets(alignment_target,
 
     output_attribute_targets = []
     for t in target_kdmas:
-        attribute = attribute_definitions[dict(t)['kdma']]
+        if hasattr(t, "to_dict"):
+            t = t.to_dict()
+
+        attribute = attribute_definitions[t['kdma']]
 
         output_attribute_targets.append(
-            AttributeTarget(**dict(attribute), value=dict(t)['value']))
+            AttributeTarget(**dict(attribute), value=t['value']))
 
     return output_attribute_targets
