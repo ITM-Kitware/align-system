@@ -36,9 +36,6 @@ step_definitions:
     scenario_description_template: ${ref:adm.scenario_description_template}
     attributes: ${adm.attribute_definitions}
     prompt_template: ${ref:adm.prompt_template}
-    icl_generator:
-      target_kdmas:
-        - ${adm.mj}
 
   comparative_regression:
     scenario_description_template: ${ref:adm.scenario_description_template}
