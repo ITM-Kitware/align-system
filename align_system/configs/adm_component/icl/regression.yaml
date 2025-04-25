@@ -1,7 +1,11 @@
 _target_: align_system.algorithms.icl_adm_component.ICLADMComponent
 
-icl_generator:
+icl_generator_partial:
   _target_: align_system.utils.incontext_utils.ComparativeRegressionIncontextExampleGenerator
+  # Partially initialize so we can finish initialization with multiple
+  # alignment targets
+  _partial_: true
+
   incontext_settings:
     number: 5
     method: prompt_bert_similarity

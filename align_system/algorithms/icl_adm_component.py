@@ -10,13 +10,35 @@ from align_system.data_models.dialog import DialogElement
 log = logging.getLogger(__name__)
 
 
+# ICL Engines dependent on alignment target, but that could change
+# between `run` calls, don't want to reinitialize every time if we
+# don't have to
+@lru_cache
+def init_icl_engine_from_target(icl_generator_partial,
+                                attributes,
+                                kdma_values):
+    log.debug("Initializing ICL generator for target")
+    if len(kdma_values) != 1:
+        raise RuntimeError("This ADM assumes a single KDMA target, aborting!")
+
+    kdma, value = kdma_values[0]
+
+    target = [{'kdma': kdma,
+               'name': attributes[kdma].name,
+               'value': value,
+               'factor': attributes[kdma].factor,
+               'relevant_structured_character_info': attributes[kdma].relevant_structured_character_info}]
+
+    return icl_generator_partial(target_kdmas=target)
+
+
 class ICLADMComponent(ADMComponent):
     def __init__(self,
-                 icl_generator,
+                 icl_generator_partial,
                  scenario_description_template,
                  prompt_template,
                  attributes=None):
-        self.icl_generator = icl_generator
+        self.icl_generator_partial = icl_generator_partial
         self.scenario_description_template = scenario_description_template
 
         if attributes is None:
@@ -40,8 +62,29 @@ class ICLADMComponent(ADMComponent):
 
         target_attributes = [self.attributes[n] for n in target_attribute_names]
 
+        if isinstance(alignment_target, AlignmentTarget):
+            alignment_target_dict = alignment_target.to_dict()
+        else:
+            alignment_target_dict = alignment_target
+
         icl_dialog_elements = []
         for attribute in target_attributes:
+            # Convert alignment target into kdma values (all that's needed
+            # for building the icl engines, and need something that's
+            # hashable for caching, dicts aren't hashable)
+            for target_kdma_value in alignment_target_dict['kdma_values']:
+                if attribute.kdma == target_kdma_value['kdma']:
+                    # tuple of tuples; when initializing the icl
+                    # engine the lru_cache decorator doesn't allow
+                    # mutable arguments such as lists, need to use
+                    # tuple
+                    kdma_values = ((attribute.kdma, target_kdma_value['value']),)
+
+            icl_gen = init_icl_engine_from_target(
+                self.icl_generator_partial,
+                self.attributes,
+                kdma_values)
+
             scenario_description = call_with_coerced_args(
                 self.scenario_description_template,
                 {'scenario_state': scenario_state,
@@ -57,7 +100,7 @@ class ICLADMComponent(ADMComponent):
                  'choice_outcomes': {c: None for c in choices},
                  'attribute': attribute.name})
 
-            selected_icl_examples = self.icl_generator.select_icl_examples(
+            selected_icl_examples = icl_gen.select_icl_examples(
                 sys_kdma_name=attribute.kdma,
                 scenario_description_to_match=scenario_description,
                 prompt_to_match=prompt_to_match,
