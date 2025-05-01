@@ -189,6 +189,92 @@ class CumulativeAvgDistScalarAlignment(AlignmentFunction):
             best_sample_index, _ = self._select_min_dist_choice(sample_indices, sample_distances, misaligned)
         return best_sample_index
 
+
+class ExpectedValueScalarAlignment(AlignmentFunction):
+    def __call__(self, kdma_values, target_kdmas, misaligned=False, probabilistic=False):
+        '''
+        Selects a choice by first averaging score across samples,
+        then selecting based on the following strategy:
+
+        If t (target) <= A, choose A
+        If A < t < B, choose probabilistically based on distance
+        If t >= B, choose B
+        '''
+        if len(target_kdmas) > 1:
+            raise ValueException("ExpectedValueScalarAlignment only works with one KDMA")
+
+        kdma_values = _handle_single_value(kdma_values, target_kdmas)
+        _check_if_targets_are_scalar(target_kdmas)
+
+        # Get distance from average of predicted scores to targets
+        target_kdma = target_kdmas[0]
+        if isinstance(target_kdma, KDMAValue):
+                target_kdma = target_kdma.to_dict()
+        kdma = target_kdma['kdma']
+
+        distances = []
+        choices = list(kdma_values.keys())
+        candidate_choices = [None, None]
+        for choice in choices:
+            distance = 0.
+
+            samples = kdma_values[choice][kdma]
+            average_score = (sum(samples) / len(samples))
+            distance += _euclidean_distance(target_kdma['value'], average_score)
+            distances.append(distance)
+
+            # Does not consider ties
+            if average_score <= target_kdma['value']:
+                if candidate_choices[0] is None or candidate_choices[0]["value"] < average_score:
+                    candidate_choices[0] = {
+                        "choice": choice,
+                        "value": average_score,
+                        "distance": distance,
+                    }
+            elif average_score > target_kdma['value']:  # Don't need to include equal in 2 spots
+                if candidate_choices[1] is None or candidate_choices[1]["value"] > average_score:
+                    candidate_choices[1] = {
+                        "choice": choice,
+                        "value": average_score,
+                        "distance": distance,
+                    }
+
+        candidate_choices = [candidate for candidate in candidate_choices if candidate is not None]
+        if len(candidate_choices) == 1:
+            return candidate_choices[0]["choice"], {candidate_choices[0]["choice"]: 1.0}
+        else:
+            if len(candidate_choices) == 0:
+                log.info(choices)
+                log.info(distances)
+                log.info(candidate_choices)
+            selected_choice, probs = self._select_min_dist_choice(
+                [candidate["choice"] for candidate in candidate_choices],
+                [candidate["distance"] for candidate in candidate_choices],
+                misaligned,
+                probabilistic=probabilistic
+            )
+            return selected_choice, probs
+
+    def get_best_sample_index(self, kdma_values, target_kdmas, selected_choice, misaligned=False):
+        sample_distances = []
+        sample_indices = range(len(kdma_values[selected_choice][target_kdmas[0]['kdma']]))
+        if len(sample_indices) == 1:
+            best_sample_index = 0
+        else:
+            # For the selected choice, find the sample closest to the target
+            for sample_idx in sample_indices:
+                sample_dist = 0
+                for target_kdma in target_kdmas:
+                    if isinstance(target_kdma, KDMAValue):
+                        target_kdma = target_kdma.to_dict()
+
+                    sample = kdma_values[selected_choice][target_kdma['kdma']][sample_idx]
+                    sample_dist += _euclidean_distance(target_kdma['value'], sample)
+                sample_distances.append(sample_dist)
+            best_sample_index, _ = self._select_min_dist_choice(sample_indices, sample_distances, misaligned)
+        return best_sample_index
+
+
 class MinDistToRandomSampleKdeAlignment(AlignmentFunction):
     def __call__(self, kdma_values, target_kdmas, misaligned=False, kde_norm='globalnorm', probabilistic=False):
         '''

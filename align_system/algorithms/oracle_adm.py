@@ -62,6 +62,11 @@ class OracleADM(ActionBasedADM):
                 selected_choice_id, probs = alignment_function(
                     gt_kdma_values, target_kdmas, self.choice_history, misaligned=self.misaligned, kde_norm=kde_norm, probabilistic=self.probabilistic
                 )
+            elif distribution_matching == 'exp_value':
+                alignment_function = alignment_utils.ExpectedValueScalarAlignment()
+                selected_choice_id, probs = alignment_function(
+                    gt_kdma_values, target_kdmas, misaligned=self.misaligned, probabilistic=self.probabilistic
+                )
             else:
                 raise RuntimeError(distribution_matching, "distribution matching function unrecognized for scalar targets.")
 
@@ -102,7 +107,7 @@ class OracleADM(ActionBasedADM):
 
         # Log scoring results
         results = pd.DataFrame([
-            (action.unstructured, probs[action.action_id])
+            (action.unstructured, probs[action.action_id] if action.action_id in probs else None)
             for action in actions_with_kdma_values
         ], columns=["choice", "probability"])
         results = results.sort_values(by=["probability"], ascending=False)
