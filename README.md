@@ -137,13 +137,13 @@ run_align_system +experiment=phase1_evaluation/baseline_eval_live
 ### Aligned ADM Adept (Comparative Regression + ICL + Template ADM) (ADEPT eval scenarios)
 
 ```
-run_align_system +experiment=dry_run_evaluation/aligned_adm_adept_eval
+run_align_system +experiment=phase1_evaluation/aligned_adm_adept_eval
 ```
 
 ### Aligned ADM SoarTech (Comparative Regression + ICL + Template ADM) (SoarTech eval scenarios)
 
 ```
-run_align_system +experiment=dry_run_evaluation/aligned_adm_soartech_eval
+run_align_system +experiment=phase1_evaluation/aligned_adm_soartech_eval
 ```
 
 
@@ -200,6 +200,15 @@ the `align_system` module, as long as it's importable.
 To use your new ADM on the command line, do `run_align_system
 adm=my_new_adm` (assuming you named your new ADM config file
 `my_new_adm.yaml`).
+
+### Pipeline ADMs
+
+We have factored out some re-usable ADM components that can be run
+step-by-step to act as a complete ADM.  We highly encourage using the
+Pipeline ADM framework if you're integrating a new algorithm, and we
+intend to migrate older but still relevant ADMs to Pipeline ADMs.
+Please see this dedicated document for Pipeline ADMs
+[here](docs/pipeline_adms.md).
 
 ## System Requirements by Algorithm / Model
 
