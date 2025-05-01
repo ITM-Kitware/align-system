@@ -1,14 +1,14 @@
 # Pipeline ADMs
 
 Decomposing your ADM into a series of steps (or perhaps even a single
-step) typically will allow you to only focus on the important
+step) typically will allow you to focus only on the important
 algorithmic code, as we already have several Pipeline ADM steps that
 you can re-use to handle much of the data wrangling that may be
 necessary.  In this document we'll cover what constitutes a pipeline
 ADM, how to create pipeline ADM components (steps), and how to
 configure and run them as an ADM.
 
-** Note ** This document assumes you're generally familiar with the
+**NOTE** - This document assumes you're generally familiar with the
    system, and how we're using Hydra
 
 ## Anatomy of a Pipeline ADM
@@ -69,10 +69,10 @@ class RandomChoiceADMComponent(ADMComponent):
 Since there's nothing to initialize for this class, the configuration
 file just refers to the object to initialize (via `_target_`).
 
-In the `RandomChoiceADMComponent`, and with all `ADMComponent`s there
-should be at least two methods: `run` which should include the
-business logic of the component, and `run_returns` to indicate what to
-call the values returned from `run`.
+In the `RandomChoiceADMComponent`, and with all `ADMComponent`
+implementations there should be at least two methods: `run` which
+should include the business logic of the component, and `run_returns`
+to indicate what to call the values returned from `run`.
 
 The `PipelineADM` class is responsible for running each of the
 components under `steps` in serial, and maintaining the working state
@@ -92,10 +92,11 @@ def run(self, chosen_choice, justification):
     ...
 ```
 
-This approach attempts to balance component interoperability, and
+This design attempts to balance component interoperability, and
 flexibility.  However this does put some onus on algorithm developers
 to pay attention to how outputs and inputs are named, and making sure
-these names are consistent across groups of components.
+these names are consistent across groups of components that are
+intended to interact.
 
 Since the `PipelineADM` is still an `ActionBasedADM`, and is invoked
 as such by the `run_align_system` script, it has a `choose_action`
@@ -124,7 +125,7 @@ chosen action.
 ## Adding a Pipeline ADM component
 
 Again referring to the `RandomChoiceADMComponent` as an illustrative
-example, an ADM Component is only required to have `run`, and
+example, an ADM component is only required to have `run`, and
 `run_returns` methods.  Beyond that, you'll want to create a default
 config for your ADM component,
 e.g. `configs/adm_component/direct/random_choice.yaml`.  As a
@@ -132,7 +133,7 @@ convention, new ADM components should be put in the
 `align_system/algorithms` directory, and should have a filename suffix
 of `_adm_component` (e.g. `random_adm_component.py`)
 
-## Configuring 
+## Configuring your Pipeline ADM
 
 You'll either want to create a new ADM configuration (can follow the
 `pipeline_random` config (`configs/adm/pipeline_random.yaml`)), or
@@ -185,6 +186,18 @@ run (not just the steps that are new or modified).  We suggest using
 the ADM config that you're building off of as a reference, to make
 sure you don't miss any steps.
 
+## Running your new Pipeline ADM
+
+Pipeline ADMs are given the same treatment as regular ADMs from the
+top-level `run_align_system` command.  This means that just setting or
+overriding the `adm` field of an existing config or experiment to
+point at a pipeline ADM is all it takes.  To run our random pipeline
+ADM against a local test file:
+
+```Bash
+run_align_system adm=pipeline_random
+```
+
 ## Existing utility ADM components
 
 These are some ADM components that you may want to re-use for your
@@ -192,17 +205,17 @@ pipeline ADM as they handle some of the data wrangling, or are
 generally useful.  Some of these are specific to the ITM project,
 others are more generic.
 
-- RenameVariablesADMComponent -- Used to rename keys in the working state
-- EnsureChosenActionADMComponent -- Ensures that we have a
+- **RenameVariablesADMComponent** - Used to rename keys in the working state
+- **EnsureChosenActionADMComponent** - Ensures that we have a
   `chosen_action` output with a `justification` if available
-- ITMFormatChoicesADMComponent -- Populates the list of `choices` for
+- **ITMFormatChoicesADMComponent** - Populates the list of `choices` for
   ADMs from the properties of the available actions (ITM Specific)
-- PopulateChoiceInfo -- Collates some specific working state fields
+- **PopulateChoiceInfo** - Collates some specific working state fields
   for writing out to the "input-output" file format
-- ActionParameterCompletionADMComponent -- An ITM specific component
+- **ActionParameterCompletionADMComponent** - An ITM specific component
   for ensuring that the chosen action has valid `parameters` based on
   the type of action
-- AlignmentADMComponent -- If your ADM is regressing KDMA values, this
+- **AlignmentADMComponent** - If your ADM is regressing KDMA values, this
   component can be used to select a choice based on those estimated
   KDMA values with respect to an alignment target, and supports
   several alignment functions

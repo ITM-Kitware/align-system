@@ -149,12 +149,20 @@ run_align_system +experiment=phase1_evaluation/aligned_adm_soartech_eval
 
 ## Implementing a new ADM
 
+**Pipeline ADMs:** We have factored out some re-usable ADM components
+that can be run step-by-step to act as a complete ADM.  We highly
+encourage using the Pipeline ADM framework if you're integrating a new
+algorithm, and we intend to migrate older but still relevant ADMs to
+Pipeline ADMs.  Please see this dedicated document for Pipeline ADMs
+[here](docs/pipeline_adms.md).  The remainder of this section covers
+implementing a non-pipeline ADM.
+
 To implement a new ADM, at a minimum you need to implement a class
 with a `choose_action` method that takes the following arguments:
-- `scenario_state` -- Current state of the scenario, model is defined [here](https://github.com/NextCenturyCorporation/itm-evaluation-server/blob/development/swagger_server/models/state.py)
-- `available_actions` -- List of actions the ADM can choose to take, model is defined [here](https://github.com/NextCenturyCorporation/itm-evaluation-server/blob/development/swagger_server/models/action.py)
-- `alignment_target` -- Alignment target (or `None` if not aligning), model is defined [here](https://github.com/NextCenturyCorporation/itm-evaluation-server/blob/development/swagger_server/models/alignment_target.py)
-- `**kwargs` -- A catch all for any additional arguments you want your ADM to receive at inference time
+- `scenario_state` - Current state of the scenario, model is defined [here](https://github.com/NextCenturyCorporation/itm-evaluation-server/blob/development/swagger_server/models/state.py)
+- `available_actions` - List of actions the ADM can choose to take, model is defined [here](https://github.com/NextCenturyCorporation/itm-evaluation-server/blob/development/swagger_server/models/action.py)
+- `alignment_target` - Alignment target (or `None` if not aligning), model is defined [here](https://github.com/NextCenturyCorporation/itm-evaluation-server/blob/development/swagger_server/models/alignment_target.py)
+- `**kwargs` - A catch all for any additional arguments you want your ADM to receive at inference time
 
 And this `choose_action` method should return one of the
 `available_actions`, which may require filling in additional
@@ -200,15 +208,6 @@ the `align_system` module, as long as it's importable.
 To use your new ADM on the command line, do `run_align_system
 adm=my_new_adm` (assuming you named your new ADM config file
 `my_new_adm.yaml`).
-
-### Pipeline ADMs
-
-We have factored out some re-usable ADM components that can be run
-step-by-step to act as a complete ADM.  We highly encourage using the
-Pipeline ADM framework if you're integrating a new algorithm, and we
-intend to migrate older but still relevant ADMs to Pipeline ADMs.
-Please see this dedicated document for Pipeline ADMs
-[here](docs/pipeline_adms.md).
 
 ## System Requirements by Algorithm / Model
 
