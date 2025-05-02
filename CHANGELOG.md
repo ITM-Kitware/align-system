@@ -3,14 +3,20 @@
 This changelog follows the specifications detailed in: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html), although we have not yet reached a `1.0.0` release.
 
-## Unreleased
+## 0.5.8
 
 ### Fixed
 
 * Fixed non-determinism issues with outlines_adm baseline with shuffle_choices arg and outlines seed
+* Fixed configs referenced in top-level README for Phase 1 Evaluation runs
 
 ### Added
 
+* Added PipelineADM and many pipeline ADM components, configs, and integration tests
+* Added new data models for Attributes and Dialogs
+* Added `call_with_coerced_args` utility function to handle calling functions with different input requirements
+* Added documentation for new pipeline ADM developement
+* Added a specialized Hydra instantiation function to support shared objects
 * Added shuffle_choices inference_kwarg argument for outlines_adm baseline
 * Added option to set outlines RNG seed for outlines_adm
 
