@@ -15,7 +15,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 * Added PipelineADM and many pipeline ADM components, configs, and integration tests
 * Added new data models for Attributes and Dialogs
 * Added `call_with_coerced_args` utility function to handle calling functions with different input requirements
-* Added documentation for new pipeline ADM developement
+* Added documentation for new pipeline ADM developement: [Pipeline ADMs](docs/pipeline_adms.md)
 * Added a specialized Hydra instantiation function to support shared objects
 * Added shuffle_choices inference_kwarg argument for outlines_adm baseline
 * Added option to set outlines RNG seed for outlines_adm
