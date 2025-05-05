@@ -278,7 +278,7 @@ attributes it's capable of aligning to.  To that end, we include some
 attribute definitions for each of the KDMAs this ADM is prepared to
 work with.  The attribute definitions are pulled from atrribute
 configs, as an example, here's the contents of the "Moral judgement"
-attribute config:
+attribute config (`configs/attribute/moral_judgment`):
 
 ```YAML
 _target_: align_system.data_models.attribute.Attribute
@@ -312,7 +312,8 @@ This piece is responsible for loading / managing the LLM instance, and
 running inference.  Since this is a structured inference engine, we
 provide it with an output schema and the generated output should be
 structured (and adhere to the schema).  The config for the inference
-engine being used in this case:
+engine being used in this case
+(`configs/inference_engine/outlines_structured_greedy.yaml`):
 
 ```YAML
 _target_: align_system.algorithms.outlines_inference_engine.OutlinesTransformersInferenceEngine
