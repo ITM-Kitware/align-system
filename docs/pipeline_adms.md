@@ -278,7 +278,7 @@ attributes it's capable of aligning to.  To that end, we include some
 attribute definitions for each of the KDMAs this ADM is prepared to
 work with.  The attribute definitions are pulled from atrribute
 configs, as an example, here's the contents of the "Moral judgement"
-attribute config (`configs/attribute/moral_judgment`):
+attribute config (`configs/attribute/moral_judgment.yaml`):
 
 ```YAML
 _target_: align_system.data_models.attribute.Attribute
