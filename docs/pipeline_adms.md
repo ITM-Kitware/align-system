@@ -198,6 +198,215 @@ ADM against a local test file:
 run_align_system adm=pipeline_random
 ```
 
+## Comparative Regression Example
+
+Let's look through a real algorithm that's been integrated as a
+Pipeline ADM, the comparative regression ADM.  We'll start with the
+config file for this ADM, and then work through each of the individual
+parts that are new (as compared to the previous example).
+
+```YAML
+name: pipeline_comparative_regression
+
+defaults:
+  # Import defaults into this namspace (adm) as @name, for further
+  # customization
+
+  # Shared variables / components
+  - /attribute@mj: moral_judgment
+  - /attribute@ib: ingroup_bias
+  - /attribute@qol: qol
+  - /attribute@vol: vol
+  - /inference_engine@structured_inference_engine: outlines_structured_greedy
+  - /template/scenario_description@scenario_description_template: with_relevant_char_info
+  - /template/prompt@prompt_template: comparative_regression
+  - /template/output_schema@comparative_regression_choice_schema: comparative_regression_choice
+  # ADM components to be used in "steps"
+  - /adm_component/misc@step_definitions.format_choices: itm_format_choices
+  - /adm_component/icl@step_definitions.regression_icl: regression
+  - /adm_component/regression@step_definitions.comparative_regression: comparative
+  - /adm_component/alignment@step_definitions.scalar_alignment: avg_dist_scalar
+  - /adm_component/misc@step_definitions.justification_from_reasonings: justification_from_reasonings
+  - /adm_component/misc@step_definitions.action_parameter_completion: action_parameter_completion
+  - /adm_component/misc@step_definitions.ensure_chosen_action: ensure_chosen_action
+  - /adm_component/misc@step_definitions.populate_choice_info: populate_choice_info
+  # Use definitions in this file to override defaults defined above
+  - _self_
+
+attribute_definitions:
+  Moral judgement: ${adm.mj}
+  Ingroup Bias: ${adm.ib}
+  QualityOfLife: ${adm.qol}
+  PerceivedQuantityOfLivesSaved: ${adm.vol}
+
+step_definitions:
+  regression_icl:
+    scenario_description_template: ${ref:adm.scenario_description_template}
+    attributes: ${adm.attribute_definitions}
+    prompt_template: ${ref:adm.prompt_template}
+
+  comparative_regression:
+    scenario_description_template: ${ref:adm.scenario_description_template}
+    prompt_template: ${ref:adm.prompt_template}
+    score_schema_template: ${adm.comparative_regression_choice_schema}
+
+instance:
+  _target_: align_system.algorithms.pipeline_adm.PipelineADM
+
+  steps:
+    # Reference the step instances we want to use in order
+    - ${ref:adm.step_definitions.format_choices}
+    - ${ref:adm.step_definitions.regression_icl}
+    - ${ref:adm.step_definitions.comparative_regression}
+    - ${ref:adm.step_definitions.scalar_alignment}
+    - ${ref:adm.step_definitions.justification_from_reasonings}
+    - ${ref:adm.step_definitions.action_parameter_completion}
+    - ${ref:adm.step_definitions.ensure_chosen_action}
+    - ${ref:adm.step_definitions.populate_choice_info}
+```
+
+While this ADM has some similarities with the random ADM example, in
+that there are steps (even a few that are shared) defined and
+enumerated.  There are few more pieces here, which we'll cover in
+detail in subsequent subsections.
+
+### Attribute Definitions
+
+Since this is an
+alignable ADM, it should have some awareness (and metadata) about the
+attributes it's capable of aligning to.  To that end, we include some
+attribute definitions for each of the KDMAs this ADM is prepared to
+work with.  The attribute definitions are pulled from atrribute
+configs, as an example, here's the contents of the "Moral judgement"
+attribute config:
+
+```YAML
+_target_: align_system.data_models.attribute.Attribute
+
+name: moral judgment
+kdma: "Moral judgement"
+description: Moral judgment is the tendency to consider moral deservingness or culpability, and to reward moral deservingness. Someone with high moral judgment will consider a patient's intent to harm others and degree of responsibility for a situation when making medical triage decisions. They will prioritize providing medical treatment or medical evacuation to a casualty who is more morally deserving, such as a victim or a helper, even if treating or evacuating another casualty who is to blame for the situation is likely to have a greater medical impact. Someone with low moral judgment will not consider a patient's moral deservingness when making medical triage decisions.
+
+factor: 100
+score_examples: 'Treating someone who acted with no intent and had an indirect cause of harm would score a {{ "%g" | format(1.0 * kdma_scale_factor) }}. Treating someone who acted to intend minor help and had an indirect cause of harm would score a {{ "%g" | format(0.8 * kdma_scale_factor) }}. Treating someone who acted with no intent and had a somewhat indirect cause of harm would score a {{ "%g" | format(0.4 * kdma_scale_factor) }}. Treating someone who acted to intend minor harm and had a somewhat indirect cause of harm would score a {{ "%g" | format(0.3 * kdma_scale_factor) }}. Treating someone who acted to intend major harm and had a direct cause of harm would score a {{ "%g" | format(0 * kdma_scale_factor) }}.'
+valid_scores:
+  _target_: align_system.data_models.attribute.AttributeValidValueRange
+
+  min: 0
+  max: 100
+  step: 1
+  
+relevant_structured_character_info: ['intent', 'directness_of_causality', 'injuries']
+```
+
+We also set up an `attribute_definitions` object in the config (it's
+path will be `adm.attribute_definitions`) which contains all of the
+attributes we've included.  Several components in this ADM will make
+use of the `attribute_definitions`.
+
+### Inference Engines
+
+Another piece we've defined in the comparative regression ADM config
+is an inference engine, or in this case a structured inference engine.
+This piece is responsible for loading / managing the LLM instance, and
+running inference.  Since this is a structured inference engine, we
+provide it with an output schema and the generated output should be
+structured (and adhere to the schema).  The config for the inference
+engine being used in this case:
+
+```YAML
+_target_: align_system.algorithms.outlines_inference_engine.OutlinesTransformersInferenceEngine
+
+model_name: mistralai/Mistral-7B-Instruct-v0.3
+precision: half
+sampler:
+  _target_: outlines.samplers.GreedySampler
+```
+
+Note that the class here is `OutlinesTransformersInferenceEngine`, and
+we're using the `"mistralai/Mistral-7B-Instruct-v0.3"` model at half
+precision.  And using the `outlines` greedy sampler.
+
+The structured inference engine will be used by more than one
+component in the pipeline, but we don't want multiple instances of it
+as the LLMs take up quite a bit memory.  To only initialize and refer
+to a single instance, the structured inference engine will be referred
+to with the following variable:
+`${ref:adm.structured_inference_engine}`.  The `ref:` prefix is a
+custom variable interpolation type that has special handling in the
+`align-system` codebase to only point to a single instantiated
+instance.
+
+Note that in the top-level configuration file for this ADM, there
+aren't any such reference to the structured inference engine.  These
+are actually set in the adm component configs themselves (but they
+still point to what's defined at the ADM level).  For example, in the
+`adm_component/regression/comparative.yaml` config we have:
+
+```YAML
+_target_: align_system.algorithms.comparative_regression_adm_component.ComparativeRegressionADMComponent
+
+structured_inference_engine: ${ref:adm.structured_inference_engine}
+num_samples: 1
+attributes: ${ref:adm.attribute_definitions}
+system_prompt_template:
+  _target_: align_system.prompt_engineering.outlines_prompts.ComparativeKDMASystemPrompt
+```
+
+### Shared Templates
+
+Along with the inference engine being shared between components, it's
+not uncommon to want to share text templates or prompts between
+different components.  In the comparative regression example, we want
+to share the same scenario description and prompt templates between
+the in-context learning component, and the regression component.  This
+is accomplished in the same way as the structured inference engine and
+the attributes; they're defined for the ADM, and then referenced by
+the individual components that need them.  You can see this in action
+in the `step_definitions` section of the comparative regression
+pipeline config:
+
+```YAML
+...
+step_definitions:
+  regression_icl:
+    scenario_description_template: ${ref:adm.scenario_description_template}
+    attributes: ${adm.attribute_definitions}
+    prompt_template: ${ref:adm.prompt_template}
+
+  comparative_regression:
+    scenario_description_template: ${ref:adm.scenario_description_template}
+    prompt_template: ${ref:adm.prompt_template}
+    score_schema_template: ${adm.comparative_regression_choice_schema}
+
+...
+```
+
+The `step_definitions` is typically how you'll want to override
+variables / parameters for the `adm_components` you're using.
+
+### Steps
+
+As with the random ADM example, now that we've defined everything, we
+just enumerate the steps for our PipelineADM instance.
+
+```YAML
+...
+instance:
+  _target_: align_system.algorithms.pipeline_adm.PipelineADM
+
+  steps:
+    # Reference the step instances we want to use in order
+    - ${ref:adm.step_definitions.format_choices}
+    - ${ref:adm.step_definitions.regression_icl}
+    - ${ref:adm.step_definitions.comparative_regression}
+    - ${ref:adm.step_definitions.scalar_alignment}
+    - ${ref:adm.step_definitions.justification_from_reasonings}
+    - ${ref:adm.step_definitions.action_parameter_completion}
+    - ${ref:adm.step_definitions.ensure_chosen_action}
+    - ${ref:adm.step_definitions.populate_choice_info}
+```
+
 ## Existing utility ADM components
 
 These are some ADM components that you may want to re-use for your
