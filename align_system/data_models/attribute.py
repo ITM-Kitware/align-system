@@ -1,4 +1,4 @@
-from typing import Union, List
+from typing import Union, Optional
 
 from pydantic import BaseModel
 
@@ -10,19 +10,19 @@ class AttributeValidValueRange(BaseModel):
 
 
 class AttributeValidValues(BaseModel):
-    values: List[int]
+    values: list[int]
 
 
 class Attribute(BaseModel):
     name: str
     kdma: str
-    description: str
+    description: Optional[str] = None
 
-    factor: int
-    score_examples: str
-    valid_scores: Union[AttributeValidValueRange, AttributeValidValues]
+    factor: Optional[int] = None
+    score_examples: Optional[str] = None
+    valid_scores: Optional[Union[AttributeValidValueRange, AttributeValidValues]] = None
 
-    relevant_structured_character_info: List[str]
+    relevant_structured_character_info: Optional[list[str]] = None
 
 
 class AttributeTarget(Attribute):
