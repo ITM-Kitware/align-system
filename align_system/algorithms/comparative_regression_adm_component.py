@@ -114,13 +114,16 @@ class ComparativeRegressionADMComponent(ADMComponent):
                         attribute.kdma, []).append(response[choice]['score'] / attribute.factor)
 
                     attribute_prediction_reasonings.setdefault(choice, {})
-                    attribute_prediction_reasonings[choice].setdefault(
-                        attribute.kdma, []).append(response[choice]['reasoning'])
+                    try:
+                        attribute_prediction_reasonings[choice].setdefault(
+                            attribute.kdma, []).append(response[choice]['reasoning'])
+                    except:
+                        attribute_prediction_reasonings[choice].setdefault(
+                            attribute.kdma, []).append(response['reasoning'])
 
             attribute_dialogs[attribute.kdma] = dialog
 
         return attribute_prediction_reasonings, attribute_prediction_scores, attribute_dialogs
-
 
 class ChoiceRelevanceClassificationComponent(ADMComponent):
     def __init__(self,

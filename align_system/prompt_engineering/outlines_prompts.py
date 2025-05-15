@@ -1260,3 +1260,71 @@ class ProbeRelevanceClassificationPrompt():
 class ProbeRelevanceClassificationSchema():
     def __call__(self, choices, attribute):
         return probe_relevance_classification_json_schema()
+
+
+@outlines.prompt
+def hand_crafted_probe_relevance_classification_prompt(situation, choices, kdma):
+    """
+    Consider the following scenario and responses:
+    {{ situation }}
+
+    RESPONSES:
+    {% for choice in choices %}
+    - {{ choice }}
+    {% endfor %}
+
+    {% if kdma == 'moral judgment' -%}
+    Did one character cause harm? 
+    {% else -%}
+    Are the characters in different military groups or units? 
+    {% endif -%}
+
+    Provide a sentence of reasoning and a response of yes or no in the relevant field.
+    """
+
+class HandCraftedProbeRelevanceClassificationPrompt():
+    def __call__(self,
+                 scenario_description,
+                 choice_outcomes,
+                 attribute):
+        return hand_crafted_probe_relevance_classification_prompt(scenario_description,
+                                                     choice_outcomes,
+                                                     attribute)
+
+def probe_reasoning_comparative_kdma_score_prediction_json_schema(choices, kdma_scale_factor):
+    json_schema = {
+        "type": "object",
+        "properties": {
+            "reasoning": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 512
+            },
+            **{
+                choice: {
+                    "type": "object",
+                    "properties": {
+                        "score": {
+                            "type": "integer",
+                            "minimum": 0 * kdma_scale_factor,
+                            "maximum": 1 * kdma_scale_factor
+                        }
+                    },
+                    "required": ["score"]
+                }
+                for choice in choices
+            }
+        },
+        "required": ["reasoning"] + list(choices)
+    }
+    return json.dumps(json_schema)
+
+class ProbeReasoningComparativeKDMAScorePredictionSchema():
+    def __init__(self, factor_lookup, default_factor=None):
+        self.factor_lookup = factor_lookup
+        self.default_factor = default_factor
+
+    def __call__(self, choices, attribute):
+        return probe_reasoning_comparative_kdma_score_prediction_json_schema(
+                    choices,
+                    self.factor_lookup.get(attribute, self.default_factor))

@@ -16,6 +16,7 @@ from align_system.prompt_engineering.outlines_prompts import (
     scenario_state_description_with_relevant_char_info,
     comparative_kdma_score_prediction_prompt,
     comparative_kdma_score_prediction_json_schema,
+    probe_reasoning_comparative_kdma_score_prediction_json_schema,
     relevance_classification_prompt,
     relevance_classification_json_schema,
     probe_relevance_classification_prompt,
@@ -762,4 +763,78 @@ class ProbeRelevanceIncontextExampleGenerator(IncontextExampleGenerator):
         else:
             raise RuntimeError(f"Relevance ICL is not implemented for {target_kdma['kdma']}")
 
+        return cot_reasoning
+
+class ProbeReasoningComparativeRegressionIncontextExampleGenerator(IncontextExampleGenerator):
+    def set_icl_datasets(self):
+        icl_datasets = {}
+        incontext_data = self._read_icl_dataset_files()
+
+        # Add each target to icl_datasets
+        for target_kdma in self.target_kdmas:
+            sys_kdma_name = target_kdma['kdma']
+            icl_datasets[sys_kdma_name] = []
+            kdma_incontext_data = incontext_data[sys_kdma_name]
+
+            # Add each examples to icl_datasets
+            for example in kdma_incontext_data:
+
+                # Get example response
+                icl_response = {}
+                included_choices = []
+                for action, choice, kdma_value in zip(example['actions'], example['choices'], example["kdma_values"]):
+                    # Only include choice if there is a ground truth KDMA value available
+                    if kdma_value is None:
+                        continue
+                    # Groundtruth KDMA values are 0-1, but ADM may predict on a different scale
+                    scaled_kdma_value = int(kdma_value * target_kdma["factor"])
+                    icl_response[choice] = {}
+                    icl_response[choice]['score'] = scaled_kdma_value
+                    included_choices.append(choice)
+                # Check if response is valid against json schema
+                icl_response['reasoning'] = self.get_chain_of_thought_reasoning(target_kdma, 
+                                                                                icl_response)
+                correct_schema = json.loads(probe_reasoning_comparative_kdma_score_prediction_json_schema(included_choices, target_kdma["factor"]))
+                validate(instance=icl_response, schema=correct_schema)
+
+                # Get example prompt
+                relevant_fields = []
+                for char_target_kdma in self.target_kdmas:
+                    relevant_fields.extend(char_target_kdma['relevant_structured_character_info'])
+                if 'all_unique' in relevant_fields:
+                    character_info = outlines_prompts_utils.get_unique_structured_character_info(example['state'].characters)
+                else:
+                    character_info = outlines_prompts_utils.get_relevant_structured_character_info(example['state'].characters, self.target_kdmas)
+                icl_scenario_description = scenario_state_description_with_relevant_char_info(example['state'], character_info)
+                # Only include choices in the prompt if they are in the response
+                included_icl_choices_with_outcomes = {}
+                for choice in included_choices:
+                    # TODO: Include outcome prediction for ICL examples?
+                    included_icl_choices_with_outcomes[choice] = {'predicted_outcome':None}
+                icl_prompt = comparative_kdma_score_prediction_prompt(icl_scenario_description,
+                                                                    included_icl_choices_with_outcomes,
+                                                                    target_kdma['name'])
+
+                # Add example
+                icl_datasets[sys_kdma_name].append({
+                    "state": example["state"],
+                    "scenario_description": icl_scenario_description,
+                    "prompt": icl_prompt,
+                    "response": icl_response,
+                    "actions": example['actions']
+                    })
+
+        self.icl_datasets = icl_datasets
+
+    def get_chain_of_thought_reasoning(self, target_kdma, choice_values):
+        '''
+        Helper function for set_icl_datasets() - constructs example reasoning statements for responses
+        '''
+        max_value = 0
+        for choice, score in choice_values.items():
+            if score['score'] >= max_value:
+                max_value = score['score']
+                high_choice = choice
+
+        cot_reasoning = f'{high_choice} scores higher for {target_kdma['kdma']}.'
         return cot_reasoning

@@ -447,7 +447,7 @@ class RelevanceAvgDistScalarAlignment(RelevanceAlignmentFunction):
                 rel_samples = relevances[choice][target_kdma['kdma']]
                 average_relevance = (sum(rel_samples) / len(rel_samples))
                 distance = _euclidean_distance(target_kdma['value'], average_score)
-                prob += average_relevance * (1/(distance+eps)) # weight by relevance
+                prob += average_relevance * (1-(distance+eps)) # weight by relevance
             probs.append(prob)
         selected_choice, probs = self._select_min_dist_choice(choices, probs, misaligned, probabilistic=probabilistic)
         return selected_choice, probs
@@ -457,6 +457,48 @@ class RelevanceAvgDistScalarAlignment(RelevanceAlignmentFunction):
         avg_alignment_function = AvgDistScalarAlignment()
         return avg_alignment_function.get_best_sample_index(kdma_values, target_kdmas, selected_choice, misaligned=misaligned)
 
+class CumulativeRelevanceAvgDistScalarAlignment(RelevanceAlignmentFunction):
+    def __call__(self, kdma_values, relevances, target_kdmas, choice_history=None, misaligned=False, probabilistic=False):
+        '''
+        Selects a choice by first averaging score across samples,
+        then selecting the one with minimal MSE to the scalar target
+        weighted by predicted relevance.
+        Returns the selected choice.
+        '''
+        kdma_values = _handle_single_value(kdma_values, target_kdmas)
+        relevances = _handle_single_value(relevances, target_kdmas)
+        _check_if_targets_are_scalar(target_kdmas)
+        
+        if choice_history is None:
+            choice_history = {}
+
+        # Get distance from average of predicted scores to targets
+        probs = []
+        choices = list(kdma_values.keys())
+        for choice in choices:
+            prob = 0.
+            for target_kdma in target_kdmas:
+                if isinstance(target_kdma, KDMAValue):
+                    target_kdma = target_kdma.to_dict()
+                if target_kdma['kdma'] not in choice_history:
+                    choice_history[target_kdma['kdma']] = []
+                kdma = target_kdma['kdma']
+                score_samples = kdma_values[choice][kdma]
+                average_score = (sum(score_samples) / len(score_samples))
+                cumulative_choices = choice_history[target_kdma['kdma']] + [average_score]
+                running_average = (sum(cumulative_choices) / len(cumulative_choices))
+                rel_samples = relevances[choice][target_kdma['kdma']]
+                average_relevance = (sum(rel_samples) / len(rel_samples))
+                distance = _euclidean_distance(target_kdma['value'], running_average)
+                prob += average_relevance * (1/(distance+eps)) # weight by relevance
+            probs.append(prob)
+        selected_choice, probs = self._select_min_dist_choice(choices, probs, misaligned, probabilistic=probabilistic)
+        return selected_choice, probs
+
+    def get_best_sample_index(self, kdma_values, target_kdmas, selected_choice, misaligned=False):
+        # Use max likelihood as distance from a sample to the distribution because JS is disitribution to distribution
+        avg_alignment_function = AvgDistScalarAlignment()
+        return avg_alignment_function.get_best_sample_index(kdma_values, target_kdmas, selected_choice, misaligned=misaligned)
 
 class RelevanceCumulativeJsDivergenceKdeAlignment(RelevanceAlignmentFunction):
     def __call__(self, kdma_values, relevances, target_kdmas, choice_history, misaligned=False, kde_norm='globalnorm', priornorm_factor=0.5, probabilistic=False):

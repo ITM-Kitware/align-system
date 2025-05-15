@@ -9,12 +9,11 @@ defaults:
   - /attribute@ib: ingroup_bias
   - /inference_engine@structured_inference_engine: outlines_structured_inference_engine
   - /template/scenario_description@scenario_description_template: with_relevant_char_info
-  - /template/prompt@relevance_prompt_template: probe_relevance_classification
+  - /template/prompt@relevance_prompt_template: handcrafted_probe_relevance_classification
   - /template/output_schema@relevance_classification_schema: probe_relevance_classification
   - /template/prompt@prompt_template: comparative_regression
   - /template/output_schema@comparative_regression_choice_schema: comparative_regression_choice
   # ADM components to be used in "steps"
-  - /adm_component/icl@step_definitions.relevance_icl: probe_relevance
   - /adm_component/relevance@step_definitions.relevance_classification: probe_classification
   - /adm_component/misc@step_definitions.format_choices: itm_format_choices
   - /adm_component/icl@step_definitions.regression_icl: regression
@@ -32,15 +31,6 @@ attribute_definitions:
   Ingroup Bias: ${adm.ib}
 
 step_definitions:
-  relevance_icl:
-    scenario_description_template: ${ref:adm.scenario_description_template}
-    attributes: ${adm.attribute_definitions}
-    prompt_template: ${ref:adm.relevance_prompt_template}
-    icl_generator:
-      target_kdmas:
-        - ${adm.mj}
-        - ${adm.ib}
-
   relevance_classification:
     scenario_description_template: ${ref:adm.scenario_description_template}
     prompt_template: ${ref:adm.relevance_prompt_template}
@@ -66,7 +56,6 @@ instance:
   steps:
     # Reference the step instances we want to use in order
     - ${ref:adm.step_definitions.format_choices}
-    - ${ref:adm.step_definitions.relevance_icl}
     - ${ref:adm.step_definitions.relevance_classification}
     - ${ref:adm.step_definitions.regression_icl}
     - ${ref:adm.step_definitions.comparative_regression}
@@ -75,3 +64,4 @@ instance:
     - ${ref:adm.step_definitions.action_parameter_completion}
     - ${ref:adm.step_definitions.ensure_chosen_action}
     - ${ref:adm.step_definitions.populate_choice_info}
+

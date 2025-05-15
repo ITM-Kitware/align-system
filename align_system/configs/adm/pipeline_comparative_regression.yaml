@@ -39,6 +39,7 @@ step_definitions:
     icl_generator:
       target_kdmas:
         - ${adm.mj}
+        - ${adm.ib}
 
   comparative_regression:
     scenario_description_template: ${ref:adm.scenario_description_template}
