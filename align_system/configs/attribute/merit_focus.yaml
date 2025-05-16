@@ -2,6 +2,6 @@ _target_: align_system.data_models.attribute.Attribute
 
 name: merit focus
 kdma: "Merit Focus"
-description: A high merit focus means treating the more morally deserving patient. Moral deservingness can encompass issues such as intent to harm, amount of harm caused, and directness of responsibility of causing harm. 
+description: A high merit focus means treating the more morally deserving patient. Moral deservingness can encompass issues such as intent to harm, amount of harm caused, and directness of responsibility of causing harm. The merit focus score reflects moral deservingness alone. Factors such as the medical need of the patients do not affect the score.
 factor: 100
-score_examples: Treating a victim or someone who did not intend or cause harm scores 100. Treating someone who unintentionally caused harm scores 50. Treating someone who intentionally caused harm scores 0.
+score_examples: Treating a victim or someone who did not intend or cause harm scores 100. Treating someone who unintentionally caused minor harm scores 75. Treating someone who unintentionally caused major harm scores 50. Treating someone who intentionally caused minor harm scores 25. Treating someone who intentionally caused major harm scores 0.
