@@ -18,7 +18,8 @@ class ComparativeRegressionADMComponent(ADMComponent):
                  attributes=None,
                  system_prompt_template=None,
                  num_samples=1,
-                 enum_scores=False):
+                 enum_scores=False,
+                 predict_medical_urgency=False):
         self.structured_inference_engine = structured_inference_engine
         self.scenario_description_template = scenario_description_template
         self.prompt_template = prompt_template
@@ -32,6 +33,7 @@ class ComparativeRegressionADMComponent(ADMComponent):
 
         self.num_samples = num_samples
         self.enum_scores = enum_scores
+        self.predict_medical_urgency = predict_medical_urgency
 
     def run_returns(self):
         return ('attribute_prediction_reasonings',
@@ -47,6 +49,9 @@ class ComparativeRegressionADMComponent(ADMComponent):
             target_attribute_names = []
         else:
             target_attribute_names = attributes_in_alignment_target(alignment_target)
+
+        if self.predict_medical_urgency:
+            target_attribute_names = ['Medical Urgency'] + target_attribute_names
 
         target_attributes = [self.attributes[n] for n in target_attribute_names]
 
@@ -114,8 +119,14 @@ class ComparativeRegressionADMComponent(ADMComponent):
                         attribute.kdma, []).append(response[choice]['score'] / attribute.factor)
 
                     attribute_prediction_reasonings.setdefault(choice, {})
-                    attribute_prediction_reasonings[choice].setdefault(
-                        attribute.kdma, []).append(response[choice]['reasoning'])
+                    # Choice level reasoning
+                    try:
+                        attribute_prediction_reasonings[choice].setdefault(
+                            attribute.kdma, []).append(response[choice]['reasoning'])
+                    # Probe level reasoning
+                    except:
+                        attribute_prediction_reasonings[choice].setdefault(
+                            attribute.kdma, []).append(response['reasoning'])
 
             attribute_dialogs[attribute.kdma] = dialog
 

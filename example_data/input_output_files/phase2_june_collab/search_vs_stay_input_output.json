@@ -1,0 +1,1302 @@
+[
+  {
+    "input": {
+      "scenario_id": "search_vs_stay",
+      "full_state": {
+        "unstructured": "You are a medic at the scene where there may be multiple casualties. You are treating a patient. The patient has multiple stab wounds to the chest/sternum. There is slow bleeding and no spurting from their wounds. They have no pulse and no breathing. Another medic shouts from the next room that they need your help. What do you do?",
+        "meta_info": {
+          "scene_id": "0"
+        },
+        "scenario_complete": false,
+        "mission": null,
+        "environment": {
+          "sim_environment": {
+            "unstructured": "",
+            "type": "triage",
+            "weather": null,
+            "terrain": null,
+            "flora": null,
+            "fauna": null,
+            "temperature": null,
+            "humidity": null,
+            "lighting": null,
+            "visibility": null,
+            "noise_ambient": null,
+            "noise_peak": null
+          },
+          "decision_environment": {
+            "unstructured": "",
+            "aid": null,
+            "movement_restriction": null,
+            "sound_restriction": null,
+            "oxygen_levels": null,
+            "population_density": null,
+            "injury_triggers": null,
+            "air_quality": null,
+            "city_infrastructure": null
+          }
+        },
+        "threat_state": null,
+        "characters": [],
+        "events": [],
+        "supplies": []
+      },
+      "state": "You are a medic at the scene where there may be multiple casualties. You are treating a patient. The patient has multiple stab wounds to the chest/sternum. There is slow bleeding and no spurting from their wounds. They have no pulse and no breathing. Another medic shouts from the next room that they need your help. What do you do?",
+      "choices": [
+        {
+          "action_id": "0.action_0",
+          "action_type": "SITREP",
+          "unstructured": "Stay with the current patient",
+          "threat_state": null,
+          "parameters": null,
+          "justification": null,
+          "kdma_association": null
+        },
+        {
+          "action_id": "0.action_1",
+          "action_type": "SITREP",
+          "unstructured": "Go to the next room",
+          "threat_state": null,
+          "parameters": null,
+          "justification": null,
+          "kdma_association": null
+        }
+      ]
+    }
+  },
+  {
+    "input": {
+      "scenario_id": "search_vs_stay",
+      "full_state": {
+        "unstructured": "You are a medic at the scene where there may be multiple casualties. You are treating a patient. The patient has a partial foot amputation. You have stopped the bleeding with a tourniquet. They are conscious with normal breathing and pulse. Another medic shouts from the next room that they need your help. What do you do?",
+        "meta_info": {
+          "scene_id": "1"
+        },
+        "scenario_complete": false,
+        "mission": null,
+        "environment": {
+          "sim_environment": {
+            "unstructured": "",
+            "type": "triage",
+            "weather": null,
+            "terrain": null,
+            "flora": null,
+            "fauna": null,
+            "temperature": null,
+            "humidity": null,
+            "lighting": null,
+            "visibility": null,
+            "noise_ambient": null,
+            "noise_peak": null
+          },
+          "decision_environment": {
+            "unstructured": "",
+            "aid": null,
+            "movement_restriction": null,
+            "sound_restriction": null,
+            "oxygen_levels": null,
+            "population_density": null,
+            "injury_triggers": null,
+            "air_quality": null,
+            "city_infrastructure": null
+          }
+        },
+        "threat_state": null,
+        "characters": [],
+        "events": [],
+        "supplies": []
+      },
+      "state": "You are a medic at the scene where there may be multiple casualties. You are treating a patient. The patient has a partial foot amputation. You have stopped the bleeding with a tourniquet. They are conscious with normal breathing and pulse. Another medic shouts from the next room that they need your help. What do you do?",
+      "choices": [
+        {
+          "action_id": "1.action_0",
+          "action_type": "SITREP",
+          "unstructured": "Stay with the current patient",
+          "threat_state": null,
+          "parameters": null,
+          "justification": null,
+          "kdma_association": null
+        },
+        {
+          "action_id": "1.action_1",
+          "action_type": "SITREP",
+          "unstructured": "Go to the next room",
+          "threat_state": null,
+          "parameters": null,
+          "justification": null,
+          "kdma_association": null
+        }
+      ]
+    }
+  },
+  {
+    "input": {
+      "scenario_id": "search_vs_stay",
+      "full_state": {
+        "unstructured": "You are a medic at the scene where there may be multiple casualties. You are treating a patient. The patient has a compound fracture of their leg and burns to their arms. Another medic shouts from the next room that they need your help. What do you do?",
+        "meta_info": {
+          "scene_id": "2"
+        },
+        "scenario_complete": false,
+        "mission": null,
+        "environment": {
+          "sim_environment": {
+            "unstructured": "",
+            "type": "triage",
+            "weather": null,
+            "terrain": null,
+            "flora": null,
+            "fauna": null,
+            "temperature": null,
+            "humidity": null,
+            "lighting": null,
+            "visibility": null,
+            "noise_ambient": null,
+            "noise_peak": null
+          },
+          "decision_environment": {
+            "unstructured": "",
+            "aid": null,
+            "movement_restriction": null,
+            "sound_restriction": null,
+            "oxygen_levels": null,
+            "population_density": null,
+            "injury_triggers": null,
+            "air_quality": null,
+            "city_infrastructure": null
+          }
+        },
+        "threat_state": null,
+        "characters": [],
+        "events": [],
+        "supplies": []
+      },
+      "state": "You are a medic at the scene where there may be multiple casualties. You are treating a patient. The patient has a compound fracture of their leg and burns to their arms. Another medic shouts from the next room that they need your help. What do you do?",
+      "choices": [
+        {
+          "action_id": "2.action_0",
+          "action_type": "SITREP",
+          "unstructured": "Stay with the current patient",
+          "threat_state": null,
+          "parameters": null,
+          "justification": null,
+          "kdma_association": null
+        },
+        {
+          "action_id": "2.action_1",
+          "action_type": "SITREP",
+          "unstructured": "Go to the next room",
+          "threat_state": null,
+          "parameters": null,
+          "justification": null,
+          "kdma_association": null
+        }
+      ]
+    }
+  },
+  {
+    "input": {
+      "scenario_id": "search_vs_stay",
+      "full_state": {
+        "unstructured": "You are a medic at the scene where there may be multiple casualties. You are treating a patient. They have a gunshot wound to the abdomen. You have slowed the bleeding by packing the wound. They are conscious with fast breathing and fast pulse. Another medic shouts from the next room that they need your help. What do you do?",
+        "meta_info": {
+          "scene_id": "3"
+        },
+        "scenario_complete": false,
+        "mission": null,
+        "environment": {
+          "sim_environment": {
+            "unstructured": "",
+            "type": "triage",
+            "weather": null,
+            "terrain": null,
+            "flora": null,
+            "fauna": null,
+            "temperature": null,
+            "humidity": null,
+            "lighting": null,
+            "visibility": null,
+            "noise_ambient": null,
+            "noise_peak": null
+          },
+          "decision_environment": {
+            "unstructured": "",
+            "aid": null,
+            "movement_restriction": null,
+            "sound_restriction": null,
+            "oxygen_levels": null,
+            "population_density": null,
+            "injury_triggers": null,
+            "air_quality": null,
+            "city_infrastructure": null
+          }
+        },
+        "threat_state": null,
+        "characters": [],
+        "events": [],
+        "supplies": []
+      },
+      "state": "You are a medic at the scene where there may be multiple casualties. You are treating a patient. They have a gunshot wound to the abdomen. You have slowed the bleeding by packing the wound. They are conscious with fast breathing and fast pulse. Another medic shouts from the next room that they need your help. What do you do?",
+      "choices": [
+        {
+          "action_id": "3.action_0",
+          "action_type": "SITREP",
+          "unstructured": "Stay with the current patient",
+          "threat_state": null,
+          "parameters": null,
+          "justification": null,
+          "kdma_association": null
+        },
+        {
+          "action_id": "3.action_1",
+          "action_type": "SITREP",
+          "unstructured": "Go to the next room",
+          "threat_state": null,
+          "parameters": null,
+          "justification": null,
+          "kdma_association": null
+        }
+      ]
+    }
+  },
+  {
+    "input": {
+      "scenario_id": "search_vs_stay",
+      "full_state": {
+        "unstructured": "You are a medic at the scene where there may be multiple casualties. You are treating a patient. The patient has multiple stab wounds to the chest/sternum. There is slow bleeding and no spurting from their wounds. They have no pulse and no breathing. There is a second patient on the other side of the room, whom you have not treated yet. They appear to be seriously injured. What do you do?",
+        "meta_info": {
+          "scene_id": "4"
+        },
+        "scenario_complete": false,
+        "mission": null,
+        "environment": {
+          "sim_environment": {
+            "unstructured": "",
+            "type": "triage",
+            "weather": null,
+            "terrain": null,
+            "flora": null,
+            "fauna": null,
+            "temperature": null,
+            "humidity": null,
+            "lighting": null,
+            "visibility": null,
+            "noise_ambient": null,
+            "noise_peak": null
+          },
+          "decision_environment": {
+            "unstructured": "",
+            "aid": null,
+            "movement_restriction": null,
+            "sound_restriction": null,
+            "oxygen_levels": null,
+            "population_density": null,
+            "injury_triggers": null,
+            "air_quality": null,
+            "city_infrastructure": null
+          }
+        },
+        "threat_state": null,
+        "characters": [],
+        "events": [],
+        "supplies": []
+      },
+      "state": "You are a medic at the scene where there may be multiple casualties. You are treating a patient. The patient has multiple stab wounds to the chest/sternum. There is slow bleeding and no spurting from their wounds. They have no pulse and no breathing. There is a second patient on the other side of the room, whom you have not treated yet. They appear to be seriously injured. What do you do?",
+      "choices": [
+        {
+          "action_id": "4.action_0",
+          "action_type": "SITREP",
+          "unstructured": "Stay with the current patient",
+          "threat_state": null,
+          "parameters": null,
+          "justification": null,
+          "kdma_association": null
+        },
+        {
+          "action_id": "4.action_1",
+          "action_type": "SITREP",
+          "unstructured": "Go to the next room",
+          "threat_state": null,
+          "parameters": null,
+          "justification": null,
+          "kdma_association": null
+        }
+      ]
+    }
+  },
+  {
+    "input": {
+      "scenario_id": "search_vs_stay",
+      "full_state": {
+        "unstructured": "You are a medic at the scene where there may be multiple casualties. You are treating a patient. The patient has a partial foot amputation. You have stopped the bleeding with a tourniquet. They are conscious with normal breathing and pulse. There is a second patient on the other side of the room, whom you have not treated yet. They appear to be seriously injured. What do you do?",
+        "meta_info": {
+          "scene_id": "5"
+        },
+        "scenario_complete": false,
+        "mission": null,
+        "environment": {
+          "sim_environment": {
+            "unstructured": "",
+            "type": "triage",
+            "weather": null,
+            "terrain": null,
+            "flora": null,
+            "fauna": null,
+            "temperature": null,
+            "humidity": null,
+            "lighting": null,
+            "visibility": null,
+            "noise_ambient": null,
+            "noise_peak": null
+          },
+          "decision_environment": {
+            "unstructured": "",
+            "aid": null,
+            "movement_restriction": null,
+            "sound_restriction": null,
+            "oxygen_levels": null,
+            "population_density": null,
+            "injury_triggers": null,
+            "air_quality": null,
+            "city_infrastructure": null
+          }
+        },
+        "threat_state": null,
+        "characters": [],
+        "events": [],
+        "supplies": []
+      },
+      "state": "You are a medic at the scene where there may be multiple casualties. You are treating a patient. The patient has a partial foot amputation. You have stopped the bleeding with a tourniquet. They are conscious with normal breathing and pulse. There is a second patient on the other side of the room, whom you have not treated yet. They appear to be seriously injured. What do you do?",
+      "choices": [
+        {
+          "action_id": "5.action_0",
+          "action_type": "SITREP",
+          "unstructured": "Stay with the current patient",
+          "threat_state": null,
+          "parameters": null,
+          "justification": null,
+          "kdma_association": null
+        },
+        {
+          "action_id": "5.action_1",
+          "action_type": "SITREP",
+          "unstructured": "Go to the next room",
+          "threat_state": null,
+          "parameters": null,
+          "justification": null,
+          "kdma_association": null
+        }
+      ]
+    }
+  },
+  {
+    "input": {
+      "scenario_id": "search_vs_stay",
+      "full_state": {
+        "unstructured": "You are a medic at the scene where there may be multiple casualties. You are treating a patient. The patient has a compound fracture of their leg and burns to their arms. There is a second patient on the other side of the room, whom you have not treated yet. They appear to be seriously injured. What do you do?",
+        "meta_info": {
+          "scene_id": "6"
+        },
+        "scenario_complete": false,
+        "mission": null,
+        "environment": {
+          "sim_environment": {
+            "unstructured": "",
+            "type": "triage",
+            "weather": null,
+            "terrain": null,
+            "flora": null,
+            "fauna": null,
+            "temperature": null,
+            "humidity": null,
+            "lighting": null,
+            "visibility": null,
+            "noise_ambient": null,
+            "noise_peak": null
+          },
+          "decision_environment": {
+            "unstructured": "",
+            "aid": null,
+            "movement_restriction": null,
+            "sound_restriction": null,
+            "oxygen_levels": null,
+            "population_density": null,
+            "injury_triggers": null,
+            "air_quality": null,
+            "city_infrastructure": null
+          }
+        },
+        "threat_state": null,
+        "characters": [],
+        "events": [],
+        "supplies": []
+      },
+      "state": "You are a medic at the scene where there may be multiple casualties. You are treating a patient. The patient has a compound fracture of their leg and burns to their arms. There is a second patient on the other side of the room, whom you have not treated yet. They appear to be seriously injured. What do you do?",
+      "choices": [
+        {
+          "action_id": "6.action_0",
+          "action_type": "SITREP",
+          "unstructured": "Stay with the current patient",
+          "threat_state": null,
+          "parameters": null,
+          "justification": null,
+          "kdma_association": null
+        },
+        {
+          "action_id": "6.action_1",
+          "action_type": "SITREP",
+          "unstructured": "Go to the next room",
+          "threat_state": null,
+          "parameters": null,
+          "justification": null,
+          "kdma_association": null
+        }
+      ]
+    }
+  },
+  {
+    "input": {
+      "scenario_id": "search_vs_stay",
+      "full_state": {
+        "unstructured": "You are a medic at the scene where there may be multiple casualties. You are treating a patient. They have a gunshot wound to the abdomen. You have slowed the bleeding by packing the wound. They are conscious with fast breathing and fast pulse. There is a second patient on the other side of the room, whom you have not treated yet. They appear to be seriously injured. What do you do?",
+        "meta_info": {
+          "scene_id": "7"
+        },
+        "scenario_complete": false,
+        "mission": null,
+        "environment": {
+          "sim_environment": {
+            "unstructured": "",
+            "type": "triage",
+            "weather": null,
+            "terrain": null,
+            "flora": null,
+            "fauna": null,
+            "temperature": null,
+            "humidity": null,
+            "lighting": null,
+            "visibility": null,
+            "noise_ambient": null,
+            "noise_peak": null
+          },
+          "decision_environment": {
+            "unstructured": "",
+            "aid": null,
+            "movement_restriction": null,
+            "sound_restriction": null,
+            "oxygen_levels": null,
+            "population_density": null,
+            "injury_triggers": null,
+            "air_quality": null,
+            "city_infrastructure": null
+          }
+        },
+        "threat_state": null,
+        "characters": [],
+        "events": [],
+        "supplies": []
+      },
+      "state": "You are a medic at the scene where there may be multiple casualties. You are treating a patient. They have a gunshot wound to the abdomen. You have slowed the bleeding by packing the wound. They are conscious with fast breathing and fast pulse. There is a second patient on the other side of the room, whom you have not treated yet. They appear to be seriously injured. What do you do?",
+      "choices": [
+        {
+          "action_id": "7.action_0",
+          "action_type": "SITREP",
+          "unstructured": "Stay with the current patient",
+          "threat_state": null,
+          "parameters": null,
+          "justification": null,
+          "kdma_association": null
+        },
+        {
+          "action_id": "7.action_1",
+          "action_type": "SITREP",
+          "unstructured": "Go to the next room",
+          "threat_state": null,
+          "parameters": null,
+          "justification": null,
+          "kdma_association": null
+        }
+      ]
+    }
+  },
+  {
+    "input": {
+      "scenario_id": "search_vs_stay",
+      "full_state": {
+        "unstructured": "You are a medic at the scene where there may be multiple casualties. You are treating a patient. The patient has multiple stab wounds to the chest/sternum. There is slow bleeding and no spurting from their wounds. They have no pulse and no breathing. You hear shouts from the next room, with at least one person screaming for help. What do you do?",
+        "meta_info": {
+          "scene_id": "8"
+        },
+        "scenario_complete": false,
+        "mission": null,
+        "environment": {
+          "sim_environment": {
+            "unstructured": "",
+            "type": "triage",
+            "weather": null,
+            "terrain": null,
+            "flora": null,
+            "fauna": null,
+            "temperature": null,
+            "humidity": null,
+            "lighting": null,
+            "visibility": null,
+            "noise_ambient": null,
+            "noise_peak": null
+          },
+          "decision_environment": {
+            "unstructured": "",
+            "aid": null,
+            "movement_restriction": null,
+            "sound_restriction": null,
+            "oxygen_levels": null,
+            "population_density": null,
+            "injury_triggers": null,
+            "air_quality": null,
+            "city_infrastructure": null
+          }
+        },
+        "threat_state": null,
+        "characters": [],
+        "events": [],
+        "supplies": []
+      },
+      "state": "You are a medic at the scene where there may be multiple casualties. You are treating a patient. The patient has multiple stab wounds to the chest/sternum. There is slow bleeding and no spurting from their wounds. They have no pulse and no breathing. You hear shouts from the next room, with at least one person screaming for help. What do you do?",
+      "choices": [
+        {
+          "action_id": "8.action_0",
+          "action_type": "SITREP",
+          "unstructured": "Stay with the current patient",
+          "threat_state": null,
+          "parameters": null,
+          "justification": null,
+          "kdma_association": null
+        },
+        {
+          "action_id": "8.action_1",
+          "action_type": "SITREP",
+          "unstructured": "Go to the next room",
+          "threat_state": null,
+          "parameters": null,
+          "justification": null,
+          "kdma_association": null
+        }
+      ]
+    }
+  },
+  {
+    "input": {
+      "scenario_id": "search_vs_stay",
+      "full_state": {
+        "unstructured": "You are a medic at the scene where there may be multiple casualties. You are treating a patient. The patient has a partial foot amputation. You have stopped the bleeding with a tourniquet. They are conscious with normal breathing and pulse. You hear shouts from the next room, with at least one person screaming for help. What do you do?",
+        "meta_info": {
+          "scene_id": "9"
+        },
+        "scenario_complete": false,
+        "mission": null,
+        "environment": {
+          "sim_environment": {
+            "unstructured": "",
+            "type": "triage",
+            "weather": null,
+            "terrain": null,
+            "flora": null,
+            "fauna": null,
+            "temperature": null,
+            "humidity": null,
+            "lighting": null,
+            "visibility": null,
+            "noise_ambient": null,
+            "noise_peak": null
+          },
+          "decision_environment": {
+            "unstructured": "",
+            "aid": null,
+            "movement_restriction": null,
+            "sound_restriction": null,
+            "oxygen_levels": null,
+            "population_density": null,
+            "injury_triggers": null,
+            "air_quality": null,
+            "city_infrastructure": null
+          }
+        },
+        "threat_state": null,
+        "characters": [],
+        "events": [],
+        "supplies": []
+      },
+      "state": "You are a medic at the scene where there may be multiple casualties. You are treating a patient. The patient has a partial foot amputation. You have stopped the bleeding with a tourniquet. They are conscious with normal breathing and pulse. You hear shouts from the next room, with at least one person screaming for help. What do you do?",
+      "choices": [
+        {
+          "action_id": "9.action_0",
+          "action_type": "SITREP",
+          "unstructured": "Stay with the current patient",
+          "threat_state": null,
+          "parameters": null,
+          "justification": null,
+          "kdma_association": null
+        },
+        {
+          "action_id": "9.action_1",
+          "action_type": "SITREP",
+          "unstructured": "Go to the next room",
+          "threat_state": null,
+          "parameters": null,
+          "justification": null,
+          "kdma_association": null
+        }
+      ]
+    }
+  },
+  {
+    "input": {
+      "scenario_id": "search_vs_stay",
+      "full_state": {
+        "unstructured": "You are a medic at the scene where there may be multiple casualties. You are treating a patient. The patient has a compound fracture of their leg and burns to their arms. You hear shouts from the next room, with at least one person screaming for help. What do you do?",
+        "meta_info": {
+          "scene_id": "10"
+        },
+        "scenario_complete": false,
+        "mission": null,
+        "environment": {
+          "sim_environment": {
+            "unstructured": "",
+            "type": "triage",
+            "weather": null,
+            "terrain": null,
+            "flora": null,
+            "fauna": null,
+            "temperature": null,
+            "humidity": null,
+            "lighting": null,
+            "visibility": null,
+            "noise_ambient": null,
+            "noise_peak": null
+          },
+          "decision_environment": {
+            "unstructured": "",
+            "aid": null,
+            "movement_restriction": null,
+            "sound_restriction": null,
+            "oxygen_levels": null,
+            "population_density": null,
+            "injury_triggers": null,
+            "air_quality": null,
+            "city_infrastructure": null
+          }
+        },
+        "threat_state": null,
+        "characters": [],
+        "events": [],
+        "supplies": []
+      },
+      "state": "You are a medic at the scene where there may be multiple casualties. You are treating a patient. The patient has a compound fracture of their leg and burns to their arms. You hear shouts from the next room, with at least one person screaming for help. What do you do?",
+      "choices": [
+        {
+          "action_id": "10.action_0",
+          "action_type": "SITREP",
+          "unstructured": "Stay with the current patient",
+          "threat_state": null,
+          "parameters": null,
+          "justification": null,
+          "kdma_association": null
+        },
+        {
+          "action_id": "10.action_1",
+          "action_type": "SITREP",
+          "unstructured": "Go to the next room",
+          "threat_state": null,
+          "parameters": null,
+          "justification": null,
+          "kdma_association": null
+        }
+      ]
+    }
+  },
+  {
+    "input": {
+      "scenario_id": "search_vs_stay",
+      "full_state": {
+        "unstructured": "You are a medic at the scene where there may be multiple casualties. You are treating a patient. They have a gunshot wound to the abdomen. You have slowed the bleeding by packing the wound. They are conscious with fast breathing and fast pulse. You hear shouts from the next room, with at least one person screaming for help. What do you do?",
+        "meta_info": {
+          "scene_id": "11"
+        },
+        "scenario_complete": false,
+        "mission": null,
+        "environment": {
+          "sim_environment": {
+            "unstructured": "",
+            "type": "triage",
+            "weather": null,
+            "terrain": null,
+            "flora": null,
+            "fauna": null,
+            "temperature": null,
+            "humidity": null,
+            "lighting": null,
+            "visibility": null,
+            "noise_ambient": null,
+            "noise_peak": null
+          },
+          "decision_environment": {
+            "unstructured": "",
+            "aid": null,
+            "movement_restriction": null,
+            "sound_restriction": null,
+            "oxygen_levels": null,
+            "population_density": null,
+            "injury_triggers": null,
+            "air_quality": null,
+            "city_infrastructure": null
+          }
+        },
+        "threat_state": null,
+        "characters": [],
+        "events": [],
+        "supplies": []
+      },
+      "state": "You are a medic at the scene where there may be multiple casualties. You are treating a patient. They have a gunshot wound to the abdomen. You have slowed the bleeding by packing the wound. They are conscious with fast breathing and fast pulse. You hear shouts from the next room, with at least one person screaming for help. What do you do?",
+      "choices": [
+        {
+          "action_id": "11.action_0",
+          "action_type": "SITREP",
+          "unstructured": "Stay with the current patient",
+          "threat_state": null,
+          "parameters": null,
+          "justification": null,
+          "kdma_association": null
+        },
+        {
+          "action_id": "11.action_1",
+          "action_type": "SITREP",
+          "unstructured": "Go to the next room",
+          "threat_state": null,
+          "parameters": null,
+          "justification": null,
+          "kdma_association": null
+        }
+      ]
+    }
+  },
+  {
+    "input": {
+      "scenario_id": "search_vs_stay",
+      "full_state": {
+        "unstructured": "You are a medic at the scene where there may be multiple casualties. You are treating a patient. The patient has multiple stab wounds to the chest/sternum. There is slow bleeding and no spurting from their wounds. You hear screams and crying from another room, but no recognizable words. What do you do?",
+        "meta_info": {
+          "scene_id": "12"
+        },
+        "scenario_complete": false,
+        "mission": null,
+        "environment": {
+          "sim_environment": {
+            "unstructured": "",
+            "type": "triage",
+            "weather": null,
+            "terrain": null,
+            "flora": null,
+            "fauna": null,
+            "temperature": null,
+            "humidity": null,
+            "lighting": null,
+            "visibility": null,
+            "noise_ambient": null,
+            "noise_peak": null
+          },
+          "decision_environment": {
+            "unstructured": "",
+            "aid": null,
+            "movement_restriction": null,
+            "sound_restriction": null,
+            "oxygen_levels": null,
+            "population_density": null,
+            "injury_triggers": null,
+            "air_quality": null,
+            "city_infrastructure": null
+          }
+        },
+        "threat_state": null,
+        "characters": [],
+        "events": [],
+        "supplies": []
+      },
+      "state": "You are a medic at the scene where there may be multiple casualties. You are treating a patient. The patient has multiple stab wounds to the chest/sternum. There is slow bleeding and no spurting from their wounds. You hear screams and crying from another room, but no recognizable words. What do you do?",
+      "choices": [
+        {
+          "action_id": "12.action_0",
+          "action_type": "SITREP",
+          "unstructured": "Stay with the current patient",
+          "threat_state": null,
+          "parameters": null,
+          "justification": null,
+          "kdma_association": null
+        },
+        {
+          "action_id": "12.action_1",
+          "action_type": "SITREP",
+          "unstructured": "Go to the next room",
+          "threat_state": null,
+          "parameters": null,
+          "justification": null,
+          "kdma_association": null
+        }
+      ]
+    }
+  },
+  {
+    "input": {
+      "scenario_id": "search_vs_stay",
+      "full_state": {
+        "unstructured": "You are a medic at the scene where there may be multiple casualties. You are treating a patient. The patient has a partial foot amputation. You have stopped the bleeding with a tourniquet. They are conscious with normal breathing and pulse. You hear screams and crying from another room, but no recognizable words. What do you do?",
+        "meta_info": {
+          "scene_id": "13"
+        },
+        "scenario_complete": false,
+        "mission": null,
+        "environment": {
+          "sim_environment": {
+            "unstructured": "",
+            "type": "triage",
+            "weather": null,
+            "terrain": null,
+            "flora": null,
+            "fauna": null,
+            "temperature": null,
+            "humidity": null,
+            "lighting": null,
+            "visibility": null,
+            "noise_ambient": null,
+            "noise_peak": null
+          },
+          "decision_environment": {
+            "unstructured": "",
+            "aid": null,
+            "movement_restriction": null,
+            "sound_restriction": null,
+            "oxygen_levels": null,
+            "population_density": null,
+            "injury_triggers": null,
+            "air_quality": null,
+            "city_infrastructure": null
+          }
+        },
+        "threat_state": null,
+        "characters": [],
+        "events": [],
+        "supplies": []
+      },
+      "state": "You are a medic at the scene where there may be multiple casualties. You are treating a patient. The patient has a partial foot amputation. You have stopped the bleeding with a tourniquet. They are conscious with normal breathing and pulse. You hear screams and crying from another room, but no recognizable words. What do you do?",
+      "choices": [
+        {
+          "action_id": "13.action_0",
+          "action_type": "SITREP",
+          "unstructured": "Stay with the current patient",
+          "threat_state": null,
+          "parameters": null,
+          "justification": null,
+          "kdma_association": null
+        },
+        {
+          "action_id": "13.action_1",
+          "action_type": "SITREP",
+          "unstructured": "Go to the next room",
+          "threat_state": null,
+          "parameters": null,
+          "justification": null,
+          "kdma_association": null
+        }
+      ]
+    }
+  },
+  {
+    "input": {
+      "scenario_id": "search_vs_stay",
+      "full_state": {
+        "unstructured": "You are a medic at the scene where there may be multiple casualties. You are treating a patient. The patient has a compound fracture of their leg and burns to their arms. You hear screams and crying from another room, but no recognizable words. What do you do?",
+        "meta_info": {
+          "scene_id": "14"
+        },
+        "scenario_complete": false,
+        "mission": null,
+        "environment": {
+          "sim_environment": {
+            "unstructured": "",
+            "type": "triage",
+            "weather": null,
+            "terrain": null,
+            "flora": null,
+            "fauna": null,
+            "temperature": null,
+            "humidity": null,
+            "lighting": null,
+            "visibility": null,
+            "noise_ambient": null,
+            "noise_peak": null
+          },
+          "decision_environment": {
+            "unstructured": "",
+            "aid": null,
+            "movement_restriction": null,
+            "sound_restriction": null,
+            "oxygen_levels": null,
+            "population_density": null,
+            "injury_triggers": null,
+            "air_quality": null,
+            "city_infrastructure": null
+          }
+        },
+        "threat_state": null,
+        "characters": [],
+        "events": [],
+        "supplies": []
+      },
+      "state": "You are a medic at the scene where there may be multiple casualties. You are treating a patient. The patient has a compound fracture of their leg and burns to their arms. You hear screams and crying from another room, but no recognizable words. What do you do?",
+      "choices": [
+        {
+          "action_id": "14.action_0",
+          "action_type": "SITREP",
+          "unstructured": "Stay with the current patient",
+          "threat_state": null,
+          "parameters": null,
+          "justification": null,
+          "kdma_association": null
+        },
+        {
+          "action_id": "14.action_1",
+          "action_type": "SITREP",
+          "unstructured": "Go to the next room",
+          "threat_state": null,
+          "parameters": null,
+          "justification": null,
+          "kdma_association": null
+        }
+      ]
+    }
+  },
+  {
+    "input": {
+      "scenario_id": "search_vs_stay",
+      "full_state": {
+        "unstructured": "You are a medic at the scene where there may be multiple casualties. You are treating a patient. They have a gunshot wound to the abdomen. You have slowed the bleeding by packing the wound. They are conscious with fast breathing and fast pulse. You hear screams and crying from another room, but no recognizable words. What do you do?",
+        "meta_info": {
+          "scene_id": "15"
+        },
+        "scenario_complete": false,
+        "mission": null,
+        "environment": {
+          "sim_environment": {
+            "unstructured": "",
+            "type": "triage",
+            "weather": null,
+            "terrain": null,
+            "flora": null,
+            "fauna": null,
+            "temperature": null,
+            "humidity": null,
+            "lighting": null,
+            "visibility": null,
+            "noise_ambient": null,
+            "noise_peak": null
+          },
+          "decision_environment": {
+            "unstructured": "",
+            "aid": null,
+            "movement_restriction": null,
+            "sound_restriction": null,
+            "oxygen_levels": null,
+            "population_density": null,
+            "injury_triggers": null,
+            "air_quality": null,
+            "city_infrastructure": null
+          }
+        },
+        "threat_state": null,
+        "characters": [],
+        "events": [],
+        "supplies": []
+      },
+      "state": "You are a medic at the scene where there may be multiple casualties. You are treating a patient. They have a gunshot wound to the abdomen. You have slowed the bleeding by packing the wound. They are conscious with fast breathing and fast pulse. You hear screams and crying from another room, but no recognizable words. What do you do?",
+      "choices": [
+        {
+          "action_id": "15.action_0",
+          "action_type": "SITREP",
+          "unstructured": "Stay with the current patient",
+          "threat_state": null,
+          "parameters": null,
+          "justification": null,
+          "kdma_association": null
+        },
+        {
+          "action_id": "15.action_1",
+          "action_type": "SITREP",
+          "unstructured": "Go to the next room",
+          "threat_state": null,
+          "parameters": null,
+          "justification": null,
+          "kdma_association": null
+        }
+      ]
+    }
+  },
+  {
+    "input": {
+      "scenario_id": "search_vs_stay",
+      "full_state": {
+        "unstructured": "You are a medic at the scene where there may be multiple casualties. You are treating a patient. The patient has multiple stab wounds to the chest/sternum. There is slow bleeding and no spurting from their wounds. They have no pulse and no breathing. You suspect there are other casualties here. No one else is available to search. What do you do?",
+        "meta_info": {
+          "scene_id": "16"
+        },
+        "scenario_complete": false,
+        "mission": null,
+        "environment": {
+          "sim_environment": {
+            "unstructured": "",
+            "type": "triage",
+            "weather": null,
+            "terrain": null,
+            "flora": null,
+            "fauna": null,
+            "temperature": null,
+            "humidity": null,
+            "lighting": null,
+            "visibility": null,
+            "noise_ambient": null,
+            "noise_peak": null
+          },
+          "decision_environment": {
+            "unstructured": "",
+            "aid": null,
+            "movement_restriction": null,
+            "sound_restriction": null,
+            "oxygen_levels": null,
+            "population_density": null,
+            "injury_triggers": null,
+            "air_quality": null,
+            "city_infrastructure": null
+          }
+        },
+        "threat_state": null,
+        "characters": [],
+        "events": [],
+        "supplies": []
+      },
+      "state": "You are a medic at the scene where there may be multiple casualties. You are treating a patient. The patient has multiple stab wounds to the chest/sternum. There is slow bleeding and no spurting from their wounds. They have no pulse and no breathing. You suspect there are other casualties here. No one else is available to search. What do you do?",
+      "choices": [
+        {
+          "action_id": "16.action_0",
+          "action_type": "SITREP",
+          "unstructured": "Stay with the current patient",
+          "threat_state": null,
+          "parameters": null,
+          "justification": null,
+          "kdma_association": null
+        },
+        {
+          "action_id": "16.action_1",
+          "action_type": "SITREP",
+          "unstructured": "Go to the next room",
+          "threat_state": null,
+          "parameters": null,
+          "justification": null,
+          "kdma_association": null
+        }
+      ]
+    }
+  },
+  {
+    "input": {
+      "scenario_id": "search_vs_stay",
+      "full_state": {
+        "unstructured": "You are a medic at the scene where there may be multiple casualties. You are treating a patient. The patient has a partial foot amputation. You have stopped the bleeding with a tourniquet. They are conscious with normal breathing and pulse. You suspect there are other casualties here. No one else is available to search. What do you do?",
+        "meta_info": {
+          "scene_id": "17"
+        },
+        "scenario_complete": false,
+        "mission": null,
+        "environment": {
+          "sim_environment": {
+            "unstructured": "",
+            "type": "triage",
+            "weather": null,
+            "terrain": null,
+            "flora": null,
+            "fauna": null,
+            "temperature": null,
+            "humidity": null,
+            "lighting": null,
+            "visibility": null,
+            "noise_ambient": null,
+            "noise_peak": null
+          },
+          "decision_environment": {
+            "unstructured": "",
+            "aid": null,
+            "movement_restriction": null,
+            "sound_restriction": null,
+            "oxygen_levels": null,
+            "population_density": null,
+            "injury_triggers": null,
+            "air_quality": null,
+            "city_infrastructure": null
+          }
+        },
+        "threat_state": null,
+        "characters": [],
+        "events": [],
+        "supplies": []
+      },
+      "state": "You are a medic at the scene where there may be multiple casualties. You are treating a patient. The patient has a partial foot amputation. You have stopped the bleeding with a tourniquet. They are conscious with normal breathing and pulse. You suspect there are other casualties here. No one else is available to search. What do you do?",
+      "choices": [
+        {
+          "action_id": "17.action_0",
+          "action_type": "SITREP",
+          "unstructured": "Stay with the current patient",
+          "threat_state": null,
+          "parameters": null,
+          "justification": null,
+          "kdma_association": null
+        },
+        {
+          "action_id": "17.action_1",
+          "action_type": "SITREP",
+          "unstructured": "Go to the next room",
+          "threat_state": null,
+          "parameters": null,
+          "justification": null,
+          "kdma_association": null
+        }
+      ]
+    }
+  },
+  {
+    "input": {
+      "scenario_id": "search_vs_stay",
+      "full_state": {
+        "unstructured": "You are a medic at the scene where there may be multiple casualties. You are treating a patient. The patient has a compound fracture of their leg and burns to their arms. You suspect there are other casualties here. No one else is available to search. What do you do?",
+        "meta_info": {
+          "scene_id": "18"
+        },
+        "scenario_complete": false,
+        "mission": null,
+        "environment": {
+          "sim_environment": {
+            "unstructured": "",
+            "type": "triage",
+            "weather": null,
+            "terrain": null,
+            "flora": null,
+            "fauna": null,
+            "temperature": null,
+            "humidity": null,
+            "lighting": null,
+            "visibility": null,
+            "noise_ambient": null,
+            "noise_peak": null
+          },
+          "decision_environment": {
+            "unstructured": "",
+            "aid": null,
+            "movement_restriction": null,
+            "sound_restriction": null,
+            "oxygen_levels": null,
+            "population_density": null,
+            "injury_triggers": null,
+            "air_quality": null,
+            "city_infrastructure": null
+          }
+        },
+        "threat_state": null,
+        "characters": [],
+        "events": [],
+        "supplies": []
+      },
+      "state": "You are a medic at the scene where there may be multiple casualties. You are treating a patient. The patient has a compound fracture of their leg and burns to their arms. You suspect there are other casualties here. No one else is available to search. What do you do?",
+      "choices": [
+        {
+          "action_id": "18.action_0",
+          "action_type": "SITREP",
+          "unstructured": "Stay with the current patient",
+          "threat_state": null,
+          "parameters": null,
+          "justification": null,
+          "kdma_association": null
+        },
+        {
+          "action_id": "18.action_1",
+          "action_type": "SITREP",
+          "unstructured": "Go to the next room",
+          "threat_state": null,
+          "parameters": null,
+          "justification": null,
+          "kdma_association": null
+        }
+      ]
+    }
+  },
+  {
+    "input": {
+      "scenario_id": "search_vs_stay",
+      "full_state": {
+        "unstructured": "You are a medic at the scene where there may be multiple casualties. You are treating a patient. They have a gunshot wound to the abdomen. You have slowed the bleeding by packing the wound. They are conscious with fast breathing and fast pulse. You suspect there are other casualties here. No one else is available to search. What do you do?",
+        "meta_info": {
+          "scene_id": "19"
+        },
+        "scenario_complete": false,
+        "mission": null,
+        "environment": {
+          "sim_environment": {
+            "unstructured": "",
+            "type": "triage",
+            "weather": null,
+            "terrain": null,
+            "flora": null,
+            "fauna": null,
+            "temperature": null,
+            "humidity": null,
+            "lighting": null,
+            "visibility": null,
+            "noise_ambient": null,
+            "noise_peak": null
+          },
+          "decision_environment": {
+            "unstructured": "",
+            "aid": null,
+            "movement_restriction": null,
+            "sound_restriction": null,
+            "oxygen_levels": null,
+            "population_density": null,
+            "injury_triggers": null,
+            "air_quality": null,
+            "city_infrastructure": null
+          }
+        },
+        "threat_state": null,
+        "characters": [],
+        "events": [],
+        "supplies": []
+      },
+      "state": "You are a medic at the scene where there may be multiple casualties. You are treating a patient. They have a gunshot wound to the abdomen. You have slowed the bleeding by packing the wound. They are conscious with fast breathing and fast pulse. You suspect there are other casualties here. No one else is available to search. What do you do?",
+      "choices": [
+        {
+          "action_id": "19.action_0",
+          "action_type": "SITREP",
+          "unstructured": "Stay with the current patient",
+          "threat_state": null,
+          "parameters": null,
+          "justification": null,
+          "kdma_association": null
+        },
+        {
+          "action_id": "19.action_1",
+          "action_type": "SITREP",
+          "unstructured": "Go to the next room",
+          "threat_state": null,
+          "parameters": null,
+          "justification": null,
+          "kdma_association": null
+        }
+      ]
+    }
+  }
+]

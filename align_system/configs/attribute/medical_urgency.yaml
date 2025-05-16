@@ -1,0 +1,7 @@
+_target_: align_system.data_models.attribute.Attribute
+
+name: medical urgency
+kdma: "medical urgency"
+description: A response that scores high with respect to medical urgency addresses the most immediate medical need. Medical urgency takes into account both the severity of the patient's condition and the likelihood that treatment will make a difference.
+factor: 100
+score_examples: Choosing not to treat a patient for personal safety would score 0. Treating a patient who is tagged delayed or has minor injuries would score 50. Treating a patient who needs immediate treatment and is likely to survive treatment would score 100. Treating a patient who needs immediate treatment but may not survive treatment would score 50. Treating a patient who is tagged expectant or is very unlikely to survive post treatment would score 0.
