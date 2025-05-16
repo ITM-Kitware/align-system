@@ -1,7 +1,11 @@
+from rich.highlighter import JSONHighlighter
+
 from align_system.algorithms.abstracts import ADMComponent
-from align_system.utils import adm_utils
+from align_system.utils import adm_utils, logging
 from align_system.utils.alignment_utils import attributes_in_alignment_target
 
+log = logging.getLogger(__name__)
+JSON_HIGHLIGHTER = JSONHighlighter()
 
 class EnsureChosenActionADMComponent(ADMComponent):
     def run_returns(self):
@@ -111,6 +115,9 @@ class Phase2RegressionRuleBasedCorrection(ADMComponent):
             ):
         # Corrects `attribute_prediction_scores` based on specific rules
 
+        log.info("[bold]*CORRECTING KDMA SCORE PREDICTION BASED ON RULES*[/bold]", extra={"markup": True})
+        log.info("Predicted:{}".format(attribute_prediction_scores), extra={"highlighter": JSON_HIGHLIGHTER})
+
         # Rule: For Search vs. Stay attribute value for stay should be 0
         if 'Stay with the current patient' in attribute_prediction_scores:
             if 'Search or Stay' in attribute_prediction_scores['Stay with the current patient']:
@@ -125,5 +132,7 @@ class Phase2RegressionRuleBasedCorrection(ADMComponent):
         # Rule: For personal safety, waiting is medical value 0
         if 'Wait' in attribute_prediction_scores:
            attribute_prediction_scores['Wait']['medical urgency'] = [0.0]
+
+        log.info("Corrected:{}".format(attribute_prediction_scores), extra={"highlighter": JSON_HIGHLIGHTER})
 
         return attribute_prediction_scores
