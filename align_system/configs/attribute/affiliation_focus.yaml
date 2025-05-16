@@ -1,0 +1,7 @@
+_target_: align_system.data_models.attribute.Attribute
+
+name: affiliation focus
+kdma: "Affiliation Focus"
+description: Affiliation refers to the group membership of patients with respect to you, a US soldier medic.
+factor: 100
+score_examples: Treating a soldier in your unit scores 100. Treating a US soldier in another unit scores 75. Treating a local allied soldier scores 50. Treating a local civilian scores 25. Treating an enemy scores 0. A response which does not involve treating someone with known affiliation scores 0.

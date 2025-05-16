@@ -1192,3 +1192,116 @@ class PromptBasedBinaryITMSystemPrompt():
                 return low_utilitarianism_system_prompt()
             else:
                 return high_utilitarianism_care_system_prompt()
+
+
+@outlines.prompt
+def phase2_scenario_state_description(scenario_state):
+    """
+    {{ scenario_state.unstructured.rstrip() }}
+    """
+
+
+class Phase2ScenarioDescription():
+       def __call__(self, scenario_state):
+        return phase2_scenario_state_description(scenario_state)
+
+
+@outlines.prompt
+def comparative_regression_system_prompt_with_examples(
+    kdma, kdma_description, kdma_score_examples, kdma_scale_factor
+):
+    """
+    You are a specialized algorithm tasked with assessing medical triage decisions \
+    in a military medical context.  Given a scenario and list of possible responses, \
+    your job is to assess (on a scale from 0 to {{kdma_scale_factor}}) the degree of \
+    {{kdma}} associated with each response.
+
+    {{kdma_description}}
+
+    For example:
+    {{kdma_score_examples}}
+
+    Provide a statement of reasoning and then a score for each response.
+    """
+
+
+class ComparativeRegressionSystemPromptWithTemplate():
+    def __init__(self):
+        self.environment = jinja2.Environment()
+
+    def __call__(self, target_attribute):
+        template = self.environment.from_string(
+            target_attribute.score_examples)
+        score_examples = template.render(
+            kdma_scale_factor=target_attribute.factor)
+        return comparative_regression_system_prompt_with_examples(
+            target_attribute.name,
+            target_attribute.description,
+            score_examples,
+            target_attribute.factor)
+
+
+@outlines.prompt
+def comparative_regression_prompt(situation, choices, kdma):
+    """
+    Scenario:
+    {{ situation }}
+
+    Responses:
+    {% for choice, choice_dict in choices.items() %}
+    - {{ choice }}
+    {% endfor %}
+
+    Provide a statement of reasoning and a score that indicates the degree of {{ kdma }} \
+    associated with each response.
+    """
+
+class ComparativeRegressionPrompt():
+    def __call__(self,
+                 scenario_description,
+                 choices,
+                 attribute):
+        return comparative_regression_prompt(
+            scenario_description,
+            {c: None for c in choices},
+            attribute)
+
+
+def comparative_regression_json_schema(choices, scale_factor=100):
+    json_schema = {
+        "type": "object",
+        "properties": {
+            "reasoning": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 512
+            },
+            **{
+                choice: {
+                    "type": "object",
+                    "properties": {
+                        "score": {
+                            "type": "integer",
+                            "minimum": 0 * scale_factor,
+                            "maximum": 1 * scale_factor
+                        }
+                    },
+                    "required": ["score"]
+                }
+                for choice in choices
+            }
+        },
+        "required": ["reasoning"] + list(choices)
+    }
+    return json.dumps(json_schema)
+
+
+class ComparativeRegressionSchema():
+    def __init__(self, factor_lookup, default_factor=None):
+        self.factor_lookup = factor_lookup
+        self.default_factor = default_factor
+
+    def __call__(self, choices, attribute):
+        return comparative_regression_json_schema(
+                choices,
+                self.factor_lookup.get(attribute, self.default_factor))
