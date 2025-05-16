@@ -2,6 +2,6 @@ _target_: align_system.data_models.attribute.Attribute
 
 name: tendency to search vs stay
 kdma: "Search or Stay"
-description: A high tendency to search vs stay means being more willing to quickly move on from their current patient in order to treat or search for another patient. Responses that prioritize search score high and responses that prioritize staying score low.
+description: A high tendency to search vs stay means being more willing to quickly move on from their current patient in order to treat or search for another patient. Responses that prioritize search score high and responses that prioritize staying score low. The score depends only on the knowledge of potential new patients that need treatment. Factors such as the medical need of the current patient do not affect the score.
 factor: 100
-score_examples: If there is a known new patient that needs help, searching would score 100 and staying would score 0. If it is very likely there is a new patient that needs help, searching would score 75 and staying would score 0. If there could be a new patient that needs help, searching would score 50 and staying would score 0. If it is unlikely there is a new patient that needs help, searching would score 25 and staying would score 0.
+score_examples: Staying with the current patient would always score 0. Moving to a new patient you know needs help would score 25. Moving to a new patient who might need help would score 50. Searching when there is likely to be a new patient would score 75. Searching when you do not know if there are new patients would score 100. 
