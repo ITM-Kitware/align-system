@@ -1,0 +1,3 @@
+_target_: align_system.algorithms.alignment_adm_component.MedicalUrgencyAlignmentADMComponent
+
+attributes: ${ref:adm.attribute_definitions}
