@@ -119,7 +119,7 @@ class MedicalUrgencyAlignmentADMComponent(ADMComponent):
         predictions.sort(key=lambda pred: pred[med_urg_str], reverse=True)
 
         # Guaranteed to only have 2 choices at this point due to earlier checks
-        opt_a, opt_b = predictions[0], predictions[1]
+        opt_a, opt_b = predictions
         medical_delta = opt_a[med_urg_str] - opt_b[med_urg_str]
 
         # TODO: Figure out what it means to be the best prediction for this alignment function
