@@ -127,7 +127,7 @@ class MedicalUrgencyAlignmentADMComponent(ADMComponent):
 
         # Guaranteed to only have 1 attribute due to earlier checks
         attr = target_kdmas[0]["kdma"]
-        attribute_delta = opt_a["kdmas"][attr] - opt_b["kdmas"][attr]
+        attribute_delta = opt_b["kdmas"][attr] - opt_a["kdmas"][attr]
 
         # Special conditions
         if medical_delta == 0:
@@ -140,8 +140,8 @@ class MedicalUrgencyAlignmentADMComponent(ADMComponent):
                 log.explain("Patients predicted to have same attribute value, randomly choosing")
                 return (random.choice([opt_a["choice"], opt_b["choice"]]), best_sample_idx)
 
-            return (opt_a["choice"] if attribute_delta > 0 else opt_b["choice"], best_sample_idx)
-        elif attribute_delta >= 0:
+            return (opt_b["choice"] if attribute_delta > 0 else opt_a["choice"], best_sample_idx)
+        elif attribute_delta <= 0:
             log.explain(
                 f"Choice ({opt_a['choice']}) is higher in both medical AND attribute, ignoring midpoint equation"
             )
