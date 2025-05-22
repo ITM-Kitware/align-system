@@ -64,17 +64,27 @@ class MedicalUrgencyAlignmentADMComponent(ADMComponent):
     def run_returns(self):
         return ('chosen_choice', 'best_sample_idx')
 
-    def _midpoint_eqn(self, medical_delta, attribute_delta):
-        return 0.5 + (medical_delta - attribute_delta)/2
+    def _midpoint_eqn(self, medical_delta, attribute_delta, total_weight=2):
+        # Adding attribute_delta instead of subtracting because we factored out the negative when summing across KDMAs
+        return 0.5 + (medical_delta + attribute_delta)/total_weight
 
     def run(
         self,
         attribute_prediction_scores,
         alignment_target,
+        attribute_relevance=None,
     ):
-        """ Align based on medical urgency/KDMA tradeoff """
+        """
+        Align based on medical urgency/KDMA tradeoff
 
-        med_urg_str  = "medical"
+        attribute_prediction_scores: dict[str, dict[str, float | list[float]]]
+            Dictionary of choices mapped to KMDA value predictions, including medical
+            urgency prediction
+        alignment_target: list of dictionaries of alignment target info
+        attribute_relevance: dict[str, float | list[float]]
+            Dictionary of probe level KDMA relevance predictions
+        """
+        med_urg_str = "medical"
 
         if alignment_target is None:
             raise RuntimeError(
@@ -85,13 +95,21 @@ class MedicalUrgencyAlignmentADMComponent(ADMComponent):
             alignment_target,
             self.attributes)
         target_kdmas = [dict(t) for t in target_kdmas]
-        if len(target_kdmas) > 1:
-            raise NotImplementedError("Multi-kdma alignment has not yet been implemented")
 
         def _handle_single_value(predictions):
             if not isinstance(predictions, list):
                 return [predictions]
             return predictions
+
+        # Take a dictionary of predictions (with KDMAs as key) and return average values per KDMA
+        def _get_avg_pred(all_predictions):
+            pred_dict_out = {}
+            for target_kdma in target_kdmas:
+                kdma = target_kdma["kdma"]
+                preds = _handle_single_value(all_predictions[kdma])
+                pred_dict_out[kdma] = sum(preds) / len(preds)
+
+            return pred_dict_out
 
         choices = list(attribute_prediction_scores.keys())
         if len(choices) != 2:
@@ -100,7 +118,7 @@ class MedicalUrgencyAlignmentADMComponent(ADMComponent):
         # Compute averages of predicted values
         predictions = []
         for choice, all_kdma_predictions in attribute_prediction_scores.items():
-            pred_dict = { "choice": choice }
+            pred_dict = {"choice": choice}
 
             # Get medical urgency
             if med_urg_str not in all_kdma_predictions:
@@ -109,28 +127,34 @@ class MedicalUrgencyAlignmentADMComponent(ADMComponent):
             pred_dict[med_urg_str] = sum(medical_urgency_preds) / len(medical_urgency_preds)
 
             # Get KDMA predictions relevant to target
-            kdma_pred_dict = {}
-            for target_kdma in target_kdmas:
-                kdma = target_kdma["kdma"]
-                kdma_preds = _handle_single_value(all_kdma_predictions[kdma])
-                kdma_pred_dict[kdma] = sum(kdma_preds) / len(kdma_preds)
-            pred_dict["kdmas"] = kdma_pred_dict
+            pred_dict["kdmas"] = _get_avg_pred(all_kdma_predictions)
 
             predictions.append(pred_dict)
+
+        # Get relevance predictions relevant to target
+        probe_relevance = {}
+        if attribute_relevance is not None:
+            probe_relevance = _get_avg_pred(attribute_relevance[choice])
 
         # Sort by medical urgency (descending)
         predictions.sort(key=lambda pred: pred[med_urg_str], reverse=True)
 
         # Guaranteed to only have 2 choices at this point due to earlier checks
         opt_a, opt_b = predictions
-        medical_delta = opt_a[med_urg_str] - opt_b[med_urg_str]
+        medical_weight = probe_relevance[med_urg_str] if med_urg_str in probe_relevance else 1.0
+        medical_delta = medical_weight * (opt_a[med_urg_str] - opt_b[med_urg_str])
 
         # TODO: Figure out what it means to be the best prediction for this alignment function
         best_sample_idx = 0
 
-        # Guaranteed to only have 1 attribute due to earlier checks
-        attr = target_kdmas[0]["kdma"]
-        attribute_delta = opt_b["kdmas"][attr] - opt_a["kdmas"][attr]
+        # Sum up attribute tradeoff (factored out negative)
+        total_weight = medical_weight
+        attribute_delta = 0
+        for target_kdma in target_kdmas:
+            kdma = target_kdma["kdma"]
+            attr_weight = probe_relevance[kdma] if kdma in probe_relevance else 1.0
+            total_weight += attr_weight
+            attribute_delta -= attr_weight * (opt_b["kdmas"][kdma] - opt_a["kdmas"][kdma])
 
         # Special conditions
         if medical_delta == 0:
@@ -143,15 +167,15 @@ class MedicalUrgencyAlignmentADMComponent(ADMComponent):
                 log.explain("Patients predicted to have same attribute value, randomly choosing")
                 return (random.choice([opt_a["choice"], opt_b["choice"]]), best_sample_idx)
 
-            return (opt_b["choice"] if attribute_delta > 0 else opt_a["choice"], best_sample_idx)
-        elif attribute_delta <= 0:
+            return (opt_b["choice"] if attribute_delta < 0 else opt_a["choice"], best_sample_idx)
+        elif attribute_delta >= 0:  # Positive because we factored out the negative when summing across KDMAs
             log.explain(
                 f"Choice ({opt_a['choice']}) is higher in both medical AND attribute, ignoring midpoint equation"
             )
             return (opt_a["choice"], best_sample_idx)
 
         # Equation from ADEPT
-        probe_midpoint = self._midpoint_eqn(medical_delta, attribute_delta)
+        probe_midpoint = self._midpoint_eqn(medical_delta, attribute_delta, total_weight)
         log.info(f"Probe Midpoint: {probe_midpoint}")
 
         attr_target = target_kdmas[0]["value"]
