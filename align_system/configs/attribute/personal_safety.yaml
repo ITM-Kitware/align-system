@@ -1,7 +1,7 @@
 _target_: align_system.data_models.attribute.Attribute
 
 name: personal safety
-kdma: "Personal Safety"
+kdma: "personal_safety"
 description: A high scoring personal safety response has low risk. Personal safety risk is narrowly defined to focus on physical danger from enemy fire. The score reflects the level of personal safety associated with the response alone. Factors such as the medical need of the patient do not affect the score.
 factor: 100
 score_examples: Staying in a secure location scores 100. Moving to a close exposed area when it is likely safe scores 75. Moving to a far exposed area when it is likely safe scores 50. Moving to a close exposed area when it may be unsafe scores 25. Moving to a far exposed area when it is unsafe scores 0.
