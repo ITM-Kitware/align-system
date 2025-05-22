@@ -27,11 +27,11 @@ defaults:
   - _self_
 
 attribute_definitions:
-  Medical Urgency: ${adm.mu}
-  Affiliation Focus: ${adm.af}
-  Merit Focus: ${adm.mf}
-  Search or Stay: ${adm.ss}
-  Personal Safety: ${adm.ps}
+  medical: ${adm.mu}
+  affiliation: ${adm.af}
+  merit: ${adm.mf}
+  search: ${adm.ss}
+  personal_safety: ${adm.ps}
 
 step_definitions:
   comparative_regression:

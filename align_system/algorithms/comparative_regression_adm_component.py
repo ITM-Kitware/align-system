@@ -51,7 +51,7 @@ class ComparativeRegressionADMComponent(ADMComponent):
             target_attribute_names = attributes_in_alignment_target(alignment_target)
 
         if self.predict_medical_urgency:
-            target_attribute_names = ['Medical Urgency'] + target_attribute_names
+            target_attribute_names = ['medical'] + target_attribute_names
 
         target_attributes = [self.attributes[n] for n in target_attribute_names]
 

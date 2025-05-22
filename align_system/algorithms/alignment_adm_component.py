@@ -71,7 +71,7 @@ class MedicalUrgencyAlignmentADMComponent(ADMComponent):
     ):
         """ Align based on medical urgency/KDMA tradeoff """
 
-        med_urg_str  = "medical urgency"
+        med_urg_str  = "medical"
 
         if alignment_target is None:
             raise RuntimeError(
