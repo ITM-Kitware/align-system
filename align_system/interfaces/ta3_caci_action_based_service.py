@@ -21,6 +21,7 @@ class TA3CACIActionBasedServiceInterface(Interface):
                  api_endpoint='http://127.0.0.1:8080',
                  session_type='eval',
                  scenario_ids=[],
+                 domain='p2triage',
                  training_session=None):
         self.api_endpoint = api_endpoint
         # Append a UUID onto the end of our username, as the TA3
@@ -41,6 +42,7 @@ class TA3CACIActionBasedServiceInterface(Interface):
         self.connection = swagger_client.ItmTa2EvalApi(api_client=api_client)
 
         start_session_params = {'adm_name': self.username,
+                                'domain': domain,
                                 'session_type':  session_type}
 
         if self.training_session is not None:
@@ -153,7 +155,7 @@ class TA3CACIActionBasedScenario(ActionBasedScenarioInterface):
 
         updated_state = take_or_intend(
             session_id=self.session_id,
-            body=action)
+            action=action)
 
         return updated_state
 
