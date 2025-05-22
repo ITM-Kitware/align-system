@@ -1,7 +1,7 @@
 _target_: align_system.data_models.attribute.Attribute
 
 name: medical urgency
-kdma: "medical urgency"
+kdma: "medical"
 description: Medical urgency does not account for any extraneous factors such as affiliation or merit. The medical urgency score depends only on the severity of the patients physical condition and the likelihood of them benefiting from treatment.
 factor: 100
 score_examples: A response that does not benefit any patient would score 0. Prioritizing a patient who is tagged delayed or has minor injuries would score 50. Prioritizing a patient who needs immediate treatment and is likely to survive treatment would score 100. Prioritizing a patient who needs immediate treatment but may not survive treatment would score 50. Prioritizing a patient who is tagged expectant or is very unlikely to survive post treatment would score 0.

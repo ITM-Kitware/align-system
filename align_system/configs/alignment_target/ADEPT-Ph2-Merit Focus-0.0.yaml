@@ -2,5 +2,6 @@ _target_: swagger_client.models.AlignmentTarget
 
 id: ADEPT-Ph2-Merit Focus-0.0
 kdma_values:
-- kdma: Merit Focus
+- kdes: null
+  kdma: merit
   value: 0.0
