@@ -3,11 +3,19 @@ defaults:
   - /attribute@adm.personal_safety: personal_safety
   - /attribute@adm.search_or_stay: search_or_stay
   - override /adm: pipeline_kaleido
-  - override /interface: input_output_file
+  - override /interface: ta3
+
+interface:
+  session_type: adept
+  training_session: full
+  username: "pipeline_kaleido_test"
 
 adm:
   step_definitions:
     kaleido:
+      prompt_template:
+        _target_: align_system.prompt_engineering.outlines_prompts.KaleidoDefaultITMPh2Prompt
+
       kdma_descriptions_map:
         Personal Safety:
           name: Personal Safety
@@ -21,6 +29,19 @@ adm:
   attribute_definitions:
     Personal Safety: ${adm.personal_safety}
     Search or Stay: ${adm.search_or_stay}
+
+  instance:
+    steps:
+    # Reference the step instances we want to use in order
+    - ${ref:adm.step_definitions.format_choices}
+    - ${ref:adm.step_definitions.kaleido}
+    - ${ref:adm.step_definitions.rename_kaleido_relevance_variables}
+    - ${ref:adm.step_definitions.scalar_alignment}
+    - ${ref:adm.step_definitions.justification_from_reasonings}
+    # - ${ref:adm.step_definitions.action_parameter_completion}
+    - ${ref:adm.step_definitions.ensure_chosen_action}
+    - ${ref:adm.step_definitions.populate_choice_info}
+
     
 force_determinism: true
 align_to_target: true

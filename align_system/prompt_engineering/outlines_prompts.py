@@ -1,13 +1,34 @@
 import jinja2
 import outlines
 import json
-from swagger_client.models import (
-    InjuryStatusEnum,
-)
+from enum import Enum
+from typing_extensions import Self
 
 from align_system.utils.outlines_prompts_utils import (
     get_unique_structured_character_info,
     new_get_relevant_structured_character_info)
+
+
+# Copied from Phase1 evaluation client for backward compatability
+class InjuryStatusEnum(str, Enum):
+    """
+    Whether the injury is known prior- and post-assessment, and to what extent it's been treated
+    """
+
+    """
+    allowed enum values
+    """
+    HIDDEN = 'hidden'
+    DISCOVERABLE = 'discoverable'
+    VISIBLE = 'visible'
+    DISCOVERED = 'discovered'
+    PARTIALLY_TREATED = 'partially treated'
+    TREATED = 'treated'
+
+    @classmethod
+    def from_json(cls, json_str: str) -> Self:
+        """Create an instance of InjuryStatusEnum from a JSON string"""
+        return cls(json.loads(json_str))
 
 
 @outlines.prompt
@@ -977,6 +998,14 @@ def kaleido_default_itm_prompt(scenario_state,
     {% endfor %}
     """
 
+@outlines.prompt
+def kaleido_default_itm_ph2_prompt(scenario_state,
+                                   choice,
+                                   other_choices):
+    """
+    Choosing to "{{ choice }}" instead of "{{ other_choices|join('", "') }}".  In the context of the following scenario: {{ scenario_state.unstructured }}
+    """
+
 
 def opinion_qa_system_prompt(kdma, value):
     category, attribute = kdma.split('_')
@@ -1113,6 +1142,13 @@ class KaleidoDefaultITMPrompt():
         return kaleido_default_itm_prompt(scenario_state,
                                           choice,
                                           other_choices)
+
+
+class KaleidoDefaultITMPh2Prompt():
+    def __call__(self, scenario_state, choice, other_choices):
+        return kaleido_default_itm_ph2_prompt(scenario_state,
+                                              choice,
+                                              other_choices)
 
 
 class DefaultITMScenarioDescription():

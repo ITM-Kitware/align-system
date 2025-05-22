@@ -2,11 +2,11 @@ import copy
 import json
 
 from rich.highlighter import JSONHighlighter
-from swagger_client.models import (
-    ActionTypeEnum,
-    InjuryLocationEnum,
-    CharacterTagEnum
-)
+# from swagger_client.models import (
+#     ActionTypeEnum,
+#     InjuryLocationEnum,
+#     CharacterTagEnum
+# )
 
 from align_system.utils import logging
 from align_system.utils import adm_utils
