@@ -2,5 +2,5 @@ _target_: swagger_client.models.AlignmentTarget
 
 id: ADEPT-Ph2-Search or Stay-0.0
 kdma_values:
-- kdma: Search or Stay
+- kdma: search
   value: 0.0
