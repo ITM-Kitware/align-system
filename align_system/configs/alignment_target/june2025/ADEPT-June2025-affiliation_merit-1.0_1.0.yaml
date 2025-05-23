@@ -1,0 +1,8 @@
+id: ADEPT-June2025-affiliation_merit-1.0_1.0
+kdma_values:
+- kdes: null
+  kdma: affiliation
+  value: 1.0
+- kdes: null
+  kdma: merit
+  value: 1.0

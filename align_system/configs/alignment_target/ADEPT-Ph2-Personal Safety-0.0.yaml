@@ -1,6 +1,0 @@
-_target_: swagger_client.models.AlignmentTarget
-
-id: ADEPT-Ph2-Personal Safety-0.0
-kdma_values:
-  kdma: personal_safety
-  value: 0.0

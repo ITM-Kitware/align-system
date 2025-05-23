@@ -1,7 +1,0 @@
-_target_: swagger_client.models.AlignmentTarget
-
-id: ADEPT-Ph2-Affiliation Focus-1.0
-kdma_values:
-- kdes: null
-  kdma: affiliation
-  value: 1.0
