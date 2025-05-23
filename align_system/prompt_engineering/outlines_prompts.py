@@ -1,34 +1,12 @@
 import jinja2
 import outlines
 import json
-from enum import Enum
-from typing_extensions import Self
 
 from align_system.utils.outlines_prompts_utils import (
     get_unique_structured_character_info,
     new_get_relevant_structured_character_info)
-
-
-# Copied from Phase1 evaluation client for backward compatability
-class InjuryStatusEnum(str, Enum):
-    """
-    Whether the injury is known prior- and post-assessment, and to what extent it's been treated
-    """
-
-    """
-    allowed enum values
-    """
-    HIDDEN = 'hidden'
-    DISCOVERABLE = 'discoverable'
-    VISIBLE = 'visible'
-    DISCOVERED = 'discovered'
-    PARTIALLY_TREATED = 'partially treated'
-    TREATED = 'treated'
-
-    @classmethod
-    def from_json(cls, json_str: str) -> Self:
-        """Create an instance of InjuryStatusEnum from a JSON string"""
-        return cls(json.loads(json_str))
+from align_system.data_models.local_ph1_ta3_enums import (
+    InjuryStatusEnum)
 
 
 @outlines.prompt
