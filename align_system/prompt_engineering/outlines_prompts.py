@@ -1224,6 +1224,36 @@ class Phase2BaselinePrompt():
         return phase2_baseline_prompt(scenario_description, choices)
 
 
+def comparative_regression_system_prompt(
+    kdma, kdma_description, kdma_scale_factor
+):
+    """
+    You are a specialized algorithm tasked with assessing medical triage decisions \
+    in a military medical context.  Given a scenario and list of possible responses, \
+    your job is to assess (on a scale from 0 to {{kdma_scale_factor}}) the degree of \
+    {{kdma}} associated with each response.
+
+    {{kdma_description}}
+
+    Provide a statement of reasoning and then a score for each response.
+    """
+
+
+class ComparativeRegressionSystemPrompt():
+    def __init__(self):
+        self.environment = jinja2.Environment()
+
+    def __call__(self, target_attribute):
+        template = self.environment.from_string(
+            target_attribute.score_examples)
+        score_examples = template.render(
+            kdma_scale_factor=target_attribute.factor)
+        return comparative_regression_system_prompt(
+            target_attribute.name,
+            target_attribute.description,
+            target_attribute.factor)
+
+
 @outlines.prompt
 def comparative_regression_system_prompt_with_examples(
     kdma, kdma_description, kdma_score_examples, kdma_scale_factor

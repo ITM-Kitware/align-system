@@ -37,7 +37,8 @@ class ICLADMComponent(ADMComponent):
                  icl_generator_partial,
                  scenario_description_template,
                  prompt_template,
-                 attributes=None):
+                 attributes=None,
+                 predict_medical_urgency=False):
         self.icl_generator_partial = icl_generator_partial
         self.scenario_description_template = scenario_description_template
 
@@ -46,6 +47,7 @@ class ICLADMComponent(ADMComponent):
         self.attributes = attributes
 
         self.prompt_template = prompt_template
+        self.predict_medical_urgency = predict_medical_urgency
 
     def run_returns(self):
         return 'icl_dialog_elements'
@@ -60,6 +62,9 @@ class ICLADMComponent(ADMComponent):
         else:
             target_attribute_names = attributes_in_alignment_target(alignment_target)
 
+        if self.predict_medical_urgency:
+            target_attribute_names = ['medical'] + target_attribute_names
+
         target_attributes = [self.attributes[n] for n in target_attribute_names]
 
         if isinstance(alignment_target, AlignmentTarget):
@@ -67,8 +72,9 @@ class ICLADMComponent(ADMComponent):
         else:
             alignment_target_dict = alignment_target
 
-        icl_dialog_elements = []
+        icl_dialog_elements = {}
         for attribute in target_attributes:
+            icl_dialog_elements[attribute.kdma] = []
             # Convert alignment target into kdma values (all that's needed
             # for building the icl engines, and need something that's
             # hashable for caching, dicts aren't hashable)
@@ -79,6 +85,9 @@ class ICLADMComponent(ADMComponent):
                     # mutable arguments such as lists, need to use
                     # tuple
                     kdma_values = ((attribute.kdma, target_kdma_value['value']),)
+                else:
+                    if self.predict_medical_urgency:
+                        kdma_values = (('medical', 1.0),)
 
             icl_gen = init_icl_engine_from_target(
                 self.icl_generator_partial,
@@ -108,10 +117,10 @@ class ICLADMComponent(ADMComponent):
                 actions=actions)
 
             for icl_sample in selected_icl_examples:
-                icl_dialog_elements.append(DialogElement(role='user',
+                icl_dialog_elements[attribute.kdma].append(DialogElement(role='user',
                                                          content=icl_sample['prompt'],
                                                          tags=['icl']))
-                icl_dialog_elements.append(DialogElement(role='assistant',
+                icl_dialog_elements[attribute.kdma].append(DialogElement(role='assistant',
                                                          content=str(icl_sample['response']),
                                                          tags=['icl']))
 

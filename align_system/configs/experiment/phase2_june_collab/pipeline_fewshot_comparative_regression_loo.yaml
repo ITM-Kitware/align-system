@@ -1,0 +1,22 @@
+# @package _global_
+defaults:
+  - override /adm: phase2_pipeline_fewshot_comparative_regression
+  - override /interface: ta3
+    
+interface:
+  session_type: adept
+  training_session: full
+  username: "pipeline_fewshot_comp_reg_test"
+  domain: "p2triage"
+
+# LOO - Remove for eval
+adm:
+  step_definitions:
+    regression_icl:
+      icl_generator_partial:
+        incontext_settings:
+          leave_one_out_strategy: 'scenario_description'
+
+apply_action_filtering: false
+force_determinism: true
+align_to_target: true
