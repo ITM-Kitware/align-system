@@ -1,26 +1,14 @@
 # @package _global_
 defaults:
-  - /attribute@adm.personal_safety: personal_safety
-  - /attribute@adm.search_or_stay: search_or_stay
   - override /adm: phase2_pipeline_zeroshot_comparative_regression
-  - override /interface: input_output_file
+  - override /interface: ta3
 
-adm:
-  step_definitions:
-    kaleido:
-      kdma_descriptions_map:
-        Personal Safety:
-          name: Personal Safety
-          description: Tendency to hold back from moving to treat a patient when that requires risking exposure to enemy fire, waiting rather than immediately moving to treat the patient
-          vrd: Value
-        Search or Stay:
-          name: Search or Stay
-          description: Tendency to move on from their current patient in order to treat or search for another patient
-          vrd: Value
-  
-  attribute_definitions:
-    Personal Safety: ${adm.personal_safety}
-    Search or Stay: ${adm.search_or_stay}
-    
+interface:
+  session_type: adept
+  training_session: full
+  username: "pipeline_zeroshot_comp_reg_test"
+  domain: "p2triage"
+
+apply_action_filtering: false
 force_determinism: true
 align_to_target: true
