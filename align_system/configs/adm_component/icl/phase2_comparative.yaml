@@ -1,0 +1,20 @@
+_target_: align_system.algorithms.icl_adm_component.ICLADMComponent
+
+predict_medical_urgency: true
+
+icl_generator_partial:
+  _target_: align_system.utils.incontext_utils.Phase2ComparativeRegressionIncontextExampleGenerator
+  # Partially initialize so we can finish initialization with multiple
+  # alignment targets
+  _partial_: true
+
+  incontext_settings:
+    number: 5
+    method: prompt_bert_similarity
+    leave_one_out_strategy: null
+    normalization: null
+    sort_actions: true
+    most_similar_first: false
+    datasets:
+      medical: /data/shared/samba/phase2_icl/June2025-AF-train_20250523.json
+      affiliation: /data/shared/samba/phase2_icl/June2025-AF-train_20250523.json
