@@ -136,3 +136,29 @@ class Phase2RegressionRuleBasedCorrection(ADMComponent):
         log.info("Corrected:{}".format(attribute_prediction_scores), extra={"highlighter": JSON_HIGHLIGHTER})
 
         return attribute_prediction_scores
+
+
+class OracleRegression(ADMComponent):
+    def run_returns(self):
+        return 'attribute_prediction_scores'
+
+    def run(self,
+            actions):
+        # Returns ground truth `attribute_prediction_scores`
+        attribute_prediction_scores = {}
+        for action in actions:
+            if hasattr(action, 'kdma_association') and action.kdma_association is not None:
+                attribute_prediction_scores[action.unstructured] = action.kdma_association.copy()
+
+        log.info("[bold]*GROUND TRUTH KDMA SCORES*[/bold]", extra={"markup": True})
+        log.info("{}".format(attribute_prediction_scores), extra={"highlighter": JSON_HIGHLIGHTER})
+
+        return attribute_prediction_scores
+
+
+class OracleJustification(ADMComponent):
+    def run_returns(self):
+        return 'justification'
+
+    def run(self):
+        return "Looked at scores."
