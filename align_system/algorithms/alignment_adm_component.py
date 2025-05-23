@@ -143,45 +143,58 @@ class MedicalUrgencyAlignmentADMComponent(ADMComponent):
         # TODO: Figure out what it means to be the best prediction for this alignment function
         best_sample_idx = 0
 
-        # Sum up attribute tradeoff (factored out negative)
-        total_weight = medical_weight
-        attribute_delta = 0
+        # Compute midpoint per attribute
+        attribute_weights = {}
+        attribute_deltas = {}
+        attribute_midpoints = {}
         for target_kdma in target_kdmas:
             kdma = target_kdma["kdma"]
-            attr_weight = probe_relevance[kdma] if kdma in probe_relevance else 1.0
-            total_weight += attr_weight
-            attribute_delta -= attr_weight * (opt_b["kdmas"][kdma] - opt_a["kdmas"][kdma])
+            attribute_weights[kdma] = probe_relevance[kdma] if kdma in probe_relevance else 1.0
+            attribute_deltas[kdma] = attribute_weights[kdma] * (opt_b["kdmas"][kdma] - opt_a["kdmas"][kdma])
+            attribute_midpoints[kdma] = 0.5 + (medical_delta - attribute_deltas[kdma]) / (medical_weight + attribute_weights[kdma])
+            log.info(f"{kdma} midpoint: {attribute_midpoints[kdma]}")
 
-        # Special conditions
-        if medical_delta == 0:
-            log.explain(
-                "Patients predicted to have same medical urgency. Choosing attribute-worthy patient"
-            )
+        votes = {idx: 0 for idx in range(2)}
+        for target_kdma in target_kdmas:
+            kdma = target_kdma["kdma"]
+            if attribute_weights[kdma] == 0:  # don't consider attributes with 0 weight
+                log.info(f"{kdma}: Removing from consideration, 0 weight")
+                continue
 
-            # Exact same patient, medically and attribute-wise
-            if attribute_delta == 0:
-                log.explain("Patients predicted to have same attribute value, randomly choosing")
-                return (random.choice([opt_a["choice"], opt_b["choice"]]), best_sample_idx)
+            attr_delta = attribute_deltas[kdma]
+            if medical_delta == 0:
+                if attr_delta == 0:  # patient is same medically and attribute-wise, don't vote
+                    log.info(f"{kdma}: Patients are tied both medically and attribute-wise")
+                    continue
+                elif attr_delta > 0:
+                    votes[1] += 1
+                else:
+                    votes[0] += 1
+                log.info(f"{kdma}: Patients are tied medically, choosing attribute-worthy")
+            elif attr_delta < 0:  # same patient is medically and attribute worthy
+                log.info(f"{kdma}: Same patient is both medically and attribute-worthy")
+                votes[0] += 1
+            else:
+                attr_target = target_kdma["value"]
+                attr_midpoint = attribute_midpoints[kdma]
+                if attr_target < attr_midpoint:
+                    log.info(f"{kdma}: Target is less than midpoint")
+                    votes[0] += 1
+                elif attr_target > attr_midpoint:
+                    log.info(f"{kdma}: Target is greater than midpoint")
+                    votes[1] += 1
+                else:  # Midpoint == target, tie
+                    log.info(f"{kdma}: Target is exactly midpoint")
+                    continue
 
-            return (opt_b["choice"] if attribute_delta < 0 else opt_a["choice"], best_sample_idx)
-        elif attribute_delta >= 0:  # Positive because we factored out the negative when summing across KDMAs
-            log.explain(
-                f"Choice ({opt_a['choice']}) is higher in both medical AND attribute, ignoring midpoint equation"
-            )
-            return (opt_a["choice"], best_sample_idx)
+        log.explain(votes)
 
-        # Equation from ADEPT
-        # Adding attribute_delta instead of subtracting because we factored out the negative when summing across KDMAs
-        probe_midpoint = 0.5 + (medical_delta + attribute_delta)/total_weight
-        log.info(f"Probe Midpoint: {probe_midpoint}")
+        max_votes = max(votes.values())
+        max_keys = [key for key, value in votes.items() if value == max_votes]
+        log.info(f"Max vote keys: {max_keys}")
 
-        attr_target = target_kdmas[0]["value"]
-        if attr_target < probe_midpoint:
-            log.explain("Target is below midpoint, choosing medically urgent patient")
-            return (opt_a["choice"], best_sample_idx)
-        elif attr_target > probe_midpoint:
-            log.explain("Target is above midpoint, choosing attribute-worthy patient")
-            return (opt_b["choice"], best_sample_idx)
-        else:  # Midpoint == target, choose randomly
-            log.explain("Target is exactly midpoint, randomly choosing")
-            return (random.choice([opt_a["choice"], opt_b["choice"]]), best_sample_idx)
+        if len(max_keys) > 1:  # tie, choose randomly
+            log.explain("Patients predicted to have same attribute worthiness, randomly choosing")
+            return (random.choice([predictions[key]["choice"] for key in max_keys]), best_sample_idx)
+        else:
+            return (predictions[max_keys[0]]["choice"], best_sample_idx)
