@@ -1202,8 +1202,26 @@ def phase2_scenario_state_description(scenario_state):
 
 
 class Phase2ScenarioDescription():
-       def __call__(self, scenario_state):
+    def __call__(self, scenario_state):
         return phase2_scenario_state_description(scenario_state)
+
+
+@outlines.prompt
+def phase2_baseline_prompt(scenario_description, choices):
+    """
+    Scenario:
+    {{ scenario_description }}
+
+    Responses:
+    {% for choice in choices %}
+    - {{ choice }}
+    {% endfor %}
+    """
+
+
+class Phase2BaselinePrompt():
+    def __call__(self, scenario_description, choices):
+        return phase2_baseline_prompt(scenario_description, choices)
 
 
 @outlines.prompt
