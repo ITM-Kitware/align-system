@@ -2,11 +2,6 @@ import copy
 import json
 
 from rich.highlighter import JSONHighlighter
-# from swagger_client.models import (
-#     ActionTypeEnum,
-#     InjuryLocationEnum,
-#     CharacterTagEnum
-# )
 
 from align_system.utils import logging
 from align_system.utils import adm_utils
@@ -26,6 +21,10 @@ from align_system.prompt_engineering.outlines_prompts import (
     treatment_choice_json_schema,
     treatment_choice_from_list_json_schema)
 from align_system.data_models.dialog import DialogElement
+from align_system.data_models.local_ph1_ta3_enums import (
+    ActionTypeEnum,
+    InjuryLocationEnum,
+    CharacterTagEnum)
 
 log = logging.getLogger(__name__)
 JSON_HIGHLIGHTER = JSONHighlighter()

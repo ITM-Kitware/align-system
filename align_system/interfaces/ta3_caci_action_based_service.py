@@ -21,7 +21,7 @@ class TA3CACIActionBasedServiceInterface(Interface):
                  api_endpoint='http://127.0.0.1:8080',
                  session_type='eval',
                  scenario_ids=[],
-                 domain='p2triage',
+                 domain=None,
                  training_session=None):
         self.api_endpoint = api_endpoint
         # Append a UUID onto the end of our username, as the TA3
@@ -36,14 +36,18 @@ class TA3CACIActionBasedServiceInterface(Interface):
 
         self.training_session = training_session
 
+        self.domain = domain
+
         config = Configuration()
         config.host = self.api_endpoint
         api_client = ApiClient(configuration=config)
         self.connection = swagger_client.ItmTa2EvalApi(api_client=api_client)
 
         start_session_params = {'adm_name': self.username,
-                                'domain': domain,
                                 'session_type':  session_type}
+
+        if domain is not None:
+            start_session_params['domain'] = self.domain
 
         if self.training_session is not None:
             if self.training_session not in {'full', 'solo'}:
@@ -70,7 +74,7 @@ class TA3CACIActionBasedServiceInterface(Interface):
             **scenario_request_params)
 
         return TA3CACIActionBasedScenario(
-            self.connection, self.session_id, scenario)
+            self.connection, self.session_id, scenario, domain=self.domain)
 
     def get_session_alignment(self, alignment_target):
         if self.training_session == 'full':
@@ -125,11 +129,13 @@ class TA3CACIActionBasedServiceInterface(Interface):
 
 
 class TA3CACIActionBasedScenario(ActionBasedScenarioInterface):
-    def __init__(self, connection, session_id, scenario):
+    def __init__(self, connection, session_id, scenario, domain=None):
         self.connection = connection
         self.session_id = session_id
 
         self.scenario = scenario
+
+        self.domain = domain
 
     def id(self):
         return self.scenario.id
@@ -153,9 +159,14 @@ class TA3CACIActionBasedScenario(ActionBasedScenarioInterface):
         if isinstance(action, dict):
             action = Action(**action)
 
-        updated_state = take_or_intend(
-            session_id=self.session_id,
-            action=action)
+        if self.domain == "p2triage":
+            updated_state = take_or_intend(
+                session_id=self.session_id,
+                action=action)
+        else:
+            updated_state = take_or_intend(
+                session_id=self.session_id,
+                body=action)
 
         return updated_state
 
