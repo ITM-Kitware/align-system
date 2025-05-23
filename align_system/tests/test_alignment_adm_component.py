@@ -31,22 +31,6 @@ class TestMedicalUrgencyAlignmentADMComponent:
                 None,  # Raise expected so doesn't matter
                 pytest.raises(RuntimeError, match=r"Assumption violated: `alignment_target` was None"),
             ),
-            # Multi-kdma alignment
-            (
-                {
-                    "Choice 0": {"medical": 0.2, "KDMA_A": 0.1, "KDMA_B": 0.8},
-                    "Choice 1": {"medical": 0.5, "KDMA_A": 0.3, "KDMA_B": 0.5},
-                },
-                {
-                    "kdma_values":
-                    [
-                        {"kdma": "KDMA_A", "value": 0.3},
-                        {"kdma": "KDMA_B", "value": 0.7},
-                    ],
-                },
-                None,  # Raise expected so doesn't matter
-                pytest.raises(NotImplementedError, match=r"Multi-kdma alignment"),
-            ),
             # >2 choices
             (
                 {
@@ -195,7 +179,7 @@ class TestMedicalUrgencyAlignmentADMComponent:
             # We choose randomly for target == midpoint, so no guarantees there
         ],
         ids=[
-            "no target", "multi-kdma", ">2 choices", "<2 choices", "same medical",
+            "no target", ">2 choices", "<2 choices", "same medical",
             "same medical and attribute patient", "target above midpoint (0.35)", "target below midpoint (0.35)",
             "target above midpoint (0.55)", "target below midpoint (0.55), extraneous KDMAs",
             "target above midpoint (0.8)", "target below midpoint (0.8)", "multiple predictions, target above midpoint (0.625)",
