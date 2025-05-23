@@ -10,7 +10,7 @@ defaults:
 interface:
   session_type: adept
   training_session: full
-  username: "pipeline_kaleido_test"
+  username: "pipeline_june2025_kaleido_naive"
   domain: "p2triage"
 
 adm:
