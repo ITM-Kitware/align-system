@@ -68,10 +68,19 @@ class MedicalUrgencyAlignmentADMComponent(ADMComponent):
         self,
         attribute_prediction_scores,
         alignment_target,
+        attribute_relevance=None,
     ):
-        """ Align based on medical urgency/KDMA tradeoff """
+        """
+        Align based on medical urgency/KDMA tradeoff
 
-        med_urg_str  = "medical"
+        attribute_prediction_scores: dict[str, dict[str, float | list[float]]]
+            Dictionary of choices mapped to KMDA value predictions, including medical
+            urgency prediction
+        alignment_target: list of dictionaries of alignment target info
+        attribute_relevance: dict[str, float | list[float]]
+            Dictionary of probe level KDMA relevance predictions
+        """
+        med_urg_str = "medical"
 
         if alignment_target is None:
             raise RuntimeError(
@@ -82,13 +91,21 @@ class MedicalUrgencyAlignmentADMComponent(ADMComponent):
             alignment_target,
             self.attributes)
         target_kdmas = [dict(t) for t in target_kdmas]
-        if len(target_kdmas) > 1:
-            raise NotImplementedError("Multi-kdma alignment has not yet been implemented")
 
         def _handle_single_value(predictions):
             if not isinstance(predictions, list):
                 return [predictions]
             return predictions
+
+        # Take a dictionary of predictions (with KDMAs as key) and return average values per KDMA
+        def _get_avg_pred(all_predictions):
+            pred_dict_out = {}
+            for target_kdma in target_kdmas:
+                kdma = target_kdma["kdma"]
+                preds = _handle_single_value(all_predictions[kdma])
+                pred_dict_out[kdma] = sum(preds) / len(preds)
+
+            return pred_dict_out
 
         choices = list(attribute_prediction_scores.keys())
         if len(choices) != 2:
@@ -97,7 +114,7 @@ class MedicalUrgencyAlignmentADMComponent(ADMComponent):
         # Compute averages of predicted values
         predictions = []
         for choice, all_kdma_predictions in attribute_prediction_scores.items():
-            pred_dict = { "choice": choice }
+            pred_dict = {"choice": choice}
 
             # Get medical urgency
             if med_urg_str not in all_kdma_predictions:
@@ -106,58 +123,78 @@ class MedicalUrgencyAlignmentADMComponent(ADMComponent):
             pred_dict[med_urg_str] = sum(medical_urgency_preds) / len(medical_urgency_preds)
 
             # Get KDMA predictions relevant to target
-            kdma_pred_dict = {}
-            for target_kdma in target_kdmas:
-                kdma = target_kdma["kdma"]
-                kdma_preds = _handle_single_value(all_kdma_predictions[kdma])
-                kdma_pred_dict[kdma] = sum(kdma_preds) / len(kdma_preds)
-            pred_dict["kdmas"] = kdma_pred_dict
+            pred_dict["kdmas"] = _get_avg_pred(all_kdma_predictions)
 
             predictions.append(pred_dict)
+
+        # Get relevance predictions relevant to target
+        probe_relevance = {}
+        if attribute_relevance is not None:
+            probe_relevance = _get_avg_pred(attribute_relevance[choice])
 
         # Sort by medical urgency (descending)
         predictions.sort(key=lambda pred: pred[med_urg_str], reverse=True)
 
         # Guaranteed to only have 2 choices at this point due to earlier checks
         opt_a, opt_b = predictions
-        medical_delta = opt_a[med_urg_str] - opt_b[med_urg_str]
+        medical_weight = probe_relevance[med_urg_str] if med_urg_str in probe_relevance else 1.0
+        medical_delta = medical_weight * (opt_a[med_urg_str] - opt_b[med_urg_str])
 
         # TODO: Figure out what it means to be the best prediction for this alignment function
         best_sample_idx = 0
 
-        # Guaranteed to only have 1 attribute due to earlier checks
-        attr = target_kdmas[0]["kdma"]
-        attribute_delta = opt_b["kdmas"][attr] - opt_a["kdmas"][attr]
+        # Compute midpoint per attribute
+        attribute_weights = {}
+        attribute_deltas = {}
+        attribute_midpoints = {}
+        for target_kdma in target_kdmas:
+            kdma = target_kdma["kdma"]
+            attribute_weights[kdma] = probe_relevance[kdma] if kdma in probe_relevance else 1.0
+            attribute_deltas[kdma] = attribute_weights[kdma] * (opt_b["kdmas"][kdma] - opt_a["kdmas"][kdma])
+            attribute_midpoints[kdma] = 0.5 + (medical_delta - attribute_deltas[kdma]) / (medical_weight + attribute_weights[kdma])
+            log.info(f"{kdma} midpoint: {attribute_midpoints[kdma]}")
 
-        # Special conditions
-        if medical_delta == 0:
-            log.explain(
-                "Patients predicted to have same medical urgency. Choosing attribute-worthy patient"
-            )
+        votes = {idx: 0 for idx in range(2)}
+        for target_kdma in target_kdmas:
+            kdma = target_kdma["kdma"]
+            if attribute_weights[kdma] == 0:  # don't consider attributes with 0 weight
+                log.info(f"{kdma}: Removing from consideration, 0 weight")
+                continue
 
-            # Exact same patient, medically and attribute-wise
-            if attribute_delta == 0:
-                log.explain("Patients predicted to have same attribute value, randomly choosing")
-                return (random.choice([opt_a["choice"], opt_b["choice"]]), best_sample_idx)
+            attr_delta = attribute_deltas[kdma]
+            if medical_delta == 0:
+                if attr_delta == 0:  # patient is same medically and attribute-wise, don't vote
+                    log.info(f"{kdma}: Patients are tied both medically and attribute-wise")
+                    continue
+                elif attr_delta > 0:
+                    votes[1] += 1
+                else:
+                    votes[0] += 1
+                log.info(f"{kdma}: Patients are tied medically, choosing attribute-worthy")
+            elif attr_delta < 0:  # same patient is medically and attribute worthy
+                log.info(f"{kdma}: Same patient is both medically and attribute-worthy")
+                votes[0] += 1
+            else:
+                attr_target = target_kdma["value"]
+                attr_midpoint = attribute_midpoints[kdma]
+                if attr_target < attr_midpoint:
+                    log.info(f"{kdma}: Target is less than midpoint")
+                    votes[0] += 1
+                elif attr_target > attr_midpoint:
+                    log.info(f"{kdma}: Target is greater than midpoint")
+                    votes[1] += 1
+                else:  # Midpoint == target, tie
+                    log.info(f"{kdma}: Target is exactly midpoint")
+                    continue
 
-            return (opt_b["choice"] if attribute_delta > 0 else opt_a["choice"], best_sample_idx)
-        elif attribute_delta <= 0:
-            log.explain(
-                f"Choice ({opt_a['choice']}) is higher in both medical AND attribute, ignoring midpoint equation"
-            )
-            return (opt_a["choice"], best_sample_idx)
+        log.explain(votes)
 
-        # Equation from ADEPT
-        probe_midpoint = 0.5 + (medical_delta - attribute_delta)/2
-        log.info(f"Probe Midpoint: {probe_midpoint}")
+        max_votes = max(votes.values())
+        max_keys = [key for key, value in votes.items() if value == max_votes]
+        log.info(f"Max vote keys: {max_keys}")
 
-        attr_target = target_kdmas[0]["value"]
-        if attr_target < probe_midpoint:
-            log.explain("Target is below midpoint, choosing medically urgent patient")
-            return (opt_a["choice"], best_sample_idx)
-        elif attr_target > probe_midpoint:
-            log.explain("Target is above midpoint, choosing attribute-worthy patient")
-            return (opt_b["choice"], best_sample_idx)
-        else:  # Midpoint == target, choose randomly
-            log.explain("Target is exactly midpoint, randomly choosing")
-            return (random.choice([opt_a["choice"], opt_b["choice"]]), best_sample_idx)
+        if len(max_keys) > 1:  # tie, choose randomly
+            log.explain("Patients predicted to have same attribute worthiness, randomly choosing")
+            return (random.choice([predictions[key]["choice"] for key in max_keys]), best_sample_idx)
+        else:
+            return (predictions[max_keys[0]]["choice"], best_sample_idx)
