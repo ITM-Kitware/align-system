@@ -1,4 +1,5 @@
 from rich.highlighter import JSONHighlighter
+import numpy as np
 
 from align_system.algorithms.abstracts import ADMComponent
 from align_system.utils import adm_utils, logging
@@ -162,3 +163,55 @@ class OracleJustification(ADMComponent):
 
     def run(self):
         return "Looked at scores."
+
+
+class Phase2RegressionRemoveIrrelevantAttributes(ADMComponent):
+    def run_returns(self):
+        return ('attribute_prediction_scores',
+                'alignment_target')
+
+    def run(self,
+            attribute_prediction_scores,
+            alignment_target
+            ):
+        # If there are two non-medical attributes, removes the one with smaller delta
+
+        attributes = list(next(iter(attribute_prediction_scores.values())).keys())
+        # Ignore / don't filter out medical
+        if 'medical' in attributes:
+            attributes.remove('medical')
+
+        # Only one attribute aside from medical -> filtering not needed
+        if len(attributes) == 1:
+            return attribute_prediction_scores, alignment_target
+
+        # Two attributes -> remove the one with smaller delta
+        elif len(attributes) == 2:
+            if len(attribute_prediction_scores.keys()) != 2:
+                raise RuntimeError("Relevance filtering not implemented for more than two choices.")
+            else:
+                # Determine less relevant attribute
+                choiceA, choiceB = list(attribute_prediction_scores.keys())
+                attr0, attr1 = attributes[0], attributes[1]
+                delta0 = abs(np.array(attribute_prediction_scores[choiceA][attr0]).mean() - np.array(attribute_prediction_scores[choiceB][attr0]).mean())
+                delta1 = abs(np.array(attribute_prediction_scores[choiceA][attr1]).mean() - np.array(attribute_prediction_scores[choiceB][attr1]).mean())
+                if delta0 >= delta1:
+                    remove_attr = attr1
+                else:
+                    remove_attr = attr0
+
+                # Remove less relevant attribute
+                del attribute_prediction_scores[choiceA][remove_attr]
+                del attribute_prediction_scores[choiceB][remove_attr]
+
+                log.info("[bold]*REMOVING THE LESS RELEVANT ATTRIBUTE: {}*[/bold]".format(remove_attr), extra={"markup": True})
+
+                # Update target to not include less relevant attribute
+                alignment_target['kdma_values'] = [entry for entry in alignment_target['kdma_values'] if entry['kdma'] != remove_attr]
+                log.info("[bold]*ALIGNING TO TARGET*[/bold]", extra={"markup": True})
+                log.info("{}".format(alignment_target), extra={"highlighter": JSON_HIGHLIGHTER})
+
+            return attribute_prediction_scores, alignment_target
+
+        else:
+            raise RuntimeError("Relevance filtering not implemented for more than two attributes.")
