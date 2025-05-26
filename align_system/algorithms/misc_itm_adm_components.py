@@ -178,40 +178,43 @@ class Phase2RegressionRemoveIrrelevantAttributes(ADMComponent):
 
         attributes = list(next(iter(attribute_prediction_scores.values())).keys())
         # Ignore / don't filter out medical
+        keep_attributes = []
         if 'medical' in attributes:
             attributes.remove('medical')
+            keep_attributes.append('medical')
 
         # Only one attribute aside from medical -> filtering not needed
         if len(attributes) == 1:
             return attribute_prediction_scores, alignment_target
 
-        # Two attributes -> remove the one with smaller delta
-        elif len(attributes) == 2:
-            if len(attribute_prediction_scores.keys()) != 2:
+        # Two or more attributes -> keep the one with largest delta
+        else:
+            if len(attribute_prediction_scores.keys()) > 2:
                 raise RuntimeError("Relevance filtering not implemented for more than two choices.")
             else:
-                # Determine less relevant attribute
+                # Determine most relevant attribute to keep
                 choiceA, choiceB = list(attribute_prediction_scores.keys())
-                attr0, attr1 = attributes[0], attributes[1]
-                delta0 = abs(np.array(attribute_prediction_scores[choiceA][attr0]).mean() - np.array(attribute_prediction_scores[choiceB][attr0]).mean())
-                delta1 = abs(np.array(attribute_prediction_scores[choiceA][attr1]).mean() - np.array(attribute_prediction_scores[choiceB][attr1]).mean())
-                if delta0 >= delta1:
-                    remove_attr = attr1
-                else:
-                    remove_attr = attr0
+                max_delta = -np.inf
+                for attr in attributes:
+                    delta = abs(np.array(attribute_prediction_scores[choiceA][attr]).mean() - np.array(attribute_prediction_scores[choiceB][attr]).mean())
+                    if delta > max_delta:
+                        max_delta = delta
+                        relevant_attribute = attr
+                keep_attributes.append(relevant_attribute)
 
-                # Remove less relevant attribute
-                del attribute_prediction_scores[choiceA][remove_attr]
-                del attribute_prediction_scores[choiceB][remove_attr]
+                # Update predicted scores to only have more relevant attribute
+                filtered_attribute_prediction_scores = {choiceA:{}, choiceB:{}}
+                for keep_attr in keep_attributes:
+                    filtered_attribute_prediction_scores[choiceA][keep_attr] = attribute_prediction_scores[choiceA][keep_attr]
+                    filtered_attribute_prediction_scores[choiceB][keep_attr] = attribute_prediction_scores[choiceB][keep_attr]
 
-                log.info("[bold]*REMOVING THE LESS RELEVANT ATTRIBUTE: {}*[/bold]".format(remove_attr), extra={"markup": True})
+                log.info("[bold]*FILTERING OUT ATTRIBUTES EXCEPT MOST RELEVANT: {}*[/bold]".format(relevant_attribute), extra={"markup": True})
+                log.info("Retained:{}".format(filtered_attribute_prediction_scores), extra={"highlighter": JSON_HIGHLIGHTER})
 
-                # Update target to not include less relevant attribute
-                alignment_target['kdma_values'] = [entry for entry in alignment_target['kdma_values'] if entry['kdma'] != remove_attr]
-                log.info("[bold]*ALIGNING TO TARGET*[/bold]", extra={"markup": True})
-                log.info("{}".format(alignment_target), extra={"highlighter": JSON_HIGHLIGHTER})
-
-            return attribute_prediction_scores, alignment_target
-
-        else:
-            raise RuntimeError("Relevance filtering not implemented for more than two attributes.")
+                # Update target to only include relevant attribute
+                filtered_alignment_target = alignment_target.copy()
+                filtered_alignment_target['kdma_values'] = [entry for entry in alignment_target['kdma_values'] if entry['kdma'] in keep_attributes]
+                log.info("[bold]*UPDATING ALIGNMENT TARGET*[/bold]", extra={"markup": True})
+                log.info("{}".format(filtered_alignment_target), extra={"highlighter": JSON_HIGHLIGHTER})
+            
+            return filtered_attribute_prediction_scores, filtered_alignment_target
