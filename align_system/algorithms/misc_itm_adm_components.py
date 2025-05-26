@@ -172,11 +172,10 @@ class Phase2RegressionRemoveIrrelevantAttributes(ADMComponent):
 
     def run(self,
             attribute_prediction_scores,
-            alignment_target
-            ):
+            alignment_target):
         # If there are two non-medical attributes, removes the one with smaller delta
 
-        attributes = list(next(iter(attribute_prediction_scores.values())).keys())
+        attributes = list({key for inner in attribute_prediction_scores.values() for key in inner})
         # Ignore / don't filter out medical
         keep_attributes = []
         if 'medical' in attributes:
