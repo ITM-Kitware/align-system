@@ -1,4 +1,5 @@
 from rich.highlighter import JSONHighlighter
+import numpy as np
 
 from align_system.algorithms.abstracts import ADMComponent
 from align_system.utils import adm_utils, logging
@@ -162,3 +163,57 @@ class OracleJustification(ADMComponent):
 
     def run(self):
         return "Looked at scores."
+
+
+class Phase2RegressionRemoveIrrelevantAttributes(ADMComponent):
+    def run_returns(self):
+        return ('attribute_prediction_scores',
+                'alignment_target')
+
+    def run(self,
+            attribute_prediction_scores,
+            alignment_target):
+        # If there are two non-medical attributes, removes the one with smaller delta
+
+        attributes = list({key for inner in attribute_prediction_scores.values() for key in inner})
+        # Ignore / don't filter out medical
+        keep_attributes = []
+        if 'medical' in attributes:
+            attributes.remove('medical')
+            keep_attributes.append('medical')
+
+        # Only one attribute aside from medical -> filtering not needed
+        if len(attributes) == 1:
+            return attribute_prediction_scores, alignment_target
+
+        # Two or more attributes -> keep the one with largest delta
+        else:
+            if len(attribute_prediction_scores.keys()) > 2:
+                raise RuntimeError("Relevance filtering not implemented for more than two choices.")
+            else:
+                # Determine most relevant attribute to keep
+                choiceA, choiceB = list(attribute_prediction_scores.keys())
+                max_delta = -np.inf
+                for attr in attributes:
+                    delta = abs(np.array(attribute_prediction_scores[choiceA][attr]).mean() - np.array(attribute_prediction_scores[choiceB][attr]).mean())
+                    if delta > max_delta:
+                        max_delta = delta
+                        relevant_attribute = attr
+                keep_attributes.append(relevant_attribute)
+
+                # Update predicted scores to only have more relevant attribute
+                filtered_attribute_prediction_scores = {choiceA:{}, choiceB:{}}
+                for keep_attr in keep_attributes:
+                    filtered_attribute_prediction_scores[choiceA][keep_attr] = attribute_prediction_scores[choiceA][keep_attr]
+                    filtered_attribute_prediction_scores[choiceB][keep_attr] = attribute_prediction_scores[choiceB][keep_attr]
+
+                log.info("[bold]*FILTERING OUT ATTRIBUTES EXCEPT MOST RELEVANT: {}*[/bold]".format(relevant_attribute), extra={"markup": True})
+                log.info("Retained:{}".format(filtered_attribute_prediction_scores), extra={"highlighter": JSON_HIGHLIGHTER})
+
+                # Update target to only include relevant attribute
+                filtered_alignment_target = alignment_target.copy()
+                filtered_alignment_target['kdma_values'] = [entry for entry in alignment_target['kdma_values'] if entry['kdma'] in keep_attributes]
+                log.info("[bold]*UPDATING ALIGNMENT TARGET*[/bold]", extra={"markup": True})
+                log.info("{}".format(filtered_alignment_target), extra={"highlighter": JSON_HIGHLIGHTER})
+            
+            return filtered_attribute_prediction_scores, filtered_alignment_target

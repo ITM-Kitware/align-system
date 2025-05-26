@@ -1,0 +1,54 @@
+name: phase2_pipeline_zeroshot_comparative_regression_delta_relevance
+
+defaults:
+  # Import defaults into this namspace (adm) as @name, for further
+  # customization
+
+  # Shared variables / components
+  - /attribute@mu: medical_urgency
+  - /attribute@af: affiliation_focus
+  - /attribute@mf: merit_focus
+  - /attribute@ss: search_or_stay
+  - /attribute@ps: personal_safety
+  - /inference_engine@structured_inference_engine: outlines_structured_greedy
+  - /template/scenario_description@scenario_description_template: phase2
+  - /template/prompt@prompt_template: phase2_comparative_regression
+  - /template/output_schema@comparative_regression_choice_schema: phase2_comparative_regression_choice
+  # ADM components to be used in "steps"
+  - /adm_component/misc@step_definitions.format_choices: itm_format_choices
+  - /adm_component/regression@step_definitions.comparative_regression: phase2_comparative
+  - /adm_component/misc@step_definitions.regression_rule_based_correction: phase2_regression_rule_based_correction
+  - /adm_component/misc@step_definitions.remove_irrelevant_attributes: phase2_regression_remove_irrelevant_attributes
+  - /adm_component/alignment@step_definitions.scalar_alignment: medical_urgency_scalar
+  - /adm_component/misc@step_definitions.justification_from_reasonings: justification_from_reasonings
+  - /adm_component/misc@step_definitions.ensure_chosen_action: ensure_chosen_action
+  - /adm_component/misc@step_definitions.populate_choice_info: populate_choice_info
+  # Use definitions in this file to override defaults defined above
+  - _self_
+
+attribute_definitions:
+  medical: ${adm.mu}
+  affiliation: ${adm.af}
+  merit: ${adm.mf}
+  search: ${adm.ss}
+  personal_safety: ${adm.ps}
+
+step_definitions:
+  comparative_regression:
+    scenario_description_template: ${ref:adm.scenario_description_template}
+    prompt_template: ${ref:adm.prompt_template}
+    score_schema_template: ${adm.comparative_regression_choice_schema}
+
+instance:
+  _target_: align_system.algorithms.pipeline_adm.PipelineADM
+
+  steps:
+    # Reference the step instances we want to use in order
+    - ${ref:adm.step_definitions.format_choices}
+    - ${ref:adm.step_definitions.comparative_regression}
+    - ${ref:adm.step_definitions.regression_rule_based_correction}
+    - ${ref:adm.step_definitions.remove_irrelevant_attributes}
+    - ${ref:adm.step_definitions.scalar_alignment}
+    - ${ref:adm.step_definitions.justification_from_reasonings}
+    - ${ref:adm.step_definitions.ensure_chosen_action}
+    - ${ref:adm.step_definitions.populate_choice_info}
