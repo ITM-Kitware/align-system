@@ -3,6 +3,14 @@
 This changelog follows the specifications detailed in: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html), although we have not yet reached a `1.0.0` release.
 
+## Unreleased
+
+### Added
+
+* Added `state_hydration_domain` to `IncontextExampleGenerator` and `InputOutputFileInterface`. Providing a value of
+  `None` or `p1` results in Phase 1 behavior while a value of `p2triage` is meant for hydrating states from the
+  corresponding domain on the TA3 server.
+
 ## 0.5.8
 
 ### Fixed
