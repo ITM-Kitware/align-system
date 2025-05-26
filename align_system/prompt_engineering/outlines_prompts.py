@@ -1224,6 +1224,7 @@ class Phase2BaselinePrompt():
         return phase2_baseline_prompt(scenario_description, choices)
 
 
+@outlines.prompt
 def comparative_regression_system_prompt(
     kdma, kdma_description, kdma_scale_factor
 ):
