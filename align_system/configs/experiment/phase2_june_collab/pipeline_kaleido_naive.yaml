@@ -1,10 +1,6 @@
 # @package _global_
 defaults:
-  - /attribute@adm.merit: merit_focus
-  - /attribute@adm.affiliation: affiliation_focus
-  - /attribute@adm.personal_safety: personal_safety
-  - /attribute@adm.search_or_stay: search_or_stay
-  - override /adm: pipeline_kaleido
+  - override /adm: phase2_pipeline_kaleido
   - override /interface: ta3
 
 interface:
@@ -12,52 +8,6 @@ interface:
   training_session: full
   username: "pipeline_june2025_kaleido_naive"
   domain: "p2triage"
-
-adm:
-  step_definitions:
-    kaleido:
-      prompt_template:
-        _target_: align_system.prompt_engineering.outlines_prompts.KaleidoDefaultITMPh2Prompt
-
-      kdma_descriptions_map:
-        # Re-using descriptions of merit and affiliation from Ph1
-        # Moral Judgement and Ingroup Bias for now
-        merit:
-          name: Merit Focus
-          description: Favoring victims or bystanders over those who are perpetrators or otherwise potentially blame-worthy
-          vrd: Value
-
-        affiliation:
-          name: Affiliation Focus
-          description: Favoring casualties who are members of your same group, such as family, military unit, coalition, nationality, or region of origin over those who are not part of your group
-          vrd: Value
-
-        personal_safety:
-          name: Personal Safety
-          description: Tendency to hold back from moving to treat a patient when that requires risking exposure to enemy fire, waiting rather than immediately moving to treat the patient
-          vrd: Value
-        search:
-          name: Search or Stay
-          description: Tendency to move on from their current patient in order to treat or search for another patient
-          vrd: Value
-  
-  attribute_definitions:
-    merit: ${adm.merit}
-    affiliation: ${adm.affiliation}
-    personal_safety: ${adm.personal_safety}
-    search: ${adm.search_or_stay}
-
-  instance:
-    steps:
-    # Reference the step instances we want to use in order
-    - ${ref:adm.step_definitions.format_choices}
-    - ${ref:adm.step_definitions.kaleido}
-    - ${ref:adm.step_definitions.rename_kaleido_relevance_variables}
-    - ${ref:adm.step_definitions.scalar_alignment}
-    - ${ref:adm.step_definitions.justification_from_reasonings}
-    # - ${ref:adm.step_definitions.action_parameter_completion}
-    - ${ref:adm.step_definitions.ensure_chosen_action}
-    - ${ref:adm.step_definitions.populate_choice_info}
 
 apply_action_filtering: false
     
