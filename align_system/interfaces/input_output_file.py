@@ -5,13 +5,22 @@ import math
 from align_system.interfaces.abstracts import (
     Interface,
     ActionBasedScenarioInterface)
-from align_system.utils.hydrate_state import hydrate_scenario_state
 
 
 class InputOutputFileInterface(Interface):
-    def __init__(self, input_output_filepath):
+    def __init__(self, input_output_filepath, state_hydration_domain=None):
         with open(input_output_filepath) as f:
             self._raw_data = json.load(f)
+
+        # TODO: Replace this logic with a callable to be instantiated via Hydra
+        if state_hydration_domain is None or state_hydration_domain == "p1":
+            from align_system.utils.hydrate_state import hydrate_scenario_state
+            state_hydration_fn = hydrate_scenario_state
+        elif state_hydration_domain == "p2triage":
+            from align_system.utils.hydrate_state import p2triage_hydrate_scenario_state
+            state_hydration_fn = p2triage_hydrate_scenario_state
+        else:
+            raise RuntimeError(f"Unknown state_hydration_domain: {state_hydration_domain}")
 
         self.scenario_ids = []
         self.scenarios = {}
@@ -23,7 +32,7 @@ class InputOutputFileInterface(Interface):
                 self.scenarios[scenario_id] = []
 
             self.scenarios[scenario_id].append(
-                hydrate_scenario_state(record['input']))
+                state_hydration_fn(record['input']))
 
         self.current_scenario_id = None
 
