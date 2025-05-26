@@ -78,6 +78,7 @@ class ICLADMComponent(ADMComponent):
             # Convert alignment target into kdma values (all that's needed
             # for building the icl engines, and need something that's
             # hashable for caching, dicts aren't hashable)
+            kdma_values = None
             for target_kdma_value in alignment_target_dict['kdma_values']:
                 if attribute.kdma == target_kdma_value['kdma']:
                     # tuple of tuples; when initializing the icl
@@ -85,9 +86,8 @@ class ICLADMComponent(ADMComponent):
                     # mutable arguments such as lists, need to use
                     # tuple
                     kdma_values = ((attribute.kdma, target_kdma_value['value']),)
-                else:
-                    if self.predict_medical_urgency:
-                        kdma_values = (('medical', 1.0),)
+            if not kdma_values and self.predict_medical_urgency:
+                    kdma_values = (('medical', 1.0),)
 
             icl_gen = init_icl_engine_from_target(
                 self.icl_generator_partial,
