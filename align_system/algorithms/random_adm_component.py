@@ -1,6 +1,6 @@
 import random
 
-from swagger_client.models import (
+from align_system.data_models.local_ph1_ta3_enums import (
     ActionTypeEnum,
     InjuryLocationEnum,
     CharacterTagEnum)
