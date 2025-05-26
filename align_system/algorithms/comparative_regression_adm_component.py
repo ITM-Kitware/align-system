@@ -19,7 +19,7 @@ class ComparativeRegressionADMComponent(ADMComponent):
                  system_prompt_template=None,
                  num_samples=1,
                  enum_scores=False,
-                 predict_medical_urgency=False):
+                 target_attribute_names_override=None):
         self.structured_inference_engine = structured_inference_engine
         self.scenario_description_template = scenario_description_template
         self.prompt_template = prompt_template
@@ -33,7 +33,8 @@ class ComparativeRegressionADMComponent(ADMComponent):
 
         self.num_samples = num_samples
         self.enum_scores = enum_scores
-        self.predict_medical_urgency = predict_medical_urgency
+
+        self.target_attribute_names_override = target_attribute_names_override
 
     def run_returns(self):
         return ('attribute_prediction_reasonings',
@@ -50,8 +51,16 @@ class ComparativeRegressionADMComponent(ADMComponent):
         else:
             target_attribute_names = attributes_in_alignment_target(alignment_target)
 
-        if self.predict_medical_urgency:
-            target_attribute_names = ['medical'] + target_attribute_names
+        if self.target_attribute_names_override is not None:
+            if '*' not in self.target_attribute_names_override:
+                # '*' in the override means to include the attribute names
+                # from the target (in addition to whatever else is
+                # specified in the override)
+                target_attribute_names = []
+
+            for attribute_name in self.target_attribute_names_override:
+                if attribute_name != '*':
+                    target_attribute_names.append(attribute_name)
 
         target_attributes = [self.attributes[n] for n in target_attribute_names]
 
