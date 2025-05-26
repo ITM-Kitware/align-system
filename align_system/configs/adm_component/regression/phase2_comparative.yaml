@@ -2,7 +2,7 @@ _target_: align_system.algorithms.comparative_regression_adm_component.Comparati
 
 structured_inference_engine: ${ref:adm.structured_inference_engine}
 num_samples: 1
-predict_medical_urgency: True
 attributes: ${ref:adm.attribute_definitions}
 system_prompt_template:
   _target_: align_system.prompt_engineering.outlines_prompts.ComparativeRegressionSystemPromptWithTemplate
+target_attribute_names_override: ['*', 'medical']
