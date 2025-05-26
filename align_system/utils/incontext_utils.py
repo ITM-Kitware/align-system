@@ -8,7 +8,6 @@ from abc import ABCMeta, abstractmethod
 from align_system.utils import adm_utils
 from align_system.utils import outlines_prompts_utils
 from align_system.utils import alignment_utils
-from align_system.utils.hydrate_state import hydrate_scenario_state
 from align_system.prompt_engineering.outlines_prompts import (
     action_choice_json_schema,
     scenario_state_description_1,
@@ -29,9 +28,12 @@ class IncontextExampleGenerator(object, metaclass=ABCMeta):
     Abstract class for incontext example generator
     Instances of this class have unique set_icl_datasets() functions for formatting prompt and reponses
     '''
-    def __init__(self,
-                 incontext_settings,
-                 target_kdmas):
+    def __init__(
+        self,
+        incontext_settings,
+        target_kdmas,
+        state_hydration_domain=None,
+    ):
         self.incontext_settings = incontext_settings
         self.target_kdmas = []
         for target_kdma in target_kdmas:
@@ -39,6 +41,16 @@ class IncontextExampleGenerator(object, metaclass=ABCMeta):
                 self.target_kdmas.append(dict(target_kdma))
             else:
                 self.target_kdmas.append(target_kdma)
+
+        # TODO: Replace this logic with a callable to be instantiated via Hydra
+        if state_hydration_domain is None or state_hydration_domain == "p1":
+            from align_system.utils.hydrate_state import hydrate_scenario_state
+            self.state_hydration_fn = hydrate_scenario_state
+        elif state_hydration_domain == "p2triage":
+            from align_system.utils.hydrate_state import p2triage_hydrate_scenario_state
+            self.state_hydration_fn = p2triage_hydrate_scenario_state
+        else:
+            raise RuntimeError(f"Unknown state_hydration_domain: {state_hydration_domain}")
 
         self.set_icl_datasets()
 
@@ -84,7 +96,7 @@ class IncontextExampleGenerator(object, metaclass=ABCMeta):
                 # Load each example in the dataset file
                 for icl_sample in dset:
                     # Get state and actions
-                    state, actions = hydrate_scenario_state(icl_sample["input"])
+                    state, actions = self.state_hydration_fn(icl_sample["input"])
                     labels = icl_sample["label"]
                     if self.incontext_settings.sort_actions:
                         # Impose a fixed ordering of available actions and labels to help with determinism
@@ -156,7 +168,7 @@ class IncontextExampleGenerator(object, metaclass=ABCMeta):
                 # Load each example in the dataset file
                 for icl_sample in dset:
                     # Get state and actions
-                    state, actions = hydrate_scenario_state(icl_sample["input"])
+                    state, actions = self.state_hydration_fn(icl_sample["input"])
                     labels = icl_sample["label"]
                     if self.incontext_settings.sort_actions:
                         # Impose a fixed ordering of available actions and labels to help with determinism
