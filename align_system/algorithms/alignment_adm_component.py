@@ -175,27 +175,27 @@ class MedicalUrgencyAlignmentADMComponent(ADMComponent):
             attr_delta = attribute_deltas[kdma]
             if math.isclose(medical_delta, 0.):
                 if math.isclose(attr_delta, 0.):  # patient is same medically and attribute-wise, don't vote
-                    log.info(f"{kdma}: Patients are tied both medically and attribute-wise")
+                    log.info(f"{kdma}: Patients are tied both medically and attribute-wise, not voting")
                     continue
                 elif attr_delta > 0:
                     votes[1] += 1
                 else:
                     votes[0] += 1
-                log.info(f"{kdma}: Patients are tied medically, choosing attribute-worthy")
+                log.info(f"{kdma}: Patients are tied medically, voting for attribute-worthy")
             elif attr_delta < 0 or math.isclose(attr_delta, 0.):  # same patient is medically and attribute worthy
-                log.info(f"{kdma}: Same patient is both medically and attribute-worthy")
+                log.info(f"{kdma}: Voting for patient that is both medically and attribute-worthy")
                 votes[0] += 1
             else:
                 attr_target = target_kdma["value"]
                 attr_midpoint = attribute_midpoints[kdma]
                 if math.isclose(attr_target, attr_midpoint):  # Midpoint == target, tie
-                    log.info(f"{kdma}: Target is exactly midpoint")
+                    log.info(f"{kdma}: Target is exactly midpoint, not voting")
                     continue
                 elif attr_target < attr_midpoint:
-                    log.info(f"{kdma}: Target is less than midpoint")
+                    log.info(f"{kdma}: Target is less than midpoint, voting for medically-worthy.")
                     votes[0] += 1
                 else:  # attr_target > attr_midpoint
-                    log.info(f"{kdma}: Target is greater than midpoint")
+                    log.info(f"{kdma}: Target is greater than midpoint, voting for attribute-worthy")
                     votes[1] += 1
 
         log.explain(votes)
