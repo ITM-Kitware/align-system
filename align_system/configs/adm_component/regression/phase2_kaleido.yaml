@@ -1,0 +1,36 @@
+_target_: align_system.algorithms.kaleido_adm_component.KaleidoADMComponent
+
+kaleido_instance:
+  _target_: align_system.algorithms.lib.kaleido.KaleidoSys
+
+  model_name: 'tsor13/kaleido-large'
+  use_tqdm: False
+
+estimator_fn:
+  _target_: align_system.algorithms.kaleido_adm.SimpleKDMAEstimator
+
+kdma_descriptions_map:
+  # Re-using descriptions of merit and affiliation from Ph1
+  # Moral Judgement and Ingroup Bias for now
+  merit:
+    name: Merit Focus
+    description: Favoring victims or bystanders over those who are perpetrators or otherwise potentially blame-worthy
+    vrd: Value
+
+  affiliation:
+    name: Affiliation Focus
+    description: Favoring casualties who are members of your same group, such as family, military unit, coalition, nationality, or region of origin over those who are not part of your group
+    vrd: Value
+
+  personal_safety:
+    name: Personal Safety
+    description: Tendency to hold back from moving to treat a patient when that requires risking exposure to enemy fire, waiting rather than immediately moving to treat the patient
+    vrd: Value
+          
+  search:
+    name: Search or Stay
+    description: Tendency to move on from their current patient in order to treat or search for another patient
+    vrd: Value
+
+prompt_template:
+  _target_: align_system.prompt_engineering.outlines_prompts.KaleidoDefaultITMPh2Prompt

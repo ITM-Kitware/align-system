@@ -1,0 +1,46 @@
+name: phase2_pipeline_kaleido
+
+defaults:
+  # Import defaults into this namspace (adm) as @name, for further
+  # customization
+
+  # Shared variables / components
+  - /attribute@af: affiliation_focus
+  - /attribute@mf: merit_focus
+  - /attribute@ss: search_or_stay
+  - /attribute@ps: personal_safety
+  - /template/scenario_description@scenario_description_template: default
+  # ADM components to be used in "steps"
+  - /adm_component/misc@step_definitions.format_choices: itm_format_choices
+  - /adm_component/regression@step_definitions.kaleido: phase2_kaleido
+  - /adm_component/misc@step_definitions.rename_kaleido_relevance_variables: rename_variables
+  - /adm_component/alignment@step_definitions.scalar_alignment: avg_dist_scalar
+  - /adm_component/misc@step_definitions.justification_from_reasonings: justification_from_reasonings
+  - /adm_component/misc@step_definitions.ensure_chosen_action: ensure_chosen_action
+  - /adm_component/misc@step_definitions.populate_choice_info: populate_choice_info
+  # Use definitions in this file to override defaults defined above
+  - _self_
+
+attribute_definitions:
+  affiliation: ${adm.af}
+  merit: ${adm.mf}
+  search: ${adm.ss}
+  personal_safety: ${adm.ps}
+
+step_definitions:
+  rename_kaleido_relevance_variables:
+    remapping:
+      relevance_prediction_scores: attribute_relevance_binary
+
+instance:
+  _target_: align_system.algorithms.pipeline_adm.PipelineADM
+
+  steps:
+    # Reference the step instances we want to use in order
+    - ${ref:adm.step_definitions.format_choices}
+    - ${ref:adm.step_definitions.kaleido}
+    - ${ref:adm.step_definitions.rename_kaleido_relevance_variables}
+    - ${ref:adm.step_definitions.scalar_alignment}
+    - ${ref:adm.step_definitions.justification_from_reasonings}
+    - ${ref:adm.step_definitions.ensure_chosen_action}
+    - ${ref:adm.step_definitions.populate_choice_info}
