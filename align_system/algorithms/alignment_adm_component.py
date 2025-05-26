@@ -64,6 +64,9 @@ class MedicalUrgencyAlignmentADMComponent(ADMComponent):
     def run_returns(self):
         return ('chosen_choice', 'best_sample_idx')
 
+    def _midpoint_eqn(self, medical_delta, attribute_delta):
+        return 0.5 + (medical_delta - attribute_delta)/2
+
     def run(
         self,
         attribute_prediction_scores,
@@ -148,7 +151,7 @@ class MedicalUrgencyAlignmentADMComponent(ADMComponent):
             return (opt_a["choice"], best_sample_idx)
 
         # Equation from ADEPT
-        probe_midpoint = 0.5 + (medical_delta - attribute_delta)/2
+        probe_midpoint = self._midpoint_eqn(medical_delta, attribute_delta)
         log.info(f"Probe Midpoint: {probe_midpoint}")
 
         attr_target = target_kdmas[0]["value"]
