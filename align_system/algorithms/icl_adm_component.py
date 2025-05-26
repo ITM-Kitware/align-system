@@ -38,7 +38,7 @@ class ICLADMComponent(ADMComponent):
                  scenario_description_template,
                  prompt_template,
                  attributes=None,
-                 predict_medical_urgency=False):
+                 target_attribute_names_override=None):
         self.icl_generator_partial = icl_generator_partial
         self.scenario_description_template = scenario_description_template
 
@@ -47,7 +47,8 @@ class ICLADMComponent(ADMComponent):
         self.attributes = attributes
 
         self.prompt_template = prompt_template
-        self.predict_medical_urgency = predict_medical_urgency
+
+        self.target_attribute_names_override = target_attribute_names_override
 
     def run_returns(self):
         return 'icl_dialog_elements'
@@ -62,8 +63,16 @@ class ICLADMComponent(ADMComponent):
         else:
             target_attribute_names = attributes_in_alignment_target(alignment_target)
 
-        if self.predict_medical_urgency:
-            target_attribute_names = ['medical'] + target_attribute_names
+        if self.target_attribute_names_override is not None:
+            if '*' not in self.target_attribute_names_override:
+                # '*' in the override means to include the attribute names
+                # from the target (in addition to whatever else is
+                # specified in the override)
+                target_attribute_names = []
+
+            for attribute_name in self.target_attribute_names_override:
+                if attribute_name != '*':
+                    target_attribute_names.append(attribute_name)
 
         target_attributes = [self.attributes[n] for n in target_attribute_names]
 
@@ -72,22 +81,26 @@ class ICLADMComponent(ADMComponent):
         else:
             alignment_target_dict = alignment_target
 
+        alignment_target_value_lookup = {
+            kdma_values['kdma']: kdma_values['value']
+            for kdma_values in alignment_target_dict['kdma_values']}
+
         icl_dialog_elements = {}
         for attribute in target_attributes:
             icl_dialog_elements[attribute.kdma] = []
-            # Convert alignment target into kdma values (all that's needed
-            # for building the icl engines, and need something that's
-            # hashable for caching, dicts aren't hashable)
-            for target_kdma_value in alignment_target_dict['kdma_values']:
-                if attribute.kdma == target_kdma_value['kdma']:
-                    # tuple of tuples; when initializing the icl
-                    # engine the lru_cache decorator doesn't allow
-                    # mutable arguments such as lists, need to use
-                    # tuple
-                    kdma_values = ((attribute.kdma, target_kdma_value['value']),)
-                else:
-                    if self.predict_medical_urgency:
-                        kdma_values = (('medical', 1.0),)
+
+            # Not sure how much this value actually matters for ICL;
+            # defaulting to `1.0` if not in the alignment target
+            # (e.g. for the "medical" attribute)
+            value_for_attribute = alignment_target_value_lookup.get(attribute.kdma, 1.0)
+
+            # Convert alignment target into kdma values (all that's
+            # needed for building the icl engines, and need something
+            # that's hashable for caching, dicts aren't hashable) as a
+            # tuple of tuples; when initializing the icl engine the
+            # lru_cache decorator doesn't allow mutable arguments such
+            # as lists, need to use tuple
+            kdma_values = ((attribute.kdma, value_for_attribute),)
 
             icl_gen = init_icl_engine_from_target(
                 self.icl_generator_partial,
