@@ -1,3 +1,4 @@
+import math
 import random
 
 from align_system.utils import call_with_coerced_args, logging
@@ -109,6 +110,10 @@ class MedicalUrgencyAlignmentADMComponent(ADMComponent):
                 preds = _handle_single_value(all_predictions[kdma])
                 pred_dict_out[kdma] = sum(preds) / len(preds)
 
+            if med_urg_str in all_predictions:
+                preds = _handle_single_value(all_predictions[med_urg_str])
+                pred_dict_out[med_urg_str] = sum(preds) / len(preds)
+
             return pred_dict_out
 
         choices = list(attribute_prediction_scores.keys())
@@ -134,7 +139,7 @@ class MedicalUrgencyAlignmentADMComponent(ADMComponent):
         # Get relevance predictions relevant to target
         probe_relevance = {}
         if attribute_relevance is not None:
-            probe_relevance = _get_avg_pred(attribute_relevance[choice])
+            probe_relevance = _get_avg_pred(attribute_relevance)
 
         # Sort by medical urgency (descending)
         predictions.sort(key=lambda pred: pred[med_urg_str], reverse=True)
@@ -163,13 +168,13 @@ class MedicalUrgencyAlignmentADMComponent(ADMComponent):
         votes = {idx: 0 for idx in range(2)}
         for target_kdma in target_kdmas:
             kdma = target_kdma["kdma"]
-            if attribute_weights[kdma] == 0:  # don't consider attributes with 0 weight
+            if math.isclose(attribute_weights[kdma], 0.):  # don't consider attributes with 0 weight
                 log.info(f"{kdma}: Removing from consideration, 0 weight")
                 continue
 
             attr_delta = attribute_deltas[kdma]
-            if medical_delta == 0:
-                if attr_delta == 0:  # patient is same medically and attribute-wise, don't vote
+            if math.isclose(medical_delta, 0.):
+                if math.isclose(attr_delta, 0.):  # patient is same medically and attribute-wise, don't vote
                     log.info(f"{kdma}: Patients are tied both medically and attribute-wise")
                     continue
                 elif attr_delta > 0:
@@ -177,21 +182,21 @@ class MedicalUrgencyAlignmentADMComponent(ADMComponent):
                 else:
                     votes[0] += 1
                 log.info(f"{kdma}: Patients are tied medically, choosing attribute-worthy")
-            elif attr_delta < 0:  # same patient is medically and attribute worthy
+            elif attr_delta < 0 or math.isclose(attr_delta, 0.):  # same patient is medically and attribute worthy
                 log.info(f"{kdma}: Same patient is both medically and attribute-worthy")
                 votes[0] += 1
             else:
                 attr_target = target_kdma["value"]
                 attr_midpoint = attribute_midpoints[kdma]
-                if attr_target < attr_midpoint:
-                    log.info(f"{kdma}: Target is less than midpoint")
-                    votes[0] += 1
-                elif attr_target > attr_midpoint:
-                    log.info(f"{kdma}: Target is greater than midpoint")
-                    votes[1] += 1
-                else:  # Midpoint == target, tie
+                if math.isclose(attr_target, attr_midpoint):  # Midpoint == target, tie
                     log.info(f"{kdma}: Target is exactly midpoint")
                     continue
+                elif attr_target < attr_midpoint:
+                    log.info(f"{kdma}: Target is less than midpoint")
+                    votes[0] += 1
+                else:  # attr_target > attr_midpoint
+                    log.info(f"{kdma}: Target is greater than midpoint")
+                    votes[1] += 1
 
         log.explain(votes)
 
