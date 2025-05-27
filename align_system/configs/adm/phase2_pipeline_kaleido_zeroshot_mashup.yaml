@@ -1,4 +1,4 @@
-name: phase2_pipeline_kaleido_mashup
+name: phase2_pipeline_kaleido_zeroshot_mashup
 
 defaults:
   # Import defaults into this namspace (adm) as @name, for further

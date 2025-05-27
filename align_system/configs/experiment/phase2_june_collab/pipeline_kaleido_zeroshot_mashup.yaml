@@ -1,12 +1,12 @@
 # @package _global_
 defaults:
-  - override /adm: phase2_pipeline_kaleido_mashup
+  - override /adm: phase2_pipeline_kaleido_zeroshot_mashup
   - override /interface: ta3
 
 interface:
   session_type: adept
   training_session: full
-  username: "pipeline_june2025_kaleido_mashup"
+  username: "pipeline_june2025_kaleido_zeroshot_mashup"
   domain: "p2triage"
 
 apply_action_filtering: false
