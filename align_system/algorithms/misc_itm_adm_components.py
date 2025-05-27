@@ -121,19 +121,23 @@ class Phase2RegressionRuleBasedCorrection(ADMComponent):
         log.info("Predicted:{}".format(attribute_prediction_scores), extra={"highlighter": JSON_HIGHLIGHTER})
 
         # Rule: For Search vs. Stay attribute value for stay should be 0
-        if 'Stay with the current patient' in attribute_prediction_scores:
-            if 'Search or Stay' in attribute_prediction_scores['Stay with the current patient']:
-                attribute_prediction_scores['Stay with the current patient']['Search or Stay'] = [0.0]
+        action_text = 'Continue treating your current patient'
+        if action_text in attribute_prediction_scores:
+            if 'search' in attribute_prediction_scores[action_text]:
+                attribute_prediction_scores[action_text]['search'] = [0.0]
         # Rule: For Search vs. Stay the medical value for the unknown patient should be 0
-        if 'Go to the next room' in attribute_prediction_scores:
-            attribute_prediction_scores['Go to the next room']['medical urgency'] = [0.0]
+        action_text = 'Move to find and treat a different patient'
+        if action_text in attribute_prediction_scores:
+            attribute_prediction_scores[action_text]['medical'] = [0.0]
         # Rule: For personal safety, waiting is risk 0 or safety 1
-        if 'Wait' in attribute_prediction_scores:
-            if 'Personal Safety' in attribute_prediction_scores['Wait']:
-                attribute_prediction_scores['Wait']['Personal Safety'] = [1.0]
+        action_text = 'Wait in your current location'
+        if action_text in attribute_prediction_scores:
+            if 'personal_safety' in attribute_prediction_scores[action_text]:
+                attribute_prediction_scores[action_text]['personal_safety'] = [1.0]
         # Rule: For personal safety, waiting is medical value 0
-        if 'Wait' in attribute_prediction_scores:
-           attribute_prediction_scores['Wait']['medical urgency'] = [0.0]
+        action_text = 'Wait in your current location'
+        if action_text in attribute_prediction_scores:
+           attribute_prediction_scores[action_text]['medical'] = [0.0]
 
         log.info("Corrected:{}".format(attribute_prediction_scores), extra={"highlighter": JSON_HIGHLIGHTER})
 
