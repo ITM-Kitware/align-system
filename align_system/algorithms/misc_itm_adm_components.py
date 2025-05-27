@@ -1,3 +1,5 @@
+import math
+
 from rich.highlighter import JSONHighlighter
 
 from align_system.algorithms.abstracts import ADMComponent
@@ -6,6 +8,7 @@ from align_system.utils.alignment_utils import attributes_in_alignment_target
 
 log = logging.getLogger(__name__)
 JSON_HIGHLIGHTER = JSONHighlighter()
+
 
 class EnsureChosenActionADMComponent(ADMComponent):
     def run_returns(self):
@@ -191,3 +194,53 @@ class OracleJustification(ADMComponent):
 
     def run(self):
         return "Looked at scores."
+
+
+class ChoiceRelevanceToProbeRelevance(ADMComponent):
+    def __init__(self, binarize=True):
+        self.binarize = binarize
+
+    def run_returns(self):
+        return 'attribute_relevance'
+
+    def run(self, relevance_prediction_scores):
+        """
+        Aggregate choice-level relevance values to probe-level
+        relevance
+
+        TODO (maybe): parameterize aggregation function, hardcoded to
+        take the average for now
+        """
+        _attribute_relevance_values = {}
+        for choice, relevance_preds in relevance_prediction_scores.items():
+            for attribute, values in relevance_preds.items():
+                _attribute_relevance_values.setdefault(attribute, []).extend(values)
+
+        attribute_relevance = {}
+        max_relevance = -math.inf
+        for attribute, values in _attribute_relevance_values.items():
+            agg_relevance = sum(values) / len(values)
+            attribute_relevance[attribute] = agg_relevance
+
+            if agg_relevance > max_relevance:
+                max_relevance = agg_relevance
+
+        if self.binarize:
+            log.debug("[bold]*AGGREGATE RELEVANCE (BEFORE BINARIZATION)*[/bold]",
+                      extra={"markup": True})
+        else:
+            log.debug("[bold]*AGGREGATE RELEVANCE*[/bold]",
+                      extra={"markup": True})
+
+        log.debug(attribute_relevance, extra={"highlighter": JSON_HIGHLIGHTER})
+
+        if self.binarize:
+            for attribute, relevance in attribute_relevance.items():
+                if relevance == max_relevance:
+                    attribute_relevance[attribute] = 1.0
+                    log.debug("[bold]*MOST RELEVANT ATTRIBUTE: {}*[/bold]".format(attribute),
+                              extra={"markup": True})
+                else:
+                    attribute_relevance[attribute] = 0.0
+
+        return attribute_relevance
