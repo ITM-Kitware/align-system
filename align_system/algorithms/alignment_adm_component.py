@@ -53,6 +53,67 @@ class AlignmentADMComponent(ADMComponent):
         return selected_choice, best_sample_idx
 
 
+class MedicalOnlyAlignmentADMComponent(ADMComponent):
+    def run_returns(self):
+        return ('chosen_choice', 'best_sample_idx')
+
+    def run(
+        self,
+        attribute_prediction_scores,
+    ):
+        """
+        Always choose the medically needy patient (random if tie)
+
+        attribute_prediction_scores: dict[str, dict[str, float | list[float]]]
+            Dictionary of choices mapped to KMDA value predictions, including medical
+            urgency prediction
+        """
+        med_urg_str = "medical"
+
+        def _handle_single_value(predictions):
+            if not isinstance(predictions, list):
+                return [predictions]
+            return predictions
+
+        med_urg = {}
+        for choice, all_kdma_predictions in attribute_prediction_scores.items():
+            # Get medical urgency
+            if med_urg_str not in all_kdma_predictions:
+                raise RuntimeError("Medical Urgency predictions required for this alignment function")
+            medical_urgency_preds = _handle_single_value(all_kdma_predictions[med_urg_str])
+            med_urg[choice] = sum(medical_urgency_preds) / len(medical_urgency_preds)
+
+        # Get max urgency
+        max_urg = max(med_urg.values())
+        log.info(f"Max medical urgency: {max_urg}")
+
+        max_keys = [key for key, value in med_urg.items() if math.isclose(value, max_urg)]
+        log.info(f"Max medical urgency keys: {max_keys}")
+
+        if len(max_keys) > 1:  # tie, choose randomly
+            log.explain("Multiple patients predicted to have same medical need, randomly choosing")
+            selected_choice = random.choice(max_keys)
+        else:
+            selected_choice = max_keys[0]
+
+        def _get_best_sample_idx(average_urgency, samples):
+            """ Return medical urgency prediction closest to average """
+            med_urg_preds = _handle_single_value(samples[med_urg_str])
+
+            best_idx = 0
+            min_difference = abs(med_urg_preds[best_idx] - average_urgency)
+
+            for idx, sample in enumerate(med_urg_preds):
+                difference = abs(sample - average_urgency)
+                if difference < min_difference:
+                    min_difference = difference
+                    best_idx = idx
+
+            return best_idx
+
+        return (selected_choice, _get_best_sample_idx(max_urg, attribute_prediction_scores[selected_choice]))
+
+
 class MedicalUrgencyAlignmentADMComponent(ADMComponent):
     def __init__(
         self,
@@ -206,7 +267,7 @@ class MedicalUrgencyAlignmentADMComponent(ADMComponent):
         log.explain(votes)
 
         max_votes = max(votes.values())
-        max_keys = [key for key, value in votes.items() if value == max_votes]
+        max_keys = [key for key, value in votes.items() if math.isclose(value, max_votes)]
         log.info(f"Max vote keys: {max_keys}")
 
         if len(max_keys) > 1:  # tie, choose randomly
