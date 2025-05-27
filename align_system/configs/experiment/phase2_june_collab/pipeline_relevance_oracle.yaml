@@ -1,0 +1,14 @@
+# @package _global_
+defaults:
+  - override /adm: phase2_pipeline_relevance_oracle
+  - override /interface: ta3
+
+interface:
+  session_type: adept
+  training_session: full
+  username: "pipeline_relevance_oracle_test"
+  domain: "p2triage"
+
+apply_action_filtering: false
+force_determinism: true
+align_to_target: true

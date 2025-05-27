@@ -107,6 +107,8 @@ class MedicalUrgencyAlignmentADMComponent(ADMComponent):
             pred_dict_out = {}
             for target_kdma in target_kdmas:
                 kdma = target_kdma["kdma"]
+                if kdma not in all_predictions:
+                    continue
                 preds = _handle_single_value(all_predictions[kdma])
                 pred_dict_out[kdma] = sum(preds) / len(preds)
 
@@ -159,6 +161,9 @@ class MedicalUrgencyAlignmentADMComponent(ADMComponent):
         for target_kdma in target_kdmas:
             kdma = target_kdma["kdma"]
             attribute_weights[kdma] = probe_relevance[kdma] if kdma in probe_relevance else 1.0
+            # May not have predictions for this KDMA if it had 0 relevance
+            if math.isclose(attribute_weights[kdma], 0.):
+                continue
             attribute_deltas[kdma] = attribute_weights[kdma] * (opt_b["kdmas"][kdma] - opt_a["kdmas"][kdma])
             attribute_midpoints[kdma] = self._midpoint_eqn(
                 medical_delta, attribute_deltas[kdma], total_weight=(medical_weight + attribute_weights[kdma])
