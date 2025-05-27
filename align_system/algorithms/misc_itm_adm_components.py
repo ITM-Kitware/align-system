@@ -138,6 +138,35 @@ class Phase2RegressionRuleBasedCorrection(ADMComponent):
         return attribute_prediction_scores
 
 
+class OracleRelevance(ADMComponent):
+    def run_returns(self):
+        return 'attribute_relevance'
+
+    def run(self, actions, alignment_target=None):
+        ''' Returns groundtruth (binary) `attribute_relevance` '''
+        if alignment_target is None:
+            target_attribute_names = []
+        else:
+            target_attribute_names = attributes_in_alignment_target(alignment_target)
+
+        attribute_relevance = {}
+        for action in actions:
+            if hasattr(action, 'kdma_association') and action.kdma_association is not None:
+                for kdma in action.kdma_association.keys():
+                    # If no target, just add all GT values. Otherwise only add those relevant to target
+                    if alignment_target is None or kdma in target_attribute_names:
+                        attribute_relevance[kdma] = 1.0
+
+        for target_attribute in target_attribute_names:
+            if target_attribute not in attribute_relevance:
+                attribute_relevance[target_attribute] = 0.0
+
+        log.info("[bold]*GROUND TRUTH KDMA RELEVANCE*[/bold]", extra={"markup": True})
+        log.info("{}".format(attribute_relevance), extra={"highlighter": JSON_HIGHLIGHTER})
+
+        return attribute_relevance
+
+
 class OracleRegression(ADMComponent):
     def run_returns(self):
         return 'attribute_prediction_scores'

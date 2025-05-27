@@ -1,0 +1,40 @@
+name: phase2_pipeline_relevance_oracle
+
+defaults:
+  # Import defaults into this namspace (adm) as @name, for further
+  # customization
+  - /attribute@mu: medical_urgency
+  - /attribute@af: affiliation_focus
+  - /attribute@mf: merit_focus
+  - /attribute@ss: search_or_stay
+  - /attribute@ps: personal_safety
+  # Shared variables / components
+  - /adm_component/misc@step_definitions.format_choices: itm_format_choices
+  - /adm_component/misc@step_definitions.oracle_relevance: oracle_relevance
+  - /adm_component/misc@step_definitions.oracle_regression: oracle_regression
+  - /adm_component/alignment@step_definitions.scalar_alignment: medical_urgency_scalar
+  - /adm_component/misc@step_definitions.oracle_justification: oracle_justification
+  - /adm_component/misc@step_definitions.ensure_chosen_action: ensure_chosen_action
+  - /adm_component/misc@step_definitions.populate_choice_info: populate_choice_info
+  # Use definitions in this file to override defaults defined above
+  - _self_
+
+attribute_definitions:
+  medical: ${adm.mu}
+  affiliation: ${adm.af}
+  merit: ${adm.mf}
+  search: ${adm.ss}
+  personal_safety: ${adm.ps}
+
+instance:
+  _target_: align_system.algorithms.pipeline_adm.PipelineADM
+
+  steps:
+    # Reference the step instances we want to use in order
+    - ${ref:adm.step_definitions.format_choices}
+    - ${ref:adm.step_definitions.oracle_relevance}
+    - ${ref:adm.step_definitions.oracle_regression}
+    - ${ref:adm.step_definitions.scalar_alignment}
+    - ${ref:adm.step_definitions.oracle_justification}
+    - ${ref:adm.step_definitions.ensure_chosen_action}
+    - ${ref:adm.step_definitions.populate_choice_info}
