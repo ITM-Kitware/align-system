@@ -1354,3 +1354,80 @@ class ComparativeRegressionSchema():
         return comparative_regression_json_schema(
                 choices,
                 self.factor_lookup.get(attribute, self.default_factor))
+
+
+@outlines.prompt
+def probe_most_relevant_system_prompt(
+    kdmas
+):
+    """
+    You are a specialized algorithm tasked with assessing medical triage decisions \
+    in a military medical context.  Given a scenario and list of possible responses, \
+    your job is to assess which attribute is most relevant to the decision out of:
+
+    Attributes to consider are:
+    {% for kdma in kdmas %}
+    - {{ kdma.name }} : {{ kdma.description }}
+    {% endfor %}
+
+    Only provide the name of the most relevant attribute.
+    """
+
+
+class ProbeMostRelevantSystemPrompt():
+    def __init__(self):
+        self.environment = jinja2.Environment()
+
+    def __call__(self, target_attributes):
+        return probe_most_relevant_system_prompt(
+            target_attributes)
+
+
+@outlines.prompt
+def probe_most_relevant_prompt(situation, choices, kdmas):
+    """
+    Scenario:
+    {{ situation }}
+
+    Responses:
+    {% for choice, choice_dict in choices.items() %}
+    - {{ choice }}
+    {% endfor %}
+
+    Which of the following attributes is most relevant to the decision:
+    {% for kdma in kdmas %}
+    - {{ kdma.name }}
+    {% endfor %}
+    """
+
+
+class ProbeMostRelevantPrompt():
+    def __call__(self,
+                 scenario_description,
+                 choices,
+                 attributes):
+        return probe_most_relevant_prompt(
+            scenario_description,
+            {c: None for c in choices},
+            attributes)
+
+
+def probe_most_relevant_json_schema(target_attribute_names):
+    json_schema = {
+        "type": "object",
+        "properties": {
+            "most_relevant": {
+                "type": "string",
+                "enum": target_attribute_names
+            }
+        },
+        "required": ["most_relevant"],
+        "additionalProperties": False
+    }
+    return json.dumps(json_schema)
+
+
+class ProbeMostRelevantSchema():
+    def __call__(self, target_attribute_names):
+        return probe_most_relevant_json_schema(
+                target_attribute_names)
