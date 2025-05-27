@@ -49,67 +49,76 @@ class PredictMostRelevantADMComponent(ADMComponent):
         attribute_names = [attribute.name for attribute in target_attributes]
 
         attribute_dialogs = {}
-        scenario_description = call_with_coerced_args(
-            self.scenario_description_template,
-            {'scenario_state': scenario_state})
-
-        dialog = []
-        if self.system_prompt_template is not None:
-            system_prompt = call_with_coerced_args(
-                self.system_prompt_template,
-                {'target_attributes': target_attributes})
-
-            dialog.insert(0, DialogElement(role='system',
-                                            content=system_prompt,
-                                            namespace='.',
-                                            tags=['relevance']))
-
-        # # If we get icl_dialog_elements, include them in the
-        # # dialog, maybe a more explicit argument (wether or not to
-        # # use icl) makes more sense?
-        # if len(icl_dialog_elements) > 0:
-        #     dialog.extend(icl_dialog_elements)
-
-        predict_most_relevant_prompt = call_with_coerced_args(
-            self.prompt_template,
-            {'scenario_state': scenario_state,
-                'scenario_description': scenario_description,
-                'choices': choices,
-                'attributes': target_attributes})
-
-        dialog.append(DialogElement(role='user',
-                                    content=predict_most_relevant_prompt,
-                                    namespace='.',
-                                    tags=['relevance']))
-
-        relevance_schema = call_with_coerced_args(
-            self.relevance_schema_template,
-            {'target_attribute_names': attribute_names})
-
-        dialog_prompt = self.structured_inference_engine.dialog_to_prompt(dialog)
-
-        log.info("[bold]*MOST RELEVANT ATTRIBUTE PREDICTION DIALOG PROMPT*[/bold]",
-                    extra={"markup": True})
-        log.info(dialog_prompt)
-
-        responses = self.structured_inference_engine.run_inference(
-                [dialog_prompt] * self.num_samples, relevance_schema)
-
-        # Use responses to define attribute relevance dictionary
         attribute_relevance = {}
-        for target_attribute in target_attributes:
-            attribute_relevance[target_attribute.kdma] = []
 
-        for i, response in enumerate(responses):
-            log.info("[bold]*RELEVANCE PREDICTION RESPONSE (sample #{})*[/bold]".format(
-                i), extra={"markup": True})
-            log.info(response, extra={"highlighter": JSON_HIGHLIGHTER})
+        if len(target_attributes) == 1:
+            log.info("[bold]*SKIPPING RELEVANCE PREDICTION (only one attribute in target)*[/bold]",
+                      extra={"markup": True})
+            attribute_relevance[target_attributes[0].kdma]=[1]
 
-            most_relevant = response['most_relevant']
+        else:
+            scenario_description = call_with_coerced_args(
+                self.scenario_description_template,
+                {'scenario_state': scenario_state})
+
+            dialog = []
+            if self.system_prompt_template is not None:
+                system_prompt = call_with_coerced_args(
+                    self.system_prompt_template,
+                    {'target_attributes': target_attributes})
+
+                dialog.insert(0, DialogElement(role='system',
+                                                content=system_prompt,
+                                                namespace='.',
+                                                tags=['relevance']))
+
+            # # If we get icl_dialog_elements, include them in the
+            # # dialog, maybe a more explicit argument (wether or not to
+            # # use icl) makes more sense?
+            # if len(icl_dialog_elements) > 0:
+            #     dialog.extend(icl_dialog_elements)
+
+            predict_most_relevant_prompt = call_with_coerced_args(
+                self.prompt_template,
+                {'scenario_state': scenario_state,
+                    'scenario_description': scenario_description,
+                    'choices': choices,
+                    'attributes': target_attributes})
+
+            dialog.append(DialogElement(role='user',
+                                        content=predict_most_relevant_prompt,
+                                        namespace='.',
+                                        tags=['relevance']))
+
+            relevance_schema = call_with_coerced_args(
+                self.relevance_schema_template,
+                {'target_attribute_names': attribute_names})
+
+            dialog_prompt = self.structured_inference_engine.dialog_to_prompt(dialog)
+
+            log.info("[bold]*MOST RELEVANT ATTRIBUTE PREDICTION DIALOG PROMPT*[/bold]",
+                        extra={"markup": True})
+            log.info(dialog_prompt)
+
+            responses = self.structured_inference_engine.run_inference(
+                    [dialog_prompt] * self.num_samples, relevance_schema)
+
+            # Use responses to define attribute relevance dictionary
+            attribute_relevance = {}
             for target_attribute in target_attributes:
-                if target_attribute.name == most_relevant:
-                    attribute_relevance[target_attribute.kdma].append(1)
-                else:
-                    attribute_relevance[target_attribute.kdma].append(0)
+                attribute_relevance[target_attribute.kdma] = []
+
+            for i, response in enumerate(responses):
+                log.info("[bold]*RELEVANCE PREDICTION RESPONSE (sample #{})*[/bold]".format(
+                    i), extra={"markup": True})
+                log.info(response, extra={"highlighter": JSON_HIGHLIGHTER})
+
+                most_relevant = response['most_relevant']
+                for target_attribute in target_attributes:
+                    if target_attribute.name == most_relevant:
+                        attribute_relevance[target_attribute.kdma].append(1)
+                    else:
+                        attribute_relevance[target_attribute.kdma].append(0)
+
         log.info("attribute_relevance: {}".format(attribute_relevance), extra={"highlighter": JSON_HIGHLIGHTER})
         return attribute_relevance, attribute_dialogs
