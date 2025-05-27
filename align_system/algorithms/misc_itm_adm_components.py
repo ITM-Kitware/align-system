@@ -74,7 +74,7 @@ class PopulateChoiceInfo(ADMComponent):
             actions,
             alignment_target=None,
             attribute_prediction_scores=None,
-            attribute_relevance_binary=None):
+            attribute_relevance=None):
         choice_info = {}
 
         if alignment_target is None:
@@ -85,17 +85,16 @@ class PopulateChoiceInfo(ADMComponent):
         if attribute_prediction_scores is not None:
             choice_info['predicted_kdma_values'] = attribute_prediction_scores
 
-        if attribute_relevance_binary is not None:
-            choice_info['predicted_relevance'] = attribute_relevance_binary
+        if attribute_relevance is not None:
+            choice_info['predicted_relevance'] = attribute_relevance
 
         true_kdma_values = {}
         true_relevance = {}
         for choice, action in zip(choices, actions):
             if action.kdma_association is not None:
                 true_kdma_values[choice] = action.kdma_association
-
                 for kdma in target_kdmas:
-                    true_relevance[choice] = 1 if kdma in action.kdma_association else 0
+                    true_relevance[kdma] = 1 if kdma in action.kdma_association else 0
 
         if len(true_kdma_values) > 0:
             choice_info['true_kdma_values'] = true_kdma_values
