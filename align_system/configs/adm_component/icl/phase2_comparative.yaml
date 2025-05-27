@@ -1,6 +1,6 @@
 _target_: align_system.algorithms.icl_adm_component.ICLADMComponent
 
-target_attribute_names_override: ['*', 'medical']
+target_attribute_names_override: ['medical', '*']
 
 icl_generator_partial:
   _target_: align_system.utils.incontext_utils.Phase2ComparativeRegressionIncontextExampleGenerator

@@ -52,15 +52,17 @@ class ComparativeRegressionADMComponent(ADMComponent):
             target_attribute_names = attributes_in_alignment_target(alignment_target)
 
         if self.target_attribute_names_override is not None:
-            if '*' not in self.target_attribute_names_override:
-                # '*' in the override means to include the attribute names
-                # from the target (in addition to whatever else is
-                # specified in the override)
-                target_attribute_names = []
-
+            overridden_target_attribute_names = []
             for attribute_name in self.target_attribute_names_override:
-                if attribute_name != '*':
-                    target_attribute_names.append(attribute_name)
+                if attribute_name == '*':
+                    # '*' in the override means to include the attribute names
+                    # from the target (in addition to whatever else is
+                    # specified in the override)
+                    overridden_target_attribute_names.extend(target_attribute_names)
+                else:
+                    overridden_target_attribute_names.append(attribute_name)
+
+            target_attribute_names = overridden_target_attribute_names
 
         target_attributes = [self.attributes[n] for n in target_attribute_names]
 
