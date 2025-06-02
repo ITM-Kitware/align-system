@@ -1,0 +1,17 @@
+# @package _global_
+defaults:
+  - override /adm: phase2_pipeline_fewshot_comparative_regression_bert_relevance
+  - override /interface: ta3
+
+interface:
+  session_type: adept
+  training_session: full
+  username: "pipeline_fewshot_bert_relevant_test"
+  domain: "p2triage"
+  scenario_ids:
+  - June2025-AF-train
+  - June2025-MF-train
+
+apply_action_filtering: false
+force_determinism: true
+align_to_target: true
