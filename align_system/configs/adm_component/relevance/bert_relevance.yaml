@@ -1,0 +1,3 @@
+_target_: align_system.algorithms.relevance_adm_component.BertRelevanceADMComponent
+
+attributes: ${ref:adm.attribute_definitions}

@@ -122,3 +122,79 @@ class PredictMostRelevantADMComponent(ADMComponent):
 
         log.info("attribute_relevance: {}".format(attribute_relevance), extra={"highlighter": JSON_HIGHLIGHTER})
         return attribute_relevance, attribute_dialogs
+
+
+class BertRelevanceADMComponent(ADMComponent):
+    def __init__(self,
+                 scenario_description_template,
+                 prompt_template,
+                 attributes={}):
+        self.scenario_description_template = scenario_description_template
+        self.prompt_template = prompt_template
+        self.attributes = attributes
+
+    def run_returns(self):
+        return ('attribute_relevance')
+
+    def run(self,
+            scenario_state,
+            choices,
+            icl_dialog_elements=[],
+            alignment_target=None):
+        if alignment_target is None:
+            target_attribute_names = []
+        else:
+            target_attribute_names = attributes_in_alignment_target(alignment_target)
+
+        target_attributes = [self.attributes[n] for n in target_attribute_names]
+
+        attribute_relevance = {}
+        if len(target_attributes) == 1:
+            log.info("[bold]*SKIPPING RELEVANCE PREDICTION (only one attribute in target)*[/bold]",
+                      extra={"markup": True})
+            attribute_relevance[target_attributes[0].kdma]=[1]
+
+        else:
+            scenario_description = call_with_coerced_args(
+                self.scenario_description_template,
+                {'scenario_state': scenario_state})
+
+            if len(icl_dialog_elements) ==0:
+                raise RuntimeError('BERT similarity relevance prediction requires ICL examples.')
+            else:
+                # Get avg similairyt score of this scenario to ICL scenarios
+                similarity_scores = {}
+                for attribute in target_attributes:
+                    scenario_to_match = call_with_coerced_args(
+                        self.prompt_template,
+                        {'scenario_state': scenario_state,
+                        'scenario_description': scenario_description,
+                        'choices': choices,
+                        'choice_outcomes': {c: None for c in choices},
+                        'attribute': attribute.name})
+
+                    example_scenarios = []
+                    for icl_dialog_element in icl_dialog_elements[attribute.kdma]:
+                        if icl_dialog_element.role == 'user':
+                            example_scenarios.append(icl_dialog_element.content)
+
+                    from bert_score import score
+                    _, _, F1 = score([scenario_to_match]*len(example_scenarios), example_scenarios, lang="en")
+                    similarity_scores[attribute.kdma] = float(F1.sum()/len(F1)) # avg score
+
+                # Pick attribute with highest similarity score as most relevant
+                predicted_most_relevant_attribute = max(similarity_scores, key=similarity_scores.get)
+
+                # Set attribute relevance dictionary using prediction
+                attribute_relevance = {}
+                for target_attribute in target_attributes:
+                    if target_attribute.kdma == predicted_most_relevant_attribute:
+                        attribute_relevance[target_attribute.kdma] = [1]
+                    else:
+                        attribute_relevance[target_attribute.kdma] = [0]
+
+        log.info("[bold]*BERT SIMILARITY RELEVANCE PREDICTION*[/bold]",
+                 extra={"markup": True})
+        log.info("attribute_relevance: {}".format(attribute_relevance),
+                 extra={"highlighter": JSON_HIGHLIGHTER})
+        return attribute_relevance
