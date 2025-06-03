@@ -279,6 +279,7 @@ class IncontextExampleGenerator(object, metaclass=ABCMeta):
 
         # Downselect to n_icl_examples via given method
         icl_strategy = self.incontext_settings["method"]
+        least_similar_examples = self.incontext_settings.get("least_similar_examples", False)
 
         if icl_strategy == "random":
             selected_icl_examples = random.sample(possible_icl_examples, n_icl_examples)
@@ -293,7 +294,11 @@ class IncontextExampleGenerator(object, metaclass=ABCMeta):
             # Create similarity scores between the ICL samples and find top-k indices
             from bert_score import score
             _, _, F1 = score([scenario_description_to_match]*len(possible_icl_scenarios), possible_icl_scenarios, lang="en")
-            _, indices = torch.topk(F1, n_icl_examples)
+            _, indices = torch.topk(F1, n_icl_examples, largest=(not least_similar_examples))
+
+            # Sort so that most similar (of selected) is still first
+            if least_similar_examples:
+                indices = reversed(indices)
 
             selected_icl_examples = [final_icl_candidates[i] for i in indices]
         elif icl_strategy == "prompt_bert_similarity":
@@ -307,7 +312,11 @@ class IncontextExampleGenerator(object, metaclass=ABCMeta):
             # Create similarity scores between the ICL samples and find top-k indices
             from bert_score import score
             _, _, F1 = score([prompt_to_match]*len(possible_icl_prompts), possible_icl_prompts, lang="en")
-            _, indices = torch.topk(F1, n_icl_examples)
+            _, indices = torch.topk(F1, n_icl_examples, largest=(not least_similar_examples))
+
+            # Sort so that most similar (of selected) is still first
+            if least_similar_examples:
+                indices = reversed(indices)
 
             selected_icl_examples = [final_icl_candidates[i] for i in indices]
         elif icl_strategy == "matching_actions":
@@ -324,7 +333,11 @@ class IncontextExampleGenerator(object, metaclass=ABCMeta):
                 if action_types.issubset(possible_icl_actions[i]):
                     scores[i] += 1
 
-            _, indices = torch.topk(scores, n_icl_examples)
+            _, indices = torch.topk(scores, n_icl_examples, largest=(not least_similar_examples))
+
+            # Sort so that most similar (of selected) is still first
+            if least_similar_examples:
+                indices = reversed(indices)
 
             selected_icl_examples = [possible_icl_examples[i] for i in indices]
         elif icl_strategy == "matching_characters":
@@ -341,7 +354,11 @@ class IncontextExampleGenerator(object, metaclass=ABCMeta):
                 if action_chars.issubset(possible_icl_chars[i]):
                     scores[i] += 1
 
-            _, indices = torch.topk(scores, n_icl_examples)
+            _, indices = torch.topk(scores, n_icl_examples, largest=(not least_similar_examples))
+
+            # Sort so that most similar (of selected) is still first
+            if least_similar_examples:
+                indices = reversed(indices)
 
             selected_icl_examples = [possible_icl_examples[i] for i in indices]
         else:
@@ -351,7 +368,7 @@ class IncontextExampleGenerator(object, metaclass=ABCMeta):
         if self.incontext_settings.get("most_similar_first", True):
             return selected_icl_examples
         else:
-            return selected_icl_examples[::-1]
+            return list(reversed(selected_icl_examples))
 
 
 class BaselineIncontextExampleGenerator(IncontextExampleGenerator):
