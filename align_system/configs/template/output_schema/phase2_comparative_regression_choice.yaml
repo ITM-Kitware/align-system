@@ -3,6 +3,6 @@ _target_: align_system.prompt_engineering.outlines_prompts.ComparativeRegression
 factor_lookup:
   medical urgency: 100
   affiliation focus: 100
-  merit focus: 100
+  merit: 100
   tendency to search vs stay: 100
   personal safety: 100
