@@ -1,5 +1,6 @@
 import itertools
 from collections.abc import Iterable
+from textwrap import dedent
 
 import outlines
 from outlines.samplers import MultinomialSampler
@@ -18,24 +19,28 @@ class OutlinesTransformersInferenceEngine(StructuredInferenceEngine):
                  inference_batch_size=5,
                  model_kwargs={},
                  tokenizer_kwargs={}):
+        self.model_name = model_name
+        self.precision = precision
         self.inference_batch_size = inference_batch_size
+        self.model_kwargs = model_kwargs
+        self.tokenizer_kwargs = tokenizer_kwargs
 
-        if precision == 'half':
+        if self.precision == 'half':
             torch_dtype = torch.float16
-        elif precision == 'full':
+        elif self.precision == 'full':
             torch_dtype = torch.float32
         else:
             raise RuntimeError(
                 f"Unexpected value for 'precision' ({precision})"
                 ", expecting either 'half' or 'full'")
 
-        model_kwargs['torch_dtype'] = torch_dtype
+        self.model_kwargs['torch_dtype'] = torch_dtype
 
         self.model = outlines.models.transformers(
-            model_name,
+            self.model_name,
             device=device,
-            model_kwargs=model_kwargs,
-            tokenizer_kwargs=tokenizer_kwargs)
+            model_kwargs=self.model_kwargs,
+            tokenizer_kwargs=self.tokenizer_kwargs)
         # NOTE: In cases where we want multiple samples, we're passing
         # in a list of prompts (this allows us to shuffle answers in
         # each prompt), rather than setting the number of samples in
@@ -103,3 +108,26 @@ class OutlinesTransformersInferenceEngine(StructuredInferenceEngine):
         else:
             raise TypeError("Don't know how to run inference on provided "
                             "`prompts` object")
+
+    def cache_repr(self):
+        '''
+        Return a string representation of this object for caching;
+        .i.e. if the return value of this function is the same for two
+        object instances, it's assumed that inference output will be
+        the same
+        '''
+        def _sampler_repr(sampler):
+            return "{}.{}({})".format(
+                sampler.__class__.__module__,
+                sampler.__class__.__name__,
+                ", ".join([f"{k}={v}" for k, v in vars(sampler).items()]))
+
+        return dedent(f"""
+                       {self.__class__.__module__}.{self.__class__.__name__}(
+                       model_name="{self.model_name}",
+                       precision="{self.precision}",
+                       sampler={_sampler_repr(self.sampler)},
+                       inference_batch_size={self.inference_batch_size},
+                       model_kwargs={self.model_kwargs},
+                       tokenizer_kwargs={self.tokenizer_kwargs},
+                       )""").strip()
