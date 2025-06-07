@@ -163,6 +163,10 @@ class TA3CACIActionBasedScenario(ActionBasedScenarioInterface):
             updated_state = take_or_intend(
                 session_id=self.session_id,
                 action=action)
+
+            updated_state.unstructured = "{}\n{}".format(
+                updated_state.threat_state.unstructured,
+                updated_state.unstructured)
         else:
             updated_state = take_or_intend(
                 session_id=self.session_id,
@@ -181,5 +185,12 @@ class TA3CACIActionBasedScenario(ActionBasedScenarioInterface):
         )
 
     def get_state(self):
-        return self.connection.get_scenario_state(
+        state = self.connection.get_scenario_state(
             session_id=self.session_id, scenario_id=self.scenario.id)
+
+        if self.domain == "p2triage":
+            state.unstructured = "{}\n{}".format(
+                state.threat_state.unstructured,
+                state.unstructured)
+
+        return state
