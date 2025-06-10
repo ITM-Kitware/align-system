@@ -416,7 +416,12 @@ def main(cfg: DictConfig) -> None:
 
                 if cfg.get('save_last_unstructured_state_per_scenario', False):
                     if alignment_target is None:
-                        alignment_target_id = None
+                        scenario_alignment_target = scenario.get_alignment_target()
+
+                        if scenario_alignment_target is not None:
+                            alignment_target_id = scenario_alignment_target.id
+                        else:
+                            alignment_target_id = None
                     else:
                         alignment_target_id = alignment_target.id
 
