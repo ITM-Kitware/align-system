@@ -7,7 +7,7 @@ interface:
   api_endpoint: "https://darpaitm.caci.com"
   session_type: eval
   training_session: null
-  username: "ALIGN-ADM-OutlinesBaseline"
+  username: "ALIGN-ADM-OutlinesBaseline-Mistral-7B-Instruct-v0.3"
 
 adm:
   instance:
