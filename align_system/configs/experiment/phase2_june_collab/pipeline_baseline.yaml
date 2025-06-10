@@ -1,6 +1,7 @@
 # @package _global_
 defaults:
   - override /adm: pipeline_baseline
+  - override /inference_engine@adm.structured_inference_engine: outlines_structured_greedy
   - override /interface: ta3
 
 interface:
@@ -16,6 +17,8 @@ adm:
         _target_: align_system.prompt_engineering.outlines_prompts.Phase2ScenarioDescription
       prompt_template:
         _target_: align_system.prompt_engineering.outlines_prompts.Phase2BaselinePrompt
+
+      enable_caching: true
 
   instance:
     steps:
