@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "align-system"
-version = "0.5.8"
+version = "0.5.9"
 description = ""
 authors = ["David Joy <10147749+dmjoy@users.noreply.github.com>"]
 readme = "README.md"

@@ -146,6 +146,49 @@ run_align_system +experiment=phase1_evaluation/aligned_adm_adept_eval
 run_align_system +experiment=phase1_evaluation/aligned_adm_soartech_eval
 ```
 
+## Phase 2 Evaluation (June) ADM Invocations
+
+We've specified Hydra experiments for the Phase 2 Evaluation ADMs.
+Note that by default these configurations attempt to connect to
+`https://darpaitm.caci.com` as the TA3 API endpoint, but this can be
+overridden with `interface.api_endpoint='http://127.0.0.1:8080'` on
+the command line.
+
+### Random ADM
+
+(Good candidate for a smoketest)
+
+```
+run_align_system +experiment=phase2_june_collab/pipeline_random_live_eval
+```
+
+### Baseline ADM
+
+```
+run_align_system +experiment=phase2_june_collab/pipeline_baseline_live_eval
+```
+
+### Aligned ADM
+
+```
+run_align_system +experiment=phase2_june_collab/pipeline_fewshot_comparative_regression_20icl_live_eval
+```
+
+### Baseline ADM (multi-KDMA)
+
+While this is the "multi-KDMA" configuration of the baseline, the only
+distinction between the single KDMA baseline is the output directory.
+Both baseline configurations ignore the targets and KDMAs entirely.
+
+```
+run_align_system +experiment=phase2_june_collab/pipeline_baseline_multi_live_eval
+```
+
+### Aligned ADM (multi-KDMA):
+
+```
+run_align_system +experiment=phase2_june_collab/pipeline_fewshot_comparative_regression_bert_relevance_live_eval
+```
 
 ## Implementing a new ADM
 
