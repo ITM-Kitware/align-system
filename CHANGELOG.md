@@ -3,13 +3,33 @@
 This changelog follows the specifications detailed in: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html), although we have not yet reached a `1.0.0` release.
 
-## Unreleased
+## 0.5.9
 
 ### Added
 
-* Added `state_hydration_domain` to `IncontextExampleGenerator` and `InputOutputFileInterface`. Providing a value of
-  `None` or `p1` results in Phase 1 behavior while a value of `p2triage` is meant for hydrating states from the
-  corresponding domain on the TA3 server.
+* Added new (optional) domain argument for the TA3 interface
+* Added support for the TA3 interface domain `p2triage`
+* Added `state_hydration_domain` to `IncontextExampleGenerator` and `InputOutputFileInterface`. Providing a value of `None` or `p1` results in Phase 1 behavior while a value of `p2triage` is meant for hydrating states from the corresponding domain on the TA3 server.
+* Added multi-KDMA evaluation support with dedicated baseline multi config and BERT-relevance config for Phase 2 June evaluation
+* Added configurations for Phase 2 June evauation
+* Added caching functionality for baseline and comparative regression ADM components
+* Added ICL-based relevance prediction ADM with BERT similarity
+* Added least_similar_examples option for ICL
+* Added Phase 2 midpoint based alignment function (with relevance support) along with unit tests
+* Added medical-only alignment function
+* Added dedicated Phase 2 regression component config for Kaleido
+* Added Kaleido ADM experiment config variants including a "mashup" for Phase 2
+* Added pipeline components: relevance aggregation, regression oracle, and relevance oracle
+* Added `state_hydration_domain` option to ICL and input/output interface
+* Added pipeline component for post-hoc rule-based regression value correction
+* Added new KDMAs for Phase 2 June collaboration: "personal_safety" and "search"
+* Added local copies of Phase 1 data models from TA3 code to support backward compatability
+* Added Phase 2 alignment target config files
+* Added `ubelt` dependency for caching support
+
+### Changed
+
+* Changed some Phase 1 components and templates to point at local Phase 1 data models
 
 ## 0.5.8
 
