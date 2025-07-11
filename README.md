@@ -266,6 +266,8 @@ algorithms / models*
 
 ## Quicklinks
 
+[ALIGN App](https://github.com/ITM-Kitware/align-app)
+
 [External interfaces](docs/external_interfaces.md)
 
 [Developer environment setup](docs/developer_setup.md)
