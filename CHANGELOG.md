@@ -9,6 +9,10 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 * Added more details and examples to the pipeline ADM documentation
 
+### Changed
+
+* Changed Phase 2 medical urgency alignment function to reflect program collaboration updates
+
 ## 0.5.9
 
 ### Added
