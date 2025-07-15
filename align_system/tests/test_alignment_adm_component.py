@@ -539,65 +539,7 @@ class TestMedicalUrgencyAlignmentADMComponent:
                 {"KDMA_A": 0.0, "KDMA_B": 1.0},
                 "Choice 0",  # Target above midpoint
             ),
-            # Medical relevance. KDMA_A midpoint is ~0.788
-            (
-                {
-                    "Choice 0": {"medical": 0.1, "KDMA_A": 0.6},
-                    "Choice 1": {"medical": 0.7, "KDMA_A": 0.5},
-                },
-                {
-                    "kdma_values": [
-                        {"kdma": "KDMA_A", "value": 0.8},
-                    ],
-                },
-                {"medical": 1.25, "KDMA_A": 1.0},
-                "Choice 0",  # Target above midpoint
-            ),
-            # Medical relevance. KDMA_A midpoint is ~0.788
-            (
-                {
-                    "Choice 0": {"medical": 0.1, "KDMA_A": 0.6},
-                    "Choice 1": {"medical": 0.7, "KDMA_A": 0.5},
-                },
-                {
-                    "kdma_values": [
-                        {"kdma": "KDMA_A", "value": 0.75},
-                    ],
-                },
-                {"medical": 1.25, "KDMA_A": 1.0},
-                "Choice 1",  # Target below midpoint
-            ),
-            # Medical relevance. KDMA_A midpoint is ~0.788, KDMA_B midpoint is ~0.611
-            (
-                {
-                    "Choice 0": {"medical": 0.1, "KDMA_A": 0.6, "KDMA_B": 0.7},
-                    "Choice 1": {"medical": 0.7, "KDMA_A": 0.5, "KDMA_B": 0.2},
-                },
-                {
-                    "kdma_values": [
-                        {"kdma": "KDMA_A", "value": 0.8},
-                        {"kdma": "KDMA_B", "value": 0.65},
-                    ],
-                },
-                {"medical": 1.25, "KDMA_A": 1.0, "KDMA_B": 1.0},
-                "Choice 0",  # Both above midpoint
-            ),
-            # Medical relevance. KDMA_A midpoint is ~0.788, KDMA_B midpoint is ~0.611
-            (
-                {
-                    "Choice 0": {"medical": 0.1, "KDMA_A": 0.6, "KDMA_B": 0.7},
-                    "Choice 1": {"medical": 0.7, "KDMA_A": 0.5, "KDMA_B": 0.2},
-                },
-                {
-                    "kdma_values": [
-                        {"kdma": "KDMA_A", "value": 0.75},
-                        {"kdma": "KDMA_B", "value": 0.60},
-                    ],
-                },
-                {"medical": 1.25, "KDMA_A": 1.0, "KDMA_B": 1.0},
-                "Choice 1",  # Both below midpoint
-            ),
-            # KDMA_A midpoint is 0.96, KDMA_B midpoint is ~0.733
+            # KDMA_A midpoint is 0.75, KDMA_B midpoint is 0.55
             (
                 {
                     "Choice 0": {"medical": 0.1, "KDMA_A": 0.6, "KDMA_B": 0.7},
@@ -610,9 +552,9 @@ class TestMedicalUrgencyAlignmentADMComponent:
                     ],
                 },
                 {"KDMA_A": 0.25, "KDMA_B": 0.5},
-                "Choice 0",  # Both above midpoint
+                "Choice 0",  # 0.25 to Choice 0, 0.5 to Choice 0 -> Choice 0
             ),
-            # KDMA_A midpoint is 0.96, KDMA_B midpoint is ~0.733
+            # KDMA_A midpoint is 0.75, KDMA_B midpoint is 0.55
             (
                 {
                     "Choice 0": {"medical": 0.1, "KDMA_A": 0.6, "KDMA_B": 0.7},
@@ -620,12 +562,12 @@ class TestMedicalUrgencyAlignmentADMComponent:
                 },
                 {
                     "kdma_values": [
-                        {"kdma": "KDMA_A", "value": 0.95},
-                        {"kdma": "KDMA_B", "value": 0.70},
+                        {"kdma": "KDMA_A", "value": 0.6},
+                        {"kdma": "KDMA_B", "value": 0.7},
                     ],
                 },
                 {"KDMA_A": 0.25, "KDMA_B": 0.5},
-                "Choice 1",  # Both below midpoint
+                "Choice 0",  # 0.25 to Choice 1, 0.5 to Choice 0 -> Choice 0
             ),
         ],
     )
@@ -641,26 +583,25 @@ class TestMedicalUrgencyAlignmentADMComponent:
         assert alignment_fn.run(attribute_prediction_scores, alignment_target, attribute_relevance)[0] == exp_choice
 
     @pytest.mark.parametrize(
-        ("medical_delta", "attribute_delta", "total_weight", "exp_value"),
+        ("kdma", "opt_a_value", "medical_delta", "attribute_delta", "exp_value"),
         [
-            (0.7, 0.1, None, 0.8),
-            (0.3, 0.2, None, 0.55),
-            (0.9, 0.4, None, 0.75),
-            (0.1, 0.8, None, 0.15),
-            (0.7, 0.1, 2, 0.8),  # Should be the exact same as the equivalent 'None' total_weight case
-            (0.3, 0.2, 4, 0.525),
-            (0.1, 0.8, 1.75, 0.1),
+            ("KDMA_A", 0.3, 0.7, 0.1, 0.8),
+            ("KDMA_A", 0.5, 0.3, 0.2, 0.55),
+            ("KDMA_A", 0.6, 0.9, 0.4, 0.75),
+            ("KDMA_A", 0.0, 0.1, 0.8, 0.15),
+            ("KDMA_A", 0.7, 0.7, 0.1, 0.8),  # Should be the exact same as the otherwise equivalent opt_a case
+            ("affiliation", 0.3, 0.7, 0.1, 0.745),
+            ("merit", 0.5, 0.3, 0.2, 0.425),
+            ("affiliation", 0.3, 0.7, 0.8, 0.745),  # Attribute delta shouldn't change result for affiliation/merit
+            ("merit", 0.5, 0.3, 0.8, 0.425),
         ],
     )
-    def test_midpoint_eqn(self, medical_delta, attribute_delta, total_weight, exp_value):
+    def test_midpoint_eqn(self, kdma, opt_a_value, medical_delta, attribute_delta, exp_value):
         """ Regression test to ensure equation doesn't get inadvertently modified """
         alignment_fn = MedicalUrgencyAlignmentADMComponent(
             TestMedicalUrgencyAlignmentADMComponent.attribute_definitions
         )
 
-        if total_weight is None:
-            result = alignment_fn._midpoint_eqn(medical_delta, attribute_delta)
-        else:
-            result = alignment_fn._midpoint_eqn(medical_delta, attribute_delta, total_weight)
-
-        assert result == pytest.approx(exp_value)
+        assert (
+            alignment_fn._midpoint_eqn(kdma, opt_a_value, medical_delta, attribute_delta) == pytest.approx(exp_value)
+        )

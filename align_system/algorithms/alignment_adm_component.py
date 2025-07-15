@@ -126,9 +126,17 @@ class MedicalUrgencyAlignmentADMComponent(ADMComponent):
     def run_returns(self):
         return ('chosen_choice', 'best_sample_idx')
 
-    def _midpoint_eqn(self, medical_delta, attribute_delta, total_weight=2):
+    def _midpoint_eqn(self, kdma, opt_a_value, medical_delta, attr_delta):
+        medical_weights = {"affiliation": 2, "merit": 4}
+        medical_weight = medical_weights.get(kdma, 1.0)
+
         # Midpoint equation from ADEPT
-        return 0.5 + (medical_delta - attribute_delta)/total_weight
+        if kdma == "affiliation":
+            return (opt_a_value + medical_weight*medical_delta - opt_a_value*medical_delta)/2
+        elif kdma == "merit":
+            return (opt_a_value + medical_weight*medical_delta)/4
+        else:
+            return 0.5 + (medical_weight*medical_delta - attr_delta)/2
 
     def run(
         self,
@@ -209,8 +217,8 @@ class MedicalUrgencyAlignmentADMComponent(ADMComponent):
 
         # Guaranteed to only have 2 choices at this point due to earlier checks
         opt_a, opt_b = predictions
-        medical_weight = probe_relevance[med_urg_str] if med_urg_str in probe_relevance else 1.0
-        medical_delta = medical_weight * (opt_a[med_urg_str] - opt_b[med_urg_str])
+
+        medical_delta = opt_a[med_urg_str] - opt_b[med_urg_str]
 
         # TODO: Figure out what it means to be the best prediction for this alignment function
         best_sample_idx = 0
@@ -221,14 +229,15 @@ class MedicalUrgencyAlignmentADMComponent(ADMComponent):
         attribute_midpoints = {}
         for target_kdma in target_kdmas:
             kdma = target_kdma["kdma"]
-            attribute_weights[kdma] = probe_relevance[kdma] if kdma in probe_relevance else 1.0
+            attribute_weights[kdma] = probe_relevance.get(kdma, 1.0)
+
             # May not have predictions for this KDMA if it had 0 relevance
             if math.isclose(attribute_weights[kdma], 0.):
                 continue
-            attribute_deltas[kdma] = attribute_weights[kdma] * (opt_b["kdmas"][kdma] - opt_a["kdmas"][kdma])
-            attribute_midpoints[kdma] = self._midpoint_eqn(
-                medical_delta, attribute_deltas[kdma], total_weight=(medical_weight + attribute_weights[kdma])
-            )
+
+            attribute_deltas[kdma] = opt_b["kdmas"][kdma] - opt_a["kdmas"][kdma]
+            opt_a_value = opt_a["kdmas"][kdma]
+            attribute_midpoints[kdma] = self._midpoint_eqn(kdma, opt_a_value, medical_delta, attribute_deltas[kdma])
             log.info(f"{kdma} midpoint: {attribute_midpoints[kdma]}")
 
         votes = {idx: 0 for idx in range(2)}
@@ -238,19 +247,20 @@ class MedicalUrgencyAlignmentADMComponent(ADMComponent):
                 log.info(f"{kdma}: Removing from consideration, 0 weight")
                 continue
 
+            vote_weight = attribute_weights[kdma]
             attr_delta = attribute_deltas[kdma]
             if math.isclose(medical_delta, 0.):
                 if math.isclose(attr_delta, 0.):  # patient is same medically and attribute-wise, don't vote
                     log.info(f"{kdma}: Patients are tied both medically and attribute-wise, not voting")
                     continue
                 elif attr_delta > 0:
-                    votes[1] += 1
+                    votes[1] += vote_weight
                 else:
-                    votes[0] += 1
+                    votes[0] += vote_weight
                 log.info(f"{kdma}: Patients are tied medically, voting for attribute-worthy")
             elif attr_delta < 0 or math.isclose(attr_delta, 0.):  # same patient is medically and attribute worthy
                 log.info(f"{kdma}: Voting for patient that is both medically and attribute-worthy")
-                votes[0] += 1
+                votes[0] += vote_weight
             else:
                 attr_target = target_kdma["value"]
                 attr_midpoint = attribute_midpoints[kdma]
@@ -259,10 +269,10 @@ class MedicalUrgencyAlignmentADMComponent(ADMComponent):
                     continue
                 elif attr_target < attr_midpoint:
                     log.info(f"{kdma}: Target is less than midpoint, voting for medically-worthy.")
-                    votes[0] += 1
+                    votes[0] += vote_weight
                 else:  # attr_target > attr_midpoint
                     log.info(f"{kdma}: Target is greater than midpoint, voting for attribute-worthy")
-                    votes[1] += 1
+                    votes[1] += vote_weight
 
         log.explain(votes)
 
