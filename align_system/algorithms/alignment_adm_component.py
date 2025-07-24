@@ -1,5 +1,4 @@
 import math
-import random
 
 from align_system.utils import call_with_coerced_args, logging
 from align_system.algorithms.abstracts import ADMComponent
@@ -62,7 +61,7 @@ class MedicalOnlyAlignmentADMComponent(ADMComponent):
         attribute_prediction_scores,
     ):
         """
-        Always choose the medically needy patient (random if tie)
+        Always choose the medically needy patient (first patient if tie)
 
         attribute_prediction_scores: dict[str, dict[str, float | list[float]]]
             Dictionary of choices mapped to KMDA value predictions, including medical
@@ -90,11 +89,10 @@ class MedicalOnlyAlignmentADMComponent(ADMComponent):
         max_keys = [key for key, value in med_urg.items() if math.isclose(value, max_urg)]
         log.info(f"Max medical urgency keys: {max_keys}")
 
-        if len(max_keys) > 1:  # tie, choose randomly
-            log.explain("Multiple patients predicted to have same medical need, randomly choosing")
-            selected_choice = random.choice(max_keys)
-        else:
-            selected_choice = max_keys[0]
+        if len(max_keys) > 1:  # tie, choose first tied patient
+            log.explain("Multiple patients predicted to have same medical need, choosing first patient for determinism")
+
+        selected_choice = max_keys[0]
 
         def _get_best_sample_idx(average_urgency, samples):
             """ Return medical urgency prediction closest to average """
@@ -256,11 +254,11 @@ class MedicalUrgencyAlignmentADMComponent(ADMComponent):
             else:
                 attr_target = target_kdma["value"]
                 attr_midpoint = attribute_midpoints[kdma]
-                if math.isclose(attr_target, attr_midpoint):  # Midpoint == target, tie
-                    log.info(f"{kdma}: Target is exactly midpoint, not voting")
-                    continue
+                if math.isclose(attr_target, attr_midpoint):  # Midpoint == target, vote for medically-worthy
+                    log.info(f"{kdma}: Target is exactly midpoint, voting for medically-worthy")
+                    votes[0] += vote_weight
                 elif attr_target < attr_midpoint:
-                    log.info(f"{kdma}: Target is less than midpoint, voting for medically-worthy.")
+                    log.info(f"{kdma}: Target is less than midpoint, voting for medically-worthy")
                     votes[0] += vote_weight
                 else:  # attr_target > attr_midpoint
                     log.info(f"{kdma}: Target is greater than midpoint, voting for attribute-worthy")
@@ -272,11 +270,10 @@ class MedicalUrgencyAlignmentADMComponent(ADMComponent):
         max_keys = [key for key, value in votes.items() if math.isclose(value, max_votes)]
         log.info(f"Max vote keys: {max_keys}")
 
-        if len(max_keys) > 1:  # tie, choose randomly
-            log.explain("Patients predicted to have same attribute worthiness, randomly choosing")
-            return (random.choice([predictions[key]["choice"] for key in max_keys]), best_sample_idx)
-        else:
-            return (predictions[max_keys[0]]["choice"], best_sample_idx)
+        if len(max_keys) > 1:  # tie, choose first patient for determinism
+            log.explain("Patients predicted to have same attribute worthiness, choosing first patient for determinism")
+
+        return (predictions[max_keys[0]]["choice"], best_sample_idx)
 
 
 class MedicalUrgencyAlignmentWeightedADMComponent(MedicalUrgencyAlignmentADMComponent):

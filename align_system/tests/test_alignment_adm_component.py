@@ -252,7 +252,20 @@ class TestMedicalUrgencyAlignmentADMComponent:
                 },
                 "Choice 0",  # Attribute worthy patient
             ),
-            # Fully tied patients would be random choice,
+            # Fully tied patients chooses the "first" choice for determinism,
+            (
+                {
+                    "Choice 0": {"medical": 0.5, "KDMA_A": 0.9, "KDMA_B": 0.4},
+                    "Choice 1": {"medical": 0.5, "KDMA_A": 0.9, "KDMA_B": 0.4},
+                },
+                {
+                    "kdma_values": [
+                        {"kdma": "KDMA_A", "value": 0.9},
+                        {"kdma": "KDMA_B", "value": 0.1},
+                    ],
+                },
+                "Choice 0",  # First patient
+            ),
             # Same patient is medically and attribute favored
             (
                 {
@@ -281,6 +294,19 @@ class TestMedicalUrgencyAlignmentADMComponent:
                     ],
                 },
                 "Choice 1",
+            ),
+            (
+                {
+                    "Choice 0": {"medical": 0.1, "KDMA_A": 0.1, "KDMA_B": 0.7},
+                    "Choice 1": {"medical": 0.7, "KDMA_A": 0.9, "KDMA_B": 0.2}, # KDMA_A, KDMA_B if target below 0.55
+                },
+                {
+                    "kdma_values": [
+                        {"kdma": "KDMA_A", "value": 0.1},
+                        {"kdma": "KDMA_B", "value": 0.9},
+                    ],
+                },
+                "Choice 1",  # Tie vote, choose first patient for determinism (after sorting descending medically)
             ),
             # Same as previous but new target for KDMA_A (shouldn't matter)
             (
@@ -336,7 +362,7 @@ class TestMedicalUrgencyAlignmentADMComponent:
                         {"kdma": "KDMA_B", "value": 0.6},
                     ],
                 },
-                "Choice 0",  # KDMA_A target is exactly midpoint so its votes don't count
+                "Choice 1",  # KDMA_A target is exactly midpoint so it votes for medically needy
             ),
             # KDMA_A midpoint is 0.75, KDMA_B midpoint is 0.55. KDMA_C isn't in target so it should be ignored
             (
@@ -350,7 +376,7 @@ class TestMedicalUrgencyAlignmentADMComponent:
                         {"kdma": "KDMA_B", "value": 0.2},
                     ],
                 },
-                "Choice 1",  # KDMA_A target is exactly midpoint so its votes don't count
+                "Choice 1",  # KDMA_A target is exactly midpoint so it votes for medically needy
             ),
             # More than 2 targets. KDMA_A midpoint is 0.75, KDMA_B midpoint is 0.55, KDMA_C midpoint is 0.4
             (
