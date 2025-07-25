@@ -1,0 +1,6 @@
+_target_: align_system.data_models.attribute.Attribute
+
+name: empowerment focus
+kdma: "empowerment"
+description: User empowerment focus means prioritizing user security training and awareness so that users have more control over their data and service availaiblity and access.
+factor: 100

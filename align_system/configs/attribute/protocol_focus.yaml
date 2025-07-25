@@ -1,0 +1,6 @@
+_target_: align_system.data_models.attribute.Attribute
+
+name: protocol focus
+kdma: "protocol"
+description: Protocol focus referese to paying attention to rules and following guidelines. 
+factor: 100
