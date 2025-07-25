@@ -330,7 +330,7 @@ class TestMedicalUrgencyAlignmentADMComponent:
                         {"kdma": "KDMA_B", "value": 0.6},
                     ],
                 },
-                "Choice 0",  # KDMA_A target is exactly midpoint so its votes don't count
+                "Choice 1",  # KDMA_A target is exactly midpoint so it votes for medical
             ),
             # KDMA_A midpoint is 0.75, KDMA_B midpoint is 0.55. KDMA_C isn't in target so it should be ignored
             (
@@ -344,7 +344,7 @@ class TestMedicalUrgencyAlignmentADMComponent:
                         {"kdma": "KDMA_B", "value": 0.2},
                     ],
                 },
-                "Choice 1",  # KDMA_A target is exactly midpoint so its votes don't count
+                "Choice 1",  # KDMA_A target is exactly midpoint so it votes for medical
             ),
             # More than 2 targets. KDMA_A midpoint is 0.75, KDMA_B midpoint is 0.55, KDMA_C midpoint is 0.4
             (
@@ -434,7 +434,7 @@ class TestMedicalUrgencyAlignmentADMComponent:
                         {"kdma": "KDMA_C", "value": 0.4},
                     ],
                 },
-                "Choice 1",  # 2/3 below midpoint, other exactly midpoint
+                "Choice 1",  # 2/3 below midpoint, other exactly midpoint (vote for medically needy)
             ),
             # More than 2 targets. KDMA_A midpoint is 0.75, KDMA_B midpoint is 0.55, KDMA_C midpoint is 0.4
             (
@@ -449,7 +449,7 @@ class TestMedicalUrgencyAlignmentADMComponent:
                         {"kdma": "KDMA_C", "value": 0.4},
                     ],
                 },
-                "Choice 1",  # 1 below midpoint, other 2 exactly midpoint
+                "Choice 1",  # 1 below midpoint, other 2 exactly midpoint (vote for medically needy)
             ),
             # Multiple predictions. KDMA_A midpoint is 0.5, KDMA_B midpoint is 0.325
             (
@@ -992,7 +992,7 @@ class TestMedicalUrgencyAlignmentWeightedADMComponent:
                         {"kdma": "KDMA_B", "value": 0.6},
                     ],
                 },
-                "Choice 0",  # KDMA_A target is exactly midpoint so its votes don't count
+                "Choice 1",  # KDMA_A target is exactly midpoint so it votes for medical
             ),
             # KDMA_A midpoint is 0.75, KDMA_B midpoint is 0.55. KDMA_C isn't in target so it should be ignored
             (
@@ -1006,7 +1006,7 @@ class TestMedicalUrgencyAlignmentWeightedADMComponent:
                         {"kdma": "KDMA_B", "value": 0.2},
                     ],
                 },
-                "Choice 1",  # KDMA_A target is exactly midpoint so its votes don't count
+                "Choice 1",  # KDMA_A target is exactly midpoint so it votes for medical
             ),
             # More than 2 targets. KDMA_A midpoint is 0.75, KDMA_B midpoint is 0.55, KDMA_C midpoint is 0.4
             (
@@ -1096,7 +1096,7 @@ class TestMedicalUrgencyAlignmentWeightedADMComponent:
                         {"kdma": "KDMA_C", "value": 0.4},
                     ],
                 },
-                "Choice 1",  # 2/3 below midpoint, other exactly midpoint
+                "Choice 1",  # 2/3 below midpoint, other exactly midpoint (votes for medically needy)
             ),
             # More than 2 targets. KDMA_A midpoint is 0.75, KDMA_B midpoint is 0.55, KDMA_C midpoint is 0.4
             (
@@ -1111,7 +1111,7 @@ class TestMedicalUrgencyAlignmentWeightedADMComponent:
                         {"kdma": "KDMA_C", "value": 0.4},
                     ],
                 },
-                "Choice 1",  # 1 below midpoint, other 2 exactly midpoint
+                "Choice 1",  # 1 below midpoint, other 2 exactly midpoint (vote for medically needy)
             ),
             # Multiple predictions. KDMA_A midpoint is 0.5, KDMA_B midpoint is 0.325
             (
