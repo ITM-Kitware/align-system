@@ -12,7 +12,6 @@ RAM and with a modern GPU with at least 12GB of memory.
 It's generally recommended to set up a virtual Python environment to neatly manage dependencies (e.g. using `venv` or `conda`).  The `align-system` code can be installed as a Python module with `pip
 install git+https://github.com/ITM-Kitware/align-system.git`.
 
-
 ## Running the system
 
 To run the default sytem configuration against included sample data, simply run:
