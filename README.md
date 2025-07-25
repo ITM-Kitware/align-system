@@ -12,30 +12,6 @@ RAM and with a modern GPU with at least 12GB of memory.
 It's generally recommended to set up a virtual Python environment to neatly manage dependencies (e.g. using `venv` or `conda`).  The `align-system` code can be installed as a Python module with `pip
 install git+https://github.com/ITM-Kitware/align-system.git`.
 
-Some huggingface models are 'gated' and require accepting terms and conditions (e.g. [Mistral-7B-Instruct-v0.2](https://huggingface.co/mistralai/Mistral-7B-Instruct-v0.2)). 
-A gated model is indicated by errors like this:
-```
-Cannot access gated repo for url https://huggingface.co/mistralai/Mistral-7B-Instruct-v0.3/resolve/main/config.json.
-Access to model mistralai/Mistral-7B-Instruct-v0.3 is restricted. You must have access to it and be authenticated to access it. Please log in.
-```
-1. Visit the model URL while logged in to huggingface to accept the terms and conditions.
-2. If not already done, create an access token on the HuggingFace website: click your profile picture > Access Tokens > Create new token > Read > Create Token > copy token 
-3. Store the token on the system running align:
-```
-poetry run python
->>> from huggingface_hub import login
->>> login()
-
-    _|    _|  _|    _|    _|_|_|    _|_|_|  _|_|_|  _|      _|    _|_|_|      _|_|_|_|    _|_|      _|_|_|  _|_|_|_|
-    _|    _|  _|    _|  _|        _|          _|    _|_|    _|  _|            _|        _|    _|  _|        _|
-    _|_|_|_|  _|    _|  _|  _|_|  _|  _|_|    _|    _|  _|  _|  _|  _|_|      _|_|_|    _|_|_|_|  _|        _|_|_|
-    _|    _|  _|    _|  _|    _|  _|    _|    _|    _|    _|_|  _|    _|      _|        _|    _|  _|        _|
-    _|    _|    _|_|      _|_|_|    _|_|_|  _|_|_|  _|      _|    _|_|_|      _|        _|    _|    _|_|_|  _|_|_|_|
-
-Enter your token (input will not be visible):
-Add token as git credential? (Y/n) n
->>>
-```
 
 ## Running the system
 
@@ -48,6 +24,9 @@ run_align_system
 half-hour to download the LLM model (which is roughly 25GB).
 Subsequent runs of the system should only take a few minutes as the
 model is cached.
+
+
+Note that some huggingface models are 'gated' and require accepting terms and conditions (e.g. [Mistral-7B-Instruct-v0.2](https://huggingface.co/mistralai/Mistral-7B-Instruct-v0.2)). See [HuggingFace Token Setup](#huggingface-token-setup) for details.
 
 ### Hydra
 
@@ -288,6 +267,30 @@ algorithms / models*
 |llm_chat|Llama-2-7b-chat-hf|>32GB|~18GB|~13GB|https://huggingface.co/meta-llama/Llama-2-7b-chat-hf|Requires license agreement: https://ai.meta.com/llama/license/|
 |llm_chat|Llama-2-13b-chat-hf|>48GB|~28GB|~25GB|https://huggingface.co/meta-llama/Llama-2-13b-chat-hf|Requires license agreement: https://ai.meta.com/llama/license/|
 
+## HuggingFace Token Setup
+Some HuggingFace models are 'gated'. A gated model is indicated by errors like this:
+```
+Cannot access gated repo for url https://huggingface.co/mistralai/Mistral-7B-Instruct-v0.3/resolve/main/config.json.
+Access to model mistralai/Mistral-7B-Instruct-v0.3 is restricted. You must have access to it and be authenticated to access it. Please log in.
+```
+1. Visit the model URL while logged in to huggingface to accept the terms and conditions.
+2. If not already done, create an access token on the HuggingFace website: click your profile picture > Access Tokens > Create new token > Read > Create Token > copy token 
+3. Store the token on the system running align:
+```
+poetry run python
+>>> from huggingface_hub import login
+>>> login()
+
+    _|    _|  _|    _|    _|_|_|    _|_|_|  _|_|_|  _|      _|    _|_|_|      _|_|_|_|    _|_|      _|_|_|  _|_|_|_|
+    _|    _|  _|    _|  _|        _|          _|    _|_|    _|  _|            _|        _|    _|  _|        _|
+    _|_|_|_|  _|    _|  _|  _|_|  _|  _|_|    _|    _|  _|  _|  _|  _|_|      _|_|_|    _|_|_|_|  _|        _|_|_|
+    _|    _|  _|    _|  _|    _|  _|    _|    _|    _|    _|_|  _|    _|      _|        _|    _|  _|        _|
+    _|    _|    _|_|      _|_|_|    _|_|_|  _|_|_|  _|      _|    _|_|_|      _|        _|    _|    _|_|_|  _|_|_|_|
+
+Enter your token (input will not be visible):
+Add token as git credential? (Y/n) n
+>>>
+```
 
 ## Quicklinks
 
