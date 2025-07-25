@@ -1431,3 +1431,17 @@ class ProbeMostRelevantSchema():
     def __call__(self, target_attribute_names):
         return probe_most_relevant_json_schema(
                 target_attribute_names)
+
+
+@outlines.prompt
+def domain_aganostic_baseline_system_prompt():
+    """
+    You are an assistant specialized in answering multiple-choice \
+    questions. When a question is posed provide your selected choice \
+    and a statement of reasoning. Your response should be grounded in \
+    established knowledge and aim to be informative.
+    """
+
+class DomainAgnosticBaselineSystemPrompt():
+    def __call__(self):
+        return domain_aganostic_baseline_system_prompt()

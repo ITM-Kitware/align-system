@@ -1,0 +1,164 @@
+[
+  {
+    "input": {
+      "scenario_id": "simple_cyber_persistence_and_escalation",
+      "full_state": {
+        "unstructured": "You routinely get 10-20 serious IDS alerts each day, most of which you can investigate in about 5 minutes. The vast majority of the time, the alert represents anomalous activity that turns out to be innocuous. You have followed up on 12 alerts one day, and are getting ready to leave work when you get another one. After digging into it for 10 minutes, nothing looks particularly concerning, but you aren't entirely sure what caused the unusual burst of network activity.  Do you:",
+        "meta_info": {
+          "scene_id": "0"
+        },
+        "scenario_complete": false,
+        "threat_state": null,
+        "characters": [],
+        "events": []
+      },
+      "state": "You routinely get 10-20 serious IDS alerts each day, most of which you can investigate in about 5 minutes. The vast majority of the time, the alert represents anomalous activity that turns out to be innocuous. You have followed up on 12 alerts one day, and are getting ready to leave work when you get another one. After digging into it for 10 minutes, nothing looks particularly concerning, but you aren't entirely sure what caused the unusual burst of network activity.  Do you:",
+      "choices": [
+        {
+          "action_id": "0.action_0",
+          "action_type": "SEARCH",
+          "unstructured": "Investigate more",
+          "threat_state": null,
+          "parameters": null,
+          "justification": null,
+          "kdma_association": null
+        },
+        {
+          "action_id": "0.action_1",
+          "action_type": "SEARCH",
+          "unstructured": "Categorize this as a false alarm",
+          "threat_state": null,
+          "parameters": null,
+          "justification": null,
+          "kdma_association": null
+        }
+      ]
+    }
+  },
+  {
+    "input": {
+      "scenario_id": "simple_cyber_persistence_and_escalation",
+      "full_state": {
+        "unstructured": "You've gotten 5 user complaints about a database time-out today, and you've never heard this complaint before. You suspect the server may have been compromised.  Do you:",
+        "meta_info": {
+          "scene_id": "1"
+        },
+        "scenario_complete": false,
+        "threat_state": null,
+        "characters": [],
+        "events": []
+      },
+      "state": "You've gotten 5 user complaints about a database time-out today, and you've never heard this complaint before. You suspect the server may have been compromised.  Do you:",
+      "choices": [
+        {
+          "action_id": "1.action_0",
+          "action_type": "SEARCH",
+          "unstructured": "Go ahead and restore the server from backup now, taking it out of service for 6 hours",
+          "threat_state": null,
+          "parameters": null,
+          "justification": null,
+          "kdma_association": null
+        },
+        {
+          "action_id": "1.action_1",
+          "action_type": "SEARCH",
+          "unstructured": "Investigate the problem further",
+          "threat_state": null,
+          "parameters": null,
+          "justification": null,
+          "kdma_association": null
+        }
+      ]
+    }
+  },
+  {
+    "input": {
+      "scenario_id": "simple_cyber_persistence_and_escalation",
+      "full_state": {
+        "unstructured": "You get an anomaly alert that there is unusually high incoming request traffic coming from an IP address outside of the US. None of your users is supposed to access this resource from outside the country. You are only authorized to block incoming IP addresses when there is \"a high certainty of malicious activity.\"  Do you:",
+        "meta_info": {
+          "scene_id": "2"
+        },
+        "scenario_complete": false,
+        "threat_state": null,
+        "characters": [],
+        "events": []
+      },
+      "state": "You get an anomaly alert that there is unusually high incoming request traffic coming from an IP address outside of the US. None of your users is supposed to access this resource from outside the country. You are only authorized to block incoming IP addresses when there is \"a high certainty of malicious activity.\"  Do you:",
+      "choices": [
+        {
+          "action_id": "2.action_0",
+          "action_type": "SEARCH",
+          "unstructured": "Block the IP address now",
+          "threat_state": null,
+          "parameters": null,
+          "justification": null,
+          "kdma_association": null
+        },
+        {
+          "action_id": "2.action_1",
+          "action_type": "SEARCH",
+          "unstructured": "Investigate more",
+          "threat_state": null,
+          "parameters": null,
+          "justification": null,
+          "kdma_association": null
+        },
+        {
+          "action_id": "2.action_2",
+          "action_type": "SEARCH",
+          "unstructured": "Refer the situation to someone who has authorization to block \"suspicious activity\"",
+          "threat_state": null,
+          "parameters": null,
+          "justification": null,
+          "kdma_association": null
+        }
+      ]
+    }
+  },
+  {
+    "input": {
+      "scenario_id": "simple_cyber_persistence_and_escalation",
+      "full_state": {
+        "unstructured": "When investigating an alert, you find out that a user was Skyping with a random language learning partner from another country, and clicked on some pictures that were shared. Skype is not an authorized professional communication method in your organization, but they were assigned to the language exchange activity as part of a work-sponsored training course.  Do you:",
+        "meta_info": {
+          "scene_id": "3"
+        },
+        "scenario_complete": false,
+        "threat_state": null,
+        "characters": [],
+        "events": []
+      },
+      "state": "When investigating an alert, you find out that a user was Skyping with a random language learning partner from another country, and clicked on some pictures that were shared. Skype is not an authorized professional communication method in your organization, but they were assigned to the language exchange activity as part of a work-sponsored training course.  Do you:",
+      "choices": [
+        {
+          "action_id": "3.action_0",
+          "action_type": "SEARCH",
+          "unstructured": "Block Skype access in the network",
+          "threat_state": null,
+          "parameters": null,
+          "justification": null,
+          "kdma_association": null
+        },
+        {
+          "action_id": "3.action_1",
+          "action_type": "SEARCH",
+          "unstructured": "Leave it accessible",
+          "threat_state": null,
+          "parameters": null,
+          "justification": null,
+          "kdma_association": null
+        },
+        {
+          "action_id": "3.action_2",
+          "action_type": "SEARCH",
+          "unstructured": "Refer the situation to your manager",
+          "threat_state": null,
+          "parameters": null,
+          "justification": null,
+          "kdma_association": null
+        }
+      ]
+    }
+  }
+]
