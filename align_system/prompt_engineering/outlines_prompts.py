@@ -1431,3 +1431,55 @@ class ProbeMostRelevantSchema():
     def __call__(self, target_attribute_names):
         return probe_most_relevant_json_schema(
                 target_attribute_names)
+
+
+@outlines.prompt
+def tagging_scenario_state_description(scenario_state):
+    """{{ scenario_state.rstrip() }}"""
+
+
+class TaggingScenarioDescription():
+    def __call__(self, scenario_state):
+        return tagging_scenario_state_description(scenario_state)
+
+
+@outlines.prompt
+def tagging_selection_prompt(situation, choices):
+    """
+    {{ situation }}
+
+    Given the following possible tag, please provide a detailed \
+    reasoning for what tag you would assign:
+    {% for choice in choices %}
+    - {{ choice }}
+    {% endfor %}
+    """
+
+
+class TaggingSelectionPrompt():
+    def __call__(self, scenario_description, choices):
+        return tagging_selection_prompt(scenario_description, choices)
+
+
+class TaggingSelectionSchema():
+    def __call__(self, choices, reasoning_max_length=512):
+        return tag_choice_json_schema(
+            json.dumps(choices), reasoning_max_length)
+
+
+@outlines.prompt
+def baseline_tagging_system_prompt():
+    """
+    You are an assistant specialized in answering multiple-choice \
+    questions related to medical triage. When a question is posed, \
+    carefully analyze the symptoms or conditions \
+    described. Respond by providing a detailed reasoning using a \
+    step-by-step process or process of elimination.  Conclude with \
+    the final answer. Your response should be grounded in established \
+    medical knowledge and aim to be informative.
+    """
+
+
+class BaselineTaggingSystemPrompt():
+    def __call__(self):
+        return baseline_tagging_system_prompt()

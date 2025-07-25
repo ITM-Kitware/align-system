@@ -222,7 +222,7 @@ def main(cfg: DictConfig) -> None:
 
             log.debug("[bold]*AVAILABLE ACTIONS*[/bold]",
                       extra={"markup": True})
-            log.debug(json.dumps([a.to_dict() for a in available_actions], indent=4),
+            log.debug(json.dumps([a.to_dict() if hasattr(a, "to_dict") else a._asdict() for a in available_actions], indent=4),
                       extra={"highlighter": JSON_HIGHLIGHTER})
 
             if not apply_action_filtering:
