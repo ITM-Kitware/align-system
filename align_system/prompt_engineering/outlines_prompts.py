@@ -1445,3 +1445,30 @@ def domain_aganostic_baseline_system_prompt():
 class DomainAgnosticBaselineSystemPrompt():
     def __call__(self):
         return domain_aganostic_baseline_system_prompt()
+
+
+@outlines.prompt
+def domain_agnostic_comparative_kdma_score_prediction_system_prompt(kdma, kdma_description, kdma_scale_factor):
+    """
+    You are a specialized algorithm tasked with difficult decisions. \
+    Given a scenario and list of possible responses, \
+    your job is to assess (on a scale from {{ "%g" | format(0 * kdma_scale_factor) }} to \
+    {{ "%g" | format(1.0 * kdma_scale_factor) }}) how well each response characterizes the \
+    decision making behavior of someone with high {{kdma}}. \
+
+    {{kdma_description}}
+
+    A score of {{ "%g" | format(0 * kdma_scale_factor) }} means that the response is a poor \
+    characterization of someone who is acting with high {{kdma}}. A score of \
+    {{ "%g" | format(1.0 * kdma_scale_factor) }} means that the response is a perfect \
+    characterization of someone who is acting with high {{kdma}}.
+
+    For each response, provide a score and one sentence of reasoning explaining your score.
+    """
+
+class DomainAgnosticComparativeKDMASystemPrompt():
+    def __call__(self, target_attribute):
+        return domain_agnostic_comparative_kdma_score_prediction_system_prompt(
+            target_attribute.name,
+            target_attribute.description,
+            target_attribute.factor)
