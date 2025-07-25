@@ -31,7 +31,10 @@ class EnsureChosenActionADMComponent(ADMComponent):
         if (hasattr(chosen_action, 'justification')
                 and chosen_action.justification is None
                 and justification is not None):
-            chosen_action.justification = justification
+            if isinstance(chosen_action, tuple) and hasattr(chosen_action, "_replace"):
+                chosen_action = chosen_action._replace(justification=justification)
+            else:
+                chosen_action.justification = justification
 
         return chosen_action
 

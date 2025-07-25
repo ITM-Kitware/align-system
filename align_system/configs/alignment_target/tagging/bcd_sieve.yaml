@@ -1,0 +1,5 @@
+id: tagging-bcd
+kdma_values:
+- kdes: null
+  kdma: BCD_SIEVE
+  value: 1.0

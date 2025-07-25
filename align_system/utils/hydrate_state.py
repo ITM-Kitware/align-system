@@ -56,3 +56,26 @@ def p2triage_hydrate_scenario_state(record):
         a.justification = None
 
     return state, actions
+
+def minimal_hydrate_scenario_state(record):
+    """ Hydrate scenario state from minimal record """
+    from collections import namedtuple
+
+    full_state = record['full_state']
+    MetaInfo = namedtuple('MetaInfo', ['scene_id'])
+    State = namedtuple('State', ['unstructured', 'scenario_complete', 'meta_info'])
+    meta_info = MetaInfo(full_state['meta_info']['scene_id'])
+    state = State(full_state['unstructured'], full_state['scenario_complete'], meta_info)
+
+    Action = namedtuple('Action', ['action_id', 'unstructured', 'justification', 'kdma_association'])
+    actions = [
+        Action(
+            a['action_id'],
+            a["unstructured"],
+            a['justification'] if 'justification' in a else None,
+            a['kdma_association'] if 'kdma_association' in a else None
+        )
+        for a in record['choices']
+    ]
+
+    return state, actions
