@@ -1,0 +1,33 @@
+# @package _global_
+defaults:
+  - /alignment_target: tagging/bcd_sieve
+  - override /adm: tagging_baseline
+  - override /inference_engine@adm.structured_inference_engine: outlines_structured_greedy
+
+interface:
+  input_output_filepath: '/home/local/KHQ/emily.veenhuis/align_example_casualties.json'
+  state_hydration_domain: "minimal"
+
+adm:
+  step_definitions:
+    tagging_baseline:
+      system_prompt_template:
+        _target_: align_system.prompt_engineering.tagging_prompts.BCDTaggingSystemPrompt
+
+  instance:
+    steps:
+      # Reference the step instances we want to use in order
+      - ${ref:adm.step_definitions.format_choices}
+      - ${ref:adm.step_definitions.tagging_baseline}
+      - ${ref:adm.step_definitions.ensure_chosen_action}
+      - ${ref:adm.step_definitions.populate_choice_info}
+
+apply_action_filtering: false
+
+torch_random_seed: 0
+torch_use_deterministic_algorithms: true
+random_seed: 0
+numpy_random_seed: 0
+# not sorting available actions, so not using force_determinism
+
+align_to_target: true
