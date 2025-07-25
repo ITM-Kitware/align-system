@@ -1,0 +1,218 @@
+[
+  {
+    "input": {
+      "scenario_id": "simple_cyber_availability_and_prevention_focus",
+      "full_state": {
+        "unstructured": "Your legal department wants to purge all records older than 60 days, but you've found that access to 2 years of network logs cuts the false positive rate of your anomaly detectors by 80%.  Do you:",
+        "meta_info": {
+          "scene_id": "0"
+        },
+        "scenario_complete": false,
+        "threat_state": null,
+        "characters": [],
+        "events": []
+      },
+      "state": "Your legal department wants to purge all records older than 60 days, but you've found that access to 2 years of network logs cuts the false positive rate of your anomaly detectors by 80%.  Do you:",
+      "choices": [
+        {
+          "action_id": "0.action_0",
+          "action_type": "SEARCH",
+          "unstructured": "Push the CTO to get IT logs exempted from any record purge",
+          "threat_state": null,
+          "parameters": null,
+          "justification": null,
+          "kdma_association": null
+        },
+        {
+          "action_id": "0.action_1",
+          "action_type": "SEARCH",
+          "unstructured": "Tell the CTO that not retaining network logs will require 4 addition security staff to investigate alerts",
+          "threat_state": null,
+          "parameters": null,
+          "justification": null,
+          "kdma_association": null
+        },
+        {
+          "action_id": "0.action_2",
+          "action_type": "SEARCH",
+          "unstructured": "Assume network logs are not considered records and don't raise the issue",
+          "threat_state": null,
+          "parameters": null,
+          "justification": null,
+          "kdma_association": null
+        }
+      ]
+    }
+  },
+  {
+    "input": {
+      "scenario_id": "simple_cyber_availability_and_prevention_focus",
+      "full_state": {
+        "unstructured": "You are considering upgrading your network monitoring tools.  Do you recommend:",
+        "meta_info": {
+          "scene_id": "1"
+        },
+        "scenario_complete": false,
+        "threat_state": null,
+        "characters": [],
+        "events": []
+      },
+      "state": "You are considering upgrading your network monitoring tools.  Do you recommend:",
+      "choices": [
+        {
+          "action_id": "1.action_0",
+          "action_type": "SEARCH",
+          "unstructured": "Option 1 would cost 80% of your software budget for the year, but operates mostly out-of-the-box and requires about 0.1 ongoing FTE to use it",
+          "threat_state": null,
+          "parameters": null,
+          "justification": null,
+          "kdma_association": null
+        },
+        {
+          "action_id": "1.action_1",
+          "action_type": "SEARCH",
+          "unstructured": "Option 2 would cost only 10% of your software budgets, but would require 1 month of someone's time to set up, and 0.5 ongoing FTE to use it",
+          "threat_state": null,
+          "parameters": null,
+          "justification": null,
+          "kdma_association": null
+        },
+        {
+          "action_id": "1.action_2",
+          "action_type": "SEARCH",
+          "unstructured": "Option 3 stick with not having either, costing nothing but leaving your organization more vulnerable to a potential data breach.",
+          "threat_state": null,
+          "parameters": null,
+          "justification": null,
+          "kdma_association": null
+        }
+      ]
+    }
+  },
+  {
+    "input": {
+      "scenario_id": "simple_cyber_availability_and_prevention_focus",
+      "full_state": {
+        "unstructured": "Last year, your organization had two major cyber incidents from phishing attacks (where users were fooled into clicking on something).  Do you recommend:",
+        "meta_info": {
+          "scene_id": "2"
+        },
+        "scenario_complete": false,
+        "threat_state": null,
+        "characters": [],
+        "events": []
+      },
+      "state": "Last year, your organization had two major cyber incidents from phishing attacks (where users were fooled into clicking on something).  Do you recommend:",
+      "choices": [
+        {
+          "action_id": "2.action_0",
+          "action_type": "SEARCH",
+          "unstructured": "Increasing required training to include phishing awareness",
+          "threat_state": null,
+          "parameters": null,
+          "justification": null,
+          "kdma_association": null
+        },
+        {
+          "action_id": "2.action_1",
+          "action_type": "SEARCH",
+          "unstructured": "Adding regular fake phishing events as a way to test and train users",
+          "threat_state": null,
+          "parameters": null,
+          "justification": null,
+          "kdma_association": null
+        },
+        {
+          "action_id": "2.action_2",
+          "action_type": "SEARCH",
+          "unstructured": "Upgrading automated email filters to remove phishing emails",
+          "threat_state": null,
+          "parameters": null,
+          "justification": null,
+          "kdma_association": null
+        },
+        {
+          "action_id": "2.action_3",
+          "action_type": "SEARCH",
+          "unstructured": "Requiring user confirmation and acknowledgement of phishing risk when accessing any websites from email links?",
+          "threat_state": null,
+          "parameters": null,
+          "justification": null,
+          "kdma_association": null
+        }
+      ]
+    }
+  },
+  {
+    "input": {
+      "scenario_id": "simple_cyber_availability_and_prevention_focus",
+      "full_state": {
+        "unstructured": "Deploying a type of honeypot as an active defense will require an ongoing 0.1 FTE, may help prevent exfiltration of real assets, and will enable better estimates about how often your organization is attacked.  Do you do it?",
+        "meta_info": {
+          "scene_id": "3"
+        },
+        "scenario_complete": false,
+        "threat_state": null,
+        "characters": [],
+        "events": []
+      },
+      "state": "Deploying a type of honeypot as an active defense will require an ongoing 0.1 FTE, may help prevent exfiltration of real assets, and will enable better estimates about how often your organization is attacked.  Do you do it?",
+      "choices": [
+        {
+          "action_id": "3.action_0",
+          "action_type": "SEARCH",
+          "unstructured": "Yes",
+          "threat_state": null,
+          "parameters": null,
+          "justification": null,
+          "kdma_association": null
+        },
+        {
+          "action_id": "3.action_1",
+          "action_type": "SEARCH",
+          "unstructured": "No",
+          "threat_state": null,
+          "parameters": null,
+          "justification": null,
+          "kdma_association": null
+        }
+      ]
+    }
+  },
+  {
+    "input": {
+      "scenario_id": "simple_cyber_availability_and_prevention_focus",
+      "full_state": {
+        "unstructured": "There is an exploit with moderate risk to your network, and patching the issue will require shutting down a server for 1 hour.  What do you do?",
+        "meta_info": {
+          "scene_id": "4"
+        },
+        "scenario_complete": false,
+        "threat_state": null,
+        "characters": [],
+        "events": []
+      },
+      "state": "There is an exploit with moderate risk to your network, and patching the issue will require shutting down a server for 1 hour.  What do you do?",
+      "choices": [
+        {
+          "action_id": "4.action_0",
+          "action_type": "SEARCH",
+          "unstructured": "Do you take down the company email server at 3pm when you find out",
+          "threat_state": null,
+          "parameters": null,
+          "justification": null,
+          "kdma_association": null
+        },
+        {
+          "action_id": "4.action_1",
+          "action_type": "SEARCH",
+          "unstructured": "Wait until 7pm when fewer employees are working?",
+          "threat_state": null,
+          "parameters": null,
+          "justification": null,
+          "kdma_association": null
+        }
+      ]
+    }
+  }
+]

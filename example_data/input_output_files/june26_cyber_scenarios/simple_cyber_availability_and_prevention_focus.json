@@ -1,0 +1,10 @@
+[{"prompt": "Your legal department wants to purge all records older than 60 days, but you've found that access to 2 years of network logs cuts the false positive rate of your anomaly detectors by 80%.  Do you:",
+  "responses": ["Push the CTO to get IT logs exempted from any record purge", "Tell the CTO that not retaining network logs will require 4 addition security staff to investigate alerts", "Assume network logs are not considered records and don't raise the issue"]},
+ {"prompt": "You are considering upgrading your network monitoring tools.  Do you recommend:",
+  "responses": ["Option 1 would cost 80% of your software budget for the year, but operates mostly out-of-the-box and requires about 0.1 ongoing FTE to use it", "Option 2 would cost only 10% of your software budgets, but would require 1 month of someone’s time to set up, and 0.5 ongoing FTE to use it", "Option 3 stick with not having either, costing nothing but leaving your organization more vulnerable to a potential data breach."]},
+ {"prompt": "Last year, your organization had two major cyber incidents from phishing attacks (where users were fooled into clicking on something).  Do you recommend:",
+  "responses": ["Increasing required training to include phishing awareness", "Adding regular fake phishing events as a way to test and train users", "Upgrading automated email filters to remove phishing emails", "Requiring user confirmation and acknowledgement of phishing risk when accessing any websites from email links?"]},
+ {"prompt": "Deploying a type of honeypot as an active defense will require an ongoing 0.1 FTE, may help prevent exfiltration of real assets, and will enable better estimates about how often your organization is attacked.  Do you do it?",
+  "responses": ["Yes", "No"]},
+ {"prompt": "There is an exploit with moderate risk to your network, and patching the issue will require shutting down a server for 1 hour.  What do you do?",
+  "responses": ["Do you take down the company email server at 3pm when you find out", "Wait until 7pm when fewer employees are working?"]}]
