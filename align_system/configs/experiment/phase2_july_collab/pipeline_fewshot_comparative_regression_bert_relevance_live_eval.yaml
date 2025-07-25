@@ -1,13 +1,15 @@
 # @package _global_
 defaults:
-  - override /adm: phase2_pipeline_fewshot_comparative_regression
+  - override /adm: phase2_pipeline_fewshot_comparative_regression_bert_relevance
   - override /interface: ta3
   - override /adm_component/alignment@adm.step_definitions.scalar_alignment: medical_urgency_weighted_scalar
 
+
 interface:
-  session_type: adept
-  training_session: full
-  username: "pipeline_fewshot_comp_reg_loo"
+  api_endpoint: "https://darpaitm.caci.com"
+  session_type: eval
+  training_session: null
+  username: "ALIGN-ADM-Ph2-ComparativeRegression-BertRelevance-Mistral-7B-Instruct-v0.3"
   domain: "p2triage"
 
 adm:
@@ -16,16 +18,21 @@ adm:
       icl_generator_partial:
         incontext_settings:
           number: 20
-          leave_one_out_strategy: 'scenario_description' # LOO - Remove for eval
           datasets:
             medical: /data/shared/samba/phase2_icl/July2025-MU-train_20250715.json
             affiliation: /data/shared/samba/phase2_icl/July2025-AF-train_20250715.json
             merit: /data/shared/samba/phase2_icl/July2025-MF-train_20250715.json
             personal_safety: /data/shared/samba/phase2_icl/July2025-PS-train_20250715.json
             search: /data/shared/samba/phase2_icl/July2025-SS-train_20250715.json
+
     comparative_regression:
-      enable_caching: true  
+      enable_caching: true
 
 apply_action_filtering: false
 force_determinism: true
 align_to_target: true
+save_last_unstructured_state_per_scenario: true
+
+hydra:
+  run:
+    dir: 'phase2_july_eval_live/comp_reg_20icl_multi_bert_relevance/${now:%Y-%m-%d__%H-%M-%S}'
