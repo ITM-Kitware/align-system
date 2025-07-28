@@ -1,0 +1,21 @@
+_target_: align_system.algorithms.icl_adm_component.PromptBasedICLADMComponent
+
+icl_generator_partial:
+  _target_: align_system.utils.incontext_utils.BaselineIncontextExampleGenerator
+  # Partially initialize so we can finish initialization with multiple
+  # alignment targets
+  _partial_: true
+
+  incontext_settings:
+    number: 10
+    method: prompt_bert_similarity
+    leave_one_out_strategy: scenario_description
+    normalization: null
+    sort_actions: false
+    most_similar_first: false
+    datasets:
+      START: /home/local/KHQ/emily.veenhuis/align_example_casualties.json
+      SALT: /home/local/KHQ/emily.veenhuis/align_example_casualties.json
+      BCD_SIEVE: /home/local/KHQ/emily.veenhuis/align_example_casualties.json
+
+  state_hydration_domain: minimal
