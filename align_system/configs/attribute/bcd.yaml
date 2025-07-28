@@ -1,0 +1,7 @@
+_target_: align_system.data_models.attribute.Attribute
+
+name: BCD_SIEVE
+kdma: "BCD_SIEVE"
+description: BCD tagging protocol
+factor: 1
+score_examples: null

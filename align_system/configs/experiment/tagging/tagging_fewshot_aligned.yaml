@@ -1,0 +1,18 @@
+# @package _global_
+defaults:
+  - override /adm: tagging_fewshot_aligned
+  - override /inference_engine@adm.structured_inference_engine: outlines_structured_greedy
+
+interface:
+  input_output_filepath: '/home/local/KHQ/emily.veenhuis/align_example_casualties.json'
+  state_hydration_domain: "minimal"
+
+apply_action_filtering: false
+
+torch_random_seed: 0
+torch_use_deterministic_algorithms: true
+random_seed: 0
+numpy_random_seed: 0
+# not sorting available actions, so not using force_determinism
+
+align_to_target: true

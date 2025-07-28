@@ -1,0 +1,16 @@
+_target_: align_system.algorithms.prompt_based_aligned_adm_component.PromptBasedAlignedADMComponent
+
+structured_inference_engine: ${ref:adm.structured_inference_engine}
+
+scenario_description_template:
+  _target_: align_system.prompt_engineering.tagging_prompts.TaggingScenarioDescription
+prompt_template:
+  _target_: align_system.prompt_engineering.tagging_prompts.TaggingSelectionPrompt
+output_schema_template:
+  _target_: align_system.prompt_engineering.outlines_prompts.DefaultChoiceSelectionSchema
+system_prompt_template:
+  _target_: align_system.prompt_engineering.tagging_prompts.TaggingSystemPrompt
+
+num_positive_samples: 1
+num_negative_samples: 0  # negative samples don't make sense for tagging
+shuffle_choices: false
