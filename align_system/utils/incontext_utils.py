@@ -22,6 +22,7 @@ from align_system.prompt_engineering.outlines_prompts import (
     comparative_regression_prompt,
     comparative_regression_json_schema
 )
+from align_system.prompt_engineering.tagging_prompts import tagging_scenario_state_description
 
 
 def bert_similarity_selection(candidates, texts_to_compare, reference_text, n_examples, score_adjustments=None, least_similar_examples=False):
@@ -180,6 +181,9 @@ class IncontextExampleGenerator(object, metaclass=ABCMeta):
         elif state_hydration_domain == "p2triage":
             from align_system.utils.hydrate_state import p2triage_hydrate_scenario_state
             self.state_hydration_fn = p2triage_hydrate_scenario_state
+        elif state_hydration_domain == "minimal":
+            from align_system.utils.hydrate_state import minimal_hydrate_scenario_state
+            self.state_hydration_fn = minimal_hydrate_scenario_state
         else:
             raise RuntimeError(f"Unknown state_hydration_domain: {state_hydration_domain}")
 
@@ -229,25 +233,37 @@ class IncontextExampleGenerator(object, metaclass=ABCMeta):
                     # Get state and actions
                     state, actions = self.state_hydration_fn(icl_sample["input"])
                     labels = icl_sample["label"]
+                    reasonings = icl_sample.get("reasoning", [{}]*len(labels))
                     if self.incontext_settings.sort_actions:
                         # Impose a fixed ordering of available actions and labels to help with determinism
-                        combined = list(zip(actions, labels))
+                        combined = list(zip(actions, labels, reasonings))
                         combined_sorted = sorted(combined, key=lambda x: x[0].unstructured)
-                        actions, labels = zip(*combined_sorted)
+                        actions, labels, reasonings = zip(*combined_sorted)
+
                     # Get choices
                     choices = adm_utils.format_choices(
                         [a.unstructured for a in actions],
                         actions,
                         state
                     )
+
                     # Get KDMA_values
                     kdma_values = []
                     for label in labels:
-                        if sys_kdma_name not in label:
-                            kdma_values.append(None)
-                        else:
-                            kdma_values.append(label[sys_kdma_name])
-                    example = {'state':state, 'actions': actions, 'choices':choices, 'kdma_values':kdma_values}
+                            kdma_values.append(label.get(sys_kdma_name, None))
+
+                    # Get any pre-generated reasoning
+                    kdma_reasoning = []
+                    for reasoning in reasonings:
+                        kdma_reasoning.append(reasoning.get(sys_kdma_name, None))
+
+                    example = {
+                        'state':state,
+                        'actions': actions,
+                        'choices': choices,
+                        'kdma_values':kdma_values,
+                        'kdma_reasoning': kdma_reasoning,
+                    }
                     incontext_data[sys_kdma_name].append(example)
 
             # Normalize ground truth KDMA values
@@ -301,26 +317,37 @@ class IncontextExampleGenerator(object, metaclass=ABCMeta):
                     # Get state and actions
                     state, actions = self.state_hydration_fn(icl_sample["input"])
                     labels = icl_sample["label"]
+                    reasonings = icl_sample.get("reasoning", [{}]*len(labels))
                     if self.incontext_settings.sort_actions:
                         # Impose a fixed ordering of available actions and labels to help with determinism
-                        combined = list(zip(actions, labels))
+                        combined = list(zip(actions, labels, reasonings))
                         combined_sorted = sorted(combined, key=lambda x: x[0].unstructured)
-                        actions, labels = zip(*combined_sorted)
+                        actions, labels, reasonings = zip(*combined_sorted)
+
                     # Get choices
                     choices = adm_utils.format_choices(
                         [a.unstructured for a in actions],
                         actions,
                         state
                     )
+
                     # Get KDMA_values
                     kdma_values = []
                     for label in labels:
-                        if sys_kdma_name not in label:
-                            kdma_values.append(None)
-                        else:
-                            kdma_values.append(label[sys_kdma_name])
+                            kdma_values.append(label.get(sys_kdma_name, None))
 
-                    example = {'state':state, 'actions': actions, 'choices':choices, 'kdma_values':kdma_values}
+                    # Get any pre-generated reasoning
+                    kdma_reasoning = []
+                    for reasoning in reasonings:
+                        kdma_reasoning.append(reasoning.get(sys_kdma_name, None))
+
+                    example = {
+                        'state':state,
+                        'actions': actions,
+                        'choices': choices,
+                        'kdma_values':kdma_values,
+                        'kdma_reasoning': kdma_reasoning,
+                    }
                     incontext_data[sys_kdma_name].append(example)
 
             # Normalize ground truth KDMA values
@@ -455,7 +482,7 @@ class BaselineIncontextExampleGenerator(IncontextExampleGenerator):
             for example in kdma_incontext_data:
 
                 # Get scenario and prompt
-                icl_scenario_description = scenario_state_description_1(example['state'])
+                icl_scenario_description = tagging_scenario_state_description(example['state'])
                 icl_prompt = action_selection_prompt(icl_scenario_description, example['choices'])
 
                 # Get example response
@@ -465,9 +492,12 @@ class BaselineIncontextExampleGenerator(IncontextExampleGenerator):
                 ]
                 correct_answer_idx = np.argmin(dist_to_tgt)
                 correct_choice = example['choices'][correct_answer_idx]
-                adjective = "low" if target_kdma['value'] < 0.5 else "high"
-                reasoning = f"Per the principle of {adjective} {target_kdma['name']}, " \
-                            f'\\"{correct_choice}\\" is the correct answer.'
+                if 'kdma_reasoning' in example:
+                    reasoning = example['kdma_reasoning'][correct_answer_idx]
+                else:
+                    adjective = "low" if target_kdma['value'] < 0.5 else "high"
+                    reasoning = f"Per the principle of {adjective} {target_kdma['name']}, " \
+                                f'\\"{correct_choice}\\" is the correct answer.'
                 icl_response = {"detailed_reasoning": reasoning,
                                 "action_choice": correct_choice}
                 # Validate response against schema

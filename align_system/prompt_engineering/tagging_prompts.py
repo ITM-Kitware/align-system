@@ -83,10 +83,6 @@ Proceed only based on information provided. If essential information is missing,
 based on what's available, and note the uncertainty.
 """
 
-class STARTTaggingSystemPrompt():
-    def __call__(self):
-        return start_tagging_system_prompt()
-
 
 @outlines.prompt
 def salt_tagging_system_prompt():
@@ -123,10 +119,6 @@ Instructions:
 Proceed only based on information provided. If essential information is missing, state the most appropriate category \
 based on what's available, and note the uncertainty.
 """
-
-class SALTTaggingSystemPrompt():
-    def __call__(self):
-        return salt_tagging_system_prompt()
 
 
 @outlines.prompt
@@ -166,6 +158,13 @@ Proceed only based on information provided. If essential information is missing,
 based on what's available, and note the uncertainty.
 """
 
-class BCDTaggingSystemPrompt():
-    def __call__(self):
-        return bcd_tagging_system_prompt()
+class TaggingSystemPrompt:
+    def __call__(self, target_kdma, target_value):
+        if target_kdma == "START":
+            return start_tagging_system_prompt()
+        elif target_kdma == "SALT":
+            return salt_tagging_system_prompt()
+        elif target_kdma == "BCD_SIEVE":
+            return bcd_tagging_system_prompt()
+        else:
+            raise ValueError(f"Unknown target tagging protocol: {target_kdma}")
