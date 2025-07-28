@@ -1,0 +1,7 @@
+_target_: align_system.data_models.attribute.Attribute
+
+name: START
+kdma: "START"
+description: START tagging protocol
+factor: 1
+score_examples: null
