@@ -51,7 +51,7 @@ class ICLADMComponent(ADMComponent):
         self.target_attribute_names_override = target_attribute_names_override
 
     def run_returns(self):
-        return 'icl_dialog_elements'
+        return ('icl_dialog_elements', 'icl_example_info')
 
     def run(self,
             scenario_state,
@@ -88,8 +88,11 @@ class ICLADMComponent(ADMComponent):
             for kdma_values in alignment_target_dict['kdma_values']}
 
         icl_dialog_elements = {}
+        icl_example_info = {}
+        
         for attribute in target_attributes:
             icl_dialog_elements[attribute.kdma] = []
+            icl_example_info[attribute.kdma] = []
 
             # Not sure how much this value actually matters for ICL;
             # defaulting to `1.0` if not in the alignment target
@@ -138,8 +141,15 @@ class ICLADMComponent(ADMComponent):
                 icl_dialog_elements[attribute.kdma].append(DialogElement(role='assistant',
                                                          content=str(icl_sample['response']),
                                                          tags=['icl']))
+                
+                # Capture ICL example info for choice_info
+                icl_info = {
+                    'prompt': icl_sample['prompt'],
+                    'response': icl_sample['response'],
+                }
+                icl_example_info[attribute.kdma].append(icl_info)
 
-        return icl_dialog_elements
+        return icl_dialog_elements, icl_example_info
 
 
 # ICL Engines dependent on alignment target, but that could change
