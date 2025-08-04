@@ -14,8 +14,8 @@ icl_generator_partial:
     sort_actions: false
     most_similar_first: false
     datasets:
-      START: /home/local/KHQ/emily.veenhuis/align_example_casualties.json
-      SALT: /home/local/KHQ/emily.veenhuis/align_example_casualties.json
-      BCD_SIEVE: /home/local/KHQ/emily.veenhuis/align_example_casualties.json
+      START: /data/shared/tagging/train3.json
+      SALT: /data/shared/tagging/train3.json
+      BCD_SIEVE: /data/shared/tagging/train3.json
 
   state_hydration_domain: minimal
