@@ -318,6 +318,11 @@ def detailed_unstructured_tagging_action_text(action, character_id_to_name):
     Tag {{ character_id_to_name[action.character_id] }} as {{ action.parameters['category'] }} ({{ action.unstructured }}){% endif -%}
     """
 
+@outlines.prompt
+def scenario_state_unstructured(scenario_state):
+    """
+    {{ scenario_state.unstructured.rstrip() }}
+    """
 
 @outlines.prompt
 def scenario_state_description_1(scenario_state):
@@ -1436,3 +1441,105 @@ class ProbeMostRelevantSchema():
     def __call__(self, target_attribute_names):
         return probe_most_relevant_json_schema(
                 target_attribute_names)
+
+
+@outlines.prompt
+def variables_extraction_stage_prompt(situation, choices):
+    """
+    You are given a piece of text and a problem. Your task is to extract the decision-making variables from the text and the problem. A decision-making variable is either:
+
+    1. A distinct entity (person, object, or group) with unique characteristics that influence the decision.
+    2. A set of different actions or strategies applied to the same entity.
+
+    Both of the variables contain subjects and specific reference.
+
+    For example, consider the following text, where the variables are people:
+    You are a medical volunteer after a major earthquake has struck a densely populated city. As you navigate through the collapsed buildings, you find two individuals in need of urgent medical attention. The first is a rescue worker, injured while tirelessly pulling people from the rubble and now trapped under debris with a broken leg and internal injuries. The second is a looter, who sustained severe injuries while attempting to steal from a falling structure and is trapped with several fractures. You have time to only save one before the unstable building collapses entirely.
+    Whose life do you prioritize?
+    Choices are:
+    Save the looter
+    Save the rescue worker
+
+    The correct extracted variables from this text are:
+    {% raw %}
+    ```json
+    {{
+        "variables": [
+        "Patient 1: The first is a rescue worker",
+        "Patient 2: The second is a looter"
+        ]
+    }}
+    ```
+    {% endraw %}
+    Since the chioces are saving two different people, so the extracted variables are people instead of two categories.
+
+    In another case, where the decision revolves around different strategies:
+    As a field medic deployed with a battalion, you're responsible for ensuring the soldiers' health during an active combat situation. Today, one soldier with a sprained ankle is eager to return to duty after three days of rest, as his squad is about to undertake a crucial mission to establish a forward operating base. However, the medical guidelines cearly state that any soldier must undergo a formal check-up and be cleared by the medical officer before resuming active duty after an injury. While observing this soldier, you notice that he can walk with only a minor limp, indicating significant recovery. Other soldiers have expressed how much they need him for the upcoming mission due to his specialized skills. Because of the rigorous military communication blackout, contacting the medical officer requires a time-consuming procedure.
+    Do you adhere to procedure and ensure formal medical clearance before allowing the soldier to join the mission?
+    Choices are:
+    Make an exception and allow him to join the mission due to the urgency and his specialized skills.
+    Adhere to the protocol. Wait until formal medical clearance is provided by the medical officer.
+
+    The correct extracted variables from this text are:
+    {% raw %}
+    ```json
+    {{
+        "variables": [
+        "Strategy 1: Make an exception and allow the soldier to join the mission. Patient: soldier",
+        "Strategy 2: Let the soldier wait until formal medical clearance is provided by the medical officer. Patient: soldier"
+        ]
+    }}
+    ```
+    {% endraw %}
+    Since the choices stress two categories of different actions to deal with the same person, the variables are two categories, not two different people. Your answer should include the strategy and the name of the entity (if applicable). You should given the name of specific entity, not just a word.
+
+    Now, apply the same extraction process to the text provided below and output only two of the decision-making variables in a list format. Please return with a JSON format.
+
+    Given task:
+    {{ situation }}
+    Choices are:
+    {% for choice, choice_dict in choices.items() %}
+    - {{ choice }}
+    {% endfor %}
+
+    Output format:
+    {% raw %}
+    ```json
+    {{
+        ""variables": [
+        <variable_1>,
+        <variable_2>
+        ]
+    }}
+    ```
+    {% endraw %}
+    """
+
+class VariablesExtractionPrompt():
+    def __call__(self,
+                 scenario_description,
+                 choices):
+        return variables_extraction_stage_prompt(
+            situation=scenario_description,
+            choices={c: None for c in choices}
+        )
+
+def variables_extraction_output_schema():
+      """JSON schema for variables extraction response"""
+      schema = {
+          "type": "object",
+          "properties": {
+              "variables": {
+                  "type": "array",
+                  "items": {"type": "string"},
+                  "description": "List of extracted 'variables' stage output items"
+              }
+          },
+          "required": ["variables"],
+          "additionalProperties": False
+      }
+      return json.dumps(schema)
+
+class VariablesExtractionOutputSchema():
+    def __call__(self):
+        return variables_extraction_output_schema()

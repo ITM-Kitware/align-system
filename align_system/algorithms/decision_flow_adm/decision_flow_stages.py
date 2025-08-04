@@ -8,20 +8,15 @@ from align_system.prompt_engineering.decision_flow_prompts.mta_prompt import (
 
 import re
 import json
-from openai import OpenAI
 from jinja2 import Environment, FileSystemLoader
 
-from align_system.algorithms.decision_flow_adm.secret import OPENAI_API_KEY, OPENAI_API_BASE
 
 class DecisionFlowStages:
 
-    def __init__(self, target_bias, task, choice, state, probe, system_message_keys, model, model_path, temperature):
+    def __init__(self, target_bias, task, choice, system_message_keys, model, model_path, temperature):
         self.target_bias = target_bias
         self.task = task
         self.choice = choice
-        self.state = state
-        self.probe = probe
-        self.model = model
         self.model_path = model_path
         self.temperature = temperature
         self.system_message_keys = f"{list(system_message_keys.values())[0]} {list(system_message_keys.keys())[0]}"
@@ -40,7 +35,7 @@ class DecisionFlowStages:
             if action == "Variables":
                 self.variables = None
                 prompt = math_variables.format(
-                    task=self.task + self.probe, choices=self.choice
+                    task=self.task, choices=self.choice
                 )
                 response = model_generate_output(prompt, model=self.model, model_path=self.model_path, temperature=self.temperature)
                 try:

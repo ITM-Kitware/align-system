@@ -1,0 +1,16 @@
+# @package _global_
+defaults:
+  - override /adm: pipeline_decision_flow
+  - override /inference_engine@adm.structured_inference_engine: outlines_structured_greedy
+
+adm:
+  step_definitions:
+    decision_flow:
+      num_samples: 1
+      system_prompt_template:
+        _target_: align_system.prompt_engineering.outlines_prompts.DefaultITMBaselineSystemPrompt
+
+  instance:
+    steps:
+      - ${ref:adm.step_definitions.format_choices}
+      - ${ref:adm.step_definitions.decision_flow}

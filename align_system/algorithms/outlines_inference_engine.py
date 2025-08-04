@@ -109,6 +109,22 @@ class OutlinesTransformersInferenceEngine(StructuredInferenceEngine):
             raise TypeError("Don't know how to run inference on provided "
                             "`prompts` object")
 
+    def run_inference_unstructured(self, prompts):
+        generator = outlines.generate.regex(
+            self.model,
+            r'.*',  # "allow anything" regex
+            sampler=self.sampler)
+
+        if isinstance(prompts, str):
+            return generator(prompts)
+        elif isinstance(prompts, Iterable):
+            return self.run_in_batches(
+                generator, prompts, self.inference_batch_size
+            )
+        else:
+            raise TypeError("Don't know how to run inference on provided "
+                            "`prompts` object")
+
     def cache_repr(self):
         '''
         Return a string representation of this object for caching;
