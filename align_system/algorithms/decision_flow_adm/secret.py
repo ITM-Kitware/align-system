@@ -1,2 +1,0 @@
-OPENAI_API_KEY = "your_openai_api_key_here"
-OPENAI_API_BASE = "https://api.openai.com/v1/"
