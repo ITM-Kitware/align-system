@@ -8,10 +8,13 @@ interface:
   api_endpoint: "https://darpaitm.caci.com"
   session_type: eval
   training_session: null
-  username: "testrun-ALIGN-ADM-OutlinesBaseline-Mistral-7B-Instruct-v0.3"
+  username: "testrun-ALIGN-ADM-OutlinesBaseline-Meta-Llama-3-8B-Instruct"
   domain: "p2triage"
 
 adm:
+  structured_inference_engine:
+    model_name: meta-llama/Meta-Llama-3-8B-Instruct
+
   step_definitions:
     outlines_baseline:
       scenario_description_template:
@@ -38,4 +41,4 @@ save_last_unstructured_state_per_scenario: true
 
 hydra:
   run:
-    dir: 'phase2_july_rq2_eval_live_test/baseline/${now:%Y-%m-%d__%H-%M-%S}'
+    dir: 'phase2_july_rq2_eval_live_test/baseline-Meta-Llama-3-8B-Instruct/${now:%Y-%m-%d__%H-%M-%S}'

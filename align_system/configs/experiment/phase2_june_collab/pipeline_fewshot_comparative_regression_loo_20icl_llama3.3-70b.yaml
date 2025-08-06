@@ -1,0 +1,31 @@
+# @package _global_
+defaults:
+  - override /adm: phase2_pipeline_fewshot_comparative_regression
+  - override /interface: ta3
+    
+interface:
+  session_type: adept
+  training_session: full
+  username: "pipeline_fewshot_comp_reg_test_20icl"
+  domain: "p2triage"
+
+adm:
+  structured_inference_engine:
+    model_name: meta-llama/Llama-3.3-70B-Instruct
+  
+  step_definitions:
+    regression_icl:
+      icl_generator_partial:
+        incontext_settings:
+          number: 20
+          # LOO - Remove for eval
+          leave_one_out_strategy: 'scenario_description'
+          # For ablation experiment
+          least_similar_examples: True
+
+    comparative_regression:
+      enable_caching: true
+
+apply_action_filtering: false
+force_determinism: true
+align_to_target: true

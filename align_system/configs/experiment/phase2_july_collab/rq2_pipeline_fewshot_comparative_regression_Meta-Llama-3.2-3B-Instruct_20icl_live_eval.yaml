@@ -1,0 +1,41 @@
+# @package _global_
+defaults:
+  - override /adm: phase2_pipeline_fewshot_comparative_regression
+  - override /interface: ta3
+  - override /adm_component/alignment@adm.step_definitions.scalar_alignment: medical_urgency_weighted_scalar
+
+interface:
+  api_endpoint: "https://darpaitm.caci.com"
+  session_type: eval
+  training_session: null
+  username: "testrun_ALIGN-ADM-Ph2-ComparativeRegression-Meta-Llama-3.2-3B-Instruct"
+  domain: "p2triage"
+
+adm:
+  structured_inference_engine:
+    model_name: meta-llama/Llama-3.2-3B-Instruct
+
+  step_definitions:
+    regression_icl:
+      icl_generator_partial:
+        incontext_settings:
+          number: 20
+          datasets:
+            medical: /data/shared/samba/phase2_icl/July2025-MU-train_20250804.json
+            affiliation: /data/shared/samba/phase2_icl/July2025-AF-train_20250804.json
+            merit: /data/shared/samba/phase2_icl/July2025-MF-train_20250804.json
+            personal_safety: /data/shared/samba/phase2_icl/July2025-PS-train_20250804.json
+            search: /data/shared/samba/phase2_icl/July2025-SS-train_20250804.json
+
+    comparative_regression:
+      enable_caching: true  
+
+apply_action_filtering: false
+force_determinism: true
+align_to_target: true
+save_last_unstructured_state_per_scenario: true
+
+hydra:
+  run:
+    dir: 'phase2_july_rq2_eval_live_test/comp_reg_20icl_Meta-Llama-3.2-3B-Instruct/${now:%Y-%m-%d__%H-%M-%S}'
+
