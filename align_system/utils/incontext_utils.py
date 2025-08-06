@@ -4,6 +4,7 @@ import torch
 import random
 import numpy as np
 from abc import ABCMeta, abstractmethod
+from omegaconf import DictConfig, ListConfig, OmegaConf
 
 from align_system.utils import adm_utils
 from align_system.utils import outlines_prompts_utils
@@ -85,39 +86,49 @@ class IncontextExampleGenerator(object, metaclass=ABCMeta):
             # Add examples for each dataset file
             dset_files = self.incontext_settings["datasets"][sys_kdma_name]
             # If there is only one, make it a list for the following loop
-            if not isinstance(dset_files, list):
-                dset_files = [dset_files]
+            if isinstance(dset_files, DictConfig):
+                dset_files = OmegaConf.to_container(dset_files)
+            elif isinstance(dset_files, ListConfig):
+                dset_files = OmegaConf.to_container(dset_files)
+                dset_files = {"*": dset_files}
+            else:
+                dset_files = {"*": dset_files}
 
-            incontext_data[sys_kdma_name] = []
+            incontext_data[sys_kdma_name] = {}
             # For each dataset file
-            for dset_f in dset_files:
-                with open(dset_f) as f:
-                    dset = json.load(f)
-                # Load each example in the dataset file
-                for icl_sample in dset:
-                    # Get state and actions
-                    state, actions = self.state_hydration_fn(icl_sample["input"])
-                    labels = icl_sample["label"]
-                    if self.incontext_settings.sort_actions:
-                        # Impose a fixed ordering of available actions and labels to help with determinism
-                        combined = list(zip(actions, labels))
-                        combined_sorted = sorted(combined, key=lambda x: x[0].unstructured)
-                        actions, labels = zip(*combined_sorted)
-                    # Get choices
-                    choices = adm_utils.format_choices(
-                        [a.unstructured for a in actions],
-                        actions,
-                        state
-                    )
-                    # Get KDMA_values
-                    kdma_values = []
-                    for label in labels:
-                        if sys_kdma_name not in label:
-                            kdma_values.append(None)
-                        else:
-                            kdma_values.append(label[sys_kdma_name])
-                    example = {'state':state, 'actions': actions, 'choices':choices, 'kdma_values':kdma_values}
-                    incontext_data[sys_kdma_name].append(example)
+            for kdma, dset_files in dset_files.items():
+                incontext_data[sys_kdma_name][kdma] = []
+                if not isinstance(dset_files, list):
+                    dset_files = [dset_files]
+
+                for dset_f in dset_files:
+                    with open(dset_f) as f:
+                        dset = json.load(f)
+                    # Load each example in the dataset file
+                    for icl_sample in dset:
+                        # Get state and actions
+                        state, actions = self.state_hydration_fn(icl_sample["input"])
+                        labels = icl_sample["label"]
+                        if self.incontext_settings.sort_actions:
+                            # Impose a fixed ordering of available actions and labels to help with determinism
+                            combined = list(zip(actions, labels))
+                            combined_sorted = sorted(combined, key=lambda x: x[0].unstructured)
+                            actions, labels = zip(*combined_sorted)
+                        # Get choices
+                        choices = adm_utils.format_choices(
+                            [a.unstructured for a in actions],
+                            actions,
+                            state
+                        )
+                        # Get KDMA_values
+                        kdma_values = []
+                        for label in labels:
+                            if sys_kdma_name not in label:
+                                kdma_values.append(None)
+                            else:
+                                kdma_values.append(label[sys_kdma_name])
+                        example = {'state':state, 'actions': actions, 'choices':choices, 'kdma_values':kdma_values}
+                        incontext_data[sys_kdma_name][kdma].append(example)
 
             # Normalize ground truth KDMA values
             if 'normalization' in self.incontext_settings:
@@ -150,8 +161,8 @@ class IncontextExampleGenerator(object, metaclass=ABCMeta):
             # Add examples for each dataset file
             kdma_dset_files = self.incontext_settings["datasets"][sys_kdma_name]
             # Add to list
-            if isinstance(kdma_dset_files, list):
-                dset_files.extend(kdma_dset_files)
+            if isinstance(kdma_dset_files, ListConfig):
+                dset_files.extend(OmegaConf.to_container(kdma_dset_files))
             else:
                 dset_files.append(kdma_dset_files)
         # remove potential duplicates
@@ -160,7 +171,8 @@ class IncontextExampleGenerator(object, metaclass=ABCMeta):
         incontext_data = {}
         for target_kdma in self.target_kdmas:
             sys_kdma_name = target_kdma['kdma']
-            incontext_data[sys_kdma_name] = []
+            incontext_data[sys_kdma_name] = {}
+            incontext_data[sys_kdma_name]["*"] = []
             # For each dataset file
             for dset_f in dset_files:
                 with open(dset_f) as f:
@@ -190,7 +202,7 @@ class IncontextExampleGenerator(object, metaclass=ABCMeta):
                             kdma_values.append(label[sys_kdma_name])
 
                     example = {'state':state, 'actions': actions, 'choices':choices, 'kdma_values':kdma_values}
-                    incontext_data[sys_kdma_name].append(example)
+                    incontext_data[sys_kdma_name]["*"].append(example)
 
             # Normalize ground truth KDMA values
             if 'normalization' in self.incontext_settings:
@@ -209,35 +221,40 @@ class IncontextExampleGenerator(object, metaclass=ABCMeta):
         for kdma in list(incontext_data.keys()):
             # Get global min and max
             all_kdma_values = []
-            for example in incontext_data[kdma]:
-                all_kdma_values.extend(example['kdma_values'])
+            for _, sub_kdma_data in incontext_data[kdma].items():
+                for example in sub_kdma_data:
+                    all_kdma_values.extend(example['kdma_values'])
             all_kdma_values = [i for i in all_kdma_values if i is not None]
             global_min = min(all_kdma_values)
             global_max = max(all_kdma_values)
             # Normalize
-            for example_idx in range(len(incontext_data[kdma])):
-                norm_values = incontext_data[kdma][example_idx]['kdma_values']
-                for value_idx in range(len(norm_values)):
-                    if norm_values[value_idx] is not None:
-                        norm_values[value_idx] = (norm_values[value_idx] - global_min) / (global_max - global_min)
-                incontext_data[kdma][example_idx]['kdma_values'] = norm_values
+            for sub_kdma, sub_kdma_data in incontext_data[kdma].items():
+                for example_idx in range(len(sub_kdma_data)):
+                    norm_values = sub_kdma_data[example_idx]['kdma_values']
+                    for value_idx in range(len(norm_values)):
+                        if norm_values[value_idx] is not None:
+                            norm_values[value_idx] = (norm_values[value_idx] - global_min) / (global_max - global_min)
+                    incontext_data[kdma][sub_kdma][example_idx]['kdma_values'] = norm_values
         return incontext_data
 
     def _local_normalization(self, incontext_data):
         # Normalize per example
         for kdma in list(incontext_data.keys()):
-            for example_idx in range(len(incontext_data[kdma])):
-                norm_values = incontext_data[kdma][example_idx]['kdma_values']
-                example_values = [i for i in norm_values if i is not None]
-                local_min = np.min(example_values)
-                local_max = np.max(example_values)
-                for value_idx in range(len(norm_values)):
-                    if norm_values[value_idx] is not None:
-                        norm_values[value_idx] = (norm_values[value_idx] - local_min) / (local_max - local_min)
-                incontext_data[kdma][example_idx]['kdma_values'] = norm_values
+            for sub_kdma, sub_kdma_data in incontext_data[kdma].items():
+                for example_idx in range(len(sub_kdma_data)):
+                    norm_values = sub_kdma_data[example_idx]['kdma_values']
+                    example_values = [i for i in norm_values if i is not None]
+                    local_min = np.min(example_values)
+                    local_max = np.max(example_values)
+                    for value_idx in range(len(norm_values)):
+                        if norm_values[value_idx] is not None:
+                            norm_values[value_idx] = (norm_values[value_idx] - local_min) / (local_max - local_min)
+                    incontext_data[kdma][sub_kdma][example_idx]['kdma_values'] = norm_values
         return incontext_data
 
-    def select_icl_examples(self, sys_kdma_name, scenario_description_to_match, prompt_to_match, state_comparison, actions):
+    def select_icl_examples(
+        self, sys_kdma_name, scenario_description_to_match, prompt_to_match, state_comparison, actions, sub_kdmas=None
+    ):
         '''
         Selects a list of relevant ICL examples
         Input:
@@ -253,7 +270,20 @@ class IncontextExampleGenerator(object, metaclass=ABCMeta):
         if sys_kdma_name not in self.icl_datasets:
             raise RuntimeError(f"No incontext samples for targeted kdma: {sys_kdma_name}")
         n_icl_examples = self.incontext_settings["number"]
-        possible_icl_examples = self.icl_datasets[sys_kdma_name]
+
+        possible_icl_examples = []
+        if sub_kdmas is None:
+            if "*" in self.icl_datasets[sys_kdma_name]:
+                possible_icl_examples = self.icl_datasets[sys_kdma_name]["*"]
+        else:
+            # Only wildcard specified for this KDMA
+            if len(self.icl_datasets[sys_kdma_name]) == 1 and "*" in self.icl_datasets[sys_kdma_name]:
+                possible_icl_examples = self.icl_datasets[sys_kdma_name]["*"]
+            else:  # Pull specific sub-kdma DBs
+                for sub_kdma in sub_kdmas:
+                    if sub_kdma in self.icl_datasets[sys_kdma_name]:
+                        possible_icl_examples.extend(self.icl_datasets[sys_kdma_name][sub_kdma])
+
         # Check that we have enough incontext examples for the target kdma
         if len(possible_icl_examples) < n_icl_examples:
             raise RuntimeError(f"Not enough possible incontext samples to learn from. Only "
@@ -387,39 +417,42 @@ class BaselineIncontextExampleGenerator(IncontextExampleGenerator):
         # Add each target to icl_datasets
         for target_kdma in self.target_kdmas:
             sys_kdma_name = target_kdma['kdma']
-            icl_datasets[sys_kdma_name] = []
+            icl_datasets[sys_kdma_name] = {}
             kdma_incontext_data = incontext_data[sys_kdma_name]
 
-            # Add each examples to icl_datasets
-            for example in kdma_incontext_data:
+            for sub_kdma, sub_kdma_data in kdma_incontext_data.items():
+                icl_datasets[sys_kdma_name][sub_kdma] = []
 
-                # Get scenario and prompt
-                icl_scenario_description = scenario_state_description_1(example['state'])
-                icl_prompt = action_selection_prompt(icl_scenario_description, example['choices'])
+                # Add each examples to icl_datasets
+                for example in sub_kdma_data:
 
-                # Get example response
-                dist_to_tgt = [
-                    abs(score - target_kdma['value']) if score is not None else float('inf')
-                    for score in example["kdma_values"]
-                ]
-                correct_answer_idx = np.argmin(dist_to_tgt)
-                correct_choice = example['choices'][correct_answer_idx]
-                adjective = "low" if target_kdma['value'] < 0.5 else "high"
-                reasoning = f"Per the principle of {adjective} {target_kdma['name']}, " \
-                            f'\\"{correct_choice}\\" is the correct answer.'
-                icl_response = {"detailed_reasoning": reasoning,
-                                "action_choice": correct_choice}
-                # Validate response against schema
-                correct_schema = json.loads(action_choice_json_schema(json.dumps(example['choices'])))
-                validate(instance=icl_response, schema=correct_schema)
+                    # Get scenario and prompt
+                    icl_scenario_description = scenario_state_description_1(example['state'])
+                    icl_prompt = action_selection_prompt(icl_scenario_description, example['choices'])
 
-                # Add example
-                icl_datasets[sys_kdma_name].append({
-                    "state": example["state"],
-                    "scenario_description": icl_scenario_description,
-                    "prompt": icl_prompt,
-                    "response": icl_response
-                    })
+                    # Get example response
+                    dist_to_tgt = [
+                        abs(score - target_kdma['value']) if score is not None else float('inf')
+                        for score in example["kdma_values"]
+                    ]
+                    correct_answer_idx = np.argmin(dist_to_tgt)
+                    correct_choice = example['choices'][correct_answer_idx]
+                    adjective = "low" if target_kdma['value'] < 0.5 else "high"
+                    reasoning = f"Per the principle of {adjective} {target_kdma['name']}, " \
+                                f'\\"{correct_choice}\\" is the correct answer.'
+                    icl_response = {"detailed_reasoning": reasoning,
+                                    "action_choice": correct_choice}
+                    # Validate response against schema
+                    correct_schema = json.loads(action_choice_json_schema(json.dumps(example['choices'])))
+                    validate(instance=icl_response, schema=correct_schema)
+
+                    # Add example
+                    icl_datasets[sys_kdma_name][sub_kdma].append({
+                        "state": example["state"],
+                        "scenario_description": icl_scenario_description,
+                        "prompt": icl_prompt,
+                        "response": icl_response
+                        })
 
         self.icl_datasets = icl_datasets
 
@@ -432,57 +465,60 @@ class ComparativeRegressionIncontextExampleGenerator(IncontextExampleGenerator):
         # Add each target to icl_datasets
         for target_kdma in self.target_kdmas:
             sys_kdma_name = target_kdma['kdma']
-            icl_datasets[sys_kdma_name] = []
+            icl_datasets[sys_kdma_name] = {}
             kdma_incontext_data = incontext_data[sys_kdma_name]
 
-            # Add each examples to icl_datasets
-            for example in kdma_incontext_data:
+            for sub_kdma, sub_kdma_data in kdma_incontext_data.items():
+                icl_datasets[sys_kdma_name][sub_kdma] = []
 
-                # Get example response
-                icl_response = {}
-                included_choices = []
-                for action, choice, kdma_value in zip(example['actions'], example['choices'], example["kdma_values"]):
-                    # Only include choice if there is a ground truth KDMA value available
-                    if kdma_value is None:
-                        continue
-                    # Groundtruth KDMA values are 0-1, but ADM may predict on a different scale
-                    scaled_kdma_value = int(kdma_value * target_kdma["factor"])
-                    icl_response[choice] = {}
-                    icl_response[choice]['reasoning'] = self.get_chain_of_thought_reasoning(target_kdma, action,
-                                                                                            example['state'], choice,
-                                                                                            scaled_kdma_value)
-                    icl_response[choice]['score'] = scaled_kdma_value
-                    included_choices.append(choice)
-                # Check if response is valid against json schema
-                correct_schema = json.loads(comparative_kdma_score_prediction_json_schema(included_choices, target_kdma["factor"]))
-                validate(instance=icl_response, schema=correct_schema)
+                # Add each examples to icl_datasets
+                for example in sub_kdma_data:
 
-                # Get example prompt
-                relevant_fields = []
-                for char_target_kdma in self.target_kdmas:
-                    relevant_fields.extend(char_target_kdma['relevant_structured_character_info'])
-                if 'all_unique' in relevant_fields:
-                    character_info = outlines_prompts_utils.get_unique_structured_character_info(example['state'].characters)
-                else:
-                    character_info = outlines_prompts_utils.get_relevant_structured_character_info(example['state'].characters, self.target_kdmas)
-                icl_scenario_description = scenario_state_description_with_relevant_char_info(example['state'], character_info)
-                # Only include choices in the prompt if they are in the response
-                included_icl_choices_with_outcomes = {}
-                for choice in included_choices:
-                    # TODO: Include outcome prediction for ICL examples?
-                    included_icl_choices_with_outcomes[choice] = {'predicted_outcome':None}
-                icl_prompt = comparative_kdma_score_prediction_prompt(icl_scenario_description,
-                                                                    included_icl_choices_with_outcomes,
-                                                                    target_kdma['name'])
+                    # Get example response
+                    icl_response = {}
+                    included_choices = []
+                    for action, choice, kdma_value in zip(example['actions'], example['choices'], example["kdma_values"]):
+                        # Only include choice if there is a ground truth KDMA value available
+                        if kdma_value is None:
+                            continue
+                        # Groundtruth KDMA values are 0-1, but ADM may predict on a different scale
+                        scaled_kdma_value = int(kdma_value * target_kdma["factor"])
+                        icl_response[choice] = {}
+                        icl_response[choice]['reasoning'] = self.get_chain_of_thought_reasoning(target_kdma, action,
+                                                                                                example['state'], choice,
+                                                                                                scaled_kdma_value)
+                        icl_response[choice]['score'] = scaled_kdma_value
+                        included_choices.append(choice)
+                    # Check if response is valid against json schema
+                    correct_schema = json.loads(comparative_kdma_score_prediction_json_schema(included_choices, target_kdma["factor"]))
+                    validate(instance=icl_response, schema=correct_schema)
 
-                # Add example
-                icl_datasets[sys_kdma_name].append({
-                    "state": example["state"],
-                    "scenario_description": icl_scenario_description,
-                    "prompt": icl_prompt,
-                    "response": icl_response,
-                    "actions": example['actions']
-                    })
+                    # Get example prompt
+                    relevant_fields = []
+                    for char_target_kdma in self.target_kdmas:
+                        relevant_fields.extend(char_target_kdma['relevant_structured_character_info'])
+                    if 'all_unique' in relevant_fields:
+                        character_info = outlines_prompts_utils.get_unique_structured_character_info(example['state'].characters)
+                    else:
+                        character_info = outlines_prompts_utils.get_relevant_structured_character_info(example['state'].characters, self.target_kdmas)
+                    icl_scenario_description = scenario_state_description_with_relevant_char_info(example['state'], character_info)
+                    # Only include choices in the prompt if they are in the response
+                    included_icl_choices_with_outcomes = {}
+                    for choice in included_choices:
+                        # TODO: Include outcome prediction for ICL examples?
+                        included_icl_choices_with_outcomes[choice] = {'predicted_outcome':None}
+                    icl_prompt = comparative_kdma_score_prediction_prompt(icl_scenario_description,
+                                                                        included_icl_choices_with_outcomes,
+                                                                        target_kdma['name'])
+
+                    # Add example
+                    icl_datasets[sys_kdma_name][sub_kdma].append({
+                        "state": example["state"],
+                        "scenario_description": icl_scenario_description,
+                        "prompt": icl_prompt,
+                        "response": icl_response,
+                        "actions": example['actions']
+                        })
 
         self.icl_datasets = icl_datasets
 
@@ -588,57 +624,60 @@ class RelevanceIncontextExampleGenerator(IncontextExampleGenerator):
 
         # Add each target to icl_datasets
         for target_kdma in self.target_kdmas:
-            icl_datasets[target_kdma['kdma']] = []
+            icl_datasets[target_kdma['kdma']] = {}
             kdma_incontext_data = incontext_data[target_kdma['kdma']]
 
-            # Add each examples to icl_datasets
-            for example in kdma_incontext_data:
-                # Get example response
-                icl_response = {}
-                included_choices = []
-                for action, choice, kdma_value in zip(example['actions'], example['choices'], example["kdma_values"]):
-                    icl_response[choice] = {}
-                    if kdma_value is not None:
-                        icl_response[choice]['reasoning'] = self.get_relevant_chain_of_thought_reasoning(target_kdma, choice)
-                        icl_response[choice]['relevant'] = 'yes'
-                    else:
-                        # if action has character, use character-based irrelevant COT reasoning
-                        if hasattr(action, 'character_id') and action.character_id is not None:
-                            icl_response[choice]['reasoning'] = self.get_irrelevant_chain_of_thought_reasoning(target_kdma, choice)
-                        # else add generic COT reasoning
-                        else:
-                            icl_response[choice]['reasoning'] = f'Selecting this response does not require considering {target_kdma["name"]}.'
-                        icl_response[choice]['relevant'] = 'no'
-                    included_choices.append(choice)
-                # Check if response is valid against json schema
-                correct_schema = json.loads(relevance_classification_json_schema(included_choices, target_kdma["factor"]))
-                validate(instance=icl_response, schema=correct_schema)
+            for sub_kdma, sub_kdma_data in kdma_incontext_data.items():
+                icl_datasets[target_kdma['kdma']][sub_kdma] = []
 
-                # Get example prompt
-                relevant_fields = []
-                for char_target_kdma in self.target_kdmas:
-                    relevant_fields.extend(char_target_kdma['relevant_structured_character_info'])
-                if 'all_unique' in relevant_fields:
-                    character_info = outlines_prompts_utils.get_unique_structured_character_info(example['state'].characters)
-                else:
-                    character_info = outlines_prompts_utils.get_relevant_structured_character_info(example['state'].characters, self.target_kdmas)
-                icl_scenario_description = scenario_state_description_with_relevant_char_info(example['state'], character_info)
-                # Only include choices in the prompt if they are in the response
-                included_icl_choices_with_outcomes = {}
-                for choice in included_choices:
-                    # TODO: Include outcome prediction for ICL examples?
-                    included_icl_choices_with_outcomes[choice] = {'predicted_outcome':None}
-                icl_prompt = relevance_classification_prompt(icl_scenario_description,
-                                                                    included_icl_choices_with_outcomes,
-                                                                    target_kdma['name'])
-                # Add example
-                icl_datasets[target_kdma['kdma']].append({
-                    "state": example["state"],
-                    "scenario_description": icl_scenario_description,
-                    "prompt": icl_prompt,
-                    "response": icl_response,
-                    "actions": example['actions']
-                    })
+                # Add each examples to icl_datasets
+                for example in sub_kdma_data:
+                    # Get example response
+                    icl_response = {}
+                    included_choices = []
+                    for action, choice, kdma_value in zip(example['actions'], example['choices'], example["kdma_values"]):
+                        icl_response[choice] = {}
+                        if kdma_value is not None:
+                            icl_response[choice]['reasoning'] = self.get_relevant_chain_of_thought_reasoning(target_kdma, choice)
+                            icl_response[choice]['relevant'] = 'yes'
+                        else:
+                            # if action has character, use character-based irrelevant COT reasoning
+                            if hasattr(action, 'character_id') and action.character_id is not None:
+                                icl_response[choice]['reasoning'] = self.get_irrelevant_chain_of_thought_reasoning(target_kdma, choice)
+                            # else add generic COT reasoning
+                            else:
+                                icl_response[choice]['reasoning'] = f'Selecting this response does not require considering {target_kdma["name"]}.'
+                            icl_response[choice]['relevant'] = 'no'
+                        included_choices.append(choice)
+                    # Check if response is valid against json schema
+                    correct_schema = json.loads(relevance_classification_json_schema(included_choices, target_kdma["factor"]))
+                    validate(instance=icl_response, schema=correct_schema)
+
+                    # Get example prompt
+                    relevant_fields = []
+                    for char_target_kdma in self.target_kdmas:
+                        relevant_fields.extend(char_target_kdma['relevant_structured_character_info'])
+                    if 'all_unique' in relevant_fields:
+                        character_info = outlines_prompts_utils.get_unique_structured_character_info(example['state'].characters)
+                    else:
+                        character_info = outlines_prompts_utils.get_relevant_structured_character_info(example['state'].characters, self.target_kdmas)
+                    icl_scenario_description = scenario_state_description_with_relevant_char_info(example['state'], character_info)
+                    # Only include choices in the prompt if they are in the response
+                    included_icl_choices_with_outcomes = {}
+                    for choice in included_choices:
+                        # TODO: Include outcome prediction for ICL examples?
+                        included_icl_choices_with_outcomes[choice] = {'predicted_outcome':None}
+                    icl_prompt = relevance_classification_prompt(icl_scenario_description,
+                                                                        included_icl_choices_with_outcomes,
+                                                                        target_kdma['name'])
+                    # Add example
+                    icl_datasets[target_kdma['kdma']][sub_kdma].append({
+                        "state": example["state"],
+                        "scenario_description": icl_scenario_description,
+                        "prompt": icl_prompt,
+                        "response": icl_response,
+                        "actions": example['actions']
+                        })
 
         self.icl_datasets = icl_datasets
 
@@ -701,50 +740,53 @@ class Phase2ComparativeRegressionIncontextExampleGenerator(IncontextExampleGener
         # Add each target to icl_datasets
         for target_kdma in self.target_kdmas:
             sys_kdma_name = target_kdma['kdma']
-            icl_datasets[sys_kdma_name] = []
+            icl_datasets[sys_kdma_name] = {}
             kdma_incontext_data = incontext_data[sys_kdma_name]
 
-            # Add each examples to icl_datasets
-            for example in kdma_incontext_data:
+            for sub_kdma, sub_kdma_data in kdma_incontext_data.items():
+                icl_datasets[sys_kdma_name][sub_kdma] = []
 
-                # Get example response
-                icl_response = {}
-                included_choices = []
-                for action, choice, kdma_value in zip(example['actions'], example['choices'], example["kdma_values"]):
-                    # Only include choice if there is a ground truth KDMA value available
-                    if kdma_value is None:
-                        continue
-                    # Groundtruth KDMA values are 0-1, but ADM may predict on a different scale
-                    scaled_kdma_value = int(kdma_value * target_kdma["factor"])
-                    icl_response[choice] = {}
-                    icl_response[choice]['score'] = scaled_kdma_value
-                    included_choices.append(choice)
-                icl_response_with_reasoning={}
-                icl_response_with_reasoning['reasoning'] = self.get_chain_of_thought_reasoning(target_kdma, icl_response)
-                icl_response_with_reasoning.update(icl_response) # reasoning first
-                # Check if response is valid against json schema
-                correct_schema = json.loads(comparative_regression_json_schema(included_choices, target_kdma["factor"]))
-                validate(instance=icl_response_with_reasoning, schema=correct_schema)
+                # Add each examples to icl_datasets
+                for example in sub_kdma_data:
 
-                # Get example prompt
-                icl_scenario_description = phase2_scenario_state_description(example['state'])
-                # Only include choices in the prompt if they are in the response
-                included_icl_choices_with_outcomes = {}
-                for choice in included_choices:
-                    # TODO: Include outcome prediction for ICL examples?
-                    included_icl_choices_with_outcomes[choice] = {'predicted_outcome':None}
-                icl_prompt = comparative_regression_prompt(icl_scenario_description,
-                                                           included_icl_choices_with_outcomes,
-                                                           target_kdma['name'])
+                    # Get example response
+                    icl_response = {}
+                    included_choices = []
+                    for action, choice, kdma_value in zip(example['actions'], example['choices'], example["kdma_values"]):
+                        # Only include choice if there is a ground truth KDMA value available
+                        if kdma_value is None:
+                            continue
+                        # Groundtruth KDMA values are 0-1, but ADM may predict on a different scale
+                        scaled_kdma_value = int(kdma_value * target_kdma["factor"])
+                        icl_response[choice] = {}
+                        icl_response[choice]['score'] = scaled_kdma_value
+                        included_choices.append(choice)
+                    icl_response_with_reasoning={}
+                    icl_response_with_reasoning['reasoning'] = self.get_chain_of_thought_reasoning(target_kdma, icl_response)
+                    icl_response_with_reasoning.update(icl_response) # reasoning first
+                    # Check if response is valid against json schema
+                    correct_schema = json.loads(comparative_regression_json_schema(included_choices, target_kdma["factor"]))
+                    validate(instance=icl_response_with_reasoning, schema=correct_schema)
 
-                # Add example
-                icl_datasets[sys_kdma_name].append({
-                    "state": example["state"],
-                    "scenario_description": icl_scenario_description,
-                    "prompt": icl_prompt,
-                    "response": icl_response_with_reasoning,
-                    "actions": example['actions']
-                    })
+                    # Get example prompt
+                    icl_scenario_description = phase2_scenario_state_description(example['state'])
+                    # Only include choices in the prompt if they are in the response
+                    included_icl_choices_with_outcomes = {}
+                    for choice in included_choices:
+                        # TODO: Include outcome prediction for ICL examples?
+                        included_icl_choices_with_outcomes[choice] = {'predicted_outcome':None}
+                    icl_prompt = comparative_regression_prompt(icl_scenario_description,
+                                                            included_icl_choices_with_outcomes,
+                                                            target_kdma['name'])
+
+                    # Add example
+                    icl_datasets[sys_kdma_name][sub_kdma].append({
+                        "state": example["state"],
+                        "scenario_description": icl_scenario_description,
+                        "prompt": icl_prompt,
+                        "response": icl_response_with_reasoning,
+                        "actions": example['actions']
+                        })
 
         self.icl_datasets = icl_datasets
 

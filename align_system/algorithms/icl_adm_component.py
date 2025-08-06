@@ -89,7 +89,7 @@ class ICLADMComponent(ADMComponent):
 
         icl_dialog_elements = {}
         icl_example_info = {}
-        
+
         for attribute in target_attributes:
             icl_dialog_elements[attribute.kdma] = []
             icl_example_info[attribute.kdma] = []
@@ -132,7 +132,8 @@ class ICLADMComponent(ADMComponent):
                 scenario_description_to_match=scenario_description,
                 prompt_to_match=prompt_to_match,
                 state_comparison=scenario_state,
-                actions=actions)
+                actions=actions,
+                sub_kdmas=[tgt_attr.kdma for tgt_attr in target_attributes if tgt_attr.kdma != attribute.kdma])
 
             for icl_sample in selected_icl_examples:
                 icl_dialog_elements[attribute.kdma].append(DialogElement(role='user',
@@ -141,7 +142,7 @@ class ICLADMComponent(ADMComponent):
                 icl_dialog_elements[attribute.kdma].append(DialogElement(role='assistant',
                                                          content=str(icl_sample['response']),
                                                          tags=['icl']))
-                
+
                 # Capture ICL example info for choice_info
                 icl_info = {
                     'prompt': icl_sample['prompt'],
