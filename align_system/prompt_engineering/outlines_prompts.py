@@ -318,6 +318,11 @@ def detailed_unstructured_tagging_action_text(action, character_id_to_name):
     Tag {{ character_id_to_name[action.character_id] }} as {{ action.parameters['category'] }} ({{ action.unstructured }}){% endif -%}
     """
 
+@outlines.prompt
+def scenario_state_unstructured(scenario_state):
+    """
+    {{ scenario_state.unstructured.rstrip() }}
+    """
 
 @outlines.prompt
 def scenario_state_description_1(scenario_state):
