@@ -4,7 +4,7 @@ import torch
 import random
 import numpy as np
 from abc import ABCMeta, abstractmethod
-from collections import namedtuple
+from bert_score import score as bert_score
 
 from align_system.utils import adm_utils
 from align_system.utils import outlines_prompts_utils
@@ -24,107 +24,109 @@ from align_system.prompt_engineering.outlines_prompts import (
 )
 
 
-ICLSelectionResult = namedtuple('ICLSelectionResult', ['candidates', 'scores', 'indices'])
-
-
-def add_similarity_scores(examples, scores):
-    """Add similarity scores to ICL examples using list comprehension"""
-    return [
-        {**ex.copy(), 'similarity_score': float(score) if score is not None else None}
-        for ex, score in zip(examples, scores)
+def bert_similarity_selection(candidates, texts_to_compare, reference_text, n_examples, score_adjustments=None):
+    """Common BERT similarity selection logic for all strategies.
+    
+    Args:
+        candidates: List of candidate examples
+        texts_to_compare: List of texts to compare against reference
+        reference_text: Reference text to compare against
+        n_examples: Number of examples to select
+        score_adjustments: Optional list of score adjustments (same length as candidates)
+    
+    Returns:
+        List of selected candidates with 'similarity_score' field added
+    """
+    _, _, scores = bert_score([reference_text] * len(texts_to_compare), texts_to_compare, lang="en")
+    
+    if score_adjustments is not None:
+        for i, adjustment in enumerate(score_adjustments):
+            scores[i] += adjustment
+    
+    _, indices = torch.topk(scores, n_examples, largest=True)
+    
+    selected_candidates = [
+        {**candidates[i].copy(), 'similarity_score': float(scores[i])}
+        for i in indices
     ]
+    
+    return selected_candidates
 
 
 def select_random_strategy(possible_examples, n_examples, **kwargs):
     """Random selection strategy for ICL examples"""
     selected_samples = random.sample(possible_examples, n_examples)
-    scores = [None] * len(selected_samples)
-    indices = list(range(len(selected_samples)))
-    return ICLSelectionResult(selected_samples, scores, indices)
+    selected_with_scores = [
+        {**sample.copy(), 'similarity_score': None}
+        for sample in selected_samples
+    ]
+    return selected_with_scores
 
 
-def select_scenario_bert_similarity_strategy(possible_examples, n_examples, scenario_to_match, **kwargs):
+def select_scenario_bert_similarity_strategy(possible_examples, n_examples, scenario_to_match, **_):
     """Scenario-based BERT similarity selection strategy"""
-    scenario_description_set = set()
-    final_candidates = []
-    for icl_sample in possible_examples:
-        if icl_sample["scenario_description"] not in scenario_description_set:
-            final_candidates.append(icl_sample)
-            scenario_description_set.add(icl_sample["scenario_description"])
-    
+    final_candidates = list({ex['scenario_description']: ex for ex in possible_examples}.values())
     possible_scenarios = [icl_sample["scenario_description"] for icl_sample in final_candidates]
     
-    from bert_score import score
-    _, _, F1 = score([scenario_to_match] * len(possible_scenarios), possible_scenarios, lang="en")
-    _, indices = torch.topk(F1, n_examples, largest=True)
-    
-    selected_candidates = [final_candidates[i] for i in indices]
-    selected_scores = [F1[i] for i in indices]
-    
-    return ICLSelectionResult(selected_candidates, selected_scores, indices)
+    return bert_similarity_selection(
+        final_candidates, 
+        possible_scenarios, 
+        scenario_to_match, 
+        n_examples
+    )
 
 
-def select_prompt_bert_similarity_strategy(possible_examples, n_examples, prompt_to_match, **kwargs):
+def select_prompt_bert_similarity_strategy(possible_examples, n_examples, prompt_to_match, **_):
     """Prompt-based BERT similarity selection strategy"""
-    prompt_set = set()
-    final_candidates = []
-    for icl_sample in possible_examples:
-        if icl_sample["prompt"] not in prompt_set:
-            final_candidates.append(icl_sample)
-            prompt_set.add(icl_sample["prompt"])
-    
+    final_candidates = list({ex['prompt']: ex for ex in possible_examples}.values())
     possible_prompts = [icl_sample["prompt"] for icl_sample in final_candidates]
     
-    from bert_score import score
-    _, _, F1 = score([prompt_to_match] * len(possible_prompts), possible_prompts, lang="en")
-    _, indices = torch.topk(F1, n_examples, largest=True)
-    
-    selected_candidates = [final_candidates[i] for i in indices]
-    selected_scores = [F1[i] for i in indices]
-    
-    return ICLSelectionResult(selected_candidates, selected_scores, indices)
+    return bert_similarity_selection(
+        final_candidates,
+        possible_prompts,
+        prompt_to_match,
+        n_examples
+    )
 
 
-def select_matching_actions_strategy(possible_examples, n_examples, prompt_to_match, actions, **kwargs):
+def select_matching_actions_strategy(possible_examples, n_examples, prompt_to_match, actions, **_):
     """Action-matching with BERT similarity selection strategy"""
     action_types = set([action.action_type for action in actions])
     possible_prompts = [icl_sample["prompt"] for icl_sample in possible_examples]
     possible_actions = [set([action.action_type for action in icl_sample['actions']]) for icl_sample in possible_examples]
     
-    from bert_score import score
-    _, _, scores = score([prompt_to_match] * len(possible_prompts), possible_prompts, lang="en")
+    score_adjustments = [
+        1 if action_types.issubset(actions_set) else 0 
+        for actions_set in possible_actions
+    ]
     
-    for i in range(len(scores)):
-        if action_types.issubset(possible_actions[i]):
-            scores[i] += 1
-    
-    _, indices = torch.topk(scores, n_examples, largest=True)
-    
-    selected_candidates = [possible_examples[i] for i in indices]
-    selected_scores = [scores[i] for i in indices]
-    
-    return ICLSelectionResult(selected_candidates, selected_scores, indices)
+    return bert_similarity_selection(
+        possible_examples,
+        possible_prompts,
+        prompt_to_match,
+        n_examples,
+        score_adjustments
+    )
 
 
-def select_matching_characters_strategy(possible_examples, n_examples, prompt_to_match, actions, **kwargs):
+def select_matching_characters_strategy(possible_examples, n_examples, prompt_to_match, actions, **_):
     """Character-matching with BERT similarity selection strategy"""
     action_chars = set([action.character_id for action in actions])
     possible_prompts = [icl_sample["prompt"] for icl_sample in possible_examples]
     possible_chars = [set([action.character_id for action in icl_sample['actions']]) for icl_sample in possible_examples]
     
-    from bert_score import score
-    _, _, scores = score([prompt_to_match] * len(possible_prompts), possible_prompts, lang="en")
+    score_adjustments = [
+        1 if action_chars.issubset(chars_set) else 0
+        for chars_set in possible_chars
+    ]
     
-    for i in range(len(scores)):
-        if action_chars.issubset(possible_chars[i]):
-            scores[i] += 1
-    
-    _, indices = torch.topk(scores, n_examples, largest=True)
-    
-    selected_candidates = [possible_examples[i] for i in indices]
-    selected_scores = [scores[i] for i in indices]
-    
-    return ICLSelectionResult(selected_candidates, selected_scores, indices)
+    return bert_similarity_selection(
+        possible_examples,
+        possible_prompts,
+        prompt_to_match,
+        n_examples,
+        score_adjustments
+    )
 
 
 ICL_SELECTION_STRATEGIES = {
@@ -398,7 +400,7 @@ class IncontextExampleGenerator(object, metaclass=ABCMeta):
                            f'{", ".join(ICL_SELECTION_STRATEGIES.keys())}')
         
         strategy_fn = ICL_SELECTION_STRATEGIES[icl_strategy]
-        result = strategy_fn(
+        selected_examples = strategy_fn(
             possible_examples=possible_icl_examples,
             n_examples=n_icl_examples,
             scenario_to_match=scenario_description_to_match,
@@ -406,12 +408,10 @@ class IncontextExampleGenerator(object, metaclass=ABCMeta):
             actions=actions
         )
         
-        selected_icl_examples = add_similarity_scores(result.candidates, result.scores)
-        
         if self.incontext_settings.get("most_similar_first", True):
-            return selected_icl_examples
+            return selected_examples
         else:
-            return list(reversed(selected_icl_examples))
+            return list(reversed(selected_examples))
 
 
 class BaselineIncontextExampleGenerator(IncontextExampleGenerator):
