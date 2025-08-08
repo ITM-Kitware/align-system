@@ -1316,14 +1316,14 @@ class ComparativeRegressionPrompt():
             attribute)
 
 
-def comparative_regression_json_schema(choices, scale_factor=100):
+def comparative_regression_json_schema(choices, scale_factor=100, reasoning_max_length=512):
     json_schema = {
         "type": "object",
         "properties": {
             "reasoning": {
                 "type": "string",
                 "minLength": 1,
-                "maxLength": 512
+                **({"maxLength": reasoning_max_length} if reasoning_max_length > 0 else {})
             },
             **{
                 choice: {
@@ -1346,14 +1346,16 @@ def comparative_regression_json_schema(choices, scale_factor=100):
 
 
 class ComparativeRegressionSchema():
-    def __init__(self, factor_lookup, default_factor=None):
+    def __init__(self, factor_lookup, default_factor=None, reasoning_max_length=512):
         self.factor_lookup = factor_lookup
         self.default_factor = default_factor
+        self.reasoning_max_length = reasoning_max_length
 
     def __call__(self, choices, attribute):
         return comparative_regression_json_schema(
                 choices,
-                self.factor_lookup.get(attribute, self.default_factor))
+                self.factor_lookup.get(attribute, self.default_factor),
+                self.reasoning_max_length)
 
 
 @outlines.prompt
