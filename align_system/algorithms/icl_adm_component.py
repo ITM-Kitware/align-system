@@ -144,6 +144,7 @@ class ICLADMComponent(ADMComponent):
                 
                 # Capture ICL example info for choice_info
                 icl_info = {
+                    'similarity_score': icl_sample['similarity_score'],
                     'prompt': icl_sample['prompt'],
                     'response': icl_sample['response'],
                 }

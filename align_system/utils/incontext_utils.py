@@ -23,6 +23,14 @@ from align_system.prompt_engineering.outlines_prompts import (
 )
 
 
+def add_similarity_scores(examples, scores):
+    """Add similarity scores to ICL examples using list comprehension"""
+    return [
+        {**ex.copy(), 'similarity_score': float(score) if score is not None else None}
+        for ex, score in zip(examples, scores)
+    ]
+
+
 class IncontextExampleGenerator(object, metaclass=ABCMeta):
     '''
     Abstract class for incontext example generator
@@ -282,7 +290,10 @@ class IncontextExampleGenerator(object, metaclass=ABCMeta):
         least_similar_examples = self.incontext_settings.get("least_similar_examples", False)
 
         if icl_strategy == "random":
-            selected_icl_examples = random.sample(possible_icl_examples, n_icl_examples)
+            selected_samples = random.sample(possible_icl_examples, n_icl_examples)
+            # Add None scores for random selection
+            selected_icl_examples = add_similarity_scores(
+                selected_samples, [None] * len(selected_samples))
         elif icl_strategy == "scenario_bert_similarity":
             scenario_description_set = set()
             final_icl_candidates = []
@@ -300,7 +311,9 @@ class IncontextExampleGenerator(object, metaclass=ABCMeta):
             if least_similar_examples:
                 indices = reversed(indices)
 
-            selected_icl_examples = [final_icl_candidates[i] for i in indices]
+            selected_candidates = [final_icl_candidates[i] for i in indices]
+            selected_scores = [F1[i] for i in indices]
+            selected_icl_examples = add_similarity_scores(selected_candidates, selected_scores)
         elif icl_strategy == "prompt_bert_similarity":
             prompt_set = set()
             final_icl_candidates = []
@@ -318,7 +331,9 @@ class IncontextExampleGenerator(object, metaclass=ABCMeta):
             if least_similar_examples:
                 indices = reversed(indices)
 
-            selected_icl_examples = [final_icl_candidates[i] for i in indices]
+            selected_candidates = [final_icl_candidates[i] for i in indices]
+            selected_scores = [F1[i] for i in indices]
+            selected_icl_examples = add_similarity_scores(selected_candidates, selected_scores)
         elif icl_strategy == "matching_actions":
             action_types = set([action.action_type for action in actions])
             possible_icl_prompts = [icl_sample["prompt"] for icl_sample in possible_icl_examples]
@@ -339,7 +354,9 @@ class IncontextExampleGenerator(object, metaclass=ABCMeta):
             if least_similar_examples:
                 indices = reversed(indices)
 
-            selected_icl_examples = [possible_icl_examples[i] for i in indices]
+            selected_candidates = [possible_icl_examples[i] for i in indices]
+            selected_scores = [scores[i] for i in indices]
+            selected_icl_examples = add_similarity_scores(selected_candidates, selected_scores)
         elif icl_strategy == "matching_characters":
             action_chars = set([action.character_id for action in actions])
             possible_icl_prompts = [icl_sample["prompt"] for icl_sample in possible_icl_examples]
@@ -360,7 +377,9 @@ class IncontextExampleGenerator(object, metaclass=ABCMeta):
             if least_similar_examples:
                 indices = reversed(indices)
 
-            selected_icl_examples = [possible_icl_examples[i] for i in indices]
+            selected_candidates = [possible_icl_examples[i] for i in indices]
+            selected_scores = [scores[i] for i in indices]
+            selected_icl_examples = add_similarity_scores(selected_candidates, selected_scores)
         else:
             raise ValueError(f'"{icl_strategy}" is not a valid incontext method. Please use "random" or '
                                 '"scenario_bert_similarity" or "prompt_bert_similarity"')
