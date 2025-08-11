@@ -7,7 +7,6 @@ from align_system.prompt_engineering.outlines_prompts import (
 )
 from align_system.utils import logging
 
-
 log = logging.getLogger(__name__)
 
 def format_choices(choices, available_actions, scenario_state):
