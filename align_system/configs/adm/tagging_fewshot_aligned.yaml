@@ -1,0 +1,43 @@
+name: tagging_fewshot_aligned
+
+defaults:
+  # Import defaults into this namspace (adm) as @name, for further
+  # customization
+
+  # Shared variables / components
+  - /attribute@start: start
+  - /attribute@salt: salt
+  - /attribute@bcd: bcd
+  - /inference_engine@structured_inference_engine: outlines_structured_multinomial
+  - /template/scenario_description@scenario_description_template: tagging
+  - /template/prompt@prompt_template: tagging
+  # ADM components to be used in "steps"
+  - /adm_component/icl@step_definitions.icl: tagging
+  - /adm_component/misc@step_definitions.format_choices: itm_format_choices
+  - /adm_component/direct@step_definitions.tagging_aligned: tagging_aligned
+  - /adm_component/misc@step_definitions.ensure_chosen_action: ensure_chosen_action
+  - /adm_component/misc@step_definitions.populate_choice_info: populate_choice_info
+  # Use definitions in this file to override defaults defined above
+  - _self_
+
+attribute_definitions:
+  START: ${adm.start}
+  SALT: ${adm.salt}
+  BCD_SIEVE: ${adm.bcd}
+
+step_definitions:
+  icl:
+    scenario_description_template: ${ref:adm.scenario_description_template}
+    attributes: ${adm.attribute_definitions}
+    prompt_template: ${ref:adm.prompt_template}
+
+instance:
+  _target_: align_system.algorithms.pipeline_adm.PipelineADM
+
+  steps:
+    # Reference the step instances we want to use in order
+    - ${ref:adm.step_definitions.format_choices}
+    - ${ref:adm.step_definitions.icl}
+    - ${ref:adm.step_definitions.tagging_aligned}
+    - ${ref:adm.step_definitions.ensure_chosen_action}
+    - ${ref:adm.step_definitions.populate_choice_info}

@@ -222,7 +222,7 @@ def main(cfg: DictConfig) -> None:
 
             log.debug("[bold]*AVAILABLE ACTIONS*[/bold]",
                       extra={"markup": True})
-            log.debug(json.dumps([a.to_dict() for a in available_actions], indent=4),
+            log.debug(json.dumps([a.to_dict() if hasattr(a, "to_dict") else a._asdict() for a in available_actions], indent=4),
                       extra={"highlighter": JSON_HIGHLIGHTER})
 
             if not apply_action_filtering:
@@ -349,7 +349,7 @@ def main(cfg: DictConfig) -> None:
                 log.info(json.dumps(action_to_take, indent=4),
                          extra={"highlighter": JSON_HIGHLIGHTER})
             else:
-                log.info(json.dumps(action_to_take.to_dict(), indent=4),
+                log.info(json.dumps(action_to_take.to_dict() if hasattr(action_to_take, "to_dict") else action_to_take._asdict(), indent=4),
                          extra={"highlighter": JSON_HIGHLIGHTER})
 
             action_choice_idx = None
@@ -365,13 +365,13 @@ def main(cfg: DictConfig) -> None:
 
             inputs_outputs.append({'input': {'scenario_id': scenario.id(),
                                              'alignment_target_id': alignment_target.id if cfg.align_to_target else None,
-                                             'full_state': current_state.to_dict(),
+                                             'full_state': current_state.to_dict() if hasattr(current_state, "to_dict") else current_state._asdict(),
                                              'state': current_state.unstructured,
-                                             'choices': [a.to_dict() for a in available_actions]},
+                                             'choices': [a.to_dict() if hasattr(a, "to_dict") else a._asdict() for a in available_actions]},
                                    'label': [{} if a.kdma_association is None else a.kdma_association for a in available_actions],
                                    'choice_info': choice_info,
                                    'output': {'choice': action_choice_idx,
-                                              'action': action_to_take.to_dict()}})
+                                              'action': action_to_take.to_dict() if hasattr(action_to_take, "to_dict") else action_to_take._asdict()}})
             # Save input_output after each action (gets overwritten
             # each time) so that we don't lose everything if the run
             # crashes or is interrupted.  Could treat this as we do
@@ -396,7 +396,8 @@ def main(cfg: DictConfig) -> None:
             # Want to restrict actions that have already been taken that
             # didn't change the state
             _tmp_current_state = deepcopy(current_state)
-            _tmp_current_state.elapsed_time = last_state.elapsed_time
+            if hasattr(last_state, "elapsed_time"):
+                _tmp_current_state.elapsed_time = last_state.elapsed_time
             state_has_changed = (_tmp_current_state != last_state)
             if state_has_changed:
                 noop_actions = []

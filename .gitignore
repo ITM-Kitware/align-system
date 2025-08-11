@@ -3,5 +3,7 @@ run.bash
 venv/
 __pycache__/
 outputs
+slurm*.out
 
 .vscode/
+
