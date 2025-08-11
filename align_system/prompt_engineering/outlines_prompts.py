@@ -8,6 +8,34 @@ from align_system.utils.outlines_prompts_utils import (
 from align_system.data_models.local_ph1_ta3_enums import (
     InjuryStatusEnum)
 
+@outlines.prompt
+def cage_system_prompt():
+    """
+      # DESCRIPTION
+      You are an expert in cyber security defending an enterprise network. Analyze the network state and choose the best action and parameter from the list of actions based on their description.
+      Each time, you will receive an observation under  that will describe the status of the network as a table. 
+      Your task is to analyze the network state based on this observation, and choose the best action and parameter from the list of actions based on their description.
+      Respond with one action: ONLY ONE action from `## AVAILABLE ACTIONS`, always including the required parameter. For <hostname>, select a hostname from the observation list
+	Your goal is to:
+		1. Maintain the critical operational server, so as to ensure information from it is not exploited. 
+		2. Where possible, maintain enterprise servers so as to ensure day-to-day operations of the network are not disrupted or revealed.
+
+	The available actions at each step are:
+        - Sleep: Collection of information about flagged malicious activity on the system. Corresponds to action ID 1: Scan in the OpenC2 specification3. 
+                Params: None. (Note: This action occurs automatically if another action is chosen)   
+        - Monitor: Collection of information about flagged malicious activity on the system. Corresponds to action ID 1: Scan in the OpenC2 specification3.    
+                Params: None (Note: This action occurs automatically if another action is chosen)   
+        - Analyse: Collection of further information on a specific host to enable blue to better identify if red is present on the system. Corresponds to action ID 30: Investigate in the OpenC2 specification.   
+                Params: Hostname    
+         - Misinform: Setup of decoy services on a specific host. Green agents do not access these services, so any access is a clear example of red activity.   
+					 Params: Hostname    
+					 Ouptut: An alert if the red agent accesses the new service
+         - Remove: Attempting to remove red from a host by destroying malicious processes, files and services. This action attempts to stop all processes identified as malicious by the monitor action. Corresponds to action ID 10: Stop in the OpenC2 specification.    
+                    Params: Hostname    
+         - Restore: Restoring a system to a known good state. This has significant consequences for system availability. This action punishes Blue by -1. Corresponds to action ID 23: Restore in the OpenC2 specification. 
+                    Params: Hostname    
+    """
+
 
 @outlines.prompt
 def baseline_system_prompt():
@@ -239,7 +267,7 @@ def low_continuing_care_system_prompt():
     well-thought-out narrative that illustrates a decision-making model that \
     is not singularly bound by the continuity of care for current patients, leading \
     to your final answer with its associated index number. Frame your judgments \
-    on solid medical knowledge and present your findings in an instructive manner.
+    on solid medical knowledge and present your findings in a
     """
 
 
@@ -1149,6 +1177,10 @@ class DefaultITMBaselineSystemPrompt():
     def __call__(self):
         return baseline_system_prompt()
 
+class CAGESystemPrompt():
+    def __call__(self):
+        return cage_system_prompt()
+
 
 class PromptBasedBinaryITMSystemPrompt():
     def __call__(self, target_kdma, target_value):
@@ -1193,6 +1225,16 @@ class PromptBasedBinaryITMSystemPrompt():
             else:
                 return high_utilitarianism_care_system_prompt()
 
+@outlines.prompt
+def cage_scenario_state_description(scenario_state):
+    """
+    {{ scenario_state }}
+    """
+
+
+class CAGEScenarioDescription():
+    def __call__(self, scenario_state):
+        return cage_scenario_state_description(scenario_state)
 
 @outlines.prompt
 def phase2_scenario_state_description(scenario_state):
