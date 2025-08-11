@@ -426,6 +426,17 @@ def scenario_state_description_with_relevant_char_info(scenario_state, character
     """
 
 @outlines.prompt
+def followup_clarify_hostnames_cage(hostnames):
+    """
+    Please clarify which hostname to apply the action to 
+
+    HOSTNAMES:
+    {% for hostname in hostnames %}
+    - {{ hostname }}
+    {% endfor %}
+    """
+
+@outlines.prompt
 def followup_clarify_character(characters):
     """
     Please clarify which character should receive the action.
@@ -438,6 +449,8 @@ def followup_clarify_character(characters):
     {% endif %}
     {% endfor %}
     """
+
+
 
 
 @outlines.prompt
@@ -559,6 +572,20 @@ def action_choice_json_schema(choices_json_str, reasoning_max_length=512):
      "type": "object"}
     '''
 
+
+@outlines.prompt
+def cage_hostname_choice_json_schema(choices_json_str):
+    '''
+    {"$defs": {"HostnameChoice": {"enum": {{ choices_json_str }},
+       "title": "HostnameChoice",
+       "type": "string"}},
+     "properties": {"brief_reasoning": {"title": "Brief Reasoning",
+       "type": "string", "minLength": 1, "maxLength": 512},
+      "hostname_choice": {"$ref": "#/$defs/HostnameChoice"}},
+     "required": ["brief_reasoning", "hostname_choice"],
+     "title": "HostnameSelection",
+     "type": "object"}
+    '''
 
 @outlines.prompt
 def character_choice_json_schema(choices_json_str):
@@ -1228,7 +1255,7 @@ class PromptBasedBinaryITMSystemPrompt():
 @outlines.prompt
 def cage_scenario_state_description(scenario_state):
     """
-    {{ scenario_state }}
+    {{ scenario_state.unstructured }}
     """
 
 

@@ -19,6 +19,9 @@ adm:
 
       enable_caching: true
 
+    action_parameter_completion:
+      _target_: align_system.algorithms.cage_action_parameter_completion_adm_component.CAGEActionParameterCompletionADMComponent
+
   instance:
     steps:
     # Reference the step instances we want to use in order
