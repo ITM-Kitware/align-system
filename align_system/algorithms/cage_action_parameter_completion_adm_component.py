@@ -5,28 +5,14 @@ from rich.highlighter import JSONHighlighter
 
 from align_system.utils import logging
 from align_system.utils import adm_utils
-from align_system.utils import get_swagger_class_enum_values
 from align_system.algorithms.abstracts import ADMComponent
 from align_system.prompt_engineering.outlines_prompts import (
-    action_selection_prompt,
-    scenario_state_description_1,
-    followup_clarify_aid,
-    followup_clarify_character,
-    followup_clarify_treatment,
-    followup_clarify_treatment_from_list,
-    followup_clarify_tag,
-    followup_clarify_hostnames_cage,
-    cage_hostname_choice_json_schema,
-    aid_choice_json_schema,
-    character_choice_json_schema,
-    tag_choice_json_schema,
-    treatment_choice_json_schema,
-    treatment_choice_from_list_json_schema)
+        action_selection_prompt,
+        scenario_state_description_1,
+        followup_clarify_hostnames_cage,
+        cage_hostname_choice_json_schema,
+    )
 from align_system.data_models.dialog import DialogElement
-from align_system.data_models.local_ph1_ta3_enums import (
-    ActionTypeEnum,
-    InjuryLocationEnum,
-    CharacterTagEnum)
 
 log = logging.getLogger(__name__)
 JSON_HIGHLIGHTER = JSONHighlighter()

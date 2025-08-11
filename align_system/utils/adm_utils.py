@@ -7,7 +7,6 @@ from align_system.prompt_engineering.outlines_prompts import (
 )
 from align_system.utils import logging
 
-from CybORG.Shared.Actions import (Sleep, Monitor, Analyse, Misinform, Remove, Restore)
 
 log = logging.getLogger(__name__)
 
@@ -39,14 +38,6 @@ def format_choices(choices, available_actions, scenario_state):
     return choices
 
 
-cage_action_mapping = {
-        Sleep: "Sleep",
-            Monitor: "Monitor",
-            Analyse: "Analyse",
-            Misinform: "Misinform",
-            Remove: "Remove",
-            Restore: "Restore"
-        }
 
 def cage_format_choices( available_actions): #, scenario_state):
     """
@@ -57,11 +48,7 @@ def cage_format_choices( available_actions): #, scenario_state):
     #hostnames = available_actions['hostname'].keys()
     choices = []
     for a in available_actions: #available_actions['action'].keys():
-        choices.append(cage_action_mapping[a.cage_class])
+        choices.append(a.name)
 
     return choices
 
-if __name__ == '__main__':
-    choices = cage_format_choices({"hostname": {'test':True, 'test1':True },
-        "action":{Sleep:True}})
-    print(choices)

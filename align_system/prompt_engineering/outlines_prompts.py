@@ -267,7 +267,7 @@ def low_continuing_care_system_prompt():
     well-thought-out narrative that illustrates a decision-making model that \
     is not singularly bound by the continuity of care for current patients, leading \
     to your final answer with its associated index number. Frame your judgments \
-    on solid medical knowledge and present your findings in a
+    on solid medical knowledge and present your findings in an instructive manner.
     """
 
 
@@ -449,8 +449,6 @@ def followup_clarify_character(characters):
     {% endif %}
     {% endfor %}
     """
-
-
 
 
 @outlines.prompt
