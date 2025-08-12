@@ -24,7 +24,7 @@ from align_system.prompt_engineering.outlines_prompts import (
 )
 
 
-def bert_similarity_selection(candidates, texts_to_compare, reference_text, n_examples, score_adjustments=None):
+def bert_similarity_selection(candidates, texts_to_compare, reference_text, n_examples, score_adjustments=None, least_similar_examples=False):
     """Common BERT similarity selection logic for all strategies.
     
     Args:
@@ -33,6 +33,8 @@ def bert_similarity_selection(candidates, texts_to_compare, reference_text, n_ex
         reference_text: Reference text to compare against
         n_examples: Number of examples to select
         score_adjustments: Optional list of score adjustments (same length as candidates)
+        least_similar_examples: If True, selects least similar examples to approximate domain shift
+                               between train and eval on train data only
     
     Returns:
         List of selected candidates with 'similarity_score' field added
@@ -43,7 +45,13 @@ def bert_similarity_selection(candidates, texts_to_compare, reference_text, n_ex
         for i, adjustment in enumerate(score_adjustments):
             scores[i] += adjustment
     
-    _, indices = torch.topk(scores, n_examples, largest=True)
+    # Select examples: largest=True for most similar, largest=False for least similar
+    _, indices = torch.topk(scores, n_examples, largest=(not least_similar_examples))
+    
+    # If using least_similar_examples, reverse indices to maintain most-similar-first order
+    # within the selected examples
+    if least_similar_examples:
+        indices = reversed(indices)
     
     selected_candidates = [
         {**candidates[i].copy(), 'similarity_score': float(scores[i])}
@@ -63,7 +71,7 @@ def select_random_strategy(possible_examples, n_examples, **kwargs):
     return selected_with_scores
 
 
-def select_scenario_bert_similarity_strategy(possible_examples, n_examples, scenario_to_match, **_):
+def select_scenario_bert_similarity_strategy(possible_examples, n_examples, scenario_to_match, least_similar_examples=False, **kwargs):
     """Scenario-based BERT similarity selection strategy"""
     final_candidates = list({ex['scenario_description']: ex for ex in possible_examples}.values())
     possible_scenarios = [icl_sample["scenario_description"] for icl_sample in final_candidates]
@@ -72,11 +80,12 @@ def select_scenario_bert_similarity_strategy(possible_examples, n_examples, scen
         final_candidates, 
         possible_scenarios, 
         scenario_to_match, 
-        n_examples
+        n_examples,
+        least_similar_examples=least_similar_examples
     )
 
 
-def select_prompt_bert_similarity_strategy(possible_examples, n_examples, prompt_to_match, **_):
+def select_prompt_bert_similarity_strategy(possible_examples, n_examples, prompt_to_match, least_similar_examples=False, **kwargs):
     """Prompt-based BERT similarity selection strategy"""
     final_candidates = list({ex['prompt']: ex for ex in possible_examples}.values())
     possible_prompts = [icl_sample["prompt"] for icl_sample in final_candidates]
@@ -85,16 +94,19 @@ def select_prompt_bert_similarity_strategy(possible_examples, n_examples, prompt
         final_candidates,
         possible_prompts,
         prompt_to_match,
-        n_examples
+        n_examples,
+        least_similar_examples=least_similar_examples
     )
 
 
-def select_matching_actions_strategy(possible_examples, n_examples, prompt_to_match, actions, **_):
+def select_matching_actions_strategy(possible_examples, n_examples, prompt_to_match, actions, least_similar_examples=False, **kwargs):
     """Action-matching with BERT similarity selection strategy"""
     action_types = set([action.action_type for action in actions])
     possible_prompts = [icl_sample["prompt"] for icl_sample in possible_examples]
     possible_actions = [set([action.action_type for action in icl_sample['actions']]) for icl_sample in possible_examples]
     
+    # Boost similarity score for examples that contain all the same action types as current scenario
+    # Adding +1 prioritizes examples with matching action types over purely text-based similarity
     score_adjustments = [
         1 if action_types.issubset(actions_set) else 0 
         for actions_set in possible_actions
@@ -105,16 +117,19 @@ def select_matching_actions_strategy(possible_examples, n_examples, prompt_to_ma
         possible_prompts,
         prompt_to_match,
         n_examples,
-        score_adjustments
+        score_adjustments,
+        least_similar_examples=least_similar_examples
     )
 
 
-def select_matching_characters_strategy(possible_examples, n_examples, prompt_to_match, actions, **_):
+def select_matching_characters_strategy(possible_examples, n_examples, prompt_to_match, actions, least_similar_examples=False, **kwargs):
     """Character-matching with BERT similarity selection strategy"""
     action_chars = set([action.character_id for action in actions])
     possible_prompts = [icl_sample["prompt"] for icl_sample in possible_examples]
     possible_chars = [set([action.character_id for action in icl_sample['actions']]) for icl_sample in possible_examples]
     
+    # Boost similarity score for examples that involve the same characters as current scenario
+    # Adding +1 prioritizes character-matched examples over purely text-based similarity
     score_adjustments = [
         1 if action_chars.issubset(chars_set) else 0
         for chars_set in possible_chars
@@ -125,7 +140,8 @@ def select_matching_characters_strategy(possible_examples, n_examples, prompt_to
         possible_prompts,
         prompt_to_match,
         n_examples,
-        score_adjustments
+        score_adjustments,
+        least_similar_examples=least_similar_examples
     )
 
 
@@ -394,6 +410,7 @@ class IncontextExampleGenerator(object, metaclass=ABCMeta):
 
         # Downselect to n_icl_examples via given method
         icl_strategy = self.incontext_settings["method"]
+        least_similar_examples = self.incontext_settings.get("least_similar_examples", False)
         
         if icl_strategy not in ICL_SELECTION_STRATEGIES:
             raise ValueError(f'"{icl_strategy}" is not a valid incontext method. Available strategies: '
@@ -405,7 +422,8 @@ class IncontextExampleGenerator(object, metaclass=ABCMeta):
             n_examples=n_icl_examples,
             scenario_to_match=scenario_description_to_match,
             prompt_to_match=prompt_to_match,
-            actions=actions
+            actions=actions,
+            least_similar_examples=least_similar_examples
         )
         
         if self.incontext_settings.get("most_similar_first", True):
