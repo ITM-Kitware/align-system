@@ -38,4 +38,4 @@ save_last_unstructured_state_per_scenario: true
 
 hydra:
   run:
-    dir: 'phase2_july_eval_live/baseline/${now:%Y-%m-%d__%H-%M-%S}'
+    dir: 'phase2_july_rq2_eval_live/baseline/${now:%Y-%m-%d__%H-%M-%S}'
