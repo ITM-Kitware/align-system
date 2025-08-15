@@ -12,7 +12,7 @@ url = "https://download.pytorch.org/whl/cu118"
 priority = "supplemental"
 
 [tool.poetry.dependencies]
-python = ">=3.9,<3.13"
+python = ">=3.10,<3.13"
 torch = { version = "^2.0.1", source = "pytorch" }
 transformers = "^4.49.0"
 llama-index = "^0.8.21"
@@ -37,6 +37,10 @@ ubelt = "1.3.6"
 
 [tool.poetry.scripts]
 run_align_system = 'align_system.cli.run_align_system:main'
+
+
+[tool.poetry.group.cage.dependencies]
+cyborg = {path = "../cage-challenge-1/CybORG", develop = true}
 
 [build-system]
 requires = ["poetry-core"]

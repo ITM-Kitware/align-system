@@ -48,6 +48,15 @@ class ITMFormatChoicesADMComponent(ADMComponent):
 
         return choices
 
+class CAGEITMFormatChoicesADMComponent(ADMComponent):
+    def run_returns(self):
+        return ('choices')
+
+    def run(self, scenario_state, actions):
+        choices = adm_utils.cage_format_choices(actions)
+
+        return choices
+
 
 class JustificationFromReasonings(ADMComponent):
     def run_returns(self):
