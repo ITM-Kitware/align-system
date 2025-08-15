@@ -3581,8 +3581,8 @@ urllib3 = ">=1.15"
 [package.source]
 type = "git"
 url = "https://github.com/NextCenturyCorporation/itm-evaluation-client.git"
-reference = "0.4.0"
-resolved_reference = "1d72de11e614d9422f46f5ad04789470eaed015c"
+reference = "0.5.0"
+resolved_reference = "eae104809fe492eb2c2750329572a5ee0d4587d9"
 
 [[package]]
 name = "sympy"
@@ -4253,4 +4253,4 @@ test = ["big-O", "importlib-resources ; python_version < \"3.9\"", "jaraco.funct
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.9,<3.13"
-content-hash = "63a25a10bd84521e3c6fb814fc94800aa0fe656ac93c7f70851e5c6732a3c58d"
+content-hash = "5a469023bf886c3ba9aea5ae6e2594090465413a6395da2eabfb7550870c0c30"
