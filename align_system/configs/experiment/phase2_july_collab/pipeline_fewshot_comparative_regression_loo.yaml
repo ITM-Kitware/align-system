@@ -24,7 +24,7 @@ adm:
             personal_safety: /data/shared/samba/phase2_icl/July2025-PS-train_20250715.json
             search: /data/shared/samba/phase2_icl/July2025-SS-train_20250715.json
     comparative_regression:
-      enable_caching: true  
+      enable_caching: true
 
 apply_action_filtering: false
 force_determinism: true
