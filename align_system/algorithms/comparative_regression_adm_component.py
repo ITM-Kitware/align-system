@@ -14,6 +14,20 @@ log = logging.getLogger(__name__)
 JSON_HIGHLIGHTER = JSONHighlighter()
 
 
+def _merge_outputs_dict(prior_attr_dict_output, new_attr_dict_output):
+    if prior_attr_dict_output is None:
+        output_dict = {}
+    else:
+        output_dict = copy.deepcopy(prior_attr_dict_output)
+
+    for choice, attr_pred in new_attr_dict_output.items():
+        for attr, pred in attr_pred.items():
+            output_dict.setdefault(choice, {})
+            output_dict[choice].setdefault(attr, []).extend(pred)
+
+    return output_dict
+
+
 class ComparativeRegressionADMComponent(ADMComponent):
     def __init__(self,
                  structured_inference_engine,
@@ -25,7 +39,8 @@ class ComparativeRegressionADMComponent(ADMComponent):
                  num_samples=1,
                  enum_scores=False,
                  target_attribute_names_override=None,
-                 enable_caching=False):
+                 enable_caching=False,
+                 reverse_choice_ordering=False):
         self.structured_inference_engine = structured_inference_engine
         self.scenario_description_template = scenario_description_template
         self.prompt_template = prompt_template
@@ -44,6 +59,8 @@ class ComparativeRegressionADMComponent(ADMComponent):
 
         self.enable_caching = enable_caching
 
+        self.reverse_choice_ordering = reverse_choice_ordering
+
     def run_returns(self):
         return ('attribute_prediction_reasonings',
                 'attribute_prediction_scores',
@@ -53,7 +70,13 @@ class ComparativeRegressionADMComponent(ADMComponent):
             scenario_state,
             choices,
             icl_dialog_elements=[],
-            alignment_target=None):
+            alignment_target=None,
+            attribute_prediction_reasonings=None,
+            attribute_prediction_scores=None):
+
+        if self.reverse_choice_ordering:
+            choices = list(reversed(choices))
+
         if alignment_target is None:
             target_attribute_names = []
         else:
@@ -94,13 +117,22 @@ class ComparativeRegressionADMComponent(ADMComponent):
             if cached_output is not None:
                 log.info("Cache hit for `comparative_regression_adm_component`"
                          " returning cached output")
-                return cached_output
+
+                cached_attribute_prediction_reasonings, cached_attribute_prediction_scores, cached_attribute_dialogs = cached_output
+
+                out_attr_prediction_scores = _merge_outputs_dict(
+                    attribute_prediction_scores, cached_attribute_prediction_scores)
+
+                out_attr_prediction_reasonings = _merge_outputs_dict(
+                    attribute_prediction_reasonings, cached_attribute_prediction_reasonings)
+
+                return out_attr_prediction_reasonings, out_attr_prediction_scores, cached_attribute_dialogs
             else:
                 log.info("Cache miss for `comparative_regression_adm_component` ..")
 
-        attribute_dialogs = {}
-        attribute_prediction_scores = {}
-        attribute_prediction_reasonings = {}
+        out_attr_dialogs = {}
+        out_attr_prediction_scores = {}
+        out_attr_prediction_reasonings = {}
         for attribute in target_attributes:
             scenario_description = call_with_coerced_args(
                 self.scenario_description_template,
@@ -158,28 +190,36 @@ class ComparativeRegressionADMComponent(ADMComponent):
                 log.info(response, extra={"highlighter": JSON_HIGHLIGHTER})
 
                 for choice in choices:
-                    attribute_prediction_scores.setdefault(choice, {})
-                    attribute_prediction_scores[choice].setdefault(
+                    out_attr_prediction_scores.setdefault(choice, {})
+                    out_attr_prediction_scores[choice].setdefault(
                         attribute.kdma, []).append(response[choice]['score'] / attribute.factor)
 
-                    attribute_prediction_reasonings.setdefault(choice, {})
+                    out_attr_prediction_reasonings.setdefault(choice, {})
                     # Choice level reasoning
                     try:
-                        attribute_prediction_reasonings[choice].setdefault(
+                        out_attr_prediction_reasonings[choice].setdefault(
                             attribute.kdma, []).append(response[choice]['reasoning'])
                     # Probe level reasoning
                     except KeyError:
-                        attribute_prediction_reasonings[choice].setdefault(
+                        out_attr_prediction_reasonings[choice].setdefault(
                             attribute.kdma, []).append(response['reasoning'])
 
-            attribute_dialogs[attribute.kdma] = dialog
+            out_attr_dialogs[attribute.kdma] = dialog
 
-        outputs = (attribute_prediction_reasonings, attribute_prediction_scores, attribute_dialogs)
+        outputs_to_cache = (out_attr_prediction_reasonings, out_attr_prediction_scores, out_attr_dialogs)
 
         if self.enable_caching:
-            cacher.save(outputs)
+            cacher.save(outputs_to_cache)
 
-        return outputs
+        if attribute_prediction_scores is not None:
+            out_attr_prediction_scores = _merge_outputs_dict(
+                attribute_prediction_scores, out_attr_prediction_scores)
+
+        if attribute_prediction_reasonings is not None:
+            out_attr_prediction_reasonings = _merge_outputs_dict(
+                attribute_prediction_reasonings, out_attr_prediction_reasonings)
+
+        return (out_attr_prediction_reasonings, out_attr_prediction_scores, out_attr_dialogs)
 
     def cache_repr(self):
         '''
