@@ -23,12 +23,6 @@ attribute_definitions:
   SALT: ${adm.salt}
   BCD_SIEVE: ${adm.bcd}
 
-#step_definitions:
-  #icl:
-  #  scenario_description_template: ${ref:adm.scenario_description_template}
-  #  attributes: ${adm.attribute_definitions}
-  #  prompt_template: ${ref:adm.prompt_template}
-
 instance:
   _target_: align_system.algorithms.pipeline_adm.PipelineADM
 
