@@ -22,12 +22,11 @@ from align_system.prompt_engineering.outlines_prompts import (
     comparative_regression_prompt,
     comparative_regression_json_schema
 )
-from align_system.prompt_engineering.tagging_prompts import tagging_scenario_state_description
 
 
 def bert_similarity_selection(candidates, texts_to_compare, reference_text, n_examples, score_adjustments=None, least_similar_examples=False):
     """Common BERT similarity selection logic for all strategies.
-    
+
     Args:
         candidates: List of candidate examples
         texts_to_compare: List of texts to compare against reference
@@ -36,29 +35,29 @@ def bert_similarity_selection(candidates, texts_to_compare, reference_text, n_ex
         score_adjustments: Optional list of score adjustments (same length as candidates)
         least_similar_examples: If True, selects least similar examples to approximate domain shift
                                between train and eval on train data only
-    
+
     Returns:
         List of selected candidates with 'similarity_score' field added
     """
     _, _, scores = bert_score([reference_text] * len(texts_to_compare), texts_to_compare, lang="en")
-    
+
     if score_adjustments is not None:
         for i, adjustment in enumerate(score_adjustments):
             scores[i] += adjustment
-    
+
     # Select examples: largest=True for most similar, largest=False for least similar
     _, indices = torch.topk(scores, n_examples, largest=(not least_similar_examples))
-    
+
     # If using least_similar_examples, reverse indices to maintain most-similar-first order
     # within the selected examples
     if least_similar_examples:
         indices = reversed(indices)
-    
+
     selected_candidates = [
         {**candidates[i].copy(), 'similarity_score': float(scores[i])}
         for i in indices
     ]
-    
+
     return selected_candidates
 
 
@@ -76,11 +75,11 @@ def select_scenario_bert_similarity_strategy(possible_examples, n_examples, scen
     """Scenario-based BERT similarity selection strategy"""
     final_candidates = list({ex['scenario_description']: ex for ex in possible_examples}.values())
     possible_scenarios = [icl_sample["scenario_description"] for icl_sample in final_candidates]
-    
+
     return bert_similarity_selection(
-        final_candidates, 
-        possible_scenarios, 
-        scenario_to_match, 
+        final_candidates,
+        possible_scenarios,
+        scenario_to_match,
         n_examples,
         least_similar_examples=least_similar_examples
     )
@@ -90,7 +89,7 @@ def select_prompt_bert_similarity_strategy(possible_examples, n_examples, prompt
     """Prompt-based BERT similarity selection strategy"""
     final_candidates = list({ex['prompt']: ex for ex in possible_examples}.values())
     possible_prompts = [icl_sample["prompt"] for icl_sample in final_candidates]
-    
+
     return bert_similarity_selection(
         final_candidates,
         possible_prompts,
@@ -105,14 +104,14 @@ def select_matching_actions_strategy(possible_examples, n_examples, prompt_to_ma
     action_types = set([action.action_type for action in actions])
     possible_prompts = [icl_sample["prompt"] for icl_sample in possible_examples]
     possible_actions = [set([action.action_type for action in icl_sample['actions']]) for icl_sample in possible_examples]
-    
+
     # Boost similarity score for examples that contain all the same action types as current scenario
     # Adding +1 prioritizes examples with matching action types over purely text-based similarity
     score_adjustments = [
-        1 if action_types.issubset(actions_set) else 0 
+        1 if action_types.issubset(actions_set) else 0
         for actions_set in possible_actions
     ]
-    
+
     return bert_similarity_selection(
         possible_examples,
         possible_prompts,
@@ -128,14 +127,14 @@ def select_matching_characters_strategy(possible_examples, n_examples, prompt_to
     action_chars = set([action.character_id for action in actions])
     possible_prompts = [icl_sample["prompt"] for icl_sample in possible_examples]
     possible_chars = [set([action.character_id for action in icl_sample['actions']]) for icl_sample in possible_examples]
-    
+
     # Boost similarity score for examples that involve the same characters as current scenario
     # Adding +1 prioritizes character-matched examples over purely text-based similarity
     score_adjustments = [
         1 if action_chars.issubset(chars_set) else 0
         for chars_set in possible_chars
     ]
-    
+
     return bert_similarity_selection(
         possible_examples,
         possible_prompts,
@@ -165,6 +164,7 @@ class IncontextExampleGenerator(object, metaclass=ABCMeta):
         incontext_settings,
         target_kdmas,
         state_hydration_domain=None,
+        scenario_description_template=None,
     ):
         self.incontext_settings = incontext_settings
         self.target_kdmas = []
@@ -186,6 +186,8 @@ class IncontextExampleGenerator(object, metaclass=ABCMeta):
             self.state_hydration_fn = minimal_hydrate_scenario_state
         else:
             raise RuntimeError(f"Unknown state_hydration_domain: {state_hydration_domain}")
+
+        self.scenario_description_template = scenario_description_template
 
         self.set_icl_datasets()
 
@@ -438,11 +440,11 @@ class IncontextExampleGenerator(object, metaclass=ABCMeta):
         # Downselect to n_icl_examples via given method
         icl_strategy = self.incontext_settings["method"]
         least_similar_examples = self.incontext_settings.get("least_similar_examples", False)
-        
+
         if icl_strategy not in ICL_SELECTION_STRATEGIES:
             raise ValueError(f'"{icl_strategy}" is not a valid incontext method. Available strategies: '
                            f'{", ".join(ICL_SELECTION_STRATEGIES.keys())}')
-        
+
         strategy_fn = ICL_SELECTION_STRATEGIES[icl_strategy]
         selected_examples = strategy_fn(
             possible_examples=possible_icl_examples,
@@ -452,7 +454,7 @@ class IncontextExampleGenerator(object, metaclass=ABCMeta):
             actions=actions,
             least_similar_examples=least_similar_examples
         )
-        
+
         if self.incontext_settings.get("most_similar_first", True):
             return selected_examples
         else:
@@ -472,6 +474,9 @@ class BaselineIncontextExampleGenerator(IncontextExampleGenerator):
         icl_datasets = {}
         incontext_data = self._read_icl_dataset_files()
 
+        if self.scenario_description_template is None:
+            self.scenario_description_template = scenario_state_description_1
+
         # Add each target to icl_datasets
         for target_kdma in self.target_kdmas:
             sys_kdma_name = target_kdma['kdma']
@@ -482,7 +487,7 @@ class BaselineIncontextExampleGenerator(IncontextExampleGenerator):
             for example in kdma_incontext_data:
 
                 # Get scenario and prompt
-                icl_scenario_description = tagging_scenario_state_description(example['state'])
+                icl_scenario_description = self.scenario_description_template(example['state'])
                 icl_prompt = action_selection_prompt(icl_scenario_description, example['choices'])
 
                 # Get example response
