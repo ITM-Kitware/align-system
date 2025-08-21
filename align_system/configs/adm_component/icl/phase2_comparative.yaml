@@ -15,6 +15,7 @@ icl_generator_partial:
     normalization: null
     sort_actions: true
     most_similar_first: false
+    choice_order: fixed
     datasets:
       medical: /data/shared/samba/phase2_icl/June2025-MU-train_20250602.json
       affiliation: /data/shared/samba/phase2_icl/June2025-AF-train_20250523.json
