@@ -20,7 +20,8 @@ from align_system.prompt_engineering.outlines_prompts import (
     relevance_classification_json_schema,
     phase2_scenario_state_description,
     comparative_regression_prompt,
-    comparative_regression_json_schema
+    comparative_regression_json_schema,
+    regress_lm_prompt
 )
 
 
@@ -831,3 +832,44 @@ class Phase2ComparativeRegressionIncontextExampleGenerator(IncontextExampleGener
 
         cot_reasoning = f"{max_choice} demonstates {adjective} more {target_kdma['name']} than {min_choice}."
         return cot_reasoning
+
+
+class RegressLMIncontextExampleGenerator(IncontextExampleGenerator):
+    def set_icl_datasets(self):
+        icl_datasets = {}
+        incontext_data = self._read_icl_dataset_files()
+
+        # Add each target to icl_datasets
+        for target_kdma in self.target_kdmas:
+            sys_kdma_name = target_kdma['kdma']
+            icl_datasets[sys_kdma_name] = []
+            kdma_incontext_data = incontext_data[sys_kdma_name]
+
+            # Add each examples to icl_datasets
+            for example in kdma_incontext_data:
+
+                # Get example response
+                for action, choice, kdma_value in zip(example['actions'], example['choices'], example["kdma_values"]):
+                    # Only include choice if there is a ground truth KDMA value available
+                    if kdma_value is None:
+                        continue
+                    # Groundtruth KDMA values are 0-1, but ADM may predict on a different scale
+                    scaled_kdma_value = int(kdma_value * target_kdma["factor"])
+                    icl_response = scaled_kdma_value
+
+                    # Get example prompt
+                    icl_scenario_description = phase2_scenario_state_description(example['state'])
+                    icl_prompt = regress_lm_prompt(icl_scenario_description,
+                                                   choice,
+                                                   target_kdma['name'])
+
+                    # Add example
+                    icl_datasets[sys_kdma_name].append({
+                        "state": example["state"],
+                        "scenario_description": icl_scenario_description,
+                        "prompt": icl_prompt,
+                        "response": icl_response,
+                        "actions": example['actions']
+                        })
+
+        self.icl_datasets = icl_datasets

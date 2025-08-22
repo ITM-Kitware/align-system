@@ -1433,3 +1433,27 @@ class ProbeMostRelevantSchema():
     def __call__(self, target_attribute_names):
         return probe_most_relevant_json_schema(
                 target_attribute_names)
+
+
+@outlines.prompt
+def regress_lm_prompt(situation, choice, kdma):
+    """
+    Scenario:
+    {{ situation }}
+
+    Response:
+    {{ choice }}
+
+    Provide a score that indicates the degree of {{ kdma }} \
+    associated with the response.
+    """
+
+class RegressLMPrompt():
+    def __call__(self,
+                 scenario_description,
+                 choice,
+                 attribute):
+        return regress_lm_prompt(
+            scenario_description,
+            choice,
+            attribute)
