@@ -1515,7 +1515,7 @@ def variables_extraction_stage_prompt(situation, choices):
     {% endraw %}
     """
 
-class VariablesExtractionPrompt():
+class VariablesPrompt():
     def __call__(self,
                  scenario_description,
                  choices):
@@ -1540,6 +1540,115 @@ def variables_extraction_output_schema():
       }
       return json.dumps(schema)
 
-class VariablesExtractionOutputSchema():
+class VariablesOutputSchema():
     def __call__(self):
         return variables_extraction_output_schema()
+
+@outlines.prompt
+def extraction_stage_prompt(situation, choices, variables):
+    """
+    You are an expert in information extraction and summarization. Your task is to analyze the given text and extract all key pieces of information that might be valuable while ensuring that every extracted sentence explicitly includes the subject from the provided variables instead of using pronouns.
+
+    # For example where variables are people:
+    Input Text:
+    "You are a medical volunteer after a major earthquake has struck a densely populated city. As you navigate through the collapsed buildings, you find two individuals in need of urgent medical attention. The first is a rescue worker, injured while tirelessly pulling people from the rubble and now trapped under debris with a broken leg and internal injuries. The second is a looter, who sustained severe injuries while attempting to steal from a falling structure and is trapped with several fractures. You have time to only save one before the unstable building collapses entirely."
+
+    Variables:
+    Patient 1: The first is a rescue worker
+    Patient 2: The second is a looter
+
+    Correct Extracted Information:
+    {% raw %}
+    ```json
+    {{
+        "information":[
+        "The rescue worker is injured while pulling people from the rubble.",
+        "The rescue worker is trapped under debris.",
+        "The rescue worker has a broken leg and internal injuries.",
+        "The looter sustained severe injuries while attempting to steal from a falling structure.",
+        "The looter is trapped with several fractures.",
+        "A major earthquake has struck a densely populated city.",
+        "Collapsed buildings are present.",
+        "Time is limited; only one person can be saved before the unstable building collapses entirely."
+    ]
+    }}
+    ```
+    {% endraw %}
+
+    The information extracted in this way includes every patient's information.
+
+    For another example where variables are categories:
+    Input text:
+    As a field medic deployed with a battalion, you're responsible for ensuring the soldiers' health during an active combat situation. Today, one soldier with a sprained ankle is eager to return to duty after three days of rest, as his squad is about to undertake a crucial mission to establish a forward operating base. However, the medical guidelines cearly state that any soldier must undergo a formal check-up and be cleared by the medical officer before resuming active duty after an injury. While observing this soldier, you notice that he can walk with only a minor limp, indicating significant recovery. Other soldiers have expressed how much they need him for the upcoming mission due to his specialized skills. Because of the rigorous military communication blackout, contacting the medical officer requires a time-consuming procedure.
+    Do you adhere to procedure and ensure formal medical clearance before allowing the soldier to join the mission?
+
+    Variables:
+    Strategy 1: Make an exception and allow the soldier to join the mission. Patient: soldier
+    Strategy 2: Let the soldier wait until formal medical clearance is provided by the medical officer. Patient: soldier
+
+    Correct Extracted Information:
+    {% raw %}
+    ```json
+    {{
+        "information": [
+        "The soldier has a sprained ankle.",
+        "The soldier is eager to return to duty after three days of rest.",
+        "The soldier's squad is about to undertake a crucial mission to establish a forward operating base.",
+        "Medical guidelines state that any soldier must undergo a formal check-up and be cleared by the medical officer before resuming active duty after an injury.",
+        "The soldier can walk with only a minor limp, indicating significant recovery.",
+        "Other soldiers have expressed how much they need the soldier for the upcoming mission due to his specialized skills.",
+        "Contacting the medical officer requires a time-consuming procedure due to the rigorous military communication blackout."
+    ]
+    }}
+    ```
+    {% endraw %}
+
+    The information extracted in this way includes the patients, therapists, and treatment conditions in the strategy.
+
+    Now, apply the same extraction process to the text provided below and output only the extracted information. Ensure that every sentence includes the certain subject from the variables when applicable. Please return with a JSON format.
+
+    Given task:
+    {{ situation }}
+
+    Given Variable:
+    {{ variables }}
+    Output format:
+    {% raw %}
+    ```json
+    {{
+        "information": [<Your extracted information with a specific subject rather than a description like "several patients" or "two young patients">]
+    }}
+    ```
+    {% endraw %}
+    """
+
+class ExtractionPrompt():
+    def __call__(self,
+                 scenario_description,
+                 choices,
+                 variables):
+        return extraction_stage_prompt(
+            situation=scenario_description,
+            choices={c: None for c in choices},
+            variables=variables
+        )
+
+def extraction_output_schema():
+    """JSON schema for extraction response"""
+    schema = {
+        "type": "object",
+        "properties": {
+            "information": {
+                "type": "array",
+                "items": {"type": "string"},
+                "description": "List of extracted information with specific subjects"
+            }
+        },
+        "required": ["information"],
+        "additionalProperties": False
+    }
+    return json.dumps(schema)
+
+class ExtractionOutputSchema():
+    def __call__(self):
+        return extraction_output_schema()

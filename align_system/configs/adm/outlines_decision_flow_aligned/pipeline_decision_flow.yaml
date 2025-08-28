@@ -13,10 +13,19 @@ defaults:
   - /inference_engine@structured_inference_engine: outlines_structured_greedy
   # ADM components to be used in "steps"
   - /adm_component/misc@step_definitions.format_choices: itm_format_choices
-  - /adm_component/decision_flow@step_definitions.decision_flow: variable_extraction
+  - /adm_component/decision_flow@step_definitions.variables: variables
+  - /adm_component/decision_flow@step_definitions.extraction: extraction
+  # - /adm_component/decision_flow@step_definitions.decision_flow: attribute
+  # - /adm_component/decision_flow@step_definitions.decision_flow: filter
+  # - /adm_component/decision_flow@step_definitions.decision_flow: objective
+  # - /adm_component/decision_flow@step_definitions.decision_flow: express
+  # Prompt templates to be used in Variables Extraction Phase
   - /template/scenario_description@scenario_description_template: phase2
-  - /template/prompt/decision_flow@prompt_template: variable_extraction
-  - /template/output_schema/decision_flow@variable_extraction_output_schema: variable_extraction
+  - /template/prompt/decision_flow@prompt_template: variables
+  - /template/output_schema/decision_flow@variables_output_schema: variables
+  # Prompt templates to be used in Extraction Phase
+  - /template/prompt/decision_flow@extraction_prompt_template: extraction
+  - /template/output_schema/decision_flow@extraction_output_schema: extraction
   # Use definitions in this file to override defaults defined above
   - _self_
 
@@ -28,10 +37,19 @@ attribute_definitions:
   personal_safety: ${adm.ps}
 
 step_definitions:
-  decision_flow:
+  variables:
     scenario_description_template: ${ref:adm.scenario_description_template}
     prompt_template: ${ref:adm.prompt_template}
-    output_schema_template: ${ref:adm.variable_extraction_output_schema}
+    output_schema_template: ${ref:adm.variables_output_schema}
+  extraction:
+    scenario_description_template: ${ref:adm.scenario_description_template}
+    prompt_template: ${ref:adm.extraction_prompt_template}
+    output_schema_template: ${ref:adm.extraction_output_schema}
+  # attributes:
+  # filter:
+  # objective:
+  # express:
+
 
 instance:
   _target_: align_system.algorithms.pipeline_adm.PipelineADM
@@ -39,4 +57,9 @@ instance:
   steps:
     # Reference the step instances we want to use in order
     - ${ref:adm.step_definitions.format_choices}
-    - ${ref:adm.step_definitions.decision_flow}
+    - ${ref:adm.step_definitions.variables}
+    - ${ref:adm.step_definitions.extraction}
+    # - ${ref:adm.step_definitions.attributes}
+    # - ${ref:adm.step_definitions.filter}
+    # - ${ref:adm.step_definitions.objective}
+    # - ${ref:adm.step_definitions.express}

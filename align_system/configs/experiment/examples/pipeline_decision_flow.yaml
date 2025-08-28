@@ -5,7 +5,11 @@ defaults:
 
 adm:
   step_definitions:
-    decision_flow:
+    variables:
+      num_samples: 1
+      system_prompt_template:
+        _target_: align_system.prompt_engineering.outlines_prompts.DefaultITMBaselineSystemPrompt
+    extraction:
       num_samples: 1
       system_prompt_template:
         _target_: align_system.prompt_engineering.outlines_prompts.DefaultITMBaselineSystemPrompt
@@ -13,4 +17,5 @@ adm:
   instance:
     steps:
       - ${ref:adm.step_definitions.format_choices}
-      - ${ref:adm.step_definitions.decision_flow}
+      - ${ref:adm.step_definitions.variables}
+      - ${ref:adm.step_definitions.extraction}
