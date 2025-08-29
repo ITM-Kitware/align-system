@@ -70,8 +70,7 @@ class ActionParameterCompletionADMComponent(ADMComponent):
                 actions)
 
             dialog = [DialogElement(role='user',
-                                    content=prompt,
-                                    tags=['parameter_completion'])]
+                                    content=prompt)]
 
         # If last dialog message is an 'assistant' message, remove it
         # as we'll generate one for each follow-up needed.  (Dialogs
@@ -206,11 +205,9 @@ class ActionParameterCompletionADMComponent(ADMComponent):
             dialog.append(DialogElement(role='assistant',
                                         content='{}  I would choose to {}'.format(
                                             action_to_take.justification,
-                                            action_to_take.unstructured),
-                                        tags=['parameter_completion']))
+                                            action_to_take.unstructured)))
             dialog.append(DialogElement(role='user',
-                                        content=followup_clarify_character(characters),
-                                        tags=['parameter_completion']))
+                                        content=followup_clarify_character(characters)))
             dialog_text = self.structured_inference_engine.dialog_to_prompt(dialog)
 
             character_names = [c.name for c in characters]
@@ -274,13 +271,11 @@ class ActionParameterCompletionADMComponent(ADMComponent):
             dialog.append(DialogElement(role='assistant',
                                         content='{}  {} should receive the action.'.format(
                                             selected_character['brief_reasoning'],
-                                            selected_character['character_choice']),
-                                        tags=['parameter_completion']))
+                                            selected_character['character_choice'])))
             dialog.append(DialogElement(role='user',
                                         content=followup_clarify_treatment(
                                             scenario_state.characters[selected_character_idx],
-                                            available_supplies),
-                                        tags=['parameter_completion']))
+                                            available_supplies)))
 
             dialog_text = self.structured_inference_engine.dialog_to_prompt(dialog)
 
@@ -339,14 +334,12 @@ class ActionParameterCompletionADMComponent(ADMComponent):
             dialog.append(DialogElement(role='assistant',
                                         content='{}  {} should receive the action.'.format(
                                             selected_character['brief_reasoning'],
-                                            selected_character['character_choice']),
-                                        tags=['parameter_completion']))
+                                            selected_character['character_choice'])))
             dialog.append(DialogElement(role='user',
                                         content=followup_clarify_treatment_from_list(
                                             scenario_state.characters[selected_character_idx],
                                             available_supplies,
-                                            possible_treatments),
-                                        tags=['parameter_completion']))
+                                            possible_treatments)))
 
             dialog_text = self.structured_inference_engine.dialog_to_prompt(dialog)
 
@@ -385,15 +378,13 @@ class ActionParameterCompletionADMComponent(ADMComponent):
         dialog.append(DialogElement(role='assistant',
                                     content='{}  {} should receive the action.'.format(
                                         selected_character['brief_reasoning'],
-                                        selected_character['character_choice']),
-                                    tags=['parameter_completion']))
+                                        selected_character['character_choice'])))
 
         selected_character_dict =\
             scenario_state.characters[selected_character_idx].to_dict()
         dialog.append(DialogElement(role='user',
                                     content=followup_clarify_tag(
-                                        selected_character_dict),
-                                    tags=['parameter_completion']))
+                                        selected_character_dict)))
 
         dialog_text = self.structured_inference_engine.dialog_to_prompt(dialog)
 
@@ -448,13 +439,11 @@ class ActionParameterCompletionADMComponent(ADMComponent):
             dialog.append(DialogElement(role='assistant',
                                         content='{}  {} should receive the action.'.format(
                                             selected_character['brief_reasoning'],
-                                            selected_character['character_choice']),
-                                        tags=['parameter_completion']))
+                                            selected_character['character_choice'])))
             dialog.append(DialogElement(role='user',
                                         content=followup_clarify_aid(
                                             selected_character_dict,
-                                            available_aids),
-                                        tags=['parameter_completion']))
+                                            available_aids)))
 
             dialog_text = self.structured_inference_engine.dialog_to_prompt(dialog)
 
