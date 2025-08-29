@@ -1,4 +1,3 @@
-import argparse
 from uuid import uuid4
 
 import swagger_client
@@ -84,48 +83,6 @@ class TA3CACIActionBasedServiceInterface(Interface):
                 self.session_id, alignment_target.id)
         else:
             return None
-
-    @classmethod
-    def cli_parser(cls, parser=None):
-        if parser is None:
-            parser = argparse.ArgumentParser(
-                description=cls.cli_parser_description())
-
-        parser.add_argument('-u', '--username',
-                            type=str,
-                            default='ALIGN-ADM',
-                            help='ADM Username (provided to TA3 API server, '
-                                 'default: "ALIGN-ADM")')
-        parser.add_argument('-s', '--session-type',
-                            type=str,
-                            default="test",
-                            help='TA3 API Session Type (default: "eval")')
-        parser.add_argument('-e', '--api_endpoint',
-                            default="http://127.0.0.1:8080",
-                            type=str,
-                            help='Restful API endpoint for scenarios / probes '
-                                 '(default: "http://127.0.0.1:8080")')
-        parser.add_argument('--training-session',
-                            action='store_true',
-                            default=False,
-                            help='Return training related information from '
-                                 'API requests')
-        parser.add_argument('-S', '--scenario-id',
-                            dest='scenario_ids',
-                            required=False,
-                            default=[],
-                            nargs='*',
-                            help='Specific scenario to run (multiples allowed)')
-
-        return parser
-
-    @classmethod
-    def cli_parser_description(cls):
-        return "Interface with CACI's TA3 web-based service"
-
-    @classmethod
-    def init_from_parsed_args(cls, parsed_args):
-        return cls(**vars(parsed_args))
 
 
 class TA3CACIActionBasedScenario(ActionBasedScenarioInterface):

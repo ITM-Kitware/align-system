@@ -1,5 +1,3 @@
-import argparse
-
 import requests
 
 from align_system.interfaces.abstracts import (
@@ -39,40 +37,6 @@ class TA1AdeptServiceInterface(Interface):
                 self.api_endpoint,
                 self.session_id,
                 scenario_id, alignment_target_id)
-
-    @classmethod
-    def cli_parser(cls, parser=None):
-        if parser is None:
-            parser = argparse.ArgumentParser(
-                description=cls.cli_parser_description())
-
-        parser.add_argument('-s', '--scenarios',
-                            type=str,
-                            nargs='*',
-                            default=['ADEPT1'],
-                            help="Scenario IDs (default: "
-                                 "'ADEPT1')")
-        parser.add_argument('--alignment-targets',
-                            type=str,
-                            nargs='*',
-                            default=['ADEPT-alignment-target-1'],
-                            help="Alignment target IDs (default: "
-                                 "'kdma-alignment-target-1')")
-        parser.add_argument('-e', '--api_endpoint',
-                            default="http://127.0.0.1:8080",
-                            type=str,
-                            help='Restful API endpoint for scenarios / probes '
-                                 '(default: "http://127.0.0.1:8080")')
-
-        return parser
-
-    @classmethod
-    def cli_parser_description(cls):
-        return "Interface with Adept's TA1 web-based service"
-
-    @classmethod
-    def init_from_parsed_args(cls, parsed_args):
-        return cls(**vars(parsed_args))
 
 
 class TA1AdeptScenario(ScenarioInterfaceWithAlignment):

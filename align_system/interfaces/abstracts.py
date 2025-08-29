@@ -6,21 +6,6 @@ class Interface(ABC):
     def start_scenario(self):
         pass
 
-    @classmethod
-    @abstractmethod
-    def cli_parser(cls, parser=None):
-        pass
-
-    @classmethod
-    @abstractmethod
-    def cli_parser_description(cls):
-        pass
-
-    @classmethod
-    @abstractmethod
-    def init_from_parsed_args(cls, parsed_args):
-        pass
-
 
 class ScenarioInterface(ABC):
     @abstractmethod
