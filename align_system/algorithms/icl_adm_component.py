@@ -89,7 +89,7 @@ class ICLADMComponent(ADMComponent):
 
         icl_dialog_elements = {}
         icl_example_info = {}
-        
+
         for attribute in target_attributes:
             icl_dialog_elements[attribute.kdma] = []
             icl_example_info[attribute.kdma] = []
@@ -136,12 +136,10 @@ class ICLADMComponent(ADMComponent):
 
             for icl_sample in selected_icl_examples:
                 icl_dialog_elements[attribute.kdma].append(DialogElement(role='user',
-                                                         content=icl_sample['prompt'],
-                                                         tags=['icl']))
+                                                         content=icl_sample['prompt']))
                 icl_dialog_elements[attribute.kdma].append(DialogElement(role='assistant',
-                                                         content=str(icl_sample['response']),
-                                                         tags=['icl']))
-                
+                                                         content=str(icl_sample['response'])))
+
                 # Capture ICL example info for choice_info
                 icl_info = {
                     'similarity_score': icl_sample['similarity_score'],
@@ -263,12 +261,10 @@ class PromptBasedICLADMComponent(ADMComponent):
         for pos_icl_sample in pos_selected_icl_examples:
             pos_icl_dialog_elements.append(
                 DialogElement(role='user',
-                              content=pos_icl_sample['prompt'],
-                              tags=['icl']))
+                              content=pos_icl_sample['prompt']))
             pos_icl_dialog_elements.append(
                 DialogElement(role='assistant',
-                              content=str(pos_icl_sample['response']),
-                              tags=['icl']))
+                              content=str(pos_icl_sample['response'])))
 
         neg_selected_icl_examples = neg_icl_gen.select_icl_examples(
             sys_kdma_name=attribute.kdma,
@@ -280,11 +276,9 @@ class PromptBasedICLADMComponent(ADMComponent):
         for neg_icl_sample in neg_selected_icl_examples:
             neg_icl_dialog_elements.append(
                 DialogElement(role='user',
-                              content=neg_icl_sample['prompt'],
-                              tags=['icl']))
+                              content=neg_icl_sample['prompt']))
             neg_icl_dialog_elements.append(
                 DialogElement(role='assistant',
-                              content=str(neg_icl_sample['response']),
-                              tags=['icl']))
+                              content=str(neg_icl_sample['response'])))
 
         return pos_icl_dialog_elements, neg_icl_dialog_elements
