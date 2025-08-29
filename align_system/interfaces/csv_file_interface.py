@@ -1,4 +1,3 @@
-import argparse
 import json
 import pandas as pd
 
@@ -27,9 +26,9 @@ class CSVDatasetInterface(Interface):
                     }
                     sample['choices'] = []
                     samples.append(sample)
-                
+
                 sample['choices'].append({
-                    'text': row['answer'],  
+                    'text': row['answer'],
                     'kdmas': {
                         kdma: row[kdma]
                         for kdma in ['basic_knowledge', 'time_pressure', 'risk_aversion', 'fairness', 'protocol_focus', 'utilitarianism']
@@ -55,16 +54,16 @@ class CSVDatasetInterface(Interface):
             # delete kdmas from choices
             for choice in sample['choices']:
                 del choice['kdmas']
-        
-        
+
+
         self.scenarios = {}
         for input_, label in zip(inputs, labels):
             scenario_id = input_['scenario_id']
-            if not scenario_id in self.scenarios:
+            if scenario_id not in self.scenarios:
                 self.scenarios[scenario_id] = []
             # append tuple
             self.scenarios[scenario_id].append((input_, label))
-            
+
         self.scenario_ids = list(self.scenarios.keys())
         self.scenario_id_iterator = iter(self.scenario_ids)
 
@@ -75,36 +74,15 @@ class CSVDatasetInterface(Interface):
             return None
         return CSVDatasetScenario(self.scenarios[scenario_id])
 
-    @classmethod
-    def cli_parser(cls, parser=None):
-        if parser is None:
-            parser = argparse.ArgumentParser(
-                description=cls.cli_parser_description())
-
-        parser.add_argument('-d', '--dataset-filepath',
-                            type=str,
-                            required=True,
-                            help="File path to input dataset CSV")
-
-        return parser
-
-    @classmethod
-    def cli_parser_description(cls):
-        return "Interface with local CSV data on disk"
-
-    @classmethod
-    def init_from_parsed_args(cls, parsed_args):
-        return cls(**vars(parsed_args))
-
 
 class CSVDatasetScenario(ScenarioInterface):
-    
+
     def __init__(self, list_of_probes):
         self.list_of_probes = list_of_probes
         pass
 
     def get_alignment_target(self):
-        raise NotImplemented
+        raise NotImplementedError
 
     def to_dict(self):
         self.lsit_of_probes
@@ -117,10 +95,10 @@ class CSVDatasetScenario(ScenarioInterface):
 
 
 class CSVDatasetProbe(ProbeInterface):
-    
+
     def __init__(self, probe):
         self.probe = probe
-        
+
     def to_dict(self):
         return self.probe
 
