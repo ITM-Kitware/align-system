@@ -7,7 +7,7 @@ kaleido_instance:
   use_tqdm: False
 
 estimator_fn:
-  _target_: align_system.algorithms.kaleido_adm.SimpleKDMAEstimator
+  _target_: align_system.algorithms.kaleido_adm_component.SimpleKDMAEstimator
 
 kdma_descriptions_map:
   # Re-using descriptions of merit and affiliation from Ph1
