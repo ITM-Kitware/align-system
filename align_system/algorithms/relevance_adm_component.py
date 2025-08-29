@@ -68,9 +68,7 @@ class PredictMostRelevantADMComponent(ADMComponent):
                     {'target_attributes': target_attributes})
 
                 dialog.insert(0, DialogElement(role='system',
-                                                content=system_prompt,
-                                                namespace='.',
-                                                tags=['relevance']))
+                                                content=system_prompt))
 
             # # If we get icl_dialog_elements, include them in the
             # # dialog, maybe a more explicit argument (wether or not to
@@ -86,9 +84,7 @@ class PredictMostRelevantADMComponent(ADMComponent):
                     'attributes': target_attributes})
 
             dialog.append(DialogElement(role='user',
-                                        content=predict_most_relevant_prompt,
-                                        namespace='.',
-                                        tags=['relevance']))
+                                        content=predict_most_relevant_prompt))
 
             relevance_schema = call_with_coerced_args(
                 self.relevance_schema_template,

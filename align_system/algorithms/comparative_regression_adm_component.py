@@ -144,8 +144,7 @@ class ComparativeRegressionADMComponent(ADMComponent):
                     {'target_attribute': attribute})
 
                 dialog.insert(0, DialogElement(role='system',
-                                               content=system_prompt,
-                                               tags=['regression']))
+                                               content=system_prompt))
 
             # If we get icl_dialog_elements, include them in the
             # dialog, maybe a more explicit argument (wether or not to
@@ -163,8 +162,7 @@ class ComparativeRegressionADMComponent(ADMComponent):
                  'attribute': attribute.name})
 
             dialog.append(DialogElement(role='user',
-                                        content=predict_kdma_prompt,
-                                        tags=['regression']))
+                                        content=predict_kdma_prompt))
 
             score_schema = call_with_coerced_args(
                 self.score_schema_template,
