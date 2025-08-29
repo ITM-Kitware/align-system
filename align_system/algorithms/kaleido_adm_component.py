@@ -1,3 +1,5 @@
+from abc import ABC, abstractmethod
+
 from rich.highlighter import JSONHighlighter
 import pandas as pd
 
@@ -7,6 +9,17 @@ from align_system.utils.alignment_utils import attributes_in_alignment_target
 
 log = logging.getLogger(__name__)
 JSON_HIGHLIGHTER = JSONHighlighter()
+
+
+class EstimateKDMAFunction(ABC):
+    @abstractmethod
+    def __call__(self, results_df: pd.DataFrame) -> pd.DataFrame:
+        ...
+
+
+class SimpleKDMAEstimator(EstimateKDMAFunction):
+    def __call__(self, results_df: pd.DataFrame) -> pd.DataFrame:
+        return results_df['either'] * 5 + results_df['supports'] * 10
 
 
 class KaleidoADMComponent(ADMComponent):
