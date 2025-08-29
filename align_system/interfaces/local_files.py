@@ -1,4 +1,3 @@
-import argparse
 import json
 
 from align_system.interfaces.abstracts import (
@@ -24,35 +23,6 @@ class LocalFilesInterface(Interface):
             scenario_data,
             probes_filepaths=self._probes_filepaths,
             alignment_target_filepath=self._alignment_target_filepath)
-
-    @classmethod
-    def cli_parser(cls, parser=None):
-        if parser is None:
-            parser = argparse.ArgumentParser(
-                description=cls.cli_parser_description())
-
-        parser.add_argument('-s', '--scenario-filepath',
-                            type=str,
-                            required=True,
-                            help="File path to input scenario JSON")
-        parser.add_argument('--alignment-target-filepath',
-                            type=str,
-                            help="File path to input alignment target JSON")
-        parser.add_argument('-p', '--probes_filepaths',
-                            type=str,
-                            nargs='*',
-                            default=[],
-                            help="File path to input probe JSON")
-
-        return parser
-
-    @classmethod
-    def cli_parser_description(cls):
-        return "Interface with local scenario / probe JSON data on disk"
-
-    @classmethod
-    def init_from_parsed_args(cls, parsed_args):
-        return cls(**vars(parsed_args))
 
 
 class LocalFilesScenario(ScenarioInterface):
