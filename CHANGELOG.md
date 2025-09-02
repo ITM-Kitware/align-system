@@ -9,6 +9,9 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 * Added more details and examples to the pipeline ADM documentation
 * Added a new Phase 2 medical urgency alignment function (weighted) to reflect program collaboration updates
+* Added option for ICL example choice ordering - fixed, swapped, or random
+* Added option to swap choice ordering for comparative regression pipeline ADM component
+* Added capability to resolve pipeline ADM step output conflicts with a custom function
 
 ## 0.5.9
 
