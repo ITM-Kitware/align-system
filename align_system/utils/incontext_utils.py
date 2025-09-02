@@ -213,6 +213,7 @@ class IncontextExampleGenerator(object, metaclass=ABCMeta):
             {kdma:[{state, actions, choices, kdma_values}, ...], ...}
         '''
         incontext_data = {}
+        choice_order = self.incontext_settings.get('choice_order', 'fixed')
         # For each kdma
         for target_kdma in self.target_kdmas:
             sys_kdma_name = target_kdma['kdma']
@@ -241,7 +242,11 @@ class IncontextExampleGenerator(object, metaclass=ABCMeta):
                         combined = list(zip(actions, labels, reasonings))
                         combined_sorted = sorted(combined, key=lambda x: x[0].unstructured)
                         actions, labels, reasonings = zip(*combined_sorted)
-
+                    # Swap choice order if requested
+                    if choice_order == "swapped" or (choice_order == "random" and random.choice([0, 1])):
+                        combined = list(zip(actions, labels, reasonings))
+                        combined_sorted = sorted(combined, key=lambda x: x[0].unstructured, reverse=True)
+                        actions, labels, reasonings = zip(*combined_sorted)
                     # Get choices
                     choices = adm_utils.format_choices(
                         [a.unstructured for a in actions],
