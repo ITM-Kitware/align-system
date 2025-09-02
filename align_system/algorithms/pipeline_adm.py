@@ -26,11 +26,20 @@ class PipelineADM(ActionBasedADM):
 
             run_output = call_with_coerced_args(step.run, working_output)
 
+            # TODO: Maybe coerce step_returns and run_output both into
+            # iterables so we don't need to two branches here
             if isinstance(step_returns, str):
                 if step_returns in working_output:
-                    log.debug(f"Updating '{step_returns}'")
-
-                working_output[step_returns] = run_output
+                    if (hasattr(step, 'output_conflict_resolver')
+                        and step.output_conflict_resolver is not None):
+                        log.debug(f"Resolving conflict for '{step_returns}'")
+                        working_output[step_returns] = step.output_conflict_resolver(
+                            step_returns, working_output[step_returns], run_output)
+                    else:
+                        log.debug(f"Replacing '{step_returns}'")
+                        working_output[step_returns] = run_output
+                else:
+                    working_output[step_returns] = run_output
             elif isinstance(step_returns, Iterable):
                 if len(step_returns) != len(run_output):
                     raise RuntimeError(
@@ -38,9 +47,16 @@ class PipelineADM(ActionBasedADM):
 
                 for r, o in zip(step_returns, run_output):
                     if r in working_output:
-                        log.debug(f"Updating '{r}'")
-
-                    working_output[r] = o
+                        if (hasattr(step, 'output_conflict_resolver')
+                            and step.output_conflict_resolver is not None):
+                            log.debug(f"Resolving conflict for '{r}'")
+                            working_output[r] = step.output_conflict_resolver(
+                                r, working_output[r], o)
+                        else:
+                            log.debug(f"Replacing '{r}'")
+                            working_output[r] = o
+                    else:
+                        working_output[r] = o
             else:
                 raise TypeError("Don't know how to deal with step returns")
 

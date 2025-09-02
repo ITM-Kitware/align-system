@@ -1,0 +1,35 @@
+# @package _global_
+defaults:
+  - override /adm: phase2_pipeline_fewshot_comparative_regression_swap_average
+  - override /interface: ta3
+  - override /adm_component/alignment@adm.step_definitions.scalar_alignment: medical_urgency_weighted_scalar
+
+interface:
+  session_type: adept
+  training_session: full
+  username: "pipeline_fewshot_comp_reg_loo"
+  domain: "p2triage"
+
+adm:
+  step_definitions:
+    regression_icl:
+      icl_generator_partial:
+        incontext_settings:
+          number: 20
+          leave_one_out_strategy: 'scenario_description' # LOO - Remove for eval
+          datasets:
+            medical: /data/shared/samba/phase2_icl/July2025-MU-train_20250804.json
+            affiliation: /data/shared/samba/phase2_icl/July2025-AF-train_20250804.json
+            merit: /data/shared/samba/phase2_icl/July2025-MF-train_20250804.json
+            personal_safety: /data/shared/samba/phase2_icl/July2025-PS-train_20250804.json
+            search: /data/shared/samba/phase2_icl/July2025-SS-train_20250804.json
+
+    comparative_regression:
+      enable_caching: true
+
+    comparative_regression_swap:
+      enable_caching: true
+
+apply_action_filtering: false
+force_determinism: true
+align_to_target: true

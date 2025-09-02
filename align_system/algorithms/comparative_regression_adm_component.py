@@ -14,6 +14,25 @@ log = logging.getLogger(__name__)
 JSON_HIGHLIGHTER = JSONHighlighter()
 
 
+class RegressionOutputsConflictResolver:
+    def __call__(self, output_name, a, b):
+        if (output_name == 'attribute_prediction_reasonings'
+            or output_name == 'attribute_prediction_scores'):
+            # Append regression values to existing outputs if there's
+            # a conflict
+            output_dict = copy.deepcopy(a)
+
+            for choice, attr_pred in b.items():
+                for attr, pred in attr_pred.items():
+                    output_dict.setdefault(choice, {})
+                    output_dict[choice].setdefault(attr, []).extend(pred)
+
+            return output_dict
+        else:
+            # No special handling of other regression outputs like
+            # `attribute_dialogs`, could add if needed
+            return b
+
 class ComparativeRegressionADMComponent(ADMComponent):
     def __init__(self,
                  structured_inference_engine,
@@ -25,7 +44,9 @@ class ComparativeRegressionADMComponent(ADMComponent):
                  num_samples=1,
                  enum_scores=False,
                  target_attribute_names_override=None,
-                 enable_caching=False):
+                 enable_caching=False,
+                 reverse_choice_ordering=False,
+                 output_conflict_resolver=None):
         self.structured_inference_engine = structured_inference_engine
         self.scenario_description_template = scenario_description_template
         self.prompt_template = prompt_template
@@ -44,6 +65,10 @@ class ComparativeRegressionADMComponent(ADMComponent):
 
         self.enable_caching = enable_caching
 
+        self.reverse_choice_ordering = reverse_choice_ordering
+
+        self.output_conflict_resolver = output_conflict_resolver
+
     def run_returns(self):
         return ('attribute_prediction_reasonings',
                 'attribute_prediction_scores',
@@ -54,6 +79,9 @@ class ComparativeRegressionADMComponent(ADMComponent):
             choices,
             icl_dialog_elements=[],
             alignment_target=None):
+        if self.reverse_choice_ordering:
+            choices = list(reversed(choices))
+
         if alignment_target is None:
             target_attribute_names = []
         else:
@@ -211,4 +239,5 @@ class ComparativeRegressionADMComponent(ADMComponent):
                        num_samples={self.num_samples},
                        enum_scores={self.enum_scores},
                        target_attribute_names_override={self.target_attribute_names_override},
+                       reverse_choice_ordering={self.reverse_choice_ordering},
                        )""", flags=re.MULTILINE).strip()
