@@ -1,13 +1,14 @@
 import argparse 
 from uuid import uuid4
 import inspect
-from collections import defaultdict
 
 
 from align_system.utils import logging
 from align_system.interfaces.abstracts import (
     Interface,
     ActionBasedScenarioInterface)
+
+#from align_system.interfaces.cia_triad import CIATriadMetric
 
 from swagger_client.models import (
     State,
@@ -37,23 +38,24 @@ from CybORG.Agents.SimpleAgents.BaseAgent import BaseAgent
 from CybORG.Agents.SimpleAgents.BlueLoadAgent import BlueLoadAgent
 from CybORG.Agents.SimpleAgents.BlueReactAgent import BlueReactRemoveAgent
 from CybORG.Agents.SimpleAgents.Meander import RedMeanderAgent
-from CybORG.Agents.Wrappers import BlueTableWrapper
+from CybORG.Agents.Wrappers import BlueTableWrapper, CIAWrapper
 
 
 log = logging.getLogger(__name__)
 
 
 class CAGEActionBasedServiceInterface(Interface):
-    EPISODE_LENGTH=3
+    EPISODE_LENGTH=30
     seed = None
     cyborg_version = '1.2'
     scenario = 'Scenario1b'
     def __init__(self,
-            n_rollouts:int = 2,
+            n_rollouts:int = 5,
                  ):
         self.n_rollouts = n_rollouts
         self.current_rollout = 0
         self.wrapped_cyborg = None
+        
 
     def start_scenario(self):
         self.current_rollout += 1
@@ -69,17 +71,25 @@ class CAGEActionBasedServiceInterface(Interface):
         print(f'using CybORG v{self.cyborg_version}, {self.scenario}\n')
 
         cyborg = CybORG(path, 'sim', agents={'Red': B_lineAgent})
-        self.wrapped_cyborg = BlueTableWrapper(cyborg, output_mode = 'table') #'blue_table')
-
+        if 0:
+            self.wrapped_cyborg = BlueTableWrapper(cyborg, output_mode = 'table') #'blue_table')
+        else:
+            self.wrapped_cyborg = CIAWrapper(env=cyborg, output_mode='table')
 
         return CAGEActionBasedScenario(self.wrapped_cyborg, episode_length=self.EPISODE_LENGTH, episode_number = self.current_rollout)
 
     def get_session_alignment(self, alignment_target):
-        if self.wrapped_cyborg is not None:
-            rewards = self.wrapped_cyborg.get_rewards()
-            return rewards
+        if 0:
+            if self.wrapped_cyborg is not None:
+                rewards = self.wrapped_cyborg.get_rewards()
+                return rewards
+            else:
+                return None
         else:
-            return None
+            if self.wrapped_cyborg is not None:
+                cia_scores = self.wrapped_cyborg.get_cia_scores()
+                rewards = self.wrapped_cyborg.get_collected_rewards()
+                return cia_scores | rewards
         #if 0:
         #    if self.training_session == 'full':
         #        # 'solo' training sessions are not able to retrieve an
@@ -103,9 +113,9 @@ class MetaInfo(object):
         self.scene_id = scene_id
 
 
-class CAGEAlignmentTarget(object):
-    def __init__(self, kdma_values):
-        self.kdma_values = kdma_values
+#class CAGEAlignmentTarget(object):
+#    def __init__(self, kdma_values):
+#        self.kdma_values = kdma_values
 
 class CAGEState:
     def __init__(self, table, hostnames, scene_id):
@@ -163,17 +173,13 @@ class CAGEActionBasedScenario(ActionBasedScenarioInterface):
 
     def enrich_obs(self):
         self.obs.scenario_complete = self.done
-#        self.obs.meta_info = MetaInfo()
-#        self.obs.hostnames = self.hostnames
-#        setattr(self.obs.meta_info, 'scene_id', self.episode_number)
 
     def id(self):
         return str(self.episode_number) 
 
     def get_alignment_target(self):
-        return None
-        #target = CAGEAlignmentTarget([1,1,1])
-        #return target
+        ## This is defined via a configuration, not in here...
+        pass
 
     def to_dict(self):
         pass
@@ -184,7 +190,6 @@ class CAGEActionBasedScenario(ActionBasedScenarioInterface):
         #return self.scenario
 
     def get_available_actions(self):
-        ## TODO: get the action space in the format that align expects
         cage_act_space = self.cyborg_sim.get_action_space(self.agent_name)
         return [CAGEAction(k) for k in cage_act_space['action']]
 

@@ -1,0 +1,5 @@
+id: confidentiality-1.0 
+kdma_values:
+  - kdes: null
+    kdma: confidentiality
+    value: 1.0

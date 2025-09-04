@@ -2,7 +2,7 @@
 defaults:
   - override /adm: pipeline_baseline
   - override /inference_engine@adm.structured_inference_engine: outlines_structured_greedy
-  - override /interface: cage
+  - override /interface: cage_cia
 
 
 adm:
@@ -32,6 +32,7 @@ adm:
     - ${ref:adm.step_definitions.populate_choice_info}
 
 apply_action_filtering: false
+save_scoring_output: true
 
 force_determinism: true
 align_to_target: false
