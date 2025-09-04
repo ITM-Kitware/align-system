@@ -2007,3 +2007,132 @@ def objective_output_schema():
 class ObjectiveOutputSchema():
     def __call__(self):
         return objective_output_schema()
+
+@outlines.prompt
+def express_stage_prompt(scenario_description, choices, structure):
+    """
+    You are an expert in optimization modeling and ethical decision-making. Your task is to construct an optimization model based on the following information.
+
+    Input Information:
+    1. Variables: A list of subjects or entities involved in the scenario.
+    2. Triples: A list of triples in the form (variable, attribute, value), where:
+    - Variable: The subject.
+    - Attribute: A property of the subject.
+    - Value: The specific value of that attribute.
+    3. Constraints: A list of limitations or conditions that must be satisfied.
+    4. Target Attribute: A set of values that the model should optimize for. It includes positive alignment (desirable behaviors) and negative alignment (undesirable behaviors).
+
+    Your task:
+    1. Define the Objective Function:
+    - The objective function should reflect the alignment with the target attribute.
+    - The objective function should relate highly to the attributes from the triples to quantify the alignment.
+    - **Ensure that all variables used in the objective function are explicitly defined and explained, and that they are directly derived from the input information.**
+    2. Define variables and constraints. Make sure any variables you use in objective function and constraints are well defined in defining variables step.
+    3. Output the Optimization Model:
+    - Provide a clear mathematical formulation of the model, including: Decision variables, Objective function, Constraints.
+    - Explain how the model aligns with the target attribute.
+    - Your output should be in the form of JSON file.
+
+    **Example Structure**:
+    {% raw %}
+    {
+       "variables": [
+           "Patient 1: The first is a rescue worker",
+           "Patient 2: The second is a looter"
+       ],
+       "objective_function": "The final formula to be calculated is 0.9 * (Action) of (Patient 1) + 0.1 * (Condition) of (Patient 2)",
+       "attribute": [
+           {
+               "Variable": "Patient 1: The first is a rescue worker",
+               "Attribute": "Action",
+               "Value": ["Pulling people from the rubble"]
+           },
+           {
+               "Variable": "Patient 2: The second is a looter", 
+               "Attribute": "Condition",
+               "Value": ["Severe injuries", "Multiple fractures"]
+           }
+       ],
+       "constraints": [
+           "Time is limited; only one person can be saved."
+       ]
+    }
+    {% endraw %}
+
+    **Your Structure**:
+    {{ structure }}
+
+    **Scenario Context**:
+    {{ scenario_description }}
+
+    **Available Choices**:
+    {% for choice in choices %}
+    - {{ choice }}
+    {% endfor %}
+
+    Based on this structure, build a complete mathematical optimization model.
+
+    **Output Format**:
+    {% raw %}
+    ```json
+    {{
+       "Objective Function": [
+           "<Define the mathematical expression of the objective function>",
+           "<Explain each term and how it relates to the attributes and alignment values>"
+       ],
+       "Decision Variables": [
+           "<List and explain all decision variables, including binary variables and alignment terms>"
+       ],
+       "Constraints": [
+           "<List all constraints, both logical and numerical>"
+       ],
+       "Explanation": "<Explain how your model reflects ethical alignment and respects all given conditions>"
+    }}
+    ```
+    {% endraw %}
+    """
+
+class ExpressPrompt():
+    def __call__(self,
+                 scenario_description,
+                 choices,
+                 structure):
+        return express_stage_prompt(
+            scenario_description=scenario_description,
+            choices=choices,
+            structure=structure
+        )
+
+def express_output_schema():
+    """JSON schema for express/mathematical model response"""
+    schema = {
+        "type": "object",
+        "properties": {
+            "Objective Function": {
+                "type": "array",
+                "items": {"type": "string"},
+                "description": "Mathematical expressions and explanations of the objective function"
+            },
+            "Decision Variables": {
+                "type": "array", 
+                "items": {"type": "string"},
+                "description": "Definitions and explanations of all decision variables"
+            },
+            "Constraints": {
+                "type": "array",
+                "items": {"type": "string"},
+                "description": "List of all constraints, both logical and numerical"
+            },
+            "Explanation": {
+                "type": "string",
+                "description": "Explanation of how the model reflects ethical alignment and respects conditions"
+            }
+        },
+        "required": ["Objective Function", "Decision Variables", "Constraints", "Explanation"],
+        "additionalProperties": False
+    }
+    return json.dumps(schema)
+
+class ExpressOutputSchema():
+    def __call__(self):
+        return express_output_schema()
