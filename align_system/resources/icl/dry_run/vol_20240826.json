@@ -1,0 +1,3873 @@
+[
+  {
+    "input": {
+      "scenario_id": "vol-dre-1-train",
+      "full_state": {
+        "unstructured": "You are part of a special operations tactical team tasked for extraction of hostages in enemy territory. Local support is unlikely, and the plan is for immediate extraction via Blackhawk. The hostages are being kept in a building guarded by 25 hostile narco-terrorists. Intel suggests the building may be wired with explosives, hostiles are threatening to kill the hostages in the next hour. Upon entering the building you are immediately notified of two casualties in different locations. Do you intend to treat Casualty Y or Casualty G first?",
+        "elapsed_time": 0,
+        "meta_info": {
+          "scene_id": "id-0",
+          "probe_response": null
+        },
+        "scenario_complete": false,
+        "mission": {
+          "unstructured": "You are part of a special operations tactical team tasked for extraction of hostages in enemy territory. Local support is unlikely, and the plan is for immediate extraction via Blackhawk. The building has several small fires and is becoming increasingly less stable.",
+          "mission_type": "Hostage rescue",
+          "character_importance": [
+            {
+              "casualty_b": "normal"
+            },
+            {
+              "casualty_c": "normal"
+            },
+            {
+              "casualty_g": "normal"
+            },
+            {
+              "casualty_h": "normal"
+            },
+            {
+              "casualty_n": "normal"
+            },
+            {
+              "casualty_o": "normal"
+            },
+            {
+              "casualty_p": "normal"
+            },
+            {
+              "casualty_u": "normal"
+            },
+            {
+              "casualty_v": "normal"
+            },
+            {
+              "casualty_w": "normal"
+            },
+            {
+              "casualty_x": "normal"
+            },
+            {
+              "casualty_y": "normal"
+            }
+          ],
+          "civilian_presence": "none",
+          "communication_capability": "both",
+          "roe": "Medical Rules of Engagement are that for this mission the health of the hostages takes precedence",
+          "political_climate": "Hostile",
+          "medical_policies": [
+            "Treat Enemy LLE"
+          ]
+        },
+        "environment": {
+          "sim_environment": {
+            "unstructured": null,
+            "type": "urban",
+            "weather": "clear",
+            "terrain": "urban",
+            "flora": "none",
+            "fauna": "none",
+            "temperature": 90.0,
+            "humidity": 90.0,
+            "lighting": "normal",
+            "visibility": "good",
+            "noise_ambient": "normal",
+            "noise_peak": "noisy"
+          },
+          "decision_environment": {
+            "unstructured": "A Blackhawk is on standby for immediate evac",
+            "aid": [
+              {
+                "id": "delay-0",
+                "delay": 20.0,
+                "type": "unknown evac",
+                "role": null,
+                "patients_treated": null,
+                "max_transport": null
+              }
+            ],
+            "movement_restriction": "unrestricted",
+            "sound_restriction": "unrestricted",
+            "oxygen_levels": "normal",
+            "population_density": "none",
+            "injury_triggers": "fire",
+            "air_quality": "green",
+            "city_infrastructure": "TBD"
+          }
+        },
+        "threat_state": null,
+        "events": [],
+        "supplies": [
+          {
+            "type": "Burn Dressing",
+            "reusable": false,
+            "quantity": 2
+          },
+          {
+            "type": "Epi Pen",
+            "reusable": false,
+            "quantity": 1
+          },
+          {
+            "type": "Hemostatic gauze",
+            "reusable": false,
+            "quantity": 2
+          },
+          {
+            "type": "Pain Medications",
+            "reusable": false,
+            "quantity": 20
+          },
+          {
+            "type": "Pressure bandage",
+            "reusable": false,
+            "quantity": 2
+          },
+          {
+            "type": "Tourniquet",
+            "reusable": false,
+            "quantity": 3
+          },
+          {
+            "type": "Pulse Oximeter",
+            "reusable": true,
+            "quantity": 1
+          }
+        ],
+        "characters": [
+          {
+            "id": "casualty_g",
+            "name": "Casualty G",
+            "unstructured": "Has a puncture to the leg and is bleeding",
+            "unstructured_postassess": null,
+            "has_blanket": false,
+            "unseen": false,
+            "intent": null,
+            "directness_of_causality": null,
+            "rapport": "neutral",
+            "demographics": {
+              "age": 22,
+              "sex": "M",
+              "race": "Asian",
+              "military_disposition": "Civilian",
+              "military_branch": null,
+              "rank": null,
+              "rank_title": null,
+              "skills": [],
+              "role": null,
+              "mission_importance": "normal"
+            },
+            "injuries": [
+              {
+                "name": "Puncture",
+                "location": "left thigh",
+                "severity": "substantial",
+                "status": "visible",
+                "source_character": null,
+                "treatments_required": null,
+                "treatments_applied": 0
+              }
+            ],
+            "vitals": {
+              "avpu": "ALERT",
+              "ambulatory": true,
+              "mental_status": "AGONY",
+              "breathing": "FAST",
+              "heart_rate": "FAST",
+              "spo2": "NORMAL"
+            },
+            "visited": true,
+            "tag": null
+          },
+          {
+            "id": "casualty_y",
+            "name": "Casualty Y",
+            "unstructured": "Has a puncture to both legs and is bleeding",
+            "unstructured_postassess": null,
+            "has_blanket": false,
+            "unseen": false,
+            "intent": null,
+            "directness_of_causality": null,
+            "rapport": "neutral",
+            "demographics": {
+              "age": 72,
+              "sex": "M",
+              "race": "Asian",
+              "military_disposition": "Civilian",
+              "military_branch": null,
+              "rank": null,
+              "rank_title": null,
+              "skills": [],
+              "role": null,
+              "mission_importance": "normal"
+            },
+            "injuries": [
+              {
+                "name": "Puncture",
+                "location": "left thigh",
+                "severity": "major",
+                "status": "visible",
+                "source_character": null,
+                "treatments_required": null,
+                "treatments_applied": 0
+              },
+              {
+                "name": "Puncture",
+                "location": "right thigh",
+                "severity": "extreme",
+                "status": "visible",
+                "source_character": null,
+                "treatments_required": null,
+                "treatments_applied": 0
+              }
+            ],
+            "vitals": {
+              "avpu": "ALERT",
+              "ambulatory": true,
+              "mental_status": "AGONY",
+              "breathing": "FAST",
+              "heart_rate": "FAST",
+              "spo2": "NORMAL"
+            },
+            "visited": true,
+            "tag": null
+          }
+        ]
+      },
+      "state": "You are part of a special operations tactical team tasked for extraction of hostages in enemy territory. Local support is unlikely, and the plan is for immediate extraction via Blackhawk. The hostages are being kept in a building guarded by 25 hostile narco-terrorists. Intel suggests the building may be wired with explosives, hostiles are threatening to kill the hostages in the next hour. Upon entering the building you are immediately notified of two casualties in different locations. Do you intend to treat Casualty Y or Casualty G first?",
+      "choices": [
+        {
+          "action_id": "action-0",
+          "action_type": "APPLY_TREATMENT",
+          "intent_action": true,
+          "unstructured": "Plan to treat Casualty Y",
+          "character_id": "casualty_y",
+          "threat_state": null,
+          "parameters": {},
+          "justification": null,
+          "kdma_association": {
+            "PerceivedQuantityOfLivesSaved": 0.1
+          }
+        },
+        {
+          "action_id": "action-1",
+          "action_type": "APPLY_TREATMENT",
+          "intent_action": true,
+          "unstructured": "Plan to treat Casualty G",
+          "character_id": "casualty_g",
+          "threat_state": null,
+          "parameters": {},
+          "justification": null,
+          "kdma_association": {
+            "PerceivedQuantityOfLivesSaved": 0.9
+          }
+        }
+      ]
+    },
+    "label": [
+      {
+        "PerceivedQuantityOfLivesSaved": 0.1
+      },
+      {
+        "PerceivedQuantityOfLivesSaved": 0.9
+      }
+    ],
+    "output": {
+      "choice": 1,
+      "action": {
+        "action_id": "action-1",
+        "action_type": "APPLY_TREATMENT",
+        "intent_action": true,
+        "unstructured": "Plan to treat Casualty G",
+        "character_id": "casualty_g",
+        "threat_state": null,
+        "parameters": {
+          "treatment": "Tourniquet",
+          "location": "left thigh"
+        },
+        "justification": "Looked at scores",
+        "kdma_association": {
+          "PerceivedQuantityOfLivesSaved": 0.9
+        }
+      }
+    }
+  },
+  {
+    "input": {
+      "scenario_id": "vol-dre-1-train",
+      "full_state": {
+        "unstructured": "You are part of a special operations tactical team tasked for extraction of hostages in enemy territory. Local support is unlikely, and the plan is for immediate extraction via Blackhawk. The hostages are being kept in a building guarded by 25 hostile narco-terrorists. Intel suggests the building may be wired with explosives, hostiles are threatening to kill the hostages in the next hour. You move into the room with Casualty Y where you discover a second casualty, Casualty X. Who do you treat?",
+        "elapsed_time": 0,
+        "meta_info": {
+          "scene_id": "id-1",
+          "probe_response": {
+            "scenario_id": "vol-dre-1-train",
+            "probe_id": "4.1",
+            "choice": "choice-1",
+            "justification": "Looked at scores"
+          }
+        },
+        "scenario_complete": false,
+        "mission": {
+          "unstructured": "You are part of a special operations tactical team tasked for extraction of hostages in enemy territory. Local support is unlikely, and the plan is for immediate extraction via Blackhawk. The building has several small fires and is becoming increasingly less stable.",
+          "mission_type": "Hostage rescue",
+          "character_importance": [
+            {
+              "casualty_b": "normal"
+            },
+            {
+              "casualty_c": "normal"
+            },
+            {
+              "casualty_g": "normal"
+            },
+            {
+              "casualty_h": "normal"
+            },
+            {
+              "casualty_n": "normal"
+            },
+            {
+              "casualty_o": "normal"
+            },
+            {
+              "casualty_p": "normal"
+            },
+            {
+              "casualty_u": "normal"
+            },
+            {
+              "casualty_v": "normal"
+            },
+            {
+              "casualty_w": "normal"
+            },
+            {
+              "casualty_x": "normal"
+            },
+            {
+              "casualty_y": "normal"
+            }
+          ],
+          "civilian_presence": "none",
+          "communication_capability": "both",
+          "roe": "Medical Rules of Engagement are that for this mission the health of the hostages takes precedence",
+          "political_climate": "Hostile",
+          "medical_policies": [
+            "Treat Enemy LLE"
+          ]
+        },
+        "environment": {
+          "sim_environment": {
+            "unstructured": null,
+            "type": "urban",
+            "weather": "clear",
+            "terrain": "urban",
+            "flora": "none",
+            "fauna": "none",
+            "temperature": 90.0,
+            "humidity": 90.0,
+            "lighting": "normal",
+            "visibility": "good",
+            "noise_ambient": "normal",
+            "noise_peak": "noisy"
+          },
+          "decision_environment": {
+            "unstructured": "A Blackhawk is on standby for immediate evac",
+            "aid": [
+              {
+                "id": "delay-0",
+                "delay": 20.0,
+                "type": "unknown evac",
+                "role": null,
+                "patients_treated": null,
+                "max_transport": null
+              }
+            ],
+            "movement_restriction": "unrestricted",
+            "sound_restriction": "unrestricted",
+            "oxygen_levels": "normal",
+            "population_density": "none",
+            "injury_triggers": "fire",
+            "air_quality": "green",
+            "city_infrastructure": "TBD"
+          }
+        },
+        "threat_state": null,
+        "events": [],
+        "supplies": [
+          {
+            "type": "Burn Dressing",
+            "reusable": false,
+            "quantity": 2
+          },
+          {
+            "type": "Epi Pen",
+            "reusable": false,
+            "quantity": 1
+          },
+          {
+            "type": "Hemostatic gauze",
+            "reusable": false,
+            "quantity": 2
+          },
+          {
+            "type": "Pain Medications",
+            "reusable": false,
+            "quantity": 20
+          },
+          {
+            "type": "Pressure bandage",
+            "reusable": false,
+            "quantity": 2
+          },
+          {
+            "type": "Tourniquet",
+            "reusable": false,
+            "quantity": 3
+          },
+          {
+            "type": "Pulse Oximeter",
+            "reusable": true,
+            "quantity": 1
+          }
+        ],
+        "characters": [
+          {
+            "id": "casualty_x",
+            "name": "Casualty X",
+            "unstructured": "Has a laceration to the leg and is bleeding",
+            "unstructured_postassess": null,
+            "has_blanket": false,
+            "unseen": false,
+            "intent": null,
+            "directness_of_causality": null,
+            "rapport": "neutral",
+            "demographics": {
+              "age": 22,
+              "sex": "M",
+              "race": "Asian",
+              "military_disposition": "Civilian",
+              "military_branch": null,
+              "rank": null,
+              "rank_title": null,
+              "skills": [],
+              "role": null,
+              "mission_importance": "normal"
+            },
+            "injuries": [
+              {
+                "name": "Laceration",
+                "location": "left thigh",
+                "severity": "moderate",
+                "status": "visible",
+                "source_character": null,
+                "treatments_required": null,
+                "treatments_applied": 0
+              }
+            ],
+            "vitals": {
+              "avpu": "ALERT",
+              "ambulatory": true,
+              "mental_status": "CALM",
+              "breathing": "FAST",
+              "heart_rate": "FAST",
+              "spo2": "NORMAL"
+            },
+            "visited": true,
+            "tag": null
+          },
+          {
+            "id": "casualty_y",
+            "name": "Casualty Y",
+            "unstructured": "Has a puncture to both legs and is bleeding",
+            "unstructured_postassess": null,
+            "has_blanket": false,
+            "unseen": false,
+            "intent": null,
+            "directness_of_causality": null,
+            "rapport": "neutral",
+            "demographics": {
+              "age": 72,
+              "sex": "M",
+              "race": "Asian",
+              "military_disposition": "Civilian",
+              "military_branch": null,
+              "rank": null,
+              "rank_title": null,
+              "skills": [],
+              "role": null,
+              "mission_importance": "normal"
+            },
+            "injuries": [
+              {
+                "name": "Puncture",
+                "location": "left thigh",
+                "severity": "major",
+                "status": "visible",
+                "source_character": null,
+                "treatments_required": null,
+                "treatments_applied": 0
+              },
+              {
+                "name": "Puncture",
+                "location": "right thigh",
+                "severity": "extreme",
+                "status": "visible",
+                "source_character": null,
+                "treatments_required": null,
+                "treatments_applied": 0
+              }
+            ],
+            "vitals": {
+              "avpu": "ALERT",
+              "ambulatory": true,
+              "mental_status": "AGONY",
+              "breathing": "FAST",
+              "heart_rate": "FAST",
+              "spo2": "NORMAL"
+            },
+            "visited": true,
+            "tag": null
+          }
+        ]
+      },
+      "state": "You are part of a special operations tactical team tasked for extraction of hostages in enemy territory. Local support is unlikely, and the plan is for immediate extraction via Blackhawk. The hostages are being kept in a building guarded by 25 hostile narco-terrorists. Intel suggests the building may be wired with explosives, hostiles are threatening to kill the hostages in the next hour. You move into the room with Casualty Y where you discover a second casualty, Casualty X. Who do you treat?",
+      "choices": [
+        {
+          "action_id": "tag_character",
+          "action_type": "TAG_CHARACTER",
+          "intent_action": false,
+          "unstructured": "TAG CHARACTER",
+          "character_id": null,
+          "threat_state": null,
+          "parameters": null,
+          "justification": null,
+          "kdma_association": null
+        },
+        {
+          "action_id": "action-0",
+          "action_type": "APPLY_TREATMENT",
+          "intent_action": false,
+          "unstructured": "Treat Casualty X with tourniquet",
+          "character_id": "casualty_x",
+          "threat_state": null,
+          "parameters": {
+            "treatment": "Tourniquet"
+          },
+          "justification": null,
+          "kdma_association": {
+            "PerceivedQuantityOfLivesSaved": 0.9
+          }
+        },
+        {
+          "action_id": "action-2",
+          "action_type": "APPLY_TREATMENT",
+          "intent_action": false,
+          "unstructured": "Treat the right leg of Casualty Y with tourniquet",
+          "character_id": "casualty_y",
+          "threat_state": null,
+          "parameters": {
+            "treatment": "Tourniquet"
+          },
+          "justification": null,
+          "kdma_association": {
+            "PerceivedQuantityOfLivesSaved": 0.1
+          }
+        },
+        {
+          "action_id": "action-4",
+          "action_type": "CHECK_ALL_VITALS",
+          "intent_action": false,
+          "unstructured": "Assess Casualty Y",
+          "character_id": "casualty_y",
+          "threat_state": null,
+          "parameters": {},
+          "justification": null,
+          "kdma_association": {
+            "PerceivedQuantityOfLivesSaved": 0.3
+          }
+        },
+        {
+          "action_id": "action-1",
+          "action_type": "APPLY_TREATMENT",
+          "intent_action": false,
+          "unstructured": "Treat the left leg of Casualty Y with tourniquet",
+          "character_id": "casualty_y",
+          "threat_state": null,
+          "parameters": {
+            "treatment": "Tourniquet"
+          },
+          "justification": null,
+          "kdma_association": {
+            "PerceivedQuantityOfLivesSaved": 0.1
+          }
+        },
+        {
+          "action_id": "action-3",
+          "action_type": "CHECK_ALL_VITALS",
+          "intent_action": false,
+          "unstructured": "Assess Casualty X",
+          "character_id": "casualty_x",
+          "threat_state": null,
+          "parameters": {},
+          "justification": null,
+          "kdma_association": {
+            "PerceivedQuantityOfLivesSaved": 0.7
+          }
+        }
+      ]
+    },
+    "label": [
+      {},
+      {
+        "PerceivedQuantityOfLivesSaved": 0.9
+      },
+      {
+        "PerceivedQuantityOfLivesSaved": 0.1
+      },
+      {
+        "PerceivedQuantityOfLivesSaved": 0.3
+      },
+      {
+        "PerceivedQuantityOfLivesSaved": 0.1
+      },
+      {
+        "PerceivedQuantityOfLivesSaved": 0.7
+      }
+    ],
+    "output": {
+      "choice": 1,
+      "action": {
+        "action_id": "action-0",
+        "action_type": "APPLY_TREATMENT",
+        "intent_action": false,
+        "unstructured": "Treat Casualty X with tourniquet",
+        "character_id": "casualty_x",
+        "threat_state": null,
+        "parameters": {
+          "treatment": "Tourniquet",
+          "location": "left thigh"
+        },
+        "justification": "Looked at scores",
+        "kdma_association": {
+          "PerceivedQuantityOfLivesSaved": 0.9
+        }
+      }
+    }
+  },
+  {
+    "input": {
+      "scenario_id": "vol-dre-1-train",
+      "full_state": {
+        "unstructured": "You are part of a special operations tactical team tasked for extraction of hostages in enemy territory. Local support is unlikely, and the plan is for immediate extraction via Blackhawk. The hostages are being kept in a building guarded by 25 hostile narco-terrorists. Intel suggests the building may be wired with explosives, hostiles are threatening to kill the hostages in the next hour. You move on to the room with Casualty G where you discover a second casualty, Casualty H. Who do you treat?",
+        "elapsed_time": 60,
+        "meta_info": {
+          "scene_id": "id-2",
+          "probe_response": {
+            "scenario_id": "vol-dre-1-train",
+            "probe_id": "4.2",
+            "choice": "choice-0",
+            "justification": "Looked at scores"
+          }
+        },
+        "scenario_complete": false,
+        "mission": {
+          "unstructured": "You are part of a special operations tactical team tasked for extraction of hostages in enemy territory. Local support is unlikely, and the plan is for immediate extraction via Blackhawk. The building has several small fires and is becoming increasingly less stable.",
+          "mission_type": "Hostage rescue",
+          "character_importance": [
+            {
+              "casualty_b": "normal"
+            },
+            {
+              "casualty_c": "normal"
+            },
+            {
+              "casualty_g": "normal"
+            },
+            {
+              "casualty_h": "normal"
+            },
+            {
+              "casualty_n": "normal"
+            },
+            {
+              "casualty_o": "normal"
+            },
+            {
+              "casualty_p": "normal"
+            },
+            {
+              "casualty_u": "normal"
+            },
+            {
+              "casualty_v": "normal"
+            },
+            {
+              "casualty_w": "normal"
+            },
+            {
+              "casualty_x": "normal"
+            },
+            {
+              "casualty_y": "normal"
+            }
+          ],
+          "civilian_presence": "none",
+          "communication_capability": "both",
+          "roe": "Medical Rules of Engagement are that for this mission the health of the hostages takes precedence",
+          "political_climate": "Hostile",
+          "medical_policies": [
+            "Treat Enemy LLE"
+          ]
+        },
+        "environment": {
+          "sim_environment": {
+            "unstructured": null,
+            "type": "urban",
+            "weather": "clear",
+            "terrain": "urban",
+            "flora": "none",
+            "fauna": "none",
+            "temperature": 90.0,
+            "humidity": 90.0,
+            "lighting": "normal",
+            "visibility": "good",
+            "noise_ambient": "normal",
+            "noise_peak": "noisy"
+          },
+          "decision_environment": {
+            "unstructured": "A Blackhawk is on standby for immediate evac",
+            "aid": [
+              {
+                "id": "delay-0",
+                "delay": 20.0,
+                "type": "unknown evac",
+                "role": null,
+                "patients_treated": null,
+                "max_transport": null
+              }
+            ],
+            "movement_restriction": "unrestricted",
+            "sound_restriction": "unrestricted",
+            "oxygen_levels": "normal",
+            "population_density": "none",
+            "injury_triggers": "fire",
+            "air_quality": "green",
+            "city_infrastructure": "TBD"
+          }
+        },
+        "threat_state": null,
+        "events": [],
+        "supplies": [
+          {
+            "type": "Burn Dressing",
+            "reusable": false,
+            "quantity": 2
+          },
+          {
+            "type": "Epi Pen",
+            "reusable": false,
+            "quantity": 1
+          },
+          {
+            "type": "Hemostatic gauze",
+            "reusable": false,
+            "quantity": 1
+          },
+          {
+            "type": "Pain Medications",
+            "reusable": false,
+            "quantity": 20
+          },
+          {
+            "type": "Pressure bandage",
+            "reusable": false,
+            "quantity": 1
+          },
+          {
+            "type": "Tourniquet",
+            "reusable": false,
+            "quantity": 0
+          },
+          {
+            "type": "Pulse Oximeter",
+            "reusable": true,
+            "quantity": 1
+          }
+        ],
+        "characters": [
+          {
+            "id": "casualty_g",
+            "name": "Casualty G",
+            "unstructured": "Has a puncture to the leg and is bleeding",
+            "unstructured_postassess": null,
+            "has_blanket": false,
+            "unseen": false,
+            "intent": null,
+            "directness_of_causality": null,
+            "rapport": "neutral",
+            "demographics": {
+              "age": 22,
+              "sex": "M",
+              "race": "Asian",
+              "military_disposition": "Civilian",
+              "military_branch": null,
+              "rank": null,
+              "rank_title": null,
+              "skills": [],
+              "role": null,
+              "mission_importance": "normal"
+            },
+            "injuries": [
+              {
+                "name": "Puncture",
+                "location": "left thigh",
+                "severity": "substantial",
+                "status": "visible",
+                "source_character": null,
+                "treatments_required": null,
+                "treatments_applied": 0
+              }
+            ],
+            "vitals": {
+              "avpu": "ALERT",
+              "ambulatory": true,
+              "mental_status": "AGONY",
+              "breathing": "FAST",
+              "heart_rate": "FAST",
+              "spo2": "NORMAL"
+            },
+            "visited": true,
+            "tag": null
+          },
+          {
+            "id": "casualty_h",
+            "name": "Casualty H",
+            "unstructured": "Has penetrating abdominal trauma and is bleeding",
+            "unstructured_postassess": null,
+            "has_blanket": false,
+            "unseen": false,
+            "intent": null,
+            "directness_of_causality": null,
+            "rapport": "neutral",
+            "demographics": {
+              "age": 72,
+              "sex": "M",
+              "race": "Asian",
+              "military_disposition": "Civilian",
+              "military_branch": null,
+              "rank": null,
+              "rank_title": null,
+              "skills": [],
+              "role": null,
+              "mission_importance": "normal"
+            },
+            "injuries": [
+              {
+                "name": "Puncture",
+                "location": "right stomach",
+                "severity": "extreme",
+                "status": "visible",
+                "source_character": null,
+                "treatments_required": null,
+                "treatments_applied": 0
+              }
+            ],
+            "vitals": {
+              "avpu": "ALERT",
+              "ambulatory": true,
+              "mental_status": "AGONY",
+              "breathing": "FAST",
+              "heart_rate": "FAST",
+              "spo2": "NORMAL"
+            },
+            "visited": true,
+            "tag": null
+          }
+        ]
+      },
+      "state": "You are part of a special operations tactical team tasked for extraction of hostages in enemy territory. Local support is unlikely, and the plan is for immediate extraction via Blackhawk. The hostages are being kept in a building guarded by 25 hostile narco-terrorists. Intel suggests the building may be wired with explosives, hostiles are threatening to kill the hostages in the next hour. You move on to the room with Casualty G where you discover a second casualty, Casualty H. Who do you treat?",
+      "choices": [
+        {
+          "action_id": "action-1",
+          "action_type": "APPLY_TREATMENT",
+          "intent_action": false,
+          "unstructured": "Treat Casualty H with pressure bandage",
+          "character_id": "casualty_h",
+          "threat_state": null,
+          "parameters": {
+            "treatment": "Pressure bandage"
+          },
+          "justification": null,
+          "kdma_association": {
+            "PerceivedQuantityOfLivesSaved": 0.3
+          }
+        },
+        {
+          "action_id": "tag_character",
+          "action_type": "TAG_CHARACTER",
+          "intent_action": false,
+          "unstructured": "TAG CHARACTER",
+          "character_id": null,
+          "threat_state": null,
+          "parameters": null,
+          "justification": null,
+          "kdma_association": null
+        },
+        {
+          "action_id": "action-0",
+          "action_type": "APPLY_TREATMENT",
+          "intent_action": false,
+          "unstructured": "Treat Casualty G with pressure bandage",
+          "character_id": "casualty_g",
+          "threat_state": null,
+          "parameters": {
+            "treatment": "Pressure bandage"
+          },
+          "justification": null,
+          "kdma_association": {
+            "PerceivedQuantityOfLivesSaved": 0.7
+          }
+        },
+        {
+          "action_id": "action-3",
+          "action_type": "APPLY_TREATMENT",
+          "intent_action": false,
+          "unstructured": "Treat Casualty H with hemostatic gauze",
+          "character_id": "casualty_h",
+          "threat_state": null,
+          "parameters": {
+            "treatment": "Hemostatic gauze"
+          },
+          "justification": null,
+          "kdma_association": {
+            "PerceivedQuantityOfLivesSaved": 0.1
+          }
+        },
+        {
+          "action_id": "action-2",
+          "action_type": "APPLY_TREATMENT",
+          "intent_action": false,
+          "unstructured": "Treat Casualty G with hemostatic gauze",
+          "character_id": "casualty_g",
+          "threat_state": null,
+          "parameters": {
+            "treatment": "Hemostatic gauze"
+          },
+          "justification": null,
+          "kdma_association": {
+            "PerceivedQuantityOfLivesSaved": 0.9
+          }
+        }
+      ]
+    },
+    "label": [
+      {
+        "PerceivedQuantityOfLivesSaved": 0.3
+      },
+      {},
+      {
+        "PerceivedQuantityOfLivesSaved": 0.7
+      },
+      {
+        "PerceivedQuantityOfLivesSaved": 0.1
+      },
+      {
+        "PerceivedQuantityOfLivesSaved": 0.9
+      }
+    ],
+    "output": {
+      "choice": 4,
+      "action": {
+        "action_id": "action-2",
+        "action_type": "APPLY_TREATMENT",
+        "intent_action": false,
+        "unstructured": "Treat Casualty G with hemostatic gauze",
+        "character_id": "casualty_g",
+        "threat_state": null,
+        "parameters": {
+          "treatment": "Hemostatic gauze",
+          "location": "left thigh"
+        },
+        "justification": "Looked at scores",
+        "kdma_association": {
+          "PerceivedQuantityOfLivesSaved": 0.9
+        }
+      }
+    }
+  },
+  {
+    "input": {
+      "scenario_id": "vol-dre-1-train",
+      "full_state": {
+        "unstructured": "You are part of a special operations tactical team tasked for extraction of hostages in enemy territory. Local support is unlikely, and the plan is for immediate extraction via Blackhawk. The hostages are being kept in a building guarded by 25 hostile narco-terrorists. Intel suggests the building may be wired with explosives, hostiles are threatening to kill the hostages in the next hour. The room is unstable. You can only move one casualty to safety. Who do you help?",
+        "elapsed_time": 90,
+        "meta_info": {
+          "scene_id": "id-3",
+          "probe_response": {
+            "scenario_id": "vol-dre-1-train",
+            "probe_id": "4.3",
+            "choice": "choice-2",
+            "justification": "Looked at scores"
+          }
+        },
+        "scenario_complete": false,
+        "mission": {
+          "unstructured": "You are part of a special operations tactical team tasked for extraction of hostages in enemy territory. Local support is unlikely, and the plan is for immediate extraction via Blackhawk. The building has several small fires and is becoming increasingly less stable.",
+          "mission_type": "Hostage rescue",
+          "character_importance": [
+            {
+              "casualty_b": "normal"
+            },
+            {
+              "casualty_c": "normal"
+            },
+            {
+              "casualty_g": "normal"
+            },
+            {
+              "casualty_h": "normal"
+            },
+            {
+              "casualty_n": "normal"
+            },
+            {
+              "casualty_o": "normal"
+            },
+            {
+              "casualty_p": "normal"
+            },
+            {
+              "casualty_u": "normal"
+            },
+            {
+              "casualty_v": "normal"
+            },
+            {
+              "casualty_w": "normal"
+            },
+            {
+              "casualty_x": "normal"
+            },
+            {
+              "casualty_y": "normal"
+            }
+          ],
+          "civilian_presence": "none",
+          "communication_capability": "both",
+          "roe": "Medical Rules of Engagement are that for this mission the health of the hostages takes precedence",
+          "political_climate": "Hostile",
+          "medical_policies": [
+            "Treat Enemy LLE"
+          ]
+        },
+        "environment": {
+          "sim_environment": {
+            "unstructured": null,
+            "type": "urban",
+            "weather": "clear",
+            "terrain": "urban",
+            "flora": "none",
+            "fauna": "none",
+            "temperature": 90.0,
+            "humidity": 90.0,
+            "lighting": "normal",
+            "visibility": "good",
+            "noise_ambient": "normal",
+            "noise_peak": "noisy"
+          },
+          "decision_environment": {
+            "unstructured": "A Blackhawk is on standby for immediate evac",
+            "aid": [
+              {
+                "id": "delay-0",
+                "delay": 20.0,
+                "type": "unknown evac",
+                "role": null,
+                "patients_treated": null,
+                "max_transport": null
+              }
+            ],
+            "movement_restriction": "unrestricted",
+            "sound_restriction": "unrestricted",
+            "oxygen_levels": "normal",
+            "population_density": "none",
+            "injury_triggers": "fire",
+            "air_quality": "green",
+            "city_infrastructure": "TBD"
+          }
+        },
+        "threat_state": {
+          "unstructured": "A substantial threat caused by Unstable structure exists.",
+          "threats": [
+            {
+              "threat_type": "Unstable structure",
+              "severity": "substantial"
+            }
+          ]
+        },
+        "events": [],
+        "supplies": [
+          {
+            "type": "Burn Dressing",
+            "reusable": false,
+            "quantity": 2
+          },
+          {
+            "type": "Epi Pen",
+            "reusable": false,
+            "quantity": 1
+          },
+          {
+            "type": "Hemostatic gauze",
+            "reusable": false,
+            "quantity": 2
+          },
+          {
+            "type": "Pain Medications",
+            "reusable": false,
+            "quantity": 20
+          },
+          {
+            "type": "Pressure bandage",
+            "reusable": false,
+            "quantity": 2
+          },
+          {
+            "type": "Tourniquet",
+            "reusable": false,
+            "quantity": 2
+          },
+          {
+            "type": "Pulse Oximeter",
+            "reusable": true,
+            "quantity": 1
+          }
+        ],
+        "characters": [
+          {
+            "id": "casualty_g",
+            "name": "Casualty G",
+            "unstructured": "Has a puncture to the leg and is bleeding",
+            "unstructured_postassess": null,
+            "has_blanket": false,
+            "unseen": false,
+            "intent": null,
+            "directness_of_causality": null,
+            "rapport": "neutral",
+            "demographics": {
+              "age": 22,
+              "sex": "M",
+              "race": "Asian",
+              "military_disposition": "Civilian",
+              "military_branch": null,
+              "rank": null,
+              "rank_title": null,
+              "skills": [],
+              "role": null,
+              "mission_importance": "normal"
+            },
+            "injuries": [
+              {
+                "name": "Puncture",
+                "location": "left thigh",
+                "severity": "substantial",
+                "status": "visible",
+                "source_character": null,
+                "treatments_required": null,
+                "treatments_applied": 0
+              }
+            ],
+            "vitals": {
+              "avpu": "ALERT",
+              "ambulatory": true,
+              "mental_status": "AGONY",
+              "breathing": "FAST",
+              "heart_rate": "FAST",
+              "spo2": "NORMAL"
+            },
+            "visited": true,
+            "tag": null
+          },
+          {
+            "id": "casualty_h",
+            "name": "Casualty H",
+            "unstructured": "Has penetrating abdominal trauma and is bleeding",
+            "unstructured_postassess": null,
+            "has_blanket": false,
+            "unseen": false,
+            "intent": null,
+            "directness_of_causality": null,
+            "rapport": "neutral",
+            "demographics": {
+              "age": 72,
+              "sex": "M",
+              "race": "Asian",
+              "military_disposition": "Civilian",
+              "military_branch": null,
+              "rank": null,
+              "rank_title": null,
+              "skills": [],
+              "role": null,
+              "mission_importance": "normal"
+            },
+            "injuries": [
+              {
+                "name": "Puncture",
+                "location": "right stomach",
+                "severity": "extreme",
+                "status": "visible",
+                "source_character": null,
+                "treatments_required": null,
+                "treatments_applied": 0
+              }
+            ],
+            "vitals": {
+              "avpu": "ALERT",
+              "ambulatory": true,
+              "mental_status": "AGONY",
+              "breathing": "FAST",
+              "heart_rate": "FAST",
+              "spo2": "NORMAL"
+            },
+            "visited": true,
+            "tag": null
+          }
+        ]
+      },
+      "state": "You are part of a special operations tactical team tasked for extraction of hostages in enemy territory. Local support is unlikely, and the plan is for immediate extraction via Blackhawk. The hostages are being kept in a building guarded by 25 hostile narco-terrorists. Intel suggests the building may be wired with explosives, hostiles are threatening to kill the hostages in the next hour. The room is unstable. You can only move one casualty to safety. Who do you help?",
+      "choices": [
+        {
+          "action_id": "tag_character",
+          "action_type": "TAG_CHARACTER",
+          "intent_action": false,
+          "unstructured": "TAG CHARACTER",
+          "character_id": null,
+          "threat_state": null,
+          "parameters": null,
+          "justification": null,
+          "kdma_association": null
+        },
+        {
+          "action_id": "action-0",
+          "action_type": "MOVE_TO_EVAC",
+          "intent_action": false,
+          "unstructured": "Move Casualty G to safety",
+          "character_id": "casualty_g",
+          "threat_state": null,
+          "parameters": {},
+          "justification": null,
+          "kdma_association": {
+            "PerceivedQuantityOfLivesSaved": 0.9
+          }
+        },
+        {
+          "action_id": "action-1",
+          "action_type": "MOVE_TO_EVAC",
+          "intent_action": false,
+          "unstructured": "Move Casualty H to safety",
+          "character_id": "casualty_h",
+          "threat_state": null,
+          "parameters": {},
+          "justification": null,
+          "kdma_association": {
+            "PerceivedQuantityOfLivesSaved": 0.1
+          }
+        }
+      ]
+    },
+    "label": [
+      {},
+      {
+        "PerceivedQuantityOfLivesSaved": 0.9
+      },
+      {
+        "PerceivedQuantityOfLivesSaved": 0.1
+      }
+    ],
+    "output": {
+      "choice": 1,
+      "action": {
+        "action_id": "action-0",
+        "action_type": "MOVE_TO_EVAC",
+        "intent_action": false,
+        "unstructured": "Move Casualty G to safety",
+        "character_id": "casualty_g",
+        "threat_state": null,
+        "parameters": {
+          "aid_id": "delay-0"
+        },
+        "justification": "Looked at scores",
+        "kdma_association": {
+          "PerceivedQuantityOfLivesSaved": 0.9
+        }
+      }
+    }
+  },
+  {
+    "input": {
+      "scenario_id": "vol-dre-1-train",
+      "full_state": {
+        "unstructured": "You are part of a special operations tactical team tasked for extraction of hostages in enemy territory. Local support is unlikely, and the plan is for immediate extraction via Blackhawk. The hostages are being kept in a building guarded by 25 hostile narco-terrorists. Intel suggests the building may be wired with explosives, hostiles are threatening to kill the hostages in the next hour. You are notified of two additional rooms with casualties. One room with Casualty C and the other with Casualty P. Which casualty do you intend to treat first?",
+        "elapsed_time": 95,
+        "meta_info": {
+          "scene_id": "id-4",
+          "probe_response": {
+            "scenario_id": "vol-dre-1-train",
+            "probe_id": "4.4",
+            "choice": "choice-0",
+            "justification": "Looked at scores"
+          }
+        },
+        "scenario_complete": false,
+        "mission": {
+          "unstructured": "You are part of a special operations tactical team tasked for extraction of hostages in enemy territory. Local support is unlikely, and the plan is for immediate extraction via Blackhawk. The building has several small fires and is becoming increasingly less stable.",
+          "mission_type": "Hostage rescue",
+          "character_importance": [
+            {
+              "casualty_b": "normal"
+            },
+            {
+              "casualty_c": "normal"
+            },
+            {
+              "casualty_g": "normal"
+            },
+            {
+              "casualty_h": "normal"
+            },
+            {
+              "casualty_n": "normal"
+            },
+            {
+              "casualty_o": "normal"
+            },
+            {
+              "casualty_p": "normal"
+            },
+            {
+              "casualty_u": "normal"
+            },
+            {
+              "casualty_v": "normal"
+            },
+            {
+              "casualty_w": "normal"
+            },
+            {
+              "casualty_x": "normal"
+            },
+            {
+              "casualty_y": "normal"
+            }
+          ],
+          "civilian_presence": "none",
+          "communication_capability": "both",
+          "roe": "Medical Rules of Engagement are that for this mission the health of the hostages takes precedence",
+          "political_climate": "Hostile",
+          "medical_policies": [
+            "Treat Enemy LLE"
+          ]
+        },
+        "environment": {
+          "sim_environment": {
+            "unstructured": null,
+            "type": "urban",
+            "weather": "clear",
+            "terrain": "urban",
+            "flora": "none",
+            "fauna": "none",
+            "temperature": 90.0,
+            "humidity": 90.0,
+            "lighting": "normal",
+            "visibility": "good",
+            "noise_ambient": "normal",
+            "noise_peak": "noisy"
+          },
+          "decision_environment": {
+            "unstructured": "A Blackhawk is on standby for immediate evac",
+            "aid": [
+              {
+                "id": "delay-0",
+                "delay": 20.0,
+                "type": "unknown evac",
+                "role": null,
+                "patients_treated": null,
+                "max_transport": null
+              }
+            ],
+            "movement_restriction": "unrestricted",
+            "sound_restriction": "unrestricted",
+            "oxygen_levels": "normal",
+            "population_density": "none",
+            "injury_triggers": "fire",
+            "air_quality": "green",
+            "city_infrastructure": "TBD"
+          }
+        },
+        "threat_state": {
+          "unstructured": "A substantial threat caused by Unstable structure exists.",
+          "threats": [
+            {
+              "threat_type": "Unstable structure",
+              "severity": "substantial"
+            }
+          ]
+        },
+        "events": [],
+        "supplies": [
+          {
+            "type": "Burn Dressing",
+            "reusable": false,
+            "quantity": 2
+          },
+          {
+            "type": "Epi Pen",
+            "reusable": false,
+            "quantity": 1
+          },
+          {
+            "type": "Hemostatic gauze",
+            "reusable": false,
+            "quantity": 1
+          },
+          {
+            "type": "Pain Medications",
+            "reusable": false,
+            "quantity": 20
+          },
+          {
+            "type": "Pressure bandage",
+            "reusable": false,
+            "quantity": 1
+          },
+          {
+            "type": "Tourniquet",
+            "reusable": false,
+            "quantity": 3
+          },
+          {
+            "type": "Pulse Oximeter",
+            "reusable": true,
+            "quantity": 1
+          }
+        ],
+        "characters": [
+          {
+            "id": "casualty_c",
+            "name": "Casualty C",
+            "unstructured": "Has a 70% body surface area burn",
+            "unstructured_postassess": null,
+            "has_blanket": false,
+            "unseen": false,
+            "intent": null,
+            "directness_of_causality": null,
+            "rapport": "neutral",
+            "demographics": {
+              "age": 32,
+              "sex": "M",
+              "race": "Asian",
+              "military_disposition": "Allied",
+              "military_branch": null,
+              "rank": null,
+              "rank_title": null,
+              "skills": [],
+              "role": null,
+              "mission_importance": "normal"
+            },
+            "injuries": [
+              {
+                "name": "Burn",
+                "location": "right chest",
+                "severity": "extreme",
+                "status": "visible",
+                "source_character": null,
+                "treatments_required": null,
+                "treatments_applied": 0
+              },
+              {
+                "name": "Burn",
+                "location": "neck",
+                "severity": "extreme",
+                "status": "visible",
+                "source_character": null,
+                "treatments_required": null,
+                "treatments_applied": 0
+              }
+            ],
+            "vitals": {
+              "avpu": "VOICE",
+              "ambulatory": true,
+              "mental_status": "AGONY",
+              "breathing": "FAST",
+              "heart_rate": "FAST",
+              "spo2": "NORMAL"
+            },
+            "visited": true,
+            "tag": null
+          },
+          {
+            "id": "casualty_p",
+            "name": "Casualty P",
+            "unstructured": "Has a gunshot to the leg and a head injury",
+            "unstructured_postassess": null,
+            "has_blanket": false,
+            "unseen": false,
+            "intent": null,
+            "directness_of_causality": null,
+            "rapport": "neutral",
+            "demographics": {
+              "age": 32,
+              "sex": "M",
+              "race": "Asian",
+              "military_disposition": "Allied",
+              "military_branch": null,
+              "rank": null,
+              "rank_title": null,
+              "skills": [],
+              "role": null,
+              "mission_importance": "normal"
+            },
+            "injuries": [
+              {
+                "name": "Puncture",
+                "location": "right thigh",
+                "severity": "major",
+                "status": "visible",
+                "source_character": null,
+                "treatments_required": null,
+                "treatments_applied": 0
+              },
+              {
+                "name": "Traumatic Brain Injury",
+                "location": "head",
+                "severity": "moderate",
+                "status": "visible",
+                "source_character": null,
+                "treatments_required": null,
+                "treatments_applied": 0
+              }
+            ],
+            "vitals": {
+              "avpu": "ALERT",
+              "ambulatory": true,
+              "mental_status": "AGONY",
+              "breathing": "FAST",
+              "heart_rate": "FAST",
+              "spo2": "NORMAL"
+            },
+            "visited": true,
+            "tag": null
+          }
+        ]
+      },
+      "state": "You are part of a special operations tactical team tasked for extraction of hostages in enemy territory. Local support is unlikely, and the plan is for immediate extraction via Blackhawk. The hostages are being kept in a building guarded by 25 hostile narco-terrorists. Intel suggests the building may be wired with explosives, hostiles are threatening to kill the hostages in the next hour. You are notified of two additional rooms with casualties. One room with Casualty C and the other with Casualty P. Which casualty do you intend to treat first?",
+      "choices": [
+        {
+          "action_id": "action-0",
+          "action_type": "APPLY_TREATMENT",
+          "intent_action": true,
+          "unstructured": "Plan to treat Casualty C",
+          "character_id": "casualty_c",
+          "threat_state": null,
+          "parameters": {},
+          "justification": null,
+          "kdma_association": {
+            "PerceivedQuantityOfLivesSaved": 0.1
+          }
+        },
+        {
+          "action_id": "action-1",
+          "action_type": "APPLY_TREATMENT",
+          "intent_action": true,
+          "unstructured": "Plan to treat Casualty P",
+          "character_id": "casualty_p",
+          "threat_state": null,
+          "parameters": {},
+          "justification": null,
+          "kdma_association": {
+            "PerceivedQuantityOfLivesSaved": 0.9
+          }
+        }
+      ]
+    },
+    "label": [
+      {
+        "PerceivedQuantityOfLivesSaved": 0.1
+      },
+      {
+        "PerceivedQuantityOfLivesSaved": 0.9
+      }
+    ],
+    "output": {
+      "choice": 1,
+      "action": {
+        "action_id": "action-1",
+        "action_type": "APPLY_TREATMENT",
+        "intent_action": true,
+        "unstructured": "Plan to treat Casualty P",
+        "character_id": "casualty_p",
+        "threat_state": null,
+        "parameters": {
+          "treatment": "Pulse Oximeter",
+          "location": "head"
+        },
+        "justification": "Looked at scores",
+        "kdma_association": {
+          "PerceivedQuantityOfLivesSaved": 0.9
+        }
+      }
+    }
+  },
+  {
+    "input": {
+      "scenario_id": "vol-dre-1-train",
+      "full_state": {
+        "unstructured": "You are part of a special operations tactical team tasked for extraction of hostages in enemy territory. Local support is unlikely, and the plan is for immediate extraction via Blackhawk. The hostages are being kept in a building guarded by 25 hostile narco-terrorists. Intel suggests the building may be wired with explosives, hostiles are threatening to kill the hostages in the next hour. The fire blocks the path to Casualty P, and you are forced into the room with Casualty C in it. Casualty B is also in the room. What do you do?",
+        "elapsed_time": 95,
+        "meta_info": {
+          "scene_id": "id-5",
+          "probe_response": {
+            "scenario_id": "vol-dre-1-train",
+            "probe_id": "4.5",
+            "choice": "choice-1",
+            "justification": "Looked at scores"
+          }
+        },
+        "scenario_complete": false,
+        "mission": {
+          "unstructured": "You are part of a special operations tactical team tasked for extraction of hostages in enemy territory. Local support is unlikely, and the plan is for immediate extraction via Blackhawk. The building has several small fires and is becoming increasingly less stable.",
+          "mission_type": "Hostage rescue",
+          "character_importance": [
+            {
+              "casualty_b": "normal"
+            },
+            {
+              "casualty_c": "normal"
+            },
+            {
+              "casualty_g": "normal"
+            },
+            {
+              "casualty_h": "normal"
+            },
+            {
+              "casualty_n": "normal"
+            },
+            {
+              "casualty_o": "normal"
+            },
+            {
+              "casualty_p": "normal"
+            },
+            {
+              "casualty_u": "normal"
+            },
+            {
+              "casualty_v": "normal"
+            },
+            {
+              "casualty_w": "normal"
+            },
+            {
+              "casualty_x": "normal"
+            },
+            {
+              "casualty_y": "normal"
+            }
+          ],
+          "civilian_presence": "none",
+          "communication_capability": "both",
+          "roe": "Medical Rules of Engagement are that for this mission the health of the hostages takes precedence",
+          "political_climate": "Hostile",
+          "medical_policies": [
+            "Treat Enemy LLE"
+          ]
+        },
+        "environment": {
+          "sim_environment": {
+            "unstructured": null,
+            "type": "urban",
+            "weather": "clear",
+            "terrain": "urban",
+            "flora": "none",
+            "fauna": "none",
+            "temperature": 90.0,
+            "humidity": 90.0,
+            "lighting": "normal",
+            "visibility": "good",
+            "noise_ambient": "normal",
+            "noise_peak": "noisy"
+          },
+          "decision_environment": {
+            "unstructured": "A Blackhawk is on standby for immediate evac",
+            "aid": [
+              {
+                "id": "delay-0",
+                "delay": 20.0,
+                "type": "unknown evac",
+                "role": null,
+                "patients_treated": null,
+                "max_transport": null
+              }
+            ],
+            "movement_restriction": "unrestricted",
+            "sound_restriction": "unrestricted",
+            "oxygen_levels": "normal",
+            "population_density": "none",
+            "injury_triggers": "fire",
+            "air_quality": "green",
+            "city_infrastructure": "TBD"
+          }
+        },
+        "threat_state": {
+          "unstructured": "A substantial threat caused by Unstable structure exists.",
+          "threats": [
+            {
+              "threat_type": "Unstable structure",
+              "severity": "substantial"
+            }
+          ]
+        },
+        "events": [],
+        "supplies": [
+          {
+            "type": "Burn Dressing",
+            "reusable": false,
+            "quantity": 1
+          },
+          {
+            "type": "Epi Pen",
+            "reusable": false,
+            "quantity": 1
+          },
+          {
+            "type": "Hemostatic gauze",
+            "reusable": false,
+            "quantity": 2
+          },
+          {
+            "type": "Pain Medications",
+            "reusable": false,
+            "quantity": 20
+          },
+          {
+            "type": "Pressure bandage",
+            "reusable": false,
+            "quantity": 2
+          },
+          {
+            "type": "Tourniquet",
+            "reusable": false,
+            "quantity": 3
+          },
+          {
+            "type": "Pulse Oximeter",
+            "reusable": true,
+            "quantity": 1
+          }
+        ],
+        "characters": [
+          {
+            "id": "casualty_b",
+            "name": "Casualty B",
+            "unstructured": "Has a 50% body surface area burn and a head injury",
+            "unstructured_postassess": null,
+            "has_blanket": false,
+            "unseen": false,
+            "intent": null,
+            "directness_of_causality": null,
+            "rapport": "neutral",
+            "demographics": {
+              "age": 32,
+              "sex": "M",
+              "race": "Asian",
+              "military_disposition": "Allied",
+              "military_branch": null,
+              "rank": null,
+              "rank_title": null,
+              "skills": [],
+              "role": null,
+              "mission_importance": "normal"
+            },
+            "injuries": [
+              {
+                "name": "Burn",
+                "location": "right chest",
+                "severity": "extreme",
+                "status": "visible",
+                "source_character": null,
+                "treatments_required": null,
+                "treatments_applied": 0
+              },
+              {
+                "name": "Traumatic Brain Injury",
+                "location": "head",
+                "severity": "moderate",
+                "status": "visible",
+                "source_character": null,
+                "treatments_required": null,
+                "treatments_applied": 0
+              }
+            ],
+            "vitals": {
+              "avpu": "VOICE",
+              "ambulatory": true,
+              "mental_status": "AGONY",
+              "breathing": "FAST",
+              "heart_rate": "FAST",
+              "spo2": "NORMAL"
+            },
+            "visited": true,
+            "tag": null
+          },
+          {
+            "id": "casualty_c",
+            "name": "Casualty C",
+            "unstructured": "Has a 70% body surface area burn",
+            "unstructured_postassess": null,
+            "has_blanket": false,
+            "unseen": false,
+            "intent": null,
+            "directness_of_causality": null,
+            "rapport": "neutral",
+            "demographics": {
+              "age": 32,
+              "sex": "M",
+              "race": "Asian",
+              "military_disposition": "Allied",
+              "military_branch": null,
+              "rank": null,
+              "rank_title": null,
+              "skills": [],
+              "role": null,
+              "mission_importance": "normal"
+            },
+            "injuries": [
+              {
+                "name": "Burn",
+                "location": "right chest",
+                "severity": "extreme",
+                "status": "visible",
+                "source_character": null,
+                "treatments_required": null,
+                "treatments_applied": 0
+              },
+              {
+                "name": "Burn",
+                "location": "neck",
+                "severity": "extreme",
+                "status": "visible",
+                "source_character": null,
+                "treatments_required": null,
+                "treatments_applied": 0
+              }
+            ],
+            "vitals": {
+              "avpu": "VOICE",
+              "ambulatory": true,
+              "mental_status": "AGONY",
+              "breathing": "FAST",
+              "heart_rate": "FAST",
+              "spo2": "NORMAL"
+            },
+            "visited": true,
+            "tag": null
+          }
+        ]
+      },
+      "state": "You are part of a special operations tactical team tasked for extraction of hostages in enemy territory. Local support is unlikely, and the plan is for immediate extraction via Blackhawk. The hostages are being kept in a building guarded by 25 hostile narco-terrorists. Intel suggests the building may be wired with explosives, hostiles are threatening to kill the hostages in the next hour. The fire blocks the path to Casualty P, and you are forced into the room with Casualty C in it. Casualty B is also in the room. What do you do?",
+      "choices": [
+        {
+          "action_id": "action-0",
+          "action_type": "APPLY_TREATMENT",
+          "intent_action": false,
+          "unstructured": "Treat Casualty C with burn dressing",
+          "character_id": "casualty_c",
+          "threat_state": null,
+          "parameters": {
+            "treatment": "Burn Dressing"
+          },
+          "justification": null,
+          "kdma_association": {
+            "PerceivedQuantityOfLivesSaved": 0.1
+          }
+        },
+        {
+          "action_id": "action-1",
+          "action_type": "APPLY_TREATMENT",
+          "intent_action": false,
+          "unstructured": "Treat Casualty B with burn dressing",
+          "character_id": "casualty_b",
+          "threat_state": null,
+          "parameters": {
+            "treatment": "Burn Dressing"
+          },
+          "justification": null,
+          "kdma_association": {
+            "PerceivedQuantityOfLivesSaved": 0.9
+          }
+        },
+        {
+          "action_id": "tag_character",
+          "action_type": "TAG_CHARACTER",
+          "intent_action": false,
+          "unstructured": "TAG CHARACTER",
+          "character_id": null,
+          "threat_state": null,
+          "parameters": null,
+          "justification": null,
+          "kdma_association": null
+        }
+      ]
+    },
+    "label": [
+      {
+        "PerceivedQuantityOfLivesSaved": 0.1
+      },
+      {
+        "PerceivedQuantityOfLivesSaved": 0.9
+      },
+      {}
+    ],
+    "output": {
+      "choice": 1,
+      "action": {
+        "action_id": "action-1",
+        "action_type": "APPLY_TREATMENT",
+        "intent_action": false,
+        "unstructured": "Treat Casualty B with burn dressing",
+        "character_id": "casualty_b",
+        "threat_state": null,
+        "parameters": {
+          "treatment": "Burn Dressing",
+          "location": "right chest"
+        },
+        "justification": "Looked at scores",
+        "kdma_association": {
+          "PerceivedQuantityOfLivesSaved": 0.9
+        }
+      }
+    }
+  },
+  {
+    "input": {
+      "scenario_id": "vol-dre-1-train",
+      "full_state": {
+        "unstructured": "You are part of a special operations tactical team tasked for extraction of hostages in enemy territory. Local support is unlikely, and the plan is for immediate extraction via Blackhawk. The hostages are being kept in a building guarded by 25 hostile narco-terrorists. Intel suggests the building may be wired with explosives, hostiles are threatening to kill the hostages in the next hour. You are able to find another way to Casualty P, where you find a second casualty, Casualty V. What do you do?",
+        "elapsed_time": 135,
+        "meta_info": {
+          "scene_id": "id-6",
+          "probe_response": {
+            "scenario_id": "vol-dre-1-train",
+            "probe_id": "4.6",
+            "choice": "choice-1",
+            "justification": "Looked at scores"
+          }
+        },
+        "scenario_complete": false,
+        "mission": {
+          "unstructured": "You are part of a special operations tactical team tasked for extraction of hostages in enemy territory. Local support is unlikely, and the plan is for immediate extraction via Blackhawk. The building has several small fires and is becoming increasingly less stable.",
+          "mission_type": "Hostage rescue",
+          "character_importance": [
+            {
+              "casualty_b": "normal"
+            },
+            {
+              "casualty_c": "normal"
+            },
+            {
+              "casualty_g": "normal"
+            },
+            {
+              "casualty_h": "normal"
+            },
+            {
+              "casualty_n": "normal"
+            },
+            {
+              "casualty_o": "normal"
+            },
+            {
+              "casualty_p": "normal"
+            },
+            {
+              "casualty_u": "normal"
+            },
+            {
+              "casualty_v": "normal"
+            },
+            {
+              "casualty_w": "normal"
+            },
+            {
+              "casualty_x": "normal"
+            },
+            {
+              "casualty_y": "normal"
+            }
+          ],
+          "civilian_presence": "none",
+          "communication_capability": "both",
+          "roe": "Medical Rules of Engagement are that for this mission the health of the hostages takes precedence",
+          "political_climate": "Hostile",
+          "medical_policies": [
+            "Treat Enemy LLE"
+          ]
+        },
+        "environment": {
+          "sim_environment": {
+            "unstructured": null,
+            "type": "urban",
+            "weather": "clear",
+            "terrain": "urban",
+            "flora": "none",
+            "fauna": "none",
+            "temperature": 90.0,
+            "humidity": 90.0,
+            "lighting": "normal",
+            "visibility": "good",
+            "noise_ambient": "normal",
+            "noise_peak": "noisy"
+          },
+          "decision_environment": {
+            "unstructured": "A Blackhawk is on standby for immediate evac",
+            "aid": [
+              {
+                "id": "delay-0",
+                "delay": 20.0,
+                "type": "unknown evac",
+                "role": null,
+                "patients_treated": null,
+                "max_transport": null
+              }
+            ],
+            "movement_restriction": "unrestricted",
+            "sound_restriction": "unrestricted",
+            "oxygen_levels": "normal",
+            "population_density": "none",
+            "injury_triggers": "fire",
+            "air_quality": "green",
+            "city_infrastructure": "TBD"
+          }
+        },
+        "threat_state": {
+          "unstructured": "A substantial threat caused by Unstable structure exists.",
+          "threats": [
+            {
+              "threat_type": "Unstable structure",
+              "severity": "substantial"
+            }
+          ]
+        },
+        "events": [],
+        "supplies": [
+          {
+            "type": "Burn Dressing",
+            "reusable": false,
+            "quantity": 2
+          },
+          {
+            "type": "Epi Pen",
+            "reusable": false,
+            "quantity": 1
+          },
+          {
+            "type": "Hemostatic gauze",
+            "reusable": false,
+            "quantity": 2
+          },
+          {
+            "type": "Pain Medications",
+            "reusable": false,
+            "quantity": 20
+          },
+          {
+            "type": "Pressure bandage",
+            "reusable": false,
+            "quantity": 2
+          },
+          {
+            "type": "Tourniquet",
+            "reusable": false,
+            "quantity": 1
+          },
+          {
+            "type": "Pulse Oximeter",
+            "reusable": true,
+            "quantity": 1
+          }
+        ],
+        "characters": [
+          {
+            "id": "casualty_p",
+            "name": "Casualty P",
+            "unstructured": "Has a gunshot to the leg and a head injury",
+            "unstructured_postassess": null,
+            "has_blanket": false,
+            "unseen": false,
+            "intent": null,
+            "directness_of_causality": null,
+            "rapport": "neutral",
+            "demographics": {
+              "age": 32,
+              "sex": "M",
+              "race": "Asian",
+              "military_disposition": "Allied",
+              "military_branch": null,
+              "rank": null,
+              "rank_title": null,
+              "skills": [],
+              "role": null,
+              "mission_importance": "normal"
+            },
+            "injuries": [
+              {
+                "name": "Puncture",
+                "location": "right thigh",
+                "severity": "major",
+                "status": "visible",
+                "source_character": null,
+                "treatments_required": null,
+                "treatments_applied": 0
+              },
+              {
+                "name": "Traumatic Brain Injury",
+                "location": "head",
+                "severity": "moderate",
+                "status": "visible",
+                "source_character": null,
+                "treatments_required": null,
+                "treatments_applied": 0
+              }
+            ],
+            "vitals": {
+              "avpu": "ALERT",
+              "ambulatory": true,
+              "mental_status": "AGONY",
+              "breathing": "FAST",
+              "heart_rate": "FAST",
+              "spo2": "NORMAL"
+            },
+            "visited": true,
+            "tag": null
+          },
+          {
+            "id": "casualty_v",
+            "name": "Casualty V",
+            "unstructured": "Has an amputation of the leg and a head injury",
+            "unstructured_postassess": null,
+            "has_blanket": false,
+            "unseen": false,
+            "intent": null,
+            "directness_of_causality": null,
+            "rapport": "neutral",
+            "demographics": {
+              "age": 32,
+              "sex": "M",
+              "race": "Asian",
+              "military_disposition": "Allied",
+              "military_branch": null,
+              "rank": null,
+              "rank_title": null,
+              "skills": [],
+              "role": null,
+              "mission_importance": "normal"
+            },
+            "injuries": [
+              {
+                "name": "Amputation",
+                "location": "right thigh",
+                "severity": "extreme",
+                "status": "visible",
+                "source_character": null,
+                "treatments_required": null,
+                "treatments_applied": 0
+              },
+              {
+                "name": "Traumatic Brain Injury",
+                "location": "head",
+                "severity": "moderate",
+                "status": "visible",
+                "source_character": null,
+                "treatments_required": null,
+                "treatments_applied": 0
+              }
+            ],
+            "vitals": {
+              "avpu": "ALERT",
+              "ambulatory": false,
+              "mental_status": "AGONY",
+              "breathing": "FAST",
+              "heart_rate": "FAST",
+              "spo2": "NORMAL"
+            },
+            "visited": true,
+            "tag": null
+          }
+        ]
+      },
+      "state": "You are part of a special operations tactical team tasked for extraction of hostages in enemy territory. Local support is unlikely, and the plan is for immediate extraction via Blackhawk. The hostages are being kept in a building guarded by 25 hostile narco-terrorists. Intel suggests the building may be wired with explosives, hostiles are threatening to kill the hostages in the next hour. You are able to find another way to Casualty P, where you find a second casualty, Casualty V. What do you do?",
+      "choices": [
+        {
+          "action_id": "tag_character",
+          "action_type": "TAG_CHARACTER",
+          "intent_action": false,
+          "unstructured": "TAG CHARACTER",
+          "character_id": null,
+          "threat_state": null,
+          "parameters": null,
+          "justification": null,
+          "kdma_association": null
+        },
+        {
+          "action_id": "action-0",
+          "action_type": "APPLY_TREATMENT",
+          "intent_action": false,
+          "unstructured": "Treat Casualty V with tourniquet",
+          "character_id": "casualty_v",
+          "threat_state": null,
+          "parameters": {
+            "treatment": "Tourniquet"
+          },
+          "justification": null,
+          "kdma_association": {
+            "PerceivedQuantityOfLivesSaved": 0.3
+          }
+        },
+        {
+          "action_id": "action-2",
+          "action_type": "END_SCENE",
+          "intent_action": false,
+          "unstructured": "Save your last tourniquet",
+          "character_id": null,
+          "threat_state": null,
+          "parameters": {},
+          "justification": null,
+          "kdma_association": {
+            "PerceivedQuantityOfLivesSaved": 0.1
+          }
+        },
+        {
+          "action_id": "action-1",
+          "action_type": "APPLY_TREATMENT",
+          "intent_action": false,
+          "unstructured": "Treat Casualty P with tourniquet",
+          "character_id": "casualty_p",
+          "threat_state": null,
+          "parameters": {
+            "treatment": "Tourniquet"
+          },
+          "justification": null,
+          "kdma_association": {
+            "PerceivedQuantityOfLivesSaved": 0.9
+          }
+        }
+      ]
+    },
+    "label": [
+      {},
+      {
+        "PerceivedQuantityOfLivesSaved": 0.3
+      },
+      {
+        "PerceivedQuantityOfLivesSaved": 0.1
+      },
+      {
+        "PerceivedQuantityOfLivesSaved": 0.9
+      }
+    ],
+    "output": {
+      "choice": 3,
+      "action": {
+        "action_id": "action-1",
+        "action_type": "APPLY_TREATMENT",
+        "intent_action": false,
+        "unstructured": "Treat Casualty P with tourniquet",
+        "character_id": "casualty_p",
+        "threat_state": null,
+        "parameters": {
+          "treatment": "Tourniquet",
+          "location": "right thigh"
+        },
+        "justification": "Looked at scores",
+        "kdma_association": {
+          "PerceivedQuantityOfLivesSaved": 0.9
+        }
+      }
+    }
+  },
+  {
+    "input": {
+      "scenario_id": "vol-dre-1-train",
+      "full_state": {
+        "unstructured": "You are part of a special operations tactical team tasked for extraction of hostages in enemy territory. Local support is unlikely, and the plan is for immediate extraction via Blackhawk. The hostages are being kept in a building guarded by 25 hostile narco-terrorists. Intel suggests the building may be wired with explosives, hostiles are threatening to kill the hostages in the next hour. Both casualties are unable to move without assistance and the room is filling with smoke. You can only assist one casualty. Who do you help move to safety?",
+        "elapsed_time": 195,
+        "meta_info": {
+          "scene_id": "id-7",
+          "probe_response": {
+            "scenario_id": "vol-dre-1-train",
+            "probe_id": "4.7",
+            "choice": "choice-1",
+            "justification": "Looked at scores"
+          }
+        },
+        "scenario_complete": false,
+        "mission": {
+          "unstructured": "You are part of a special operations tactical team tasked for extraction of hostages in enemy territory. Local support is unlikely, and the plan is for immediate extraction via Blackhawk. The building has several small fires and is becoming increasingly less stable.",
+          "mission_type": "Hostage rescue",
+          "character_importance": [
+            {
+              "casualty_b": "normal"
+            },
+            {
+              "casualty_c": "normal"
+            },
+            {
+              "casualty_g": "normal"
+            },
+            {
+              "casualty_h": "normal"
+            },
+            {
+              "casualty_n": "normal"
+            },
+            {
+              "casualty_o": "normal"
+            },
+            {
+              "casualty_p": "normal"
+            },
+            {
+              "casualty_u": "normal"
+            },
+            {
+              "casualty_v": "normal"
+            },
+            {
+              "casualty_w": "normal"
+            },
+            {
+              "casualty_x": "normal"
+            },
+            {
+              "casualty_y": "normal"
+            }
+          ],
+          "civilian_presence": "none",
+          "communication_capability": "both",
+          "roe": "Medical Rules of Engagement are that for this mission the health of the hostages takes precedence",
+          "political_climate": "Hostile",
+          "medical_policies": [
+            "Treat Enemy LLE"
+          ]
+        },
+        "environment": {
+          "sim_environment": {
+            "unstructured": null,
+            "type": "urban",
+            "weather": "clear",
+            "terrain": "urban",
+            "flora": "none",
+            "fauna": "none",
+            "temperature": 90.0,
+            "humidity": 90.0,
+            "lighting": "normal",
+            "visibility": "good",
+            "noise_ambient": "normal",
+            "noise_peak": "noisy"
+          },
+          "decision_environment": {
+            "unstructured": "A Blackhawk is on standby for immediate evac",
+            "aid": [
+              {
+                "id": "delay-0",
+                "delay": 20.0,
+                "type": "unknown evac",
+                "role": null,
+                "patients_treated": null,
+                "max_transport": null
+              }
+            ],
+            "movement_restriction": "unrestricted",
+            "sound_restriction": "unrestricted",
+            "oxygen_levels": "normal",
+            "population_density": "none",
+            "injury_triggers": "fire",
+            "air_quality": "green",
+            "city_infrastructure": "TBD"
+          }
+        },
+        "threat_state": {
+          "unstructured": "A substantial threat caused by Fire exists.",
+          "threats": [
+            {
+              "threat_type": "Fire",
+              "severity": "substantial"
+            }
+          ]
+        },
+        "events": [],
+        "supplies": [
+          {
+            "type": "Burn Dressing",
+            "reusable": false,
+            "quantity": 2
+          },
+          {
+            "type": "Epi Pen",
+            "reusable": false,
+            "quantity": 1
+          },
+          {
+            "type": "Hemostatic gauze",
+            "reusable": false,
+            "quantity": 2
+          },
+          {
+            "type": "Pain Medications",
+            "reusable": false,
+            "quantity": 20
+          },
+          {
+            "type": "Pressure bandage",
+            "reusable": false,
+            "quantity": 2
+          },
+          {
+            "type": "Tourniquet",
+            "reusable": false,
+            "quantity": 3
+          },
+          {
+            "type": "Pulse Oximeter",
+            "reusable": true,
+            "quantity": 1
+          }
+        ],
+        "characters": [
+          {
+            "id": "casualty_p",
+            "name": "Casualty P",
+            "unstructured": "Has a gunshot to the leg and a head injury",
+            "unstructured_postassess": null,
+            "has_blanket": false,
+            "unseen": false,
+            "intent": null,
+            "directness_of_causality": null,
+            "rapport": "neutral",
+            "demographics": {
+              "age": 32,
+              "sex": "M",
+              "race": "Asian",
+              "military_disposition": "Allied",
+              "military_branch": null,
+              "rank": null,
+              "rank_title": null,
+              "skills": [],
+              "role": null,
+              "mission_importance": "normal"
+            },
+            "injuries": [
+              {
+                "name": "Puncture",
+                "location": "right thigh",
+                "severity": "major",
+                "status": "visible",
+                "source_character": null,
+                "treatments_required": null,
+                "treatments_applied": 0
+              },
+              {
+                "name": "Traumatic Brain Injury",
+                "location": "head",
+                "severity": "moderate",
+                "status": "visible",
+                "source_character": null,
+                "treatments_required": null,
+                "treatments_applied": 0
+              }
+            ],
+            "vitals": {
+              "avpu": "ALERT",
+              "ambulatory": true,
+              "mental_status": "AGONY",
+              "breathing": "FAST",
+              "heart_rate": "FAST",
+              "spo2": "NORMAL"
+            },
+            "visited": true,
+            "tag": null
+          },
+          {
+            "id": "casualty_v",
+            "name": "Casualty V",
+            "unstructured": "Has an amputation of the leg and a head injury",
+            "unstructured_postassess": null,
+            "has_blanket": false,
+            "unseen": false,
+            "intent": null,
+            "directness_of_causality": null,
+            "rapport": "neutral",
+            "demographics": {
+              "age": 32,
+              "sex": "M",
+              "race": "Asian",
+              "military_disposition": "Allied",
+              "military_branch": null,
+              "rank": null,
+              "rank_title": null,
+              "skills": [],
+              "role": null,
+              "mission_importance": "normal"
+            },
+            "injuries": [
+              {
+                "name": "Amputation",
+                "location": "right thigh",
+                "severity": "extreme",
+                "status": "visible",
+                "source_character": null,
+                "treatments_required": null,
+                "treatments_applied": 0
+              },
+              {
+                "name": "Traumatic Brain Injury",
+                "location": "head",
+                "severity": "moderate",
+                "status": "visible",
+                "source_character": null,
+                "treatments_required": null,
+                "treatments_applied": 0
+              }
+            ],
+            "vitals": {
+              "avpu": "ALERT",
+              "ambulatory": false,
+              "mental_status": "AGONY",
+              "breathing": "FAST",
+              "heart_rate": "FAST",
+              "spo2": "NORMAL"
+            },
+            "visited": true,
+            "tag": null
+          }
+        ]
+      },
+      "state": "You are part of a special operations tactical team tasked for extraction of hostages in enemy territory. Local support is unlikely, and the plan is for immediate extraction via Blackhawk. The hostages are being kept in a building guarded by 25 hostile narco-terrorists. Intel suggests the building may be wired with explosives, hostiles are threatening to kill the hostages in the next hour. Both casualties are unable to move without assistance and the room is filling with smoke. You can only assist one casualty. Who do you help move to safety?",
+      "choices": [
+        {
+          "action_id": "action-1",
+          "action_type": "MOVE_TO_EVAC",
+          "intent_action": false,
+          "unstructured": "Move Casualty V to safety",
+          "character_id": "casualty_v",
+          "threat_state": null,
+          "parameters": {},
+          "justification": null,
+          "kdma_association": {
+            "PerceivedQuantityOfLivesSaved": 0.1
+          }
+        },
+        {
+          "action_id": "tag_character",
+          "action_type": "TAG_CHARACTER",
+          "intent_action": false,
+          "unstructured": "TAG CHARACTER",
+          "character_id": null,
+          "threat_state": null,
+          "parameters": null,
+          "justification": null,
+          "kdma_association": null
+        },
+        {
+          "action_id": "action-0",
+          "action_type": "MOVE_TO_EVAC",
+          "intent_action": false,
+          "unstructured": "Move Casualty P to safety",
+          "character_id": "casualty_p",
+          "threat_state": null,
+          "parameters": {},
+          "justification": null,
+          "kdma_association": {
+            "PerceivedQuantityOfLivesSaved": 0.9
+          }
+        }
+      ]
+    },
+    "label": [
+      {
+        "PerceivedQuantityOfLivesSaved": 0.1
+      },
+      {},
+      {
+        "PerceivedQuantityOfLivesSaved": 0.9
+      }
+    ],
+    "output": {
+      "choice": 2,
+      "action": {
+        "action_id": "action-0",
+        "action_type": "MOVE_TO_EVAC",
+        "intent_action": false,
+        "unstructured": "Move Casualty P to safety",
+        "character_id": "casualty_p",
+        "threat_state": null,
+        "parameters": {
+          "aid_id": "delay-0"
+        },
+        "justification": "Looked at scores",
+        "kdma_association": {
+          "PerceivedQuantityOfLivesSaved": 0.9
+        }
+      }
+    }
+  },
+  {
+    "input": {
+      "scenario_id": "vol-dre-1-train",
+      "full_state": {
+        "unstructured": "You are part of a special operations tactical team tasked for extraction of hostages in enemy territory. Local support is unlikely, and the plan is for immediate extraction via Blackhawk. The hostages are being kept in a building guarded by 25 hostile narco-terrorists. Intel suggests the building may be wired with explosives, hostiles are threatening to kill the hostages in the next hour. You are notified of two additional casualties.  Casualty O has a puncture wound with severe bleeding and Casualty U is unresponsive. Who do you intend to treat first?",
+        "elapsed_time": 200,
+        "meta_info": {
+          "scene_id": "id-8",
+          "probe_response": {
+            "scenario_id": "vol-dre-1-train",
+            "probe_id": "4.8",
+            "choice": "choice-0",
+            "justification": "Looked at scores"
+          }
+        },
+        "scenario_complete": false,
+        "mission": {
+          "unstructured": "You are part of a special operations tactical team tasked for extraction of hostages in enemy territory. Local support is unlikely, and the plan is for immediate extraction via Blackhawk. The building has several small fires and is becoming increasingly less stable.",
+          "mission_type": "Hostage rescue",
+          "character_importance": [
+            {
+              "casualty_b": "normal"
+            },
+            {
+              "casualty_c": "normal"
+            },
+            {
+              "casualty_g": "normal"
+            },
+            {
+              "casualty_h": "normal"
+            },
+            {
+              "casualty_n": "normal"
+            },
+            {
+              "casualty_o": "normal"
+            },
+            {
+              "casualty_p": "normal"
+            },
+            {
+              "casualty_u": "normal"
+            },
+            {
+              "casualty_v": "normal"
+            },
+            {
+              "casualty_w": "normal"
+            },
+            {
+              "casualty_x": "normal"
+            },
+            {
+              "casualty_y": "normal"
+            }
+          ],
+          "civilian_presence": "none",
+          "communication_capability": "both",
+          "roe": "Medical Rules of Engagement are that for this mission the health of the hostages takes precedence",
+          "political_climate": "Hostile",
+          "medical_policies": [
+            "Treat Enemy LLE"
+          ]
+        },
+        "environment": {
+          "sim_environment": {
+            "unstructured": null,
+            "type": "urban",
+            "weather": "clear",
+            "terrain": "urban",
+            "flora": "none",
+            "fauna": "none",
+            "temperature": 90.0,
+            "humidity": 90.0,
+            "lighting": "normal",
+            "visibility": "good",
+            "noise_ambient": "normal",
+            "noise_peak": "noisy"
+          },
+          "decision_environment": {
+            "unstructured": "A Blackhawk is on standby for immediate evac",
+            "aid": [
+              {
+                "id": "delay-0",
+                "delay": 20.0,
+                "type": "unknown evac",
+                "role": null,
+                "patients_treated": null,
+                "max_transport": null
+              }
+            ],
+            "movement_restriction": "unrestricted",
+            "sound_restriction": "unrestricted",
+            "oxygen_levels": "normal",
+            "population_density": "none",
+            "injury_triggers": "fire",
+            "air_quality": "green",
+            "city_infrastructure": "TBD"
+          }
+        },
+        "threat_state": {
+          "unstructured": "A substantial threat caused by Fire exists.",
+          "threats": [
+            {
+              "threat_type": "Fire",
+              "severity": "substantial"
+            }
+          ]
+        },
+        "events": [],
+        "supplies": [
+          {
+            "type": "Burn Dressing",
+            "reusable": false,
+            "quantity": 2
+          },
+          {
+            "type": "Epi Pen",
+            "reusable": false,
+            "quantity": 1
+          },
+          {
+            "type": "Hemostatic gauze",
+            "reusable": false,
+            "quantity": 2
+          },
+          {
+            "type": "Pain Medications",
+            "reusable": false,
+            "quantity": 20
+          },
+          {
+            "type": "Pressure bandage",
+            "reusable": false,
+            "quantity": 2
+          },
+          {
+            "type": "Tourniquet",
+            "reusable": false,
+            "quantity": 3
+          },
+          {
+            "type": "Pulse Oximeter",
+            "reusable": true,
+            "quantity": 1
+          }
+        ],
+        "characters": [
+          {
+            "id": "casualty_o",
+            "name": "Casualty O",
+            "unstructured": "Has a puncture wound to the arm with severe bleeding",
+            "unstructured_postassess": null,
+            "has_blanket": false,
+            "unseen": false,
+            "intent": null,
+            "directness_of_causality": null,
+            "rapport": "neutral",
+            "demographics": {
+              "age": 33,
+              "sex": "F",
+              "race": "White",
+              "military_disposition": "Allied US",
+              "military_branch": "US Marine Corps",
+              "rank": "E-4",
+              "rank_title": "Corporal",
+              "skills": [],
+              "role": null,
+              "mission_importance": "normal"
+            },
+            "injuries": [
+              {
+                "name": "Puncture",
+                "location": "right shoulder",
+                "severity": "major",
+                "status": "visible",
+                "source_character": null,
+                "treatments_required": null,
+                "treatments_applied": 0
+              }
+            ],
+            "vitals": {
+              "avpu": "ALERT",
+              "ambulatory": true,
+              "mental_status": "AGONY",
+              "breathing": "FAST",
+              "heart_rate": "FAST",
+              "spo2": "NORMAL"
+            },
+            "visited": true,
+            "tag": null
+          },
+          {
+            "id": "casualty_u",
+            "name": "Casualty U",
+            "unstructured": "Has a head injury with periorbital ecchymosis",
+            "unstructured_postassess": null,
+            "has_blanket": false,
+            "unseen": false,
+            "intent": null,
+            "directness_of_causality": null,
+            "rapport": "neutral",
+            "demographics": {
+              "age": 33,
+              "sex": "F",
+              "race": "White",
+              "military_disposition": "Allied US",
+              "military_branch": "US Marine Corps",
+              "rank": "E-4",
+              "rank_title": "Corporal",
+              "skills": [],
+              "role": null,
+              "mission_importance": "normal"
+            },
+            "injuries": [
+              {
+                "name": "Traumatic Brain Injury",
+                "location": "head",
+                "severity": "extreme",
+                "status": "visible",
+                "source_character": null,
+                "treatments_required": null,
+                "treatments_applied": 0
+              }
+            ],
+            "vitals": {
+              "avpu": "UNRESPONSIVE",
+              "ambulatory": false,
+              "mental_status": "UNRESPONSIVE",
+              "breathing": "NONE",
+              "heart_rate": "FAST",
+              "spo2": "NORMAL"
+            },
+            "visited": true,
+            "tag": null
+          }
+        ]
+      },
+      "state": "You are part of a special operations tactical team tasked for extraction of hostages in enemy territory. Local support is unlikely, and the plan is for immediate extraction via Blackhawk. The hostages are being kept in a building guarded by 25 hostile narco-terrorists. Intel suggests the building may be wired with explosives, hostiles are threatening to kill the hostages in the next hour. You are notified of two additional casualties.  Casualty O has a puncture wound with severe bleeding and Casualty U is unresponsive. Who do you intend to treat first?",
+      "choices": [
+        {
+          "action_id": "action-1",
+          "action_type": "APPLY_TREATMENT",
+          "intent_action": true,
+          "unstructured": "Plan to treat Casualty U",
+          "character_id": "casualty_u",
+          "threat_state": null,
+          "parameters": {},
+          "justification": null,
+          "kdma_association": {
+            "PerceivedQuantityOfLivesSaved": 0.1
+          }
+        },
+        {
+          "action_id": "action-0",
+          "action_type": "APPLY_TREATMENT",
+          "intent_action": true,
+          "unstructured": "Plan to treat Casualty O",
+          "character_id": "casualty_o",
+          "threat_state": null,
+          "parameters": {},
+          "justification": null,
+          "kdma_association": {
+            "PerceivedQuantityOfLivesSaved": 0.9
+          }
+        }
+      ]
+    },
+    "label": [
+      {
+        "PerceivedQuantityOfLivesSaved": 0.1
+      },
+      {
+        "PerceivedQuantityOfLivesSaved": 0.9
+      }
+    ],
+    "output": {
+      "choice": 1,
+      "action": {
+        "action_id": "action-0",
+        "action_type": "APPLY_TREATMENT",
+        "intent_action": true,
+        "unstructured": "Plan to treat Casualty O",
+        "character_id": "casualty_o",
+        "threat_state": null,
+        "parameters": {
+          "treatment": "Hemostatic gauze",
+          "location": "right shoulder"
+        },
+        "justification": "Looked at scores",
+        "kdma_association": {
+          "PerceivedQuantityOfLivesSaved": 0.9
+        }
+      }
+    }
+  },
+  {
+    "input": {
+      "scenario_id": "vol-dre-1-train",
+      "full_state": {
+        "unstructured": "You are part of a special operations tactical team tasked for extraction of hostages in enemy territory. Local support is unlikely, and the plan is for immediate extraction via Blackhawk. The hostages are being kept in a building guarded by 25 hostile narco-terrorists. Intel suggests the building may be wired with explosives, hostiles are threatening to kill the hostages in the next hour. Due to the close proximity you move to Casualty O next, where you also find Casualty N who is unresponsive. Who do you treat first?",
+        "elapsed_time": 200,
+        "meta_info": {
+          "scene_id": "id-9",
+          "probe_response": {
+            "scenario_id": "vol-dre-1-train",
+            "probe_id": "4.9",
+            "choice": "choice-0",
+            "justification": "Looked at scores"
+          }
+        },
+        "scenario_complete": false,
+        "mission": {
+          "unstructured": "You are part of a special operations tactical team tasked for extraction of hostages in enemy territory. Local support is unlikely, and the plan is for immediate extraction via Blackhawk. The building has several small fires and is becoming increasingly less stable.",
+          "mission_type": "Hostage rescue",
+          "character_importance": [
+            {
+              "casualty_b": "normal"
+            },
+            {
+              "casualty_c": "normal"
+            },
+            {
+              "casualty_g": "normal"
+            },
+            {
+              "casualty_h": "normal"
+            },
+            {
+              "casualty_n": "normal"
+            },
+            {
+              "casualty_o": "normal"
+            },
+            {
+              "casualty_p": "normal"
+            },
+            {
+              "casualty_u": "normal"
+            },
+            {
+              "casualty_v": "normal"
+            },
+            {
+              "casualty_w": "normal"
+            },
+            {
+              "casualty_x": "normal"
+            },
+            {
+              "casualty_y": "normal"
+            }
+          ],
+          "civilian_presence": "none",
+          "communication_capability": "both",
+          "roe": "Medical Rules of Engagement are that for this mission the health of the hostages takes precedence",
+          "political_climate": "Hostile",
+          "medical_policies": [
+            "Treat Enemy LLE"
+          ]
+        },
+        "environment": {
+          "sim_environment": {
+            "unstructured": null,
+            "type": "urban",
+            "weather": "clear",
+            "terrain": "urban",
+            "flora": "none",
+            "fauna": "none",
+            "temperature": 90.0,
+            "humidity": 90.0,
+            "lighting": "normal",
+            "visibility": "good",
+            "noise_ambient": "normal",
+            "noise_peak": "noisy"
+          },
+          "decision_environment": {
+            "unstructured": "A Blackhawk is on standby for immediate evac",
+            "aid": [
+              {
+                "id": "delay-0",
+                "delay": 20.0,
+                "type": "unknown evac",
+                "role": null,
+                "patients_treated": null,
+                "max_transport": null
+              }
+            ],
+            "movement_restriction": "unrestricted",
+            "sound_restriction": "unrestricted",
+            "oxygen_levels": "normal",
+            "population_density": "none",
+            "injury_triggers": "fire",
+            "air_quality": "green",
+            "city_infrastructure": "TBD"
+          }
+        },
+        "threat_state": {
+          "unstructured": "A substantial threat caused by Fire exists.",
+          "threats": [
+            {
+              "threat_type": "Fire",
+              "severity": "substantial"
+            }
+          ]
+        },
+        "events": [],
+        "supplies": [
+          {
+            "type": "Burn Dressing",
+            "reusable": false,
+            "quantity": 2
+          },
+          {
+            "type": "Epi Pen",
+            "reusable": false,
+            "quantity": 1
+          },
+          {
+            "type": "Hemostatic gauze",
+            "reusable": false,
+            "quantity": 2
+          },
+          {
+            "type": "Pain Medications",
+            "reusable": false,
+            "quantity": 20
+          },
+          {
+            "type": "Pressure bandage",
+            "reusable": false,
+            "quantity": 2
+          },
+          {
+            "type": "Tourniquet",
+            "reusable": false,
+            "quantity": 3
+          },
+          {
+            "type": "Pulse Oximeter",
+            "reusable": true,
+            "quantity": 1
+          },
+          {
+            "type": "Nasopharyngeal airway",
+            "reusable": false,
+            "quantity": 1
+          }
+        ],
+        "characters": [
+          {
+            "id": "casualty_n",
+            "name": "Casualty N",
+            "unstructured": "Has a head injury with periorbital ecchymosis",
+            "unstructured_postassess": null,
+            "has_blanket": false,
+            "unseen": false,
+            "intent": null,
+            "directness_of_causality": null,
+            "rapport": "neutral",
+            "demographics": {
+              "age": 35,
+              "sex": "F",
+              "race": "White",
+              "military_disposition": "Allied US",
+              "military_branch": "US Marine Corps",
+              "rank": "E-4",
+              "rank_title": "Corporal",
+              "skills": [],
+              "role": null,
+              "mission_importance": "normal"
+            },
+            "injuries": [
+              {
+                "name": "Traumatic Brain Injury",
+                "location": "head",
+                "severity": "extreme",
+                "status": "visible",
+                "source_character": null,
+                "treatments_required": null,
+                "treatments_applied": 0
+              }
+            ],
+            "vitals": {
+              "avpu": "UNRESPONSIVE",
+              "ambulatory": false,
+              "mental_status": "UNRESPONSIVE",
+              "breathing": "NONE",
+              "heart_rate": "FAST",
+              "spo2": "NORMAL"
+            },
+            "visited": true,
+            "tag": null
+          },
+          {
+            "id": "casualty_o",
+            "name": "Casualty O",
+            "unstructured": "Has a puncture wound to the arm with severe bleeding",
+            "unstructured_postassess": null,
+            "has_blanket": false,
+            "unseen": false,
+            "intent": null,
+            "directness_of_causality": null,
+            "rapport": "neutral",
+            "demographics": {
+              "age": 33,
+              "sex": "F",
+              "race": "White",
+              "military_disposition": "Allied US",
+              "military_branch": "US Marine Corps",
+              "rank": "E-4",
+              "rank_title": "Corporal",
+              "skills": [],
+              "role": null,
+              "mission_importance": "normal"
+            },
+            "injuries": [
+              {
+                "name": "Puncture",
+                "location": "right shoulder",
+                "severity": "major",
+                "status": "visible",
+                "source_character": null,
+                "treatments_required": null,
+                "treatments_applied": 0
+              }
+            ],
+            "vitals": {
+              "avpu": "ALERT",
+              "ambulatory": true,
+              "mental_status": "AGONY",
+              "breathing": "FAST",
+              "heart_rate": "FAST",
+              "spo2": "NORMAL"
+            },
+            "visited": true,
+            "tag": null
+          }
+        ]
+      },
+      "state": "You are part of a special operations tactical team tasked for extraction of hostages in enemy territory. Local support is unlikely, and the plan is for immediate extraction via Blackhawk. The hostages are being kept in a building guarded by 25 hostile narco-terrorists. Intel suggests the building may be wired with explosives, hostiles are threatening to kill the hostages in the next hour. Due to the close proximity you move to Casualty O next, where you also find Casualty N who is unresponsive. Who do you treat first?",
+      "choices": [
+        {
+          "action_id": "action-1",
+          "action_type": "APPLY_TREATMENT",
+          "intent_action": false,
+          "unstructured": "Treat Casualty N with nasopharyngeal airway",
+          "character_id": "casualty_n",
+          "threat_state": null,
+          "parameters": {
+            "treatment": "Nasopharyngeal airway"
+          },
+          "justification": null,
+          "kdma_association": {
+            "PerceivedQuantityOfLivesSaved": 0.1
+          }
+        },
+        {
+          "action_id": "tag_character",
+          "action_type": "TAG_CHARACTER",
+          "intent_action": false,
+          "unstructured": "TAG CHARACTER",
+          "character_id": null,
+          "threat_state": null,
+          "parameters": null,
+          "justification": null,
+          "kdma_association": null
+        },
+        {
+          "action_id": "action-0",
+          "action_type": "APPLY_TREATMENT",
+          "intent_action": false,
+          "unstructured": "Treat Casualty O with pressure bandage",
+          "character_id": "casualty_o",
+          "threat_state": null,
+          "parameters": {
+            "treatment": "Pressure bandage"
+          },
+          "justification": null,
+          "kdma_association": {
+            "PerceivedQuantityOfLivesSaved": 0.9
+          }
+        }
+      ]
+    },
+    "label": [
+      {
+        "PerceivedQuantityOfLivesSaved": 0.1
+      },
+      {},
+      {
+        "PerceivedQuantityOfLivesSaved": 0.9
+      }
+    ],
+    "output": {
+      "choice": 2,
+      "action": {
+        "action_id": "action-0",
+        "action_type": "APPLY_TREATMENT",
+        "intent_action": false,
+        "unstructured": "Treat Casualty O with pressure bandage",
+        "character_id": "casualty_o",
+        "threat_state": null,
+        "parameters": {
+          "treatment": "Pressure bandage",
+          "location": "right shoulder"
+        },
+        "justification": "Looked at scores",
+        "kdma_association": {
+          "PerceivedQuantityOfLivesSaved": 0.9
+        }
+      }
+    }
+  },
+  {
+    "input": {
+      "scenario_id": "vol-dre-1-train",
+      "full_state": {
+        "unstructured": "You are part of a special operations tactical team tasked for extraction of hostages in enemy territory. Local support is unlikely, and the plan is for immediate extraction via Blackhawk. The hostages are being kept in a building guarded by 25 hostile narco-terrorists. Intel suggests the building may be wired with explosives, hostiles are threatening to kill the hostages in the next hour. You move to another location where you encounter Casualty W along with Casualty U who is unresponsive. What do you do?",
+        "elapsed_time": 320,
+        "meta_info": {
+          "scene_id": "id-10",
+          "probe_response": {
+            "scenario_id": "vol-dre-1-train",
+            "probe_id": "4.10",
+            "choice": "choice-0",
+            "justification": "Looked at scores"
+          }
+        },
+        "scenario_complete": false,
+        "mission": {
+          "unstructured": "You are part of a special operations tactical team tasked for extraction of hostages in enemy territory. Local support is unlikely, and the plan is for immediate extraction via Blackhawk. The building has several small fires and is becoming increasingly less stable.",
+          "mission_type": "Hostage rescue",
+          "character_importance": [
+            {
+              "casualty_b": "normal"
+            },
+            {
+              "casualty_c": "normal"
+            },
+            {
+              "casualty_g": "normal"
+            },
+            {
+              "casualty_h": "normal"
+            },
+            {
+              "casualty_n": "normal"
+            },
+            {
+              "casualty_o": "normal"
+            },
+            {
+              "casualty_p": "normal"
+            },
+            {
+              "casualty_u": "normal"
+            },
+            {
+              "casualty_v": "normal"
+            },
+            {
+              "casualty_w": "normal"
+            },
+            {
+              "casualty_x": "normal"
+            },
+            {
+              "casualty_y": "normal"
+            }
+          ],
+          "civilian_presence": "none",
+          "communication_capability": "both",
+          "roe": "Medical Rules of Engagement are that for this mission the health of the hostages takes precedence",
+          "political_climate": "Hostile",
+          "medical_policies": [
+            "Treat Enemy LLE"
+          ]
+        },
+        "environment": {
+          "sim_environment": {
+            "unstructured": null,
+            "type": "urban",
+            "weather": "clear",
+            "terrain": "urban",
+            "flora": "none",
+            "fauna": "none",
+            "temperature": 90.0,
+            "humidity": 90.0,
+            "lighting": "normal",
+            "visibility": "good",
+            "noise_ambient": "normal",
+            "noise_peak": "noisy"
+          },
+          "decision_environment": {
+            "unstructured": "A Blackhawk is on standby for immediate evac",
+            "aid": [
+              {
+                "id": "delay-0",
+                "delay": 20.0,
+                "type": "unknown evac",
+                "role": null,
+                "patients_treated": null,
+                "max_transport": null
+              }
+            ],
+            "movement_restriction": "unrestricted",
+            "sound_restriction": "unrestricted",
+            "oxygen_levels": "normal",
+            "population_density": "none",
+            "injury_triggers": "fire",
+            "air_quality": "green",
+            "city_infrastructure": "TBD"
+          }
+        },
+        "threat_state": {
+          "unstructured": "A substantial threat caused by Fire exists.",
+          "threats": [
+            {
+              "threat_type": "Fire",
+              "severity": "substantial"
+            }
+          ]
+        },
+        "events": [],
+        "supplies": [
+          {
+            "type": "Burn Dressing",
+            "reusable": false,
+            "quantity": 2
+          },
+          {
+            "type": "Epi Pen",
+            "reusable": false,
+            "quantity": 1
+          },
+          {
+            "type": "Hemostatic gauze",
+            "reusable": false,
+            "quantity": 2
+          },
+          {
+            "type": "Pain Medications",
+            "reusable": false,
+            "quantity": 20
+          },
+          {
+            "type": "Pressure bandage",
+            "reusable": false,
+            "quantity": 2
+          },
+          {
+            "type": "Tourniquet",
+            "reusable": false,
+            "quantity": 3
+          },
+          {
+            "type": "Pulse Oximeter",
+            "reusable": true,
+            "quantity": 1
+          },
+          {
+            "type": "Nasopharyngeal airway",
+            "reusable": false,
+            "quantity": 1
+          }
+        ],
+        "characters": [
+          {
+            "id": "casualty_u",
+            "name": "Casualty U",
+            "unstructured": "Has a head injury with periorbital ecchymosis",
+            "unstructured_postassess": null,
+            "has_blanket": false,
+            "unseen": false,
+            "intent": null,
+            "directness_of_causality": null,
+            "rapport": "neutral",
+            "demographics": {
+              "age": 33,
+              "sex": "F",
+              "race": "White",
+              "military_disposition": "Allied US",
+              "military_branch": "US Marine Corps",
+              "rank": "E-4",
+              "rank_title": "Corporal",
+              "skills": [],
+              "role": null,
+              "mission_importance": "normal"
+            },
+            "injuries": [
+              {
+                "name": "Traumatic Brain Injury",
+                "location": "head",
+                "severity": "extreme",
+                "status": "visible",
+                "source_character": null,
+                "treatments_required": null,
+                "treatments_applied": 0
+              }
+            ],
+            "vitals": {
+              "avpu": "UNRESPONSIVE",
+              "ambulatory": false,
+              "mental_status": "UNRESPONSIVE",
+              "breathing": "NONE",
+              "heart_rate": "FAST",
+              "spo2": "NORMAL"
+            },
+            "visited": true,
+            "tag": null
+          },
+          {
+            "id": "casualty_w",
+            "name": "Casualty W",
+            "unstructured": "Has a puncture wound to the abdomen",
+            "unstructured_postassess": null,
+            "has_blanket": false,
+            "unseen": false,
+            "intent": null,
+            "directness_of_causality": null,
+            "rapport": "neutral",
+            "demographics": {
+              "age": 31,
+              "sex": "F",
+              "race": "White",
+              "military_disposition": "Allied US",
+              "military_branch": "US Marine Corps",
+              "rank": "E-4",
+              "rank_title": "Corporal",
+              "skills": [],
+              "role": null,
+              "mission_importance": "normal"
+            },
+            "injuries": [
+              {
+                "name": "Puncture",
+                "location": "right stomach",
+                "severity": "major",
+                "status": "visible",
+                "source_character": null,
+                "treatments_required": null,
+                "treatments_applied": 0
+              }
+            ],
+            "vitals": {
+              "avpu": "ALERT",
+              "ambulatory": true,
+              "mental_status": "AGONY",
+              "breathing": "FAST",
+              "heart_rate": "FAST",
+              "spo2": "NORMAL"
+            },
+            "visited": true,
+            "tag": null
+          }
+        ]
+      },
+      "state": "You are part of a special operations tactical team tasked for extraction of hostages in enemy territory. Local support is unlikely, and the plan is for immediate extraction via Blackhawk. The hostages are being kept in a building guarded by 25 hostile narco-terrorists. Intel suggests the building may be wired with explosives, hostiles are threatening to kill the hostages in the next hour. You move to another location where you encounter Casualty W along with Casualty U who is unresponsive. What do you do?",
+      "choices": [
+        {
+          "action_id": "action-0",
+          "action_type": "APPLY_TREATMENT",
+          "intent_action": false,
+          "unstructured": "Treat Casualty U with nasopharyngeal airway",
+          "character_id": "casualty_u",
+          "threat_state": null,
+          "parameters": {
+            "treatment": "Nasopharyngeal airway"
+          },
+          "justification": null,
+          "kdma_association": {
+            "PerceivedQuantityOfLivesSaved": 0.1
+          }
+        },
+        {
+          "action_id": "tag_character",
+          "action_type": "TAG_CHARACTER",
+          "intent_action": false,
+          "unstructured": "TAG CHARACTER",
+          "character_id": null,
+          "threat_state": null,
+          "parameters": null,
+          "justification": null,
+          "kdma_association": null
+        },
+        {
+          "action_id": "action-1",
+          "action_type": "APPLY_TREATMENT",
+          "intent_action": false,
+          "unstructured": "Treat Casualty W with pressure bandage",
+          "character_id": "casualty_w",
+          "threat_state": null,
+          "parameters": {
+            "treatment": "Pressure bandage"
+          },
+          "justification": null,
+          "kdma_association": {
+            "PerceivedQuantityOfLivesSaved": 0.9
+          }
+        }
+      ]
+    },
+    "label": [
+      {
+        "PerceivedQuantityOfLivesSaved": 0.1
+      },
+      {},
+      {
+        "PerceivedQuantityOfLivesSaved": 0.9
+      }
+    ],
+    "output": {
+      "choice": 2,
+      "action": {
+        "action_id": "action-1",
+        "action_type": "APPLY_TREATMENT",
+        "intent_action": false,
+        "unstructured": "Treat Casualty W with pressure bandage",
+        "character_id": "casualty_w",
+        "threat_state": null,
+        "parameters": {
+          "treatment": "Pressure bandage",
+          "location": "right stomach"
+        },
+        "justification": "Looked at scores",
+        "kdma_association": {
+          "PerceivedQuantityOfLivesSaved": 0.9
+        }
+      }
+    }
+  },
+  {
+    "input": {
+      "scenario_id": "vol-dre-1-train",
+      "full_state": {
+        "unstructured": "You are part of a special operations tactical team tasked for extraction of hostages in enemy territory. Local support is unlikely, and the plan is for immediate extraction via Blackhawk. The hostages are being kept in a building guarded by 25 hostile narco-terrorists. Intel suggests the building may be wired with explosives, hostiles are threatening to kill the hostages in the next hour. Casualty U has regained consciousness and is now breathing. The building is on fire and you are only able to assist one casualty in moving to safety. Which casualty do you choose to assist?",
+        "elapsed_time": 440,
+        "meta_info": {
+          "scene_id": "id-11",
+          "probe_response": {
+            "scenario_id": "vol-dre-1-train",
+            "probe_id": "vol-dre-train2-Probe-11",
+            "choice": "choice-1",
+            "justification": "Looked at scores"
+          }
+        },
+        "scenario_complete": false,
+        "mission": {
+          "unstructured": "You are part of a special operations tactical team tasked for extraction of hostages in enemy territory. Local support is unlikely, and the plan is for immediate extraction via Blackhawk. The building has several small fires and is becoming increasingly less stable.",
+          "mission_type": "Hostage rescue",
+          "character_importance": [
+            {
+              "casualty_b": "normal"
+            },
+            {
+              "casualty_c": "normal"
+            },
+            {
+              "casualty_g": "normal"
+            },
+            {
+              "casualty_h": "normal"
+            },
+            {
+              "casualty_n": "normal"
+            },
+            {
+              "casualty_o": "normal"
+            },
+            {
+              "casualty_p": "normal"
+            },
+            {
+              "casualty_u": "normal"
+            },
+            {
+              "casualty_v": "normal"
+            },
+            {
+              "casualty_w": "normal"
+            },
+            {
+              "casualty_x": "normal"
+            },
+            {
+              "casualty_y": "normal"
+            }
+          ],
+          "civilian_presence": "none",
+          "communication_capability": "both",
+          "roe": "Medical Rules of Engagement are that for this mission the health of the hostages takes precedence",
+          "political_climate": "Hostile",
+          "medical_policies": [
+            "Treat Enemy LLE"
+          ]
+        },
+        "environment": {
+          "sim_environment": {
+            "unstructured": null,
+            "type": "urban",
+            "weather": "clear",
+            "terrain": "urban",
+            "flora": "none",
+            "fauna": "none",
+            "temperature": 90.0,
+            "humidity": 90.0,
+            "lighting": "normal",
+            "visibility": "good",
+            "noise_ambient": "normal",
+            "noise_peak": "noisy"
+          },
+          "decision_environment": {
+            "unstructured": "A Blackhawk is on standby for immediate evac",
+            "aid": [
+              {
+                "id": "delay-0",
+                "delay": 20.0,
+                "type": "unknown evac",
+                "role": null,
+                "patients_treated": null,
+                "max_transport": null
+              }
+            ],
+            "movement_restriction": "unrestricted",
+            "sound_restriction": "unrestricted",
+            "oxygen_levels": "normal",
+            "population_density": "none",
+            "injury_triggers": "fire",
+            "air_quality": "green",
+            "city_infrastructure": "TBD"
+          }
+        },
+        "threat_state": {
+          "unstructured": "A severe threat caused by Fire exists.",
+          "threats": [
+            {
+              "threat_type": "Fire",
+              "severity": "severe"
+            }
+          ]
+        },
+        "events": [],
+        "supplies": [
+          {
+            "type": "Burn Dressing",
+            "reusable": false,
+            "quantity": 2
+          },
+          {
+            "type": "Epi Pen",
+            "reusable": false,
+            "quantity": 1
+          },
+          {
+            "type": "Hemostatic gauze",
+            "reusable": false,
+            "quantity": 2
+          },
+          {
+            "type": "Pain Medications",
+            "reusable": false,
+            "quantity": 20
+          },
+          {
+            "type": "Pressure bandage",
+            "reusable": false,
+            "quantity": 2
+          },
+          {
+            "type": "Tourniquet",
+            "reusable": false,
+            "quantity": 3
+          },
+          {
+            "type": "Pulse Oximeter",
+            "reusable": true,
+            "quantity": 1
+          },
+          {
+            "type": "Nasopharyngeal airway",
+            "reusable": false,
+            "quantity": 1
+          }
+        ],
+        "characters": [
+          {
+            "id": "casualty_u",
+            "name": "Casualty U",
+            "unstructured": "Has a head injury with periorbital ecchymosis",
+            "unstructured_postassess": null,
+            "has_blanket": false,
+            "unseen": false,
+            "intent": null,
+            "directness_of_causality": null,
+            "rapport": "neutral",
+            "demographics": {
+              "age": 33,
+              "sex": "F",
+              "race": "White",
+              "military_disposition": "Allied US",
+              "military_branch": "US Marine Corps",
+              "rank": "E-4",
+              "rank_title": "Corporal",
+              "skills": [],
+              "role": null,
+              "mission_importance": "normal"
+            },
+            "injuries": [
+              {
+                "name": "Traumatic Brain Injury",
+                "location": "head",
+                "severity": "extreme",
+                "status": "visible",
+                "source_character": null,
+                "treatments_required": null,
+                "treatments_applied": 0
+              }
+            ],
+            "vitals": {
+              "avpu": "VOICE",
+              "ambulatory": true,
+              "mental_status": "AGONY",
+              "breathing": "SLOW",
+              "heart_rate": "FAST",
+              "spo2": "NORMAL"
+            },
+            "visited": true,
+            "tag": null
+          },
+          {
+            "id": "casualty_w",
+            "name": "Casualty W",
+            "unstructured": "Has a puncture wound to the abdomen",
+            "unstructured_postassess": null,
+            "has_blanket": false,
+            "unseen": false,
+            "intent": null,
+            "directness_of_causality": null,
+            "rapport": "neutral",
+            "demographics": {
+              "age": 31,
+              "sex": "F",
+              "race": "White",
+              "military_disposition": "Allied US",
+              "military_branch": "US Marine Corps",
+              "rank": "E-4",
+              "rank_title": "Corporal",
+              "skills": [],
+              "role": null,
+              "mission_importance": "normal"
+            },
+            "injuries": [
+              {
+                "name": "Puncture",
+                "location": "right stomach",
+                "severity": "major",
+                "status": "visible",
+                "source_character": null,
+                "treatments_required": null,
+                "treatments_applied": 0
+              }
+            ],
+            "vitals": {
+              "avpu": "ALERT",
+              "ambulatory": true,
+              "mental_status": "AGONY",
+              "breathing": "FAST",
+              "heart_rate": "FAST",
+              "spo2": "NORMAL"
+            },
+            "visited": true,
+            "tag": null
+          }
+        ]
+      },
+      "state": "You are part of a special operations tactical team tasked for extraction of hostages in enemy territory. Local support is unlikely, and the plan is for immediate extraction via Blackhawk. The hostages are being kept in a building guarded by 25 hostile narco-terrorists. Intel suggests the building may be wired with explosives, hostiles are threatening to kill the hostages in the next hour. Casualty U has regained consciousness and is now breathing. The building is on fire and you are only able to assist one casualty in moving to safety. Which casualty do you choose to assist?",
+      "choices": [
+        {
+          "action_id": "tag_character",
+          "action_type": "TAG_CHARACTER",
+          "intent_action": false,
+          "unstructured": "TAG CHARACTER",
+          "character_id": null,
+          "threat_state": null,
+          "parameters": null,
+          "justification": null,
+          "kdma_association": null
+        },
+        {
+          "action_id": "action-0",
+          "action_type": "MOVE_TO_EVAC",
+          "intent_action": false,
+          "unstructured": "Move Casualty U to safety",
+          "character_id": "casualty_u",
+          "threat_state": null,
+          "parameters": {},
+          "justification": null,
+          "kdma_association": {
+            "PerceivedQuantityOfLivesSaved": 0.9
+          }
+        },
+        {
+          "action_id": "action-1",
+          "action_type": "MOVE_TO_EVAC",
+          "intent_action": false,
+          "unstructured": "Move Casualty W to safety",
+          "character_id": "casualty_w",
+          "threat_state": null,
+          "parameters": {},
+          "justification": null,
+          "kdma_association": {
+            "PerceivedQuantityOfLivesSaved": 0.1
+          }
+        }
+      ]
+    },
+    "label": [
+      {},
+      {
+        "PerceivedQuantityOfLivesSaved": 0.9
+      },
+      {
+        "PerceivedQuantityOfLivesSaved": 0.1
+      }
+    ],
+    "output": {
+      "choice": 1,
+      "action": {
+        "action_id": "action-0",
+        "action_type": "MOVE_TO_EVAC",
+        "intent_action": false,
+        "unstructured": "Move Casualty U to safety",
+        "character_id": "casualty_u",
+        "threat_state": null,
+        "parameters": {
+          "aid_id": "delay-0"
+        },
+        "justification": "Looked at scores",
+        "kdma_association": {
+          "PerceivedQuantityOfLivesSaved": 0.9
+        }
+      }
+    }
+  }
+]

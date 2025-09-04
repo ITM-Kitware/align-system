@@ -16,10 +16,10 @@ icl_generator_partial:
     sort_actions: true
     most_similar_first: false
     datasets:
-      medical: /data/shared/samba/phase2_icl/June2025-MU-train_20250602.json
-      affiliation: /data/shared/samba/phase2_icl/June2025-AF-train_20250523.json
-      merit: /data/shared/samba/phase2_icl/June2025-MF-train_20250523.json
-      personal_safety: /data/shared/samba/phase2_icl/June2025-PS-train_20250602.json
-      search: /data/shared/samba/phase2_icl/June2025-SS-train_20250527.json
+      medical: align_system/resources/icl/phase2/June2025-MU-train_20250602.json
+      affiliation: align_system/resources/icl/phase2/June2025-AF-train_20250523.json
+      merit: align_system/resources/icl/phase2/June2025-MF-train_20250523.json
+      personal_safety: align_system/resources/icl/phase2/June2025-PS-train_20250602.json
+      search: align_system/resources/icl/phase2/June2025-SS-train_20250527.json
 
   state_hydration_domain: p2triage

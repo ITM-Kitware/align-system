@@ -14,7 +14,7 @@ icl_generator_partial:
     sort_actions: true
     most_similar_first: false
     datasets:
-      QualityOfLife: ${oc.env:ICL_DATABASE_DIR,/data/shared/samba/phase1_icl}/qol_all_20241217.json
-      PerceivedQuantityOfLivesSaved: ${oc.env:ICL_DATABASE_DIR,/data/shared/samba/phase1_icl}/vol_all_20241217.json
-      Moral judgement: ${oc.env:ICL_DATABASE_DIR,/data/shared/samba/phase1_icl}/moral_judgement_20241106.json
-      Ingroup Bias: ${oc.env:ICL_DATABASE_DIR,/data/shared/samba/phase1_icl}/ingroup_bias_20241106_no_IO2.json
+      QualityOfLife: align_system/resources/icl/phase1/qol_all_20241217.json
+      PerceivedQuantityOfLivesSaved: align_system/resources/icl/phase1/vol_all_20241217.json
+      Moral judgement: align_system/resources/icl/phase1/moral_judgement_20241106.json
+      Ingroup Bias: align_system/resources/icl/phase1/ingroup_bias_20241106_no_IO2.json
