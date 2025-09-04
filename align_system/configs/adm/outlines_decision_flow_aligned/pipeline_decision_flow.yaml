@@ -18,7 +18,7 @@ defaults:
   - /adm_component/decision_flow@step_definitions.attribute: attribute
   - /adm_component/decision_flow@step_definitions.filter: filter
   - /adm_component/decision_flow@step_definitions.objective: objective
-  # - /adm_component/decision_flow@step_definitions.decision_flow: express
+  - /adm_component/decision_flow@step_definitions.express: express
   # Prompt templates to be used in Variables Extraction Phase
   - /template/scenario_description@scenario_description_template: phase2
   - /template/prompt/decision_flow@prompt_template: variables
@@ -35,6 +35,9 @@ defaults:
   # Prompt templates to be used in Objective Phase
   - /template/prompt/decision_flow@objective_prompt_template: objective
   - /template/output_schema/decision_flow@objective_output_schema: objective
+  # Prompt templates to be used in Express Phase
+  - /template/prompt/decision_flow@express_prompt_template: express
+  - /template/output_schema/decision_flow@express_output_schema: express
   # Use definitions in this file to override defaults defined above
   - _self_
 
@@ -66,7 +69,10 @@ step_definitions:
     scenario_description_template: ${ref:adm.scenario_description_template}
     prompt_template: ${ref:adm.objective_prompt_template}
     output_schema_template: ${ref:adm.objective_output_schema}
-  # express:
+  express:
+    scenario_description_template: ${ref:adm.scenario_description_template}
+    prompt_template: ${ref:adm.express_prompt_template}
+    output_schema_template: ${ref:adm.express_output_schema}
 
 
 instance:
@@ -80,4 +86,4 @@ instance:
     - ${ref:adm.step_definitions.attribute}
     - ${ref:adm.step_definitions.filter}
     - ${ref:adm.step_definitions.objective}
-    # - ${ref:adm.step_definitions.express}
+    - ${ref:adm.step_definitions.express}
