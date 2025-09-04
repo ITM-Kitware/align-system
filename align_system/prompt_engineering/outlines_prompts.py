@@ -1652,3 +1652,170 @@ def extraction_output_schema():
 class ExtractionOutputSchema():
     def __call__(self):
         return extraction_output_schema()
+
+@outlines.prompt
+def attribute_stage_prompt(scenario_description, choices, extraction, variables, target_bias):
+    """
+    Given the extracted information from a scenario, your task is to summarize attributes and values for each variable with a focus on characteristics that are most relevant to a specified target bias.
+
+    Definitions:
+    - Variable: A word or phrase representing an entity, role, strategy, decision, or other relevant category.
+    - Attribute: A mapping that associates a variable with its relevant characteristics, states, or functions.
+    - Target Bias: A specific evaluative perspective (e.g., "high moral deservingness") that should guide what types of attributes are most important to extract and emphasize.
+
+    # Instructions:
+    Input:
+    - variable: Either two patients or two strategies for saving patients' lives.
+    - extracted information: A list of facts about the scenario.
+    - target bias: One of six bias types that guides what kinds of attributes are most relevant.
+    Output:
+    - You should give your answer in a JSON file.
+
+    Your task is to:
+    1. Extract **attributes and values** for each variable.
+    2. **Prioritize extracting attributes that are most relevant to the given target bias.**
+    3. Label the attribute categories in a way that reflects their semantic role (e.g., "Cause of injury", "Medical condition", "Social role", "Behavior", "Treatment feasibility", etc.).
+
+    # For example:
+    Input:
+    variable:
+    Patient 1: The first is a rescue worker
+    Patient 2: The second is a looter
+    extracted information:
+    - The rescue worker is injured while pulling people from the rubble.
+    - The rescue worker is trapped under debris.
+    - The rescue worker has a broken leg and internal injuries.
+    - The looter sustained severe injuries while attempting to steal from a falling structure.
+    - The looter is trapped with several fractures.
+    - A major earthquake has struck a densely populated city.
+    - Collapsed buildings are present.
+    - Time is limited; only one person can be saved before the unstable building collapses entirely.
+
+    **target bias:** `high moral deservingness`
+
+    Example Output:
+    {% raw %}
+    ```json
+    {{
+        "Variable":[
+            {{
+                "Variable": "Patient 1: The first is a rescue worker",
+                "Attribute": [
+                    {{
+                        "Attribute": "Behavior",
+                        "Value": ["pulling people from rubble", "helping others during disaster"]
+                    }},
+                    {{
+                        "Attribute": "Cause of injury",
+                        "Value": ["injured while rescuing people"]
+                    }},
+                    {{
+                        "Attribute": "Medical condition",
+                        "Value": ["broken leg", "internal injuries", "trapped under debris"]
+                    }},
+                    {{
+                        "Attribute": "Social role",
+                        "Value": ["rescue worker"]
+                    }}
+                ]
+            }},
+            {{
+                "Variable": "Patient 2: The second is a looter",
+                "Attribute": [
+                    {{
+                        "Attribute": "Behavior",
+                        "Value": ["attempting to steal during disaster"]
+                    }},
+                    {{
+                        "Attribute": "Cause of injury",
+                        "Value": ["injured while looting"]
+                    }},
+                    {{
+                        "Attribute": "Medical condition",
+                        "Value": ["severe injuries", "multiple fractures", "trapped in unstable structure"]
+                    }},
+                    {{
+                        "Attribute": "Social role",
+                        "Value": ["looter"]
+                    }}
+                ]
+            }}
+        ]
+    }}
+    ```
+    {% endraw %}
+
+    Your Turn:
+    Input:
+    variable: {{ variables }}
+    extracted information: {{ extraction }}
+    target bias: {{ target_bias }}
+
+    Output format:
+    {% raw %}
+    ```json
+    {{
+        "Variable":[
+            {{
+                "Variable": "<variable's name>",
+                "Attribute": [<attributes and values for these attributes>]
+            }}
+        ]
+    }}
+    ```
+    {% endraw %}
+    """
+
+class AttributePrompt():
+    def __call__(self,
+                 scenario_description,
+                 choices,
+                 extraction,
+                 variables,
+                 target_bias):
+        return attribute_stage_prompt(
+            scenario_description=scenario_description,
+            choices=choices,
+            extraction=extraction,
+            variables=variables,
+            target_bias=target_bias
+        )
+
+def attribute_output_schema():
+    """JSON schema for attribute analysis response"""
+    schema = {
+        "type": "object",
+        "properties": {
+            "Variable": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "Variable": {"type": "string"},
+                        "Attribute": {
+                            "type": "array",
+                            "items": {
+                                "type": "object", 
+                                "properties": {
+                                    "Attribute": {"type": "string"},
+                                    "Value": {
+                                        "type": "array",
+                                        "items": {"type": "string"}
+                                    }
+                                },
+                                "required": ["Attribute", "Value"]
+                            }
+                        }
+                    },
+                    "required": ["Variable", "Attribute"]
+                }
+            }
+        },
+        "required": ["Variable"],
+        "additionalProperties": False
+    }
+    return json.dumps(schema)
+
+class AttributeOutputSchema():
+    def __call__(self):
+        return attribute_output_schema()
