@@ -13,9 +13,17 @@ adm:
       num_samples: 1
       system_prompt_template:
         _target_: align_system.prompt_engineering.outlines_prompts.DefaultITMBaselineSystemPrompt
+    attribute:
+      num_samples: 1
+      system_prompt_template:
+        _target_: align_system.prompt_engineering.outlines_prompts.DefaultITMBaselineSystemPrompt
 
   instance:
     steps:
       - ${ref:adm.step_definitions.format_choices}
       - ${ref:adm.step_definitions.variables}
       - ${ref:adm.step_definitions.extraction}
+      - ${ref:adm.step_definitions.attribute}
+
+force_determinism: true
+align_to_target: true
