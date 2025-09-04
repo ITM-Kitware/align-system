@@ -1915,3 +1915,95 @@ def filter_output_schema():
 class FilterOutputSchema():
     def __call__(self):
         return filter_output_schema()
+
+@outlines.prompt
+def objective_stage_prompt(scenario_description, choices, objective_components, objective_function_text, weight_threshold):
+    """
+    You are tasked with creating and refining an objective function based on filtered attributes that exceeded the weight threshold. The objective function should mathematically represent the decision-making criteria based on the most relevant attributes.
+
+    **Instructions**:
+    1. Review the objective components that have been filtered based on their relevance weights (threshold: {{ weight_threshold }})
+    2. Analyze the automatically generated objective function formula
+    3. Provide a refined or validated objective function that can be used for decision optimization
+    4. Ensure the objective function captures the essential trade-offs in the decision scenario
+
+    **Scenario Context**:
+    {{ scenario_description }}
+
+    **Available Choices**:
+    {% for choice in choices %}
+    - {{ choice }}
+    {% endfor %}
+
+    **Filtered Objective Components** (Weight > {{ weight_threshold }}):
+    {% for component in objective_components %}
+    - Variable: {{ component.Variable }}
+    - Attribute: {{ component.Attribute }}  
+    - Weight: {{ component.Weight }}
+    - Explanation: {{ component.Explanation }}
+    {% endfor %}
+
+    **Auto-generated Objective Function**:
+    {{ objective_function_text }}
+
+    **Your Task**:
+    Review the auto-generated objective function and either:
+    1. Confirm it as appropriate for the decision scenario, OR
+    2. Provide a refined version that better captures the decision trade-offs
+
+    The objective function should be mathematical and suitable for optimization, incorporating the weighted attributes to guide decision-making.
+
+    **Output Format**:
+    {% raw %}
+    ```json
+    {{
+        "objective_function": "<refined or confirmed objective function formula>",
+        "explanation": "<brief explanation of why this objective function is appropriate for the scenario>",
+        "components_used": [<list of component names included in the objective function>]
+    }}
+    ```
+    {% endraw %}
+    """
+
+class ObjectivePrompt():
+    def __call__(self,
+                 scenario_description,
+                 choices,
+                 objective_components,
+                 objective_function_text,
+                 weight_threshold):
+        return objective_stage_prompt(
+            scenario_description=scenario_description,
+            choices=choices,
+            objective_components=objective_components,
+            objective_function_text=objective_function_text,
+            weight_threshold=weight_threshold
+        )
+
+def objective_output_schema():
+    """JSON schema for objective function response"""
+    schema = {
+        "type": "object",
+        "properties": {
+            "objective_function": {
+                "type": "string",
+                "description": "The refined or confirmed objective function formula"
+            },
+            "explanation": {
+                "type": "string",
+                "description": "Brief explanation of why this objective function is appropriate"
+            },
+            "components_used": {
+                "type": "array",
+                "items": {"type": "string"},
+                "description": "List of component names included in the objective function"
+            }
+        },
+        "required": ["objective_function", "explanation", "components_used"],
+        "additionalProperties": False
+    }
+    return json.dumps(schema)
+
+class ObjectiveOutputSchema():
+    def __call__(self):
+        return objective_output_schema()
