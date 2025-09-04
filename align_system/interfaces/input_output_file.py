@@ -1,4 +1,3 @@
-import argparse
 import json
 import math
 
@@ -141,28 +140,6 @@ class InputOutputFileInterface(Interface):
 
         return {'alignment_target': alignment_target.id,
                 'measures': output_measures}
-
-
-    @classmethod
-    def cli_parser(cls, parser=None):
-        if parser is None:
-            parser = argparse.ArgumentParser(
-                description=cls.cli_parser_description())
-
-        parser.add_argument('-i', '--input-output-filepath',
-                            type=str,
-                            required=True,
-                            help='Path to input-output JSON file')
-
-        return parser
-
-    @classmethod
-    def cli_parser_description(cls):
-        return "Interface with an input-output JSON file"
-
-    @classmethod
-    def init_from_parsed_args(cls, parsed_args):
-        return cls(**vars(parsed_args))
 
 
 class InputOutputFileScenario(ActionBasedScenarioInterface):

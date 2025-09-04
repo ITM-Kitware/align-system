@@ -74,8 +74,7 @@ class OutlinesBaselineADMComponent(ADMComponent):
                 self.system_prompt_template, {})
 
             dialog.insert(0, DialogElement(role='system',
-                                           content=system_prompt,
-                                           tags=['regression']))
+                                           content=system_prompt))
 
         prompt = call_with_coerced_args(
             self.prompt_template,
@@ -84,8 +83,7 @@ class OutlinesBaselineADMComponent(ADMComponent):
              'choices': choices})
 
         dialog.append(DialogElement(role='user',
-                                    content=prompt,
-                                    tags=['regression']))
+                                    content=prompt))
 
         output_schema = call_with_coerced_args(
             self.output_schema_template,
