@@ -17,6 +17,10 @@ adm:
       num_samples: 1
       system_prompt_template:
         _target_: align_system.prompt_engineering.outlines_prompts.DefaultITMBaselineSystemPrompt
+    filter:
+      num_samples: 1
+      system_prompt_template:
+        _target_: align_system.prompt_engineering.outlines_prompts.DefaultITMBaselineSystemPrompt
 
   instance:
     steps:
@@ -24,6 +28,7 @@ adm:
       - ${ref:adm.step_definitions.variables}
       - ${ref:adm.step_definitions.extraction}
       - ${ref:adm.step_definitions.attribute}
+      - ${ref:adm.step_definitions.filter}
 
 force_determinism: true
 align_to_target: true

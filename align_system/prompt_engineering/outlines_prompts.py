@@ -1795,7 +1795,7 @@ def attribute_output_schema():
                         "Attribute": {
                             "type": "array",
                             "items": {
-                                "type": "object", 
+                                "type": "object",
                                 "properties": {
                                     "Attribute": {"type": "string"},
                                     "Value": {
@@ -1819,3 +1819,99 @@ def attribute_output_schema():
 class AttributeOutputSchema():
     def __call__(self):
         return attribute_output_schema()
+
+@outlines.prompt
+def filter_stage_prompt(scenario_description, choices, attribute_information, target_bias):
+    """
+    You are tasked with evaluating the relationship between a given attribute, and a specified target bias. The goal is to determine how relevant the given attribute are to the target bias and to assign a weight that reflects the strength of this relationship.
+
+    **Instructions**:
+    1. Input:
+    Attribute: After receiving the input, you should first infer the meaning of the attribute in the context of the target bias.
+    Target Bias: The target bias is a set of principles or criteria that guide decision-making in a specific context.
+    2. Evaluation Criteria:
+    Relevance: Assess how closely the attribute align with the target bias. Consider whether the attribute directly influences or is influenced by the principles outlined in the target bias.
+    Weight Assignment: Assign a weight between 0 and 1, where:
+    - 0 indicates no relationship.
+    - 0.5 indicates a moderate relationship.
+    - 1 indicates a strong relationship.
+    3. Output
+    You should return a JSON file containing the following elements:
+    - Relevance Explanation: Provide a brief explanation of why the attribute are relevant (or not) to the target bias.
+    - Weight: Assign a weight based on the strength of the relationship.
+
+    **Example**:
+    Input:
+    Attribute: "Action one does"
+    Target Bias: "When selecting an answer from multiple-choice questions related to medical conditions or symptoms, a high emphasis is placed on rewarding moral deservingness. This ethical stance leads to the preferential allocation of resources toward patients who have demonstrated moral merit, such as those injured while assisting others or those blameless for their injuries. Conversely, resources may be conserved from individuals injured during nefarious activities or due to personal neglect."
+
+    Output:
+    {% raw %}
+    ```json
+    {{
+        "Explanation": "The attribute Action is highly relevant to the target bias because the actions of someone often involve assisting others, which aligns with the ethical principle of rewarding moral deservingness. The actions of someone directly influence whether they are considered morally deserving of resources in the context of medical conditions or symptoms.",
+        "Weight": 0.9
+    }}
+    ```
+    {% endraw %}
+
+    Your Turn:
+    Input:
+    Scenario Description: {{ scenario_description }}
+
+    Choices:
+    {% for choice in choices %}
+    - {{ choice }}
+    {% endfor %}
+
+    Variable and attribute: {{ attribute_information }}
+    Target Bias: {{ target_bias.description if target_bias.description else target_bias.name }}
+
+    Output format:
+    {% raw %}
+    ```json
+    {{
+        "Explanation": "<A brief explanation of why the variable and its attribute are relevant (or not) to the target bias.>",
+        "Weight": <A number between 0-1>
+    }}
+    ```
+    {% endraw %}
+    """
+
+class FilterPrompt():
+    def __call__(self,
+                 scenario_description,
+                 choices,
+                 attribute_information,
+                 target_bias):
+        return filter_stage_prompt(
+            scenario_description=scenario_description,
+            choices=choices,
+            attribute_information=attribute_information,
+            target_bias=target_bias
+        )
+
+def filter_output_schema():
+    """JSON schema for filter analysis response"""
+    schema = {
+        "type": "object",
+        "properties": {
+            "Explanation": {
+                "type": "string",
+                "description": "Brief explanation of why the attribute is relevant (or not) to the target bias"
+            },
+            "Weight": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1,
+                "description": "Weight between 0-1 reflecting the strength of the relationship"
+            }
+        },
+        "required": ["Explanation", "Weight"],
+        "additionalProperties": False
+    }
+    return json.dumps(schema)
+
+class FilterOutputSchema():
+    def __call__(self):
+        return filter_output_schema()

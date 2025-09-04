@@ -16,7 +16,7 @@ defaults:
   - /adm_component/decision_flow@step_definitions.variables: variables
   - /adm_component/decision_flow@step_definitions.extraction: extraction
   - /adm_component/decision_flow@step_definitions.attribute: attribute
-  # - /adm_component/decision_flow@step_definitions.decision_flow: filter
+  - /adm_component/decision_flow@step_definitions.filter: filter
   # - /adm_component/decision_flow@step_definitions.decision_flow: objective
   # - /adm_component/decision_flow@step_definitions.decision_flow: express
   # Prompt templates to be used in Variables Extraction Phase
@@ -29,6 +29,9 @@ defaults:
   # Prompt templates to be used in Attribute Phase
   - /template/prompt/decision_flow@attribute_prompt_template: attribute
   - /template/output_schema/decision_flow@attribute_output_schema: attribute
+  # Prompt templates to be used in Filter Phase
+  - /template/prompt/decision_flow@filter_prompt_template: filter
+  - /template/output_schema/decision_flow@filter_output_schema: filter
   # Use definitions in this file to override defaults defined above
   - _self_
 
@@ -52,7 +55,10 @@ step_definitions:
     scenario_description_template: ${ref:adm.scenario_description_template}
     prompt_template: ${ref:adm.attribute_prompt_template}
     output_schema_template: ${ref:adm.attribute_output_schema}
-  # filter:
+  filter:
+    scenario_description_template: ${ref:adm.scenario_description_template}
+    prompt_template: ${ref:adm.filter_prompt_template}
+    output_schema_template: ${ref:adm.filter_output_schema}
   # objective:
   # express:
 
@@ -66,6 +72,6 @@ instance:
     - ${ref:adm.step_definitions.variables}
     - ${ref:adm.step_definitions.extraction}
     - ${ref:adm.step_definitions.attribute}
-    # - ${ref:adm.step_definitions.filter}
+    - ${ref:adm.step_definitions.filter}
     # - ${ref:adm.step_definitions.objective}
     # - ${ref:adm.step_definitions.express}
