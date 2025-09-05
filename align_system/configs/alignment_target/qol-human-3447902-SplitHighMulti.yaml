@@ -1,4 +1,4 @@
-_target_: swagger_client.models.AlignmentTarget
+_target_: align_system.data_models.compat.ta3_ph1_client_models.AlignmentTarget
 id: qol-human-3447902-SplitHighMulti
 kdma_values:
 - kdes:
