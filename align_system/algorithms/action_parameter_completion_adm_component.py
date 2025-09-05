@@ -21,7 +21,7 @@ from align_system.prompt_engineering.outlines_prompts import (
     treatment_choice_json_schema,
     treatment_choice_from_list_json_schema)
 from align_system.data_models.dialog import DialogElement
-from align_system.data_models.local_ph1_ta3_enums import (
+from align_system.data_models.compat.ta3_ph1_client_models import (
     ActionTypeEnum,
     InjuryLocationEnum,
     CharacterTagEnum)
