@@ -6,7 +6,6 @@ import os
 from rich.logging import RichHandler
 from rich.console import Console
 from rich.highlighter import JSONHighlighter
-from swagger_client.models import ActionTypeEnum
 import hydra
 from omegaconf import DictConfig, OmegaConf
 from timeit import default_timer as timer
@@ -228,6 +227,7 @@ def main(cfg: DictConfig) -> None:
             if not apply_action_filtering:
                 available_actions_filtered = available_actions
             else:
+                from align_system.data_models.compat.ta3_ph1_client_models import ActionTypeEnum
                 available_actions_filtered = []
                 for a in available_actions:
                     if len(current_state.characters) == 0:

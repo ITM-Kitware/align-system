@@ -1,6 +1,6 @@
 import random
 
-from align_system.data_models.local_ph1_ta3_enums import (
+from align_system.data_models.compat.ta3_ph1_client_models import (
     ActionTypeEnum,
     InjuryLocationEnum,
     CharacterTagEnum)

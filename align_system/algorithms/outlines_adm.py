@@ -10,7 +10,7 @@ import outlines
 from outlines.samplers import MultinomialSampler
 import jinja2
 from rich.highlighter import JSONHighlighter
-from swagger_client.models import (
+from align_system.data_models.compat.ta3_ph1_client_models import (
     ActionTypeEnum,
     InjuryLocationEnum,
     CharacterTagEnum,
