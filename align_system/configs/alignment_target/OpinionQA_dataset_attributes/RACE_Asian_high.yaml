@@ -1,4 +1,4 @@
-_target_: swagger_client.models.AlignmentTarget
+_target_: align_system.data_models.compat.ta3_ph1_client_models.AlignmentTarget
 id: RACE_Asian_high
 kdma_values:
 - kdma: RACE_Asian
