@@ -5,7 +5,7 @@ import json
 from align_system.utils.outlines_prompts_utils import (
     get_unique_structured_character_info,
     new_get_relevant_structured_character_info)
-from align_system.data_models.local_ph1_ta3_enums import (
+from align_system.data_models.compat.ta3_ph1_client_models import (
     InjuryStatusEnum)
 
 
