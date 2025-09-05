@@ -1,6 +1,6 @@
 def hydrate_scenario_state(record):
     """ Hydrate scenario state from p1 record """
-    from swagger_client.models import (
+    from align_system.data_models.compat.ta3_ph1_client_models import (
         State,
         Action,
         Character,

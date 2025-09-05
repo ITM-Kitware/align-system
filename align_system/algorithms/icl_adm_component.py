@@ -1,7 +1,5 @@
 from functools import lru_cache
 
-from swagger_client.models import AlignmentTarget
-
 from align_system.utils import logging, call_with_coerced_args
 from align_system.utils.alignment_utils import attributes_in_alignment_target
 from align_system.algorithms.abstracts import ADMComponent
@@ -78,7 +76,7 @@ class ICLADMComponent(ADMComponent):
 
         target_attributes = [self.attributes[n] for n in target_attribute_names]
 
-        if isinstance(alignment_target, AlignmentTarget):
+        if not isinstance(alignment_target, dict):
             alignment_target_dict = alignment_target.to_dict()
         else:
             alignment_target_dict = alignment_target
@@ -89,7 +87,7 @@ class ICLADMComponent(ADMComponent):
 
         icl_dialog_elements = {}
         icl_example_info = {}
-        
+
         for attribute in target_attributes:
             icl_dialog_elements[attribute.kdma] = []
             icl_example_info[attribute.kdma] = []
@@ -141,7 +139,7 @@ class ICLADMComponent(ADMComponent):
                 icl_dialog_elements[attribute.kdma].append(DialogElement(role='assistant',
                                                          content=str(icl_sample['response']),
                                                          tags=['icl']))
-                
+
                 # Capture ICL example info for choice_info
                 icl_info = {
                     'similarity_score': icl_sample['similarity_score'],
@@ -237,7 +235,7 @@ class PromptBasedICLADMComponent(ADMComponent):
                  'choice_outcomes': {c: None for c in choices},
                  'attribute': attribute.name})
 
-        if isinstance(alignment_target, AlignmentTarget):
+        if not isinstance(alignment_target, dict):
             alignment_target_dict = alignment_target.to_dict()
         else:
             alignment_target_dict = alignment_target

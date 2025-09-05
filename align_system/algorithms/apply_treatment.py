@@ -4,14 +4,13 @@ import sys
 import yaml
 from pathlib import Path
 
-from swagger_client.models import (
+from align_system.data_models.compat.ta3_ph1_client_models import (
     InjuryLocationEnum,
     InjurySeverityEnum,
     InjuryStatusEnum,
     InjuryTypeEnum,
     SupplyTypeEnum,
 )
-
 from align_system.utils import logging
 
 

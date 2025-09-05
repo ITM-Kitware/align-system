@@ -1,4 +1,4 @@
-_target_: swagger_client.models.AlignmentTarget
+_target_: align_system.data_models.compat.ta3_ph1_client_models.AlignmentTarget
 id: EDUCATION_Less_than_high_school_high
 kdma_values:
 - kdma: EDUCATION_Less than high school
