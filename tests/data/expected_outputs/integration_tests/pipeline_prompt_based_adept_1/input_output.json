@@ -326,8 +326,7 @@
         }
       },
       "true_relevance": {
-        "Treat Patient A": 1,
-        "Treat Patient B": 1
+        "Moral judgement": 1
       }
     },
     "output": {
@@ -682,8 +681,7 @@
         }
       },
       "true_relevance": {
-        "Treat Patient A": 1,
-        "Treat Patient B": 1
+        "Moral judgement": 1
       }
     },
     "output": {
@@ -1038,8 +1036,7 @@
         }
       },
       "true_relevance": {
-        "Treat Patient A": 1,
-        "Treat Patient B": 1
+        "Moral judgement": 1
       }
     },
     "output": {
@@ -1394,8 +1391,7 @@
         }
       },
       "true_relevance": {
-        "Treat Patient A": 1,
-        "Treat Patient B": 1
+        "Moral judgement": 1
       }
     },
     "output": {
