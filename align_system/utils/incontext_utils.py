@@ -502,7 +502,7 @@ class BaselineIncontextExampleGenerator(IncontextExampleGenerator):
                 ]
                 correct_answer_idx = np.argmin(dist_to_tgt)
                 correct_choice = example['choices'][correct_answer_idx]
-                if 'kdma_reasoning' in example:
+                if 'kdma_reasoning' in example and example['kdma_reasoning'][correct_answer_idx] is not None:
                     reasoning = example['kdma_reasoning'][correct_answer_idx]
                 else:
                     adjective = "low" if target_kdma['value'] < 0.5 else "high"
