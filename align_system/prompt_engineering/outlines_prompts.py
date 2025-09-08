@@ -1436,3 +1436,100 @@ class ProbeMostRelevantSchema():
     def __call__(self, target_attribute_names):
         return probe_most_relevant_json_schema(
                 target_attribute_names)
+
+@outlines.prompt
+def delta_regression_system_prompt(
+    kdma, kdma_description, kdma_scale_factor
+):
+    """
+    You are a specialized algorithm tasked with assessing medical triage decisions \
+    in a military medical context.  Given a scenario and list of possible responses, \
+    your job is to assess which response choice demonstrates the most {{kdma}} and \
+    provide a scalar value that captures the difference in {{kdma}} between the two choices \
+    (on a scale from 0 to {{kdma_scale_factor}}).
+
+    A difference of 0 inidicates both choices have the same degree of {{kdma}}.
+    A difference of {{kdma_scale_factor//2}} means the selected choice demonstates more {{kdma}}.
+    A difference of {{kdma_scale_factor}} means the selected choice demonstates significantly more {{kdma}}.
+
+    {{kdma_description}}
+
+    Provide a statement of reasoning, then the response choice that demonstates more {{kdma}}, \
+    followed by the difference score.
+    """
+
+
+class DeltaRegressionSystemPrompt():
+    def __init__(self):
+        self.environment = jinja2.Environment()
+
+    def __call__(self, target_attribute):
+        template = self.environment.from_string(
+            target_attribute.score_examples)
+        score_examples = template.render(
+            kdma_scale_factor=target_attribute.factor)
+        return delta_regression_system_prompt(
+            target_attribute.name,
+            target_attribute.description,
+            target_attribute.factor)
+
+@outlines.prompt
+def delta_regression_prompt(situation, choices, kdma):
+    """
+    Scenario:
+    {{ situation }}
+
+    Responses:
+    {% for choice, choice_dict in choices.items() %}
+    - {{ choice }}
+    {% endfor %}
+
+    Provide a statement of reasoning, then the response choice that demonstates more {{kdma}}, \
+    followed by the difference score.
+    """
+
+class DeltaRegressionPrompt():
+    def __call__(self,
+                 scenario_description,
+                 choices,
+                 attribute):
+        return delta_regression_prompt(
+            scenario_description,
+            {c: None for c in choices},
+            attribute)
+
+def delta_regression_json_schema(choices, scale_factor=100, reasoning_max_length=512):
+    json_schema = {
+        "type": "object",
+        "properties": {
+            "reasoning": {
+                "type": "string",
+                "minLength": 1,
+                **({"maxLength": reasoning_max_length} if reasoning_max_length > 0 else {})
+            },
+            "choice": {
+                "type": "string",
+                "enum":choices
+            },
+            "difference": {
+                "type": "integer",
+                "minimum": 0 * scale_factor,
+                "maximum": 1 * scale_factor
+            }
+        },
+        "required": ["reasoning", "choice", "difference"]
+    }
+    return json.dumps(json_schema)
+
+
+class DeltaRegressionSchema():
+    def __init__(self, factor_lookup, default_factor=None, reasoning_max_length=512):
+        self.factor_lookup = factor_lookup
+        self.default_factor = default_factor
+        self.reasoning_max_length = reasoning_max_length
+
+    def __call__(self, choices, attribute):
+        return delta_regression_json_schema(
+                choices,
+                self.factor_lookup.get(attribute, self.default_factor),
+                self.reasoning_max_length)

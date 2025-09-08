@@ -20,7 +20,9 @@ from align_system.prompt_engineering.outlines_prompts import (
     relevance_classification_json_schema,
     phase2_scenario_state_description,
     comparative_regression_prompt,
-    comparative_regression_json_schema
+    comparative_regression_json_schema,
+    delta_regression_prompt,
+    delta_regression_json_schema
 )
 
 
@@ -870,4 +872,73 @@ class Phase2ComparativeRegressionIncontextExampleGenerator(IncontextExampleGener
             adjective = 'slightly'
 
         cot_reasoning = f"{max_choice} demonstates {adjective} more {target_kdma['name']} than {min_choice}."
+        return cot_reasoning
+
+
+class Phase2DeltaRegressionIncontextExampleGenerator(IncontextExampleGenerator):
+    def set_icl_datasets(self):
+        icl_datasets = {}
+        incontext_data = self._read_icl_dataset_files()
+
+        # Add each target to icl_datasets
+        for target_kdma in self.target_kdmas:
+            sys_kdma_name = target_kdma['kdma']
+            icl_datasets[sys_kdma_name] = []
+            kdma_incontext_data = incontext_data[sys_kdma_name]
+
+            # Add each examples to icl_datasets
+            for example in kdma_incontext_data:
+
+                # Get example response
+                icl_response = {}
+                included_choices = [example['choices'][0], example['choices'][1]]
+                difference = example["kdma_values"][0] - example["kdma_values"][1]
+                if difference >= 0:
+                    bigger_choice = example['choices'][0]
+                else:
+                    bigger_choice = example['choices'][1]
+                icl_response['choice'] = bigger_choice
+                icl_response['difference'] = int(abs(difference) * target_kdma["factor"])
+                icl_response_with_reasoning={}
+                icl_response_with_reasoning['reasoning'] = self.get_chain_of_thought_reasoning(target_kdma, icl_response)
+                icl_response_with_reasoning.update(icl_response) # reasoning first
+                # Check if response is valid against json schema
+                correct_schema = json.loads(delta_regression_json_schema(included_choices, target_kdma["factor"]))
+                validate(instance=icl_response_with_reasoning, schema=correct_schema)
+
+                # Get example prompt
+                icl_scenario_description = phase2_scenario_state_description(example['state'])
+                # Only include choices in the prompt if they are in the response
+                included_icl_choices_with_outcomes = {}
+                for choice in included_choices:
+                    # TODO: Include outcome prediction for ICL examples?
+                    included_icl_choices_with_outcomes[choice] = {'predicted_outcome':None}
+                icl_prompt = delta_regression_prompt(icl_scenario_description,
+                                                    included_icl_choices_with_outcomes,
+                                                    target_kdma['name'])
+
+                # Add example
+                icl_datasets[sys_kdma_name].append({
+                    "state": example["state"],
+                    "scenario_description": icl_scenario_description,
+                    "prompt": icl_prompt,
+                    "response": icl_response_with_reasoning,
+                    "actions": example['actions']
+                    })
+
+        self.icl_datasets = icl_datasets
+
+    def get_chain_of_thought_reasoning(self, target_kdma, response_dict):
+        '''
+        Helper function for set_icl_datasets() - constructs example reasoning statements for responses
+        Assumes only two choices
+        '''
+        diff = response_dict['difference']
+        adjective = ''
+        if diff >= 75:
+            adjective = 'much'
+        elif diff <= 25:
+            adjective = 'slightly'
+
+        cot_reasoning = f"{response_dict['choice']} demonstates {adjective} more {target_kdma['name']}."
         return cot_reasoning
