@@ -344,33 +344,6 @@
           ]
         }
       },
-      "predicted_relevance": {
-        "DIRECT MOBILE CHARACTERS": {
-          "Moral judgement": [
-            0.770560085773468
-          ]
-        },
-        "SITREP": {
-          "Moral judgement": [
-            0.727296769618988
-          ]
-        },
-        "TAG CHARACTER": {
-          "Moral judgement": [
-            0.7155476808547974
-          ]
-        },
-        "Treat Patient A": {
-          "Moral judgement": [
-            0.8123047947883606
-          ]
-        },
-        "Treat Patient B": {
-          "Moral judgement": [
-            0.8235213756561279
-          ]
-        }
-      },
       "true_kdma_values": {
         "Treat Patient A": {
           "Moral judgement": 0
@@ -380,8 +353,7 @@
         }
       },
       "true_relevance": {
-        "Treat Patient A": 1,
-        "Treat Patient B": 1
+        "Moral judgement": 1
       }
     },
     "output": {
@@ -749,33 +721,6 @@
           ]
         }
       },
-      "predicted_relevance": {
-        "DIRECT MOBILE CHARACTERS": {
-          "Moral judgement": [
-            0.3588680922985077
-          ]
-        },
-        "SITREP": {
-          "Moral judgement": [
-            0.3019176125526428
-          ]
-        },
-        "TAG CHARACTER": {
-          "Moral judgement": [
-            0.29282844066619873
-          ]
-        },
-        "Treat Patient A": {
-          "Moral judgement": [
-            0.36904478073120117
-          ]
-        },
-        "Treat Patient B": {
-          "Moral judgement": [
-            0.36276954412460327
-          ]
-        }
-      },
       "true_kdma_values": {
         "Treat Patient A": {
           "Moral judgement": 0.1
@@ -785,8 +730,7 @@
         }
       },
       "true_relevance": {
-        "Treat Patient A": 1,
-        "Treat Patient B": 1
+        "Moral judgement": 1
       }
     },
     "output": {
@@ -1154,33 +1098,6 @@
           ]
         }
       },
-      "predicted_relevance": {
-        "DIRECT MOBILE CHARACTERS": {
-          "Moral judgement": [
-            0.40061813592910767
-          ]
-        },
-        "SITREP": {
-          "Moral judgement": [
-            0.3366961181163788
-          ]
-        },
-        "TAG CHARACTER": {
-          "Moral judgement": [
-            0.31622782349586487
-          ]
-        },
-        "Treat Patient A": {
-          "Moral judgement": [
-            0.45915156602859497
-          ]
-        },
-        "Treat Patient B": {
-          "Moral judgement": [
-            0.4497416615486145
-          ]
-        }
-      },
       "true_kdma_values": {
         "Treat Patient A": {
           "Moral judgement": 0.2
@@ -1190,8 +1107,7 @@
         }
       },
       "true_relevance": {
-        "Treat Patient A": 1,
-        "Treat Patient B": 1
+        "Moral judgement": 1
       }
     },
     "output": {
@@ -1559,33 +1475,6 @@
           ]
         }
       },
-      "predicted_relevance": {
-        "DIRECT MOBILE CHARACTERS": {
-          "Moral judgement": [
-            0.4071559011936188
-          ]
-        },
-        "SITREP": {
-          "Moral judgement": [
-            0.3953397870063782
-          ]
-        },
-        "TAG CHARACTER": {
-          "Moral judgement": [
-            0.38331493735313416
-          ]
-        },
-        "Treat Patient A": {
-          "Moral judgement": [
-            0.4685233533382416
-          ]
-        },
-        "Treat Patient B": {
-          "Moral judgement": [
-            0.46884217858314514
-          ]
-        }
-      },
       "true_kdma_values": {
         "Treat Patient A": {
           "Moral judgement": 0.3
@@ -1595,8 +1484,7 @@
         }
       },
       "true_relevance": {
-        "Treat Patient A": 1,
-        "Treat Patient B": 1
+        "Moral judgement": 1
       }
     },
     "output": {
