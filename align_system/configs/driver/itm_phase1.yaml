@@ -1,0 +1,5 @@
+_target_: align_system.drivers.itm_phase1.ITMPhase1Driver
+
+filter_tag_character: false
+driver.apply_action_filtering: true
+sort_available_actions: false
