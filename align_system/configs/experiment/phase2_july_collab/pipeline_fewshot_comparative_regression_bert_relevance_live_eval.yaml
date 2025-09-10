@@ -28,7 +28,7 @@ adm:
     comparative_regression:
       enable_caching: true
 
-apply_action_filtering: false
+driver.apply_action_filtering: false
 force_determinism: true
 align_to_target: true
 save_last_unstructured_state_per_scenario: true

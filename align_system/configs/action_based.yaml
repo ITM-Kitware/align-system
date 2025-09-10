@@ -4,6 +4,7 @@ defaults:
   - _self_
   - interface: input_output_file
   - adm: outlines_transformers_structured_baseline
+  - driver: itm_phase1
   - override hydra/job_logging: custom
 
 loglevel: "EXPLAIN"

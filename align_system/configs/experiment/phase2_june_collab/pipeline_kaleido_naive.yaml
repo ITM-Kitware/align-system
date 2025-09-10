@@ -9,7 +9,7 @@ interface:
   username: "pipeline_june2025_kaleido_naive"
   domain: "p2triage"
 
-apply_action_filtering: false
+driver.apply_action_filtering: false
     
 force_determinism: true
 align_to_target: true

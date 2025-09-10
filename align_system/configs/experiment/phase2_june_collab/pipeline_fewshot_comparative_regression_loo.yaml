@@ -17,6 +17,6 @@ adm:
         incontext_settings:
           leave_one_out_strategy: 'scenario_description'
 
-apply_action_filtering: false
+driver.apply_action_filtering: false
 force_determinism: true
 align_to_target: true

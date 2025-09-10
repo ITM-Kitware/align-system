@@ -9,6 +9,6 @@ interface:
   username: "pipeline_relevance_oracle_test"
   domain: "p2triage"
 
-apply_action_filtering: false
+driver.apply_action_filtering: false
 force_determinism: true
 align_to_target: true

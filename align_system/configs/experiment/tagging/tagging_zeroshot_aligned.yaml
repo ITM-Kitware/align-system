@@ -7,7 +7,7 @@ interface:
   input_output_filepath: '/data/shared/tagging/eval3.json'
   state_hydration_domain: "minimal"
 
-apply_action_filtering: false
+driver.apply_action_filtering: false
 
 torch_random_seed: 0
 torch_use_deterministic_algorithms: true
