@@ -1,0 +1,8 @@
+_target_: align_system.algorithms.decision_flow_adm.math_reason_stage_component.MathReasonStageComponent
+
+structured_inference_engine: ???
+scenario_description_template: ???
+attributes: ???
+system_prompt_template: null
+prompt_template: null  
+output_schema_template: null
