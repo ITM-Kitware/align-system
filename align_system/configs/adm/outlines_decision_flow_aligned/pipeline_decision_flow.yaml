@@ -19,6 +19,9 @@ defaults:
   - /adm_component/decision_flow@step_definitions.filter: filter
   - /adm_component/decision_flow@step_definitions.objective: objective
   - /adm_component/decision_flow@step_definitions.express: express
+  - /adm_component/decision_flow@step_definitions.math_reason: math_reason
+  - /adm_component/misc@step_definitions.ensure_chosen_action: ensure_chosen_action
+  - /adm_component/misc@step_definitions.populate_choice_info: populate_choice_info
   # Prompt templates to be used in Variables Extraction Phase
   - /template/scenario_description@scenario_description_template: phase2
   - /template/prompt/decision_flow@prompt_template: variables
@@ -38,6 +41,9 @@ defaults:
   # Prompt templates to be used in Express Phase
   - /template/prompt/decision_flow@express_prompt_template: express
   - /template/output_schema/decision_flow@express_output_schema: express
+  # Prompt templates to be used in MathReason Phase
+  - /template/prompt/decision_flow@math_reason_prompt_template: math_reason
+  - /template/output_schema/decision_flow@math_reason_output_schema: math_reason
   # Use definitions in this file to override defaults defined above
   - _self_
 
@@ -73,6 +79,12 @@ step_definitions:
     scenario_description_template: ${ref:adm.scenario_description_template}
     prompt_template: ${ref:adm.express_prompt_template}
     output_schema_template: ${ref:adm.express_output_schema}
+  math_reason:
+    structured_inference_engine: ${ref:adm.structured_inference_engine}
+    scenario_description_template: ${ref:adm.scenario_description_template}
+    prompt_template: ${ref:adm.math_reason_prompt_template}
+    output_schema_template: ${ref:adm.math_reason_output_schema}
+    attributes: ${adm.attribute_definitions}
 
 
 instance:
@@ -87,3 +99,6 @@ instance:
     - ${ref:adm.step_definitions.filter}
     - ${ref:adm.step_definitions.objective}
     - ${ref:adm.step_definitions.express}
+    - ${ref:adm.step_definitions.math_reason}
+    - ${ref:adm.step_definitions.ensure_chosen_action}
+    - ${ref:adm.step_definitions.populate_choice_info}

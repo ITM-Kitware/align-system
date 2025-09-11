@@ -1788,18 +1788,21 @@ def attribute_output_schema():
         "properties": {
             "Variable": {
                 "type": "array",
+                "minItems": 2,
                 "items": {
                     "type": "object",
                     "properties": {
                         "Variable": {"type": "string"},
                         "Attribute": {
                             "type": "array",
+                            "minItems": 1,
                             "items": {
                                 "type": "object",
                                 "properties": {
                                     "Attribute": {"type": "string"},
                                     "Value": {
                                         "type": "array",
+                                        "minItems": 1,
                                         "items": {"type": "string"}
                                     }
                                 },
@@ -1938,7 +1941,7 @@ def objective_stage_prompt(scenario_description, choices, objective_components, 
     **Filtered Objective Components** (Weight > {{ weight_threshold }}):
     {% for component in objective_components %}
     - Variable: {{ component.Variable }}
-    - Attribute: {{ component.Attribute }}  
+    - Attribute: {{ component.Attribute }}
     - Weight: {{ component.Weight }}
     - Explanation: {{ component.Explanation }}
     {% endfor %}
@@ -2048,7 +2051,7 @@ def express_stage_prompt(scenario_description, choices, structure):
                "Value": ["Pulling people from the rubble"]
            },
            {
-               "Variable": "Patient 2: The second is a looter", 
+               "Variable": "Patient 2: The second is a looter",
                "Attribute": "Condition",
                "Value": ["Severe injuries", "Multiple fractures"]
            }
@@ -2114,7 +2117,7 @@ def express_output_schema():
                 "description": "Mathematical expressions and explanations of the objective function"
             },
             "Decision Variables": {
-                "type": "array", 
+                "type": "array",
                 "items": {"type": "string"},
                 "description": "Definitions and explanations of all decision variables"
             },
@@ -2136,3 +2139,181 @@ def express_output_schema():
 class ExpressOutputSchema():
     def __call__(self):
         return express_output_schema()
+
+
+@outlines.prompt
+def math_reason_prompt(objective, attribute, variable, constraints, choice, target_bias):
+    """
+    You will receive a mathematical model structure along with a dataset containing variables, attributes, and values. Your goal is to integrate this information to determine the optimal choice.
+
+    **Input**:
+    1. Attributes & Values:
+    - Variable: Represents the subject.
+    - Attribute: A property of the subject, associated with specific values.
+    - Value: Some specific descriptions about attributes.
+    2. Mathematical Model Structure:
+    - Objective Function: A function incorporating various attributes of different variables. Your task is to determine whether to maximize or minimize it based on the target bias.
+    - Constraints & well-defined variables
+    3. Target bias: A set of guiding principles or criteria influencing decision-making.
+    4. Choices: A list of possible decisions, each indexed numerically. Your task is to determine the correct index based on calculations.
+
+    **Step 1: Pairwise Attribute Scoring**
+    For each attribute shared by two or more variables:
+    - Compare the values of the attribute between each pair of variables. Justify why one variable should receive a higher score for a given attribute than the other, based on the target bias.
+    - Assign a score between 0 and 1 to each variable's value for that attribute using Normal Distribution (Normal(μ, σ)) to represent uncertainty or estimation. Example: "Condition" ~ Normal(0.6, 0.1) if moderate, or ~N(0.9, 0.05) if critical.
+        - 1 = strongly aligns with the target bias
+        - 0 = strongly misaligned
+    - Scores are **relative**, based on comparative merit within that attribute.
+    - You should ignore the number now in front of the attribute, that is not the score for each attribute. So you cannot simply add them together to get the result.
+
+    For each attribute and variable:
+
+    Compute expected value (mean) of the distribution as the score.
+
+    These scores are still relative: compare each variable's attribute scores to others.
+
+    **Step 2: Apply Objective Function**
+    - Use the attribute scores and plug them into the objective function.
+    - Compute the final score for each decision variable using its respective terms and weights.
+
+    **Step 3: Interpret the Objective Function**
+    Determine the objective function should be maximized or minimized according to the target bias.
+
+    **Step 4: Enforce Constraints & Choose**
+    - Respect all constraints (e.g., mutually exclusive choices).
+    - Select the decision variable index that yields the optimal result according to the objective.
+
+    If multiple variables have identical final scores, select arbitrarily among them without additional reasoning.
+
+    Your Turn:
+    Objective Function: {{ objective }}
+    Attribute and Values: {{ attribute }}
+    Decision Variables: {{ variable }}
+    Constraints: {{ constraints }}
+    choices: {{ choice }}
+    Target bias: {{ target_bias }}
+
+    **Expected Output Format (JSON)**:
+    {% raw %}
+    ```json
+    {
+    "Reasoning": "<Provide a reasoned explanation here>", "Answer": <Integer index corresponding to your final answer>
+    }
+    ```
+    {% endraw %}
+    """
+
+@outlines.prompt
+def math_reason_error_prompt(structure, choice, target_bias):
+    """
+    You will receive a mathematical model structure along with a dataset containing variables, attributes, and values. Your goal is to integrate this information to determine the optimal choice.
+
+    **Input**:
+    1. Attributes & Values:
+    - Variable: Represents the subject.
+    - Attribute: A property of the subject, associated with specific values.
+    - Value: Some specific descriptions about attributes.
+    2. Mathematical Model Structure:
+    - Objective Function: A function incorporating various attributes of different variables. Your task is to determine whether to maximize or minimize it based on the target bias.
+    - Constraints & well-defined variables
+    3. Target bias: A set of guiding principles or criteria influencing decision-making.
+    4. Choices: A list of possible decisions, each indexed numerically. Your task is to determine the correct index based on calculations.
+
+    **Step 1: Pairwise Attribute Scoring**
+    For each attribute shared by two or more variables:
+    - Compare the values of the attribute between each pair of variables. Justify why one variable should receive a higher score for a given attribute than the other, based on the target bias.
+    - Assign a score between 0 and 1 to each variable's value for that attribute using Normal Distribution (Normal(μ, σ)) to represent uncertainty or estimation. Example: "Condition" ~ Normal(0.6, 0.1) if moderate, or ~N(0.9, 0.05) if critical.
+        - 1 = strongly aligns with the target bias
+        - 0 = strongly misaligned
+    - Scores are **relative**, based on comparative merit within that attribute.
+    - You should ignore the number now in front of the attribute, that is not the score for each attribute. So you cannot simply add them together to get the result.
+
+    For each attribute and variable:
+
+    Compute expected value (mean) of the distribution as the score.
+
+    These scores are still relative: compare each variable's attribute scores to others.
+
+    **Step 2: Apply Objective Function**
+    - Use the attribute scores and plug them into the objective function.
+    - Compute the final score for each decision variable using its respective terms and weights.
+
+    **Step 3: Interpret the Objective Function**
+    Determine the objective function should be maximized or minimized according to the target bias.
+
+    **Step 4: Enforce Constraints & Choose**
+    - Respect all constraints (e.g., mutually exclusive choices).
+    - Strictly follow the direction determined in Step 3:
+    If maximize, select the variable with the highest total score.
+    If minimize, select the variable with the lowest total score.
+
+    Your Turn:
+    Structure: {{ structure }}
+    choices: {{ choice }}
+    Target bias: {{ target_bias }}
+
+    **Expected Output Format (JSON)**:
+    {% raw %}
+    ```json
+    {
+    "Reasoning": "<Provide a reasoned explanation here>", "Answer": <Integer index corresponding to your final answer>
+    }
+    ```
+    {% endraw %}
+    """
+
+class MathReasonPrompt():
+    def __call__(self,
+                 objective,
+                 attribute,
+                 variable,
+                 constraints,
+                 choice,
+                 target_bias):
+        try:
+            prompt_content = math_reason_prompt(
+                objective=objective,
+                attribute=attribute,
+                variable=variable,
+                constraints=constraints,
+                choice=choice,
+                target_bias=target_bias,
+            )
+        except Exception:
+            # For error fallback, we need to reconstruct structure format
+            structure = {
+                "Objective Function": objective,
+                "Decision Variables": variable,
+                "Constraints": constraints
+            }
+            prompt_content = math_reason_error_prompt(
+                structure=structure,
+                choice=choice,
+                target_bias=target_bias,
+            )
+
+        return prompt_content
+
+
+def math_reason_output_schema():
+    """JSON schema for math reason response"""
+    schema = {
+        "type": "object",
+        "properties": {
+            "Reasoning": {
+                "type": "string",
+                "description": "Detailed reasoning for the chosen answer based on the mathematical model"
+            },
+            "Answer": {
+                "type": "integer",
+                "description": "Integer index corresponding to the chosen answer"
+            }
+        },
+        "required": ["Reasoning", "Answer"],
+        "additionalProperties": False
+    }
+    return json.dumps(schema)
+
+class MathReasonOutputSchema():
+    def __call__(self):
+        return math_reason_output_schema()
