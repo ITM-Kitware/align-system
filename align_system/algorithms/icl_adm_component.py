@@ -1,4 +1,5 @@
 from functools import lru_cache
+from collections.abc import Mapping
 
 from align_system.utils import logging, call_with_coerced_args
 from align_system.utils.alignment_utils import attributes_in_alignment_target
@@ -76,7 +77,8 @@ class ICLADMComponent(ADMComponent):
 
         target_attributes = [self.attributes[n] for n in target_attribute_names]
 
-        if not isinstance(alignment_target, dict):
+        # Mapping covers `dict` and `omegaconf.dictconfig.DictConfig`
+        if not isinstance(alignment_target, Mapping):
             alignment_target_dict = alignment_target.to_dict()
         else:
             alignment_target_dict = alignment_target
@@ -235,7 +237,8 @@ class PromptBasedICLADMComponent(ADMComponent):
                  'choice_outcomes': {c: None for c in choices},
                  'attribute': attribute.name})
 
-        if not isinstance(alignment_target, dict):
+        # Mapping covers `dict` and `omegaconf.dictconfig.DictConfig`
+        if not isinstance(alignment_target, Mapping):
             alignment_target_dict = alignment_target.to_dict()
         else:
             alignment_target_dict = alignment_target
