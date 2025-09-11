@@ -2131,3 +2131,54 @@ def express_output_schema():
 class ExpressOutputSchema():
     def __call__(self):
         return express_output_schema()
+
+
+class MathReasonPrompt():
+    def __call__(self,
+                 choices,
+                 structure,
+                 attribute,
+                 target_bias):
+        from align_system.prompt_engineering.decision_flow_prompts.mta_prompt import math_reason, math_reason_error
+        
+        try:
+            prompt_content = math_reason.format(
+                objective=structure.get("Objective Function", "weight * attribute of variable"),
+                attribute=attribute,
+                variable=structure.get("Decision Variables", []),
+                constraints=structure.get("Constraints", []),
+                choice=choices,
+                target_bias=target_bias,
+            )
+        except Exception:
+            prompt_content = math_reason_error.format(
+                structure=structure,
+                choice=choices,
+                target_bias=target_bias,
+            )
+        
+        return prompt_content
+
+
+def math_reason_output_schema():
+    """JSON schema for math reason response"""
+    schema = {
+        "type": "object",
+        "properties": {
+            "Reasoning": {
+                "type": "string",
+                "description": "Detailed reasoning for the chosen answer based on the mathematical model"
+            },
+            "Answer": {
+                "type": "integer",
+                "description": "Integer index corresponding to the chosen answer"
+            }
+        },
+        "required": ["Reasoning", "Answer"],
+        "additionalProperties": False
+    }
+    return json.dumps(schema)
+
+class MathReasonOutputSchema():
+    def __call__(self):
+        return math_reason_output_schema()
