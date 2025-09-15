@@ -1,5 +1,3 @@
-import json
-from copy import deepcopy
 import atexit
 import os
 
@@ -7,8 +5,7 @@ from rich.logging import RichHandler
 from rich.console import Console
 from rich.highlighter import JSONHighlighter
 import hydra
-from omegaconf import DictConfig, OmegaConf
-from timeit import default_timer as timer
+from omegaconf import DictConfig
 
 from align_system.utils import logging
 from align_system.utils.hydra_utils import initialize_with_custom_references
