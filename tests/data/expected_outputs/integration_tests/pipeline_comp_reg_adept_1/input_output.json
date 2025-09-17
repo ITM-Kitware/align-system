@@ -431,12 +431,12 @@
       }
     },
     "output": {
-      "choice": 5,
+      "choice": 4,
       "action": {
-        "action_id": "sitrep",
-        "action_type": "SITREP",
+        "action_id": "direct_mobile_characters",
+        "action_type": "DIRECT_MOBILE_CHARACTERS",
         "intent_action": false,
-        "unstructured": "SITREP",
+        "unstructured": "DIRECT MOBILE CHARACTERS",
         "character_id": null,
         "threat_state": null,
         "parameters": null,
