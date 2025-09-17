@@ -109,10 +109,10 @@ PyTorch version 2.3.1+cu118 available.
 {'DIRECT MOBILE CHARACTERS': {'reasoning': 'This response does not provide any information about the decision making behavior of someone with high moral judgment.', 'score': 0}, 'SITREP': {'reasoning': 'This response does not provide any information about the decision making behavior of someone with high moral judgment.', 'score': 0}, 'TAG CHARACTER': {'reasoning': 'This response does not provide any information about the decision making behavior of someone with high moral judgment.', 'score': 0}, 'Treat Patient A': {'reasoning': 'Because Patient A acted to intend major harm and had a direct cause of harm, choosing to treat Patient A would score a 0 for the the principle of moral judgment.', 'score': 0}, 'Treat Patient B': {'reasoning': 'Because Patient B acted with no intent and did not cause of harm, choosing to treat Patient B would score a 55 for the the principle of moral judgment.', 'score': 55}}
 [bold]*ACTION BEING TAKEN*[/bold]
 {
-    "action_id": "sitrep",
-    "action_type": "SITREP",
+    "action_id": "direct_mobile_characters",
+    "action_type": "DIRECT_MOBILE_CHARACTERS",
     "intent_action": false,
-    "unstructured": "SITREP",
+    "unstructured": "DIRECT MOBILE CHARACTERS",
     "character_id": null,
     "threat_state": null,
     "parameters": null,
