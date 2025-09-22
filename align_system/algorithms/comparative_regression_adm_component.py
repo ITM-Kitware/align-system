@@ -390,18 +390,25 @@ class DeltaRegressionADMComponent(ComparativeRegressionADMComponent):
                     attribute.kdma, i), extra={"markup": True})
                 log.info(response, extra={"highlighter": JSON_HIGHLIGHTER})
 
-                for choice in choices:
-                    attribute_prediction_scores.setdefault(choice, {})
-                    # For now, assign high choice score as difference and low choice score as 0
-                    if choice == response['choice']:
-                        attribute_prediction_scores[choice].setdefault(
-                            attribute.kdma, []).append(response['difference'] / attribute.factor)
-                    else:
-                        attribute_prediction_scores[choice].setdefault(
-                            attribute.kdma, 0)
-                    attribute_prediction_reasonings.setdefault(choice, {})
-                    # Probe level reasoning
-                    attribute_prediction_reasonings[choice].setdefault(
+                attribute_prediction_scores.setdefault(choices[0], {})
+                attribute_prediction_scores.setdefault(choices[1], {})
+                # For now, assign high choice score as difference and low choice score as 0
+                if response['difference'] >= 0:
+                    attribute_prediction_scores[choices[0]].setdefault(
+                            attribute.kdma, []).append(abs(response['difference']) / attribute.factor)
+                    attribute_prediction_scores[choices[1]].setdefault(
+                            attribute.kdma, []).append(0)
+                else:
+                    attribute_prediction_scores[choices[1]].setdefault(
+                            attribute.kdma, []).append(abs(response['difference']) / attribute.factor)
+                    attribute_prediction_scores[choices[0]].setdefault(
+                            attribute.kdma, []).append(0)
+                # Probe level reasoning
+                attribute_prediction_reasonings.setdefault(choices[0], {})
+                attribute_prediction_reasonings.setdefault(choices[1], {})
+                attribute_prediction_reasonings[choices[0]].setdefault(
+                        attribute.kdma, []).append(response['reasoning'])
+                attribute_prediction_reasonings[choices[1]].setdefault(
                         attribute.kdma, []).append(response['reasoning'])
 
             attribute_dialogs[attribute.kdma] = dialog

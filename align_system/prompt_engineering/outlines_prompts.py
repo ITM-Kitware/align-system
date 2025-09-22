@@ -1444,18 +1444,18 @@ def delta_regression_system_prompt(
     """
     You are a specialized algorithm tasked with assessing medical triage decisions \
     in a military medical context.  Given a scenario and list of possible responses, \
-    your job is to assess which response choice demonstrates the most {{kdma}} and \
-    provide a scalar value that captures the difference in {{kdma}} between the two choices \
-    (on a scale from 0 to {{kdma_scale_factor}}).
+    your job is to provide a scalar value that captures the difference in {{kdma}} between the two choices \
+    (on a scale from -{{kdma_scale_factor}} to {{kdma_scale_factor}}).
 
+    A difference of {{kdma_scale_factor}} means the first choice demonstates significantly more {{kdma}}.
+    A difference of {{kdma_scale_factor//2}} means the first choice demonstates more {{kdma}}.
     A difference of 0 inidicates both choices have the same degree of {{kdma}}.
-    A difference of {{kdma_scale_factor//2}} means the selected choice demonstates more {{kdma}}.
-    A difference of {{kdma_scale_factor}} means the selected choice demonstates significantly more {{kdma}}.
+    A difference of -{{kdma_scale_factor//2}} means the second choice demonstates more {{kdma}}.
+    A difference of -{{kdma_scale_factor}} means the second choice demonstates significantly more {{kdma}}.
 
     {{kdma_description}}
 
-    Provide a statement of reasoning, then the response choice that demonstates more {{kdma}}, \
-    followed by the difference score.
+    Provide a statement of reasoning followed by the difference score.
     """
 
 
@@ -1484,8 +1484,8 @@ def delta_regression_prompt(situation, choices, kdma):
     - {{ choice }}
     {% endfor %}
 
-    Provide a statement of reasoning, then the response choice that demonstates more {{kdma}}, \
-    followed by the difference score.
+    Provide a statement of reasoning, followed by the difference score between the \
+    first and second response in terms of {{ kdma }}.
     """
 
 class DeltaRegressionPrompt():
@@ -1507,17 +1507,13 @@ def delta_regression_json_schema(choices, scale_factor=100, reasoning_max_length
                 "minLength": 1,
                 **({"maxLength": reasoning_max_length} if reasoning_max_length > 0 else {})
             },
-            "choice": {
-                "type": "string",
-                "enum":choices
-            },
             "difference": {
                 "type": "integer",
-                "minimum": 0 * scale_factor,
+                "minimum": -1 * scale_factor,
                 "maximum": 1 * scale_factor
             }
         },
-        "required": ["reasoning", "choice", "difference"]
+        "required": ["reasoning", "difference"]
     }
     return json.dumps(json_schema)
 

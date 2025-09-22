@@ -897,10 +897,9 @@ class Phase2DeltaRegressionIncontextExampleGenerator(IncontextExampleGenerator):
                     bigger_choice = example['choices'][0]
                 else:
                     bigger_choice = example['choices'][1]
-                icl_response['choice'] = bigger_choice
-                icl_response['difference'] = int(abs(difference) * target_kdma["factor"])
+                icl_response['difference'] = int(difference * target_kdma["factor"])
                 icl_response_with_reasoning={}
-                icl_response_with_reasoning['reasoning'] = self.get_chain_of_thought_reasoning(target_kdma, icl_response)
+                icl_response_with_reasoning['reasoning'] = self.get_chain_of_thought_reasoning(target_kdma, icl_response, bigger_choice)
                 icl_response_with_reasoning.update(icl_response) # reasoning first
                 # Check if response is valid against json schema
                 correct_schema = json.loads(delta_regression_json_schema(included_choices, target_kdma["factor"]))
@@ -928,17 +927,17 @@ class Phase2DeltaRegressionIncontextExampleGenerator(IncontextExampleGenerator):
 
         self.icl_datasets = icl_datasets
 
-    def get_chain_of_thought_reasoning(self, target_kdma, response_dict):
+    def get_chain_of_thought_reasoning(self, target_kdma, response_dict, bigger_choice):
         '''
         Helper function for set_icl_datasets() - constructs example reasoning statements for responses
         Assumes only two choices
         '''
-        diff = response_dict['difference']
+        diff = abs(response_dict['difference'])
         adjective = ''
         if diff >= 75:
             adjective = 'much'
         elif diff <= 25:
             adjective = 'slightly'
 
-        cot_reasoning = f"{response_dict['choice']} demonstates {adjective} more {target_kdma['name']}."
+        cot_reasoning = f"{bigger_choice} demonstates {adjective} more {target_kdma['name']}."
         return cot_reasoning
