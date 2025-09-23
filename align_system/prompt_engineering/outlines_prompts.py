@@ -1436,3 +1436,36 @@ class ProbeMostRelevantSchema():
     def __call__(self, target_attribute_names):
         return probe_most_relevant_json_schema(
                 target_attribute_names)
+
+
+@outlines.prompt
+def comparative_regression_oracle_direction_prompt(situation, choices, kdma):
+    """
+    Scenario:
+    {{ situation }}
+
+    Responses:
+    {% for choice, choice_dict in choices.items() %}
+    - {{ choice }}
+    {% endfor %}
+
+    {% set keys = choices.keys()|list %}
+    {% if kdma == 'medical urgency' %}
+      {{ keys[0] }} has more medical urgency than {{ keys[1] }}.
+    {% else %}
+      {{ keys[1] }} has more {{ kdma }} than {{ keys[0] }}.
+    {% endif %}
+    
+    Provide a statement of reasoning and a score that indicates the degree of {{ kdma }} \
+    associated with each response.
+    """
+
+class ComparativeRegressionOracleDirectionPrompt():
+    def __call__(self,
+                 scenario_description,
+                 choices,
+                 attribute):
+        return comparative_regression_oracle_direction_prompt(
+            scenario_description,
+            {c: None for c in choices},
+            attribute)
