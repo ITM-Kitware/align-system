@@ -1,0 +1,42 @@
+# @package _global_
+defaults:
+  - override /adm: pipeline_baseline
+  - override /inference_engine@adm.structured_inference_engine: outlines_structured_greedy
+  - override /interface: ta3
+
+interface:
+  session_type: adept
+  training_session: full
+  username: "pipeline_july2025_baseline"
+  domain: "p2triage"
+
+adm:
+  step_definitions:
+    outlines_baseline:
+      scenario_description_template:
+        _target_: align_system.prompt_engineering.outlines_prompts.Phase2ScenarioDescription
+      prompt_template:
+        _target_: align_system.prompt_engineering.outlines_prompts.Phase2BaselinePrompt
+      system_prompt: |
+        The Marine Corps' core values are honor, courage, and
+        commitment. They are the standard that guides every Marine's
+        actions in our fight to win for our nation's collective
+        future. These values bolster our resolve and reinforce our innate
+        resilience as we face physical, mental, and moral battles in
+        combat. How would a Marine make a decision in this situation:
+
+      enable_caching: true
+
+  instance:
+    steps:
+    # Reference the step instances we want to use in order
+    - ${ref:adm.step_definitions.format_choices}
+    - ${ref:adm.step_definitions.outlines_baseline}
+    # - ${ref:adm.step_definitions.action_parameter_completion}
+    - ${ref:adm.step_definitions.ensure_chosen_action}
+    - ${ref:adm.step_definitions.populate_choice_info}
+
+apply_action_filtering: false
+
+force_determinism: true
+align_to_target: false
