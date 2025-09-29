@@ -5,9 +5,10 @@ defaults:
   - override /interface: ta3
 
 interface:
-  session_type: adept
-  training_session: full
-  username: "pipeline_july2025_baseline"
+  api_endpoint: "https://darpaitm.caci.com"
+  session_type: eval
+  training_session: null
+  username: "testrun-ALIGN-ADM-OutlinesBaseline-None-Mistral-7B-Instruct-v0.3"
   domain: "p2triage"
 
 adm:
@@ -34,3 +35,8 @@ apply_action_filtering: false
 
 force_determinism: true
 align_to_target: false
+save_last_unstructured_state_per_scenario: true
+
+hydra:
+  run:
+    dir: 'phase2_post_july_collab_rq2_eval_live_test/baseline_none/${now:%Y-%m-%d__%H-%M-%S}'

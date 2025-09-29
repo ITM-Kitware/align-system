@@ -141,6 +141,9 @@ class OutlinesBaselineADMComponent(ADMComponent):
         '''
 
         def _generic_object_repr(obj):
+            if obj is None:
+                return "None"
+
             init_params = inspect.signature(obj.__class__.__init__).parameters
             obj_vars = vars(obj)
 
@@ -158,6 +161,7 @@ class OutlinesBaselineADMComponent(ADMComponent):
                        prompt_template={_generic_object_repr(self.prompt_template)},
                        output_schema_template={_generic_object_repr(self.output_schema_template)},
                        system_prompt_template={_generic_object_repr(self.system_prompt_template)},
+                       system_prompt={self.system_prompt},
                        num_samples={self.num_samples},
                        vote_calculator_fn={_generic_object_repr(self.vote_calculator_fn)},
                        )""", flags=re.MULTILINE).strip()
