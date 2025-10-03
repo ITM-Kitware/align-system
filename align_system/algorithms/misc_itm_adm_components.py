@@ -81,7 +81,9 @@ class PopulateChoiceInfo(ADMComponent):
             alignment_target=None,
             attribute_prediction_scores=None,
             attribute_relevance=None,
-            icl_example_info=None):
+            icl_example_info=None,
+            alignment_info=None,
+    ):
         choice_info = {}
 
         if alignment_target is None:
@@ -97,6 +99,9 @@ class PopulateChoiceInfo(ADMComponent):
 
         if icl_example_info is not None:
             choice_info['icl_example_responses'] = icl_example_info
+
+        if alignment_info is not None:
+            choice_info['alignment_info'] = alignment_info
 
         true_kdma_values = {}
         true_relevance = {}
