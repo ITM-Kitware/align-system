@@ -1789,6 +1789,7 @@ def attribute_output_schema():
             "Variable": {
                 "type": "array",
                 "minItems": 2,
+                "maxItems": 5,
                 "items": {
                     "type": "object",
                     "properties": {
@@ -2113,26 +2114,32 @@ def express_output_schema():
         "properties": {
             "Objective Function": {
                 "type": "array",
-                "items": {"type": "string"},
+                "items": {"type": "string", "maxLength": 512},
+                "maxItems": 6,
                 "description": "Mathematical expressions and explanations of the objective function"
             },
             "Decision Variables": {
                 "type": "array",
-                "items": {"type": "string"},
+                "items": {"type": "string", "maxLength": 512},
+                "maxItems": 6,
                 "description": "Definitions and explanations of all decision variables"
             },
             "Constraints": {
                 "type": "array",
-                "items": {"type": "string"},
+                "items": {"type": "string", "maxLength": 512},
+                "maxItems": 6,
                 "description": "List of all constraints, both logical and numerical"
             },
             "Explanation": {
                 "type": "string",
+                "minLength": 512,
+                "maxLength": 1024,
                 "description": "Explanation of how the model reflects ethical alignment and respects conditions"
             }
         },
         "required": ["Objective Function", "Decision Variables", "Constraints", "Explanation"],
-        "additionalProperties": False
+        "additionalProperties": False,
+        "maxProperties": 4
     }
     return json.dumps(schema)
 
