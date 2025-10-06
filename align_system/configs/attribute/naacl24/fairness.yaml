@@ -1,0 +1,6 @@
+_target_: align_system.data_models.attribute.Attribute
+
+name: fairness
+kdma: "Fairness"
+description: Fairness is treating different people in the same way, such that no person is valued more based on their group membership, identity, or prior actions. A lack of fairness can manifest as favoring those who you have a positive personal relationship with, are part of a group you also belong to, or who have high social status.
+factor: 10

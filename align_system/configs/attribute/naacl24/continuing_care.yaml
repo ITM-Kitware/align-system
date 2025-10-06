@@ -1,0 +1,6 @@
+_target_: align_system.data_models.attribute.Attribute
+
+name: continuation of care
+kdma: "ContinuationOfCare"
+description: Continuing care means continuing medical care for current patients rather than switching to new patients, related to the trait of “cognitive closure”. A person who values continuing care will tend to allocate resources (e.g. time, medical supplies, etc.) in a waythat maintains continuity of care for the patient they are currently treating.
+factor: 10
