@@ -35,15 +35,12 @@ class FilterStageComponent(ADMComponent):
 
         # Handle alignment_target workflow similar to attribute_stage_component
         if alignment_target is None:
-            target_attribute_names = []
-        else:
-            target_attribute_names = attributes_in_alignment_target(alignment_target)
-
-        target_attributes = [self.attributes[n] for n in target_attribute_names if n in self.attributes]
-
-        # If we have target attributes from alignment_target, use those; otherwise use all attributes
-        if not target_attributes:
+            # No alignment target - use all attributes
             target_attributes = list(self.attributes.values())
+        else:
+            # Alignment target provided - ONLY use attributes in the alignment target
+            target_attribute_names = attributes_in_alignment_target(alignment_target)
+            target_attributes = [self.attributes[n] for n in target_attribute_names if n in self.attributes]
 
         filter_results = {}
         

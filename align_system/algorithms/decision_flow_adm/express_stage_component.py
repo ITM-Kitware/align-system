@@ -1,6 +1,5 @@
 from align_system.utils import logging, call_with_coerced_args
 from align_system.algorithms.abstracts import ADMComponent
-from align_system.utils.alignment_utils import attributes_in_alignment_target
 from align_system.data_models.dialog import DialogElement
 
 log = logging.getLogger(__name__)
@@ -14,7 +13,6 @@ class ExpressStageComponent(ADMComponent):
         system_prompt_template,
         prompt_template,
         output_schema_template,
-        attributes=None,
         **kwargs,
     ):
         self.structured_inference_engine = structured_inference_engine
@@ -22,10 +20,6 @@ class ExpressStageComponent(ADMComponent):
         self.system_prompt_template = system_prompt_template
         self.prompt_template = prompt_template
         self.output_schema_template = output_schema_template
-        
-        if attributes is None:
-            attributes = {}
-        self.attributes = attributes
 
     def run_returns(self):
         return "mathematical_model"
@@ -33,30 +27,18 @@ class ExpressStageComponent(ADMComponent):
     def run(self, scenario_state, choices, objective_function=None, filter_analysis=None, attribute_analysis=None, variables=None, extraction=None, alignment_target=None, **kwargs):
         """Create complete mathematical optimization model following math_express template"""
 
-        # Handle alignment_target workflow similar to other stage components
-        if alignment_target is None:
-            target_attribute_names = []
-        else:
-            target_attribute_names = attributes_in_alignment_target(alignment_target)
-
-        target_attributes = [self.attributes[n] for n in target_attribute_names if n in self.attributes]
-
-        # If we have target attributes from alignment_target, use those; otherwise use all attributes
-        if not target_attributes:
-            target_attributes = list(self.attributes.values())
-
         # Build structure following decision_flow_stages.py lines 158-188
         structure = {}
-        
+
         # 1. Variables from variables stage
         structure["variables"] = variables if variables else []
-        
+
         # 2. Objective function from objective stage
         if objective_function and isinstance(objective_function, dict):
             structure["objective_function"] = objective_function.get('objective_function', 'weight * attribute of variable')
         else:
             structure["objective_function"] = objective_function if objective_function else 'weight * attribute of variable'
-        
+
         # 3. Attributes from filtered analysis (lines 162-175)
         structure["attribute"] = []
         if filter_analysis and attribute_analysis:
@@ -64,10 +46,10 @@ class ExpressStageComponent(ADMComponent):
                 # Skip environment attributes (line 164)
                 if attribute_name.lower() == "environment":
                     continue
-                
+
                 # Get attribute analysis data for this attribute
                 attribute_data = attribute_analysis.get(attribute_name, [])
-                
+
                 # Process attribute data to create triples (variable, attribute, value)
                 if isinstance(attribute_data, list):
                     for variable_info in attribute_data:
@@ -81,7 +63,7 @@ class ExpressStageComponent(ADMComponent):
                                             "Attribute": attr_info['Attribute'],
                                             "Value": attr_info['Value']
                                         })
-        
+
         # 4. Constraints from extraction information (lines 177-188)
         structure["constraints"] = []
         if extraction:
@@ -119,7 +101,7 @@ class ExpressStageComponent(ADMComponent):
                 'structure': structure
             },
         )
-        
+
         dialog.append(DialogElement(role='user',
                                    content=prompt,
                                    tags=['decisionflow_express']))
@@ -129,18 +111,24 @@ class ExpressStageComponent(ADMComponent):
             {})
 
         dialog_prompt = self.structured_inference_engine.dialog_to_prompt(dialog)
-        
+        log.info(f"**Express stage dialog prompt**: {dialog_prompt}")
+
+        import time
+        start_time = time.time()
         response = self.structured_inference_engine.run_inference(
             dialog_prompt,
             output_schema
         )
+        elapsed_time = time.time() - start_time
+        log.info(f"**Express stage inference took {elapsed_time:.2f} seconds**")
+        log.info(f"**Express stage response**: \n{response}")
 
         # Extract components
         objective_function = response.get('Objective Function', [])
         decision_variables = response.get('Decision Variables', [])
         constraints = response.get('Constraints', [])
         explanation = response.get('Explanation', '')
-        
+
         result = {
             'mathematical_model': response,
             'structure': structure,
@@ -149,6 +137,6 @@ class ExpressStageComponent(ADMComponent):
             'constraints': constraints,
             'explanation': explanation
         }
-        
+
         log.info(f"Express stage completed: Generated mathematical model with {len(objective_function)} objective functions, {len(decision_variables)} decision variables, {len(constraints)} constraints")
         return result

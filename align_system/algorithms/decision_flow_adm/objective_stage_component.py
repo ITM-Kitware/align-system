@@ -37,18 +37,14 @@ class ObjectiveStageComponent(ADMComponent):
 
         # Handle alignment_target workflow similar to other stage components
         if alignment_target is None:
-            target_attribute_names = []
-        else:
-            target_attribute_names = attributes_in_alignment_target(alignment_target)
-
-        target_attributes = [self.attributes[n] for n in target_attribute_names if n in self.attributes]
-
-        # If we have target attributes from alignment_target, use those; otherwise use all attributes
-        if not target_attributes:
+            # No alignment target - use all attributes
             target_attributes = list(self.attributes.values())
+        else:
+            # Alignment target provided - ONLY use attributes in the alignment target
+            target_attribute_names = attributes_in_alignment_target(alignment_target)
+            target_attributes = [self.attributes[n] for n in target_attribute_names if n in self.attributes]
 
         objective_components = []
-        filtered_attributes = []
 
         # Process filter analysis to identify high-weight attributes for objective function
         # Following the logic from decision_flow_stages.py lines 132-156
@@ -58,14 +54,14 @@ class ObjectiveStageComponent(ADMComponent):
                 if attribute_name in filter_analysis:
                     weight = filter_analysis[attribute_name].get('weight', 0)
                     explanation = filter_analysis[attribute_name].get('explanation', '')
-                    
+
                     # Apply weight threshold filter (similar to decision_flow_stages.py line 137)
                     if weight > self.weight_threshold:
                         log.info(f"Including attribute {attribute_name} with weight {weight} in objective function")
-                        
+
                         # Get attribute analysis data for this attribute
                         attribute_data = attribute_analysis.get(attribute_name, []) if attribute_analysis else []
-                        
+
                         objective_component = {
                             "Variable": attribute_name,
                             "Attribute": attribute.name,
@@ -74,7 +70,6 @@ class ObjectiveStageComponent(ADMComponent):
                             "AttributeData": attribute_data
                         }
                         objective_components.append(objective_component)
-                        filtered_attributes.append(objective_component)
                     else:
                         log.info(f"Excluding attribute {attribute_name} with weight {weight} (below threshold {self.weight_threshold})")
 
@@ -146,6 +141,5 @@ class ObjectiveStageComponent(ADMComponent):
         return {
             'objective_function': response.get('objective_function', objective_function_text),
             'components': objective_components,
-            'filtered_attributes': filtered_attributes,
             'weight_threshold_used': self.weight_threshold
         }

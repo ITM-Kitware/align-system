@@ -35,15 +35,13 @@ class MathReasonStageComponent(ADMComponent):
 
         # Handle alignment_target workflow similar to other stage components
         if alignment_target is None:
+            # No alignment target - use all attributes
+            target_attributes = list(self.attributes.values())
             target_attribute_names = []
         else:
+            # Alignment target provided - ONLY use attributes in the alignment target
             target_attribute_names = attributes_in_alignment_target(alignment_target)
-
-        target_attributes = [self.attributes[n] for n in target_attribute_names if n in self.attributes]
-
-        # If we have target attributes from alignment_target, use those; otherwise use all attributes
-        if not target_attributes:
-            target_attributes = list(self.attributes.values())
+            target_attributes = [self.attributes[n] for n in target_attribute_names if n in self.attributes]
 
         try:
             # Format structure for math_reason prompt
@@ -77,9 +75,36 @@ class MathReasonStageComponent(ADMComponent):
             # Format choices as the math_reason prompt expects
             formatted_choices = [f"({i}) {choice}" for i, choice in enumerate(choices)]
 
-            # Generate target bias for prompt
-            if alignment_target and target_attribute_names:
-                target_bias = f"Focus on {', '.join(target_attribute_names)} when making decisions."
+            # Build KDMA value dictionary for target bias generation (API-compliant)
+            kdma_value_dict = {}
+            if alignment_target is not None and hasattr(alignment_target, 'kdma_values'):
+                for kdma_entry in alignment_target.kdma_values:
+                    # Support both AlignmentTarget API (KDMAValue objects) and dict access
+                    if isinstance(kdma_entry, dict):
+                        kdma_name = kdma_entry.get('kdma')
+                        kdma_value = kdma_entry.get('value')
+                    else:
+                        # KDMAValue object with property accessors (API-compliant)
+                        kdma_name = kdma_entry.kdma
+                        kdma_value = kdma_entry.value
+
+                    # Only store if both name and value are present
+                    if kdma_name is not None and kdma_value is not None:
+                        kdma_value_dict[kdma_name] = kdma_value
+
+            # Generate target bias for prompt with high/low determination
+            if alignment_target and target_attributes:
+                bias_parts = []
+                for attribute in target_attributes:
+                    # Use attribute.kdma (not attribute.name) to match alignment_target kdma_values
+                    attr_value = kdma_value_dict.get(attribute.kdma)
+                    if attr_value is not None and attr_value >= 0.5:
+                        bias_parts.append(f"high {attribute.name}")
+                    elif attr_value is not None:
+                        bias_parts.append(f"low {attribute.name}")
+                    else:
+                        bias_parts.append(f"low {attribute.name}")  # Conservative default
+                target_bias = f"Focus on {', '.join(bias_parts)} when making decisions."
             else:
                 target_bias = "Make decisions based on medical triage best practices."
 
