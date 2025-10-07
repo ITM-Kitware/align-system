@@ -1,4 +1,0 @@
-_target_: align_system.algorithms.direct_medical_regression_adm_component.DirectMedicalRegressionADMComponent
-
-structured_inference_engine: ${ref:adm.structured_inference_engine}
-num_samples: 1
