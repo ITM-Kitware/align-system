@@ -2324,3 +2324,32 @@ def math_reason_output_schema():
 class MathReasonOutputSchema():
     def __call__(self):
         return math_reason_output_schema()
+
+class DirectRegressionSchemaTemplate:
+    def __init__(self,
+                 min_value=0,
+                 max_value=100,
+                 max_reasoning_length=512):
+        self.min_value = min_value
+        self.max_value = max_value
+        self.max_reasoning_length = max_reasoning_length
+
+    def __call__(self):
+        json_schema = {
+            "$schema": "http://json-schema.org/draft-07/schema#",
+            "type": "object",
+            "properties": {
+                "reasoning": {
+                    "type": "string",
+                    "maxLength": self.max_reasoning_length
+                },
+                "score": {
+                    "type": "integer",
+                    "minimum": self.min_value,
+                    "maximum": self.max_value
+                }
+            },
+            "required": ["reasoning", "score"],
+            "additionalProperties": False
+        }
+        return json.dumps(json_schema)
