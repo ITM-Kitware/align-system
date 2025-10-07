@@ -1,0 +1,4 @@
+_target_: align_system.algorithms.direct_regression_adm_component.DirectRegressionADMComponent
+
+structured_inference_engine: ${ref:adm.structured_inference_engine}
+num_samples: 1

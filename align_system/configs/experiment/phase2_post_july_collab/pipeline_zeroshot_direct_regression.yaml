@@ -1,0 +1,20 @@
+# @package _global_
+defaults:
+  - override /adm: phase2_pipeline_direct_regression
+  - override /interface: ta3
+  - override /adm_component/alignment@adm.step_definitions.scalar_alignment: medical_urgency_weighted_scalar
+
+interface:
+  session_type: adept
+  training_session: full
+  username: "pipeline_zeroshot_direct"
+  domain: "p2triage"
+
+adm:
+  step_definitions:
+    direct_regression:
+      enable_caching: true
+
+apply_action_filtering: false
+force_determinism: true
+align_to_target: true
