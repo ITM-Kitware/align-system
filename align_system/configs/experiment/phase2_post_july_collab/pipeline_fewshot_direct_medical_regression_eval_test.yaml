@@ -1,0 +1,39 @@
+# @package _global_
+defaults:
+  - override /adm: phase2_pipeline_direct_medical_regression
+  - override /interface: ta3
+  - override /adm_component/alignment@adm.step_definitions.scalar_alignment: medical_urgency_weighted_scalar
+
+interface:
+  api_endpoint: "https://darpaitm.caci.com"
+  session_type: eval
+  training_session: null
+  username: "testrun-ALIGN-ADM-DirectMedicalRegression-Mistral-7B-Instruct-v0.3"
+  domain: "p2triage"
+
+adm:
+  step_definitions:
+    regression_icl:
+      icl_generator_partial:
+        incontext_settings:
+          number: 20
+          leave_one_out_strategy: 'scenario_description' # LOO - Remove for eval
+          datasets:
+            medical: /data/shared/samba/phase2_icl/July2025-MU-train_20250715.json
+            affiliation: /data/shared/samba/phase2_icl/July2025-AF-train_20250715.json
+            merit: /data/shared/samba/phase2_icl/July2025-MF-train_20250715.json
+            personal_safety: /data/shared/samba/phase2_icl/July2025-PS-train_20250715.json
+            search: /data/shared/samba/phase2_icl/July2025-SS-train_20250715.json
+    comparative_regression:
+      enable_caching: true
+    direct_medical_regression:
+      enable_caching: true
+
+apply_action_filtering: false
+force_determinism: true
+align_to_target: true
+save_last_unstructured_state_per_scenario: true
+
+hydra:
+  run:
+    dir: 'phase2_july_post_rq2_eval_live_test/direct_medical_regression/${now:%Y-%m-%d__%H-%M-%S}'
