@@ -212,6 +212,7 @@ class MedicalUrgencyAlignmentADMComponent(ADMComponent):
 
         # Capture alignment information for input_output json
         alignment_info = {
+            "source": type(self).__name__,
             "per_kdma": {},
         }
 
