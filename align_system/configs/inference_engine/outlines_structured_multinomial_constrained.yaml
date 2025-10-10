@@ -6,4 +6,4 @@ max_generator_tokens: 8192
 sampler:
   _target_: outlines.samplers.MultinomialSampler
   temperature: 0.3  # Low temp = nearly deterministic, but faster than greedy
-  top_p: 0.5
+  top_p: 0.75
