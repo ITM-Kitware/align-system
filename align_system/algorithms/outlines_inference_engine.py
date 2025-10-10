@@ -15,6 +15,7 @@ class OutlinesTransformersInferenceEngine(StructuredInferenceEngine):
                  model_name,
                  device='auto',
                  precision='full',
+                 max_generator_tokens=None,
                  sampler=MultinomialSampler(),
                  inference_batch_size=5,
                  model_kwargs={},
@@ -24,6 +25,7 @@ class OutlinesTransformersInferenceEngine(StructuredInferenceEngine):
         self.inference_batch_size = inference_batch_size
         self.model_kwargs = model_kwargs
         self.tokenizer_kwargs = tokenizer_kwargs
+        self.max_generator_tokens = max_generator_tokens
 
         if self.precision == 'half':
             torch_dtype = torch.float16
@@ -83,11 +85,11 @@ class OutlinesTransformersInferenceEngine(StructuredInferenceEngine):
             yield batch
 
     @classmethod
-    def run_in_batches(cls, inference_function, inputs, batch_size):
+    def run_in_batches(cls, inference_function, inputs, batch_size, max_generator_tokens=None):
         ''' Batch inference to avoid out of memory error'''
         outputs = []
         for batch in cls.batched(inputs, batch_size):
-            output = inference_function(list(batch))
+            output = inference_function(list(batch), max_tokens=max_generator_tokens)
             if not isinstance(output, list):
                 output = [output]
             outputs.extend(output)
@@ -101,10 +103,27 @@ class OutlinesTransformersInferenceEngine(StructuredInferenceEngine):
             whitespace_pattern=r"[ ]?")
 
         if isinstance(prompts, str):
-            return generator(prompts)
+            return generator(prompts, max_tokens=self.max_generator_tokens)
         elif isinstance(prompts, Iterable):
             return self.run_in_batches(
-                generator, prompts, self.inference_batch_size)
+                generator, prompts, self.inference_batch_size, self.max_generator_tokens
+            )
+        else:
+            raise TypeError("Don't know how to run inference on provided "
+                            "`prompts` object")
+
+    def run_inference_unstructured(self, prompts):
+        generator = outlines.generate.regex(
+            self.model,
+            r'.*',  # "allow anything" regex
+            sampler=self.sampler)
+
+        if isinstance(prompts, str):
+            return generator(prompts, self.max_generator_tokens)
+        elif isinstance(prompts, Iterable):
+            return self.run_in_batches(
+                generator, prompts, self.inference_batch_size, self.max_generator_tokens
+            )
         else:
             raise TypeError("Don't know how to run inference on provided "
                             "`prompts` object")

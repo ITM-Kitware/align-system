@@ -1,0 +1,119 @@
+name: pipeline_decision_flow
+
+defaults:
+  # Import defaults into this namspace (adm) as @name, for further
+  # customization
+
+  # Shared variables / components
+  - /attribute@mu: medical_urgency
+  - /attribute@af: affiliation_focus
+  - /attribute@mf: merit_focus
+  - /attribute@ss: search_or_stay
+  - /attribute@ps: personal_safety
+  - /attribute@pf: naacl24/protocol_focus
+  - /attribute@ff: naacl24/fairness
+  - /attribute@uc: naacl24/utilitarianism
+  - /attribute@cc: naacl24/continuing_care
+  - /attribute@md: naacl24/moral_desert
+  - /attribute@ra: naacl24/risk_aversion
+  - /inference_engine@structured_inference_engine: outlines_structured_multinomial_constrained
+  # ADM components to be used in "steps"
+  - /adm_component/misc@step_definitions.format_choices: itm_format_choices
+  - /adm_component/decision_flow@step_definitions.variables: variables
+  - /adm_component/decision_flow@step_definitions.extraction: extraction
+  - /adm_component/decision_flow@step_definitions.attribute: attribute
+  - /adm_component/decision_flow@step_definitions.filter: filter
+  - /adm_component/decision_flow@step_definitions.objective: objective
+  - /adm_component/decision_flow@step_definitions.express: express
+  - /adm_component/decision_flow@step_definitions.math_reason: math_reason
+  - /adm_component/misc@step_definitions.ensure_chosen_action: ensure_chosen_action
+  - /adm_component/misc@step_definitions.populate_choice_info: populate_choice_info
+  # Prompt templates to be used in Variables Extraction Phase
+  - /template/scenario_description@scenario_description_template: phase2
+  - /template/prompt/decision_flow@prompt_template: variables
+  - /template/output_schema/decision_flow@variables_output_schema: variables
+  # Prompt templates to be used in Extraction Phase
+  - /template/prompt/decision_flow@extraction_prompt_template: extraction
+  - /template/output_schema/decision_flow@extraction_output_schema: extraction
+  # Prompt templates to be used in Attribute Phase
+  - /template/prompt/decision_flow@attribute_prompt_template: attribute
+  - /template/output_schema/decision_flow@attribute_output_schema: attribute
+  # Prompt templates to be used in Filter Phase
+  - /template/prompt/decision_flow@filter_prompt_template: filter
+  - /template/output_schema/decision_flow@filter_output_schema: filter
+  # Prompt templates to be used in Objective Phase
+  - /template/prompt/decision_flow@objective_prompt_template: objective
+  - /template/output_schema/decision_flow@objective_output_schema: objective
+  # Prompt templates to be used in Express Phase
+  - /template/prompt/decision_flow@express_prompt_template: express
+  - /template/output_schema/decision_flow@express_output_schema: express
+  # Prompt templates to be used in MathReason Phase
+  - /template/prompt/decision_flow@math_reason_prompt_template: math_reason
+  - /template/output_schema/decision_flow@math_reason_output_schema: math_reason
+  # Use definitions in this file to override defaults defined above
+  - _self_
+
+attribute_definitions:
+  medical: ${adm.mu}
+  affiliation: ${adm.af}
+  merit: ${adm.mf}
+  search: ${adm.ss}
+  personal_safety: ${adm.ps}
+  ProtocolFocus: ${adm.pf}
+  Fairness: ${adm.ff}
+  Utilitarianism: ${adm.uc}
+  ContinuationOfCare: ${adm.cc}
+  MoralDesert: ${adm.md}
+  RiskAversion: ${adm.ra}
+
+step_definitions:
+  variables:
+    scenario_description_template: ${ref:adm.scenario_description_template}
+    prompt_template: ${ref:adm.prompt_template}
+    output_schema_template: ${ref:adm.variables_output_schema}
+  extraction:
+    scenario_description_template: ${ref:adm.scenario_description_template}
+    prompt_template: ${ref:adm.extraction_prompt_template}
+    output_schema_template: ${ref:adm.extraction_output_schema}
+  attribute:
+    scenario_description_template: ${ref:adm.scenario_description_template}
+    prompt_template: ${ref:adm.attribute_prompt_template}
+    output_schema_template: ${ref:adm.attribute_output_schema}
+    attributes: ${adm.attribute_definitions}
+  filter:
+    scenario_description_template: ${ref:adm.scenario_description_template}
+    prompt_template: ${ref:adm.filter_prompt_template}
+    output_schema_template: ${ref:adm.filter_output_schema}
+    attributes: ${adm.attribute_definitions}
+  objective:
+    scenario_description_template: ${ref:adm.scenario_description_template}
+    prompt_template: ${ref:adm.objective_prompt_template}
+    output_schema_template: ${ref:adm.objective_output_schema}
+    attributes: ${adm.attribute_definitions}
+  express:
+    scenario_description_template: ${ref:adm.scenario_description_template}
+    prompt_template: ${ref:adm.express_prompt_template}
+    output_schema_template: ${ref:adm.express_output_schema}
+  math_reason:
+    structured_inference_engine: ${ref:adm.structured_inference_engine}
+    scenario_description_template: ${ref:adm.scenario_description_template}
+    prompt_template: ${ref:adm.math_reason_prompt_template}
+    output_schema_template: ${ref:adm.math_reason_output_schema}
+    attributes: ${adm.attribute_definitions}
+
+
+instance:
+  _target_: align_system.algorithms.pipeline_adm.PipelineADM
+
+  steps:
+    # Reference the step instances we want to use in order
+    - ${ref:adm.step_definitions.format_choices}
+    - ${ref:adm.step_definitions.variables}
+    - ${ref:adm.step_definitions.extraction}
+    - ${ref:adm.step_definitions.attribute}
+    - ${ref:adm.step_definitions.filter}
+    - ${ref:adm.step_definitions.objective}
+    - ${ref:adm.step_definitions.express}
+    - ${ref:adm.step_definitions.math_reason}
+    - ${ref:adm.step_definitions.ensure_chosen_action}
+    - ${ref:adm.step_definitions.populate_choice_info}

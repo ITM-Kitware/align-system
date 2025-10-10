@@ -1,0 +1,6 @@
+_target_: align_system.data_models.attribute.Attribute
+
+name: utilitarianism
+kdma: "Utilitarianism"
+description: Utilitarianism is the priority placed on maximizing the net positive outcome of a group of people. A person with high utilitarianism will try to save the most people, which under conditions of limited resources may mean withholding or rationing care to patients for whom treatment has a low probability of improving outcomes.
+factor: 10

@@ -1,0 +1,53 @@
+# @package _global_
+defaults:
+  - override /adm: outlines_decision_flow_aligned/pipeline_decision_flow
+  - override /inference_engine@adm.structured_inference_engine: outlines_structured_multinomial_constrained
+
+adm:
+  step_definitions:
+    variables:
+      num_samples: 1
+      system_prompt_template:
+        _target_: align_system.prompt_engineering.outlines_prompts.DefaultITMBaselineSystemPrompt
+    extraction:
+      num_samples: 1
+      system_prompt_template:
+        _target_: align_system.prompt_engineering.outlines_prompts.DefaultITMBaselineSystemPrompt
+    attribute:
+      num_samples: 1
+      system_prompt_template:
+        _target_: align_system.prompt_engineering.outlines_prompts.DefaultITMBaselineSystemPrompt
+    filter:
+      num_samples: 1
+      system_prompt_template:
+        _target_: align_system.prompt_engineering.outlines_prompts.DefaultITMBaselineSystemPrompt
+    objective:
+      num_samples: 1
+      system_prompt_template:
+        _target_: align_system.prompt_engineering.outlines_prompts.DefaultITMBaselineSystemPrompt
+    express:
+      num_samples: 1
+      system_prompt_template:
+        _target_: align_system.prompt_engineering.outlines_prompts.DefaultITMBaselineSystemPrompt
+    math_reason:
+      system_prompt_template:
+        _target_: align_system.prompt_engineering.outlines_prompts.DefaultITMBaselineSystemPrompt
+
+  instance:
+    steps:
+      - ${ref:adm.step_definitions.format_choices}
+      - ${ref:adm.step_definitions.variables}
+      - ${ref:adm.step_definitions.extraction}
+      - ${ref:adm.step_definitions.attribute}
+      - ${ref:adm.step_definitions.filter}
+      - ${ref:adm.step_definitions.objective}
+      - ${ref:adm.step_definitions.express}
+      - ${ref:adm.step_definitions.math_reason}
+      - ${ref:adm.step_definitions.ensure_chosen_action}
+      - ${ref:adm.step_definitions.populate_choice_info}
+
+align_to_target: true
+
+hydra:
+  run:
+    dir: './decision_flow/${now:%Y-%m-%d__%H-%M-%S}'

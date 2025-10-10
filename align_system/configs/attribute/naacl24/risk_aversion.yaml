@@ -1,0 +1,6 @@
+_target_: align_system.data_models.attribute.Attribute
+
+name: risk aversion
+kdma: "RiskAversion"
+description: Risk aversion is a tendency to avoid uncertainty and prefer actions whose expected outcomes have a lower range of variation. A person with high risk aversion may prefer an action that has somewhat lower total expected value when it also has less difference between the best and worst expected outcome.
+factor: 10
