@@ -85,7 +85,7 @@ class OutlinesTransformersInferenceEngine(StructuredInferenceEngine):
             yield batch
 
     @classmethod
-    def run_in_batches(cls, inference_function, inputs, batch_size, max_generator_tokens):
+    def run_in_batches(cls, inference_function, inputs, batch_size, max_generator_tokens=None):
         ''' Batch inference to avoid out of memory error'''
         outputs = []
         for batch in cls.batched(inputs, batch_size):
