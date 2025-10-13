@@ -121,16 +121,46 @@ class DirectRegressionADMComponent(ADMComponent):
             missing_character_default_value = self.per_attribute_templates[attribute].get(
                 'missing_character_default_value', 0)
             for choice, action in zip(choices, actions):
+                selected_character = None
                 if 'character_id' not in action:
-                    attribute_prediction_scores.setdefault(choice, {})[attribute] =\
-                        [missing_character_default_value] * self.num_samples
-                    attribute_prediction_reasonings.setdefault(choice, {})[attribute] =\
-                        "<No character_id specified for action>"
+                    if attribute == 'search':
+                        # Hack to handle 'search'
+                        # attribute/scenarios where a character_id is
+                        # not assigned to SEARCH actions, but is
+                        # associated with the "Patient B" character
+                        for character in scenario_state['characters']:
+                            if character['id'] == 'Patient B':
+                                selected_character = character
+                                break
+                    else:
+                        attribute_prediction_scores.setdefault(choice, {})[attribute] =\
+                            [missing_character_default_value] * self.num_samples
+                        attribute_prediction_reasonings.setdefault(choice, {})[attribute] =\
+                            "<No character_id specified for action>"
 
-                    log.info(f"No character_id specified for action ('{choice}'); "
-                             f"assigning {missing_character_default_value} for {attribute}")
+                        log.info(f"No character_id specified for action ('{choice}'); "
+                                 f"assigning {missing_character_default_value} for {attribute}")
 
-                    continue
+                        continue
+                else:
+                    if attribute == 'search':
+                        attribute_prediction_scores.setdefault(choice, {})[attribute] =\
+                            [missing_character_default_value] * self.num_samples
+                        attribute_prediction_reasonings.setdefault(choice, {})[attribute] =\
+                            "<No search score for known character_id>"
+
+                        log.info(f"No search score for known character_id for action ('{choice}'); "
+                                 f"assigning {missing_character_default_value} for {attribute}")
+
+                        continue
+                    else:
+                        for character in scenario_state['characters']:
+                            if character['id'] == action['character_id']:
+                                selected_character = character
+                                break
+
+                if selected_character is None:
+                    raise RuntimeError(f"Couldn't find character ({action['character_id']}) referenced by action")
 
                 dialog = []
                 if self.per_attribute_templates[attribute].get('system_prompt') is not None:
@@ -139,23 +169,16 @@ class DirectRegressionADMComponent(ADMComponent):
                         content=self.per_attribute_templates[attribute]['system_prompt'],
                         tags=['regression']))
 
-                selected_character = None
-                for character in scenario_state['characters']:
-                    if character['id'] == action['character_id']:
-                        selected_character = character
-                        break
-
-                if selected_character is None:
-                    raise RuntimeError(f"Couldn't find character ({action['character_id']}) referenced by action")
-
                 prompt_template = self.per_attribute_templates[attribute]['prompt_template']
                 if callable(prompt_template):
                     prompt = call_with_coerced_args(
                         prompt_template,
-                        {'character': selected_character})
+                        {'character': selected_character,
+                         'scenario_state': scenario_state})
                 elif isinstance(prompt_template, str):
                     prompt = Template(prompt_template).render(
-                        {'character': selected_character})
+                        {'character': selected_character,
+                         'scenario_state': scenario_state})
                 else:
                     raise RuntimeError("prompt_template is of an unexpected type")
 
