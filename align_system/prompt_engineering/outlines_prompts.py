@@ -1,6 +1,7 @@
 import jinja2
 import outlines
 import json
+import re
 
 from align_system.utils.outlines_prompts_utils import (
     get_unique_structured_character_info,
@@ -2353,3 +2354,15 @@ class DirectRegressionSchemaTemplate:
             "additionalProperties": False
         }
         return json.dumps(json_schema)
+
+
+class DirectRegressionPersonalSafetyTemplate:
+    def __call__(self, character, scenario_state):
+        full_state_unstructured = scenario_state['unstructured']
+        threat_unstructured = scenario_state['threat_state']['unstructured']
+        char_unstructured = character['unstructured']
+
+        if m := re.match(f'{threat_unstructured}(.+){char_unstructured}', full_state_unstructured.replace("\n", " ")):
+            setup = m.group(1).strip()
+
+        return f"{setup}\n  - {char_unstructured}"
