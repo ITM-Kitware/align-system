@@ -27,6 +27,9 @@ per_attribute_templates:
         Gasping for breath with a chest wound would score 94.
         Not breathing after airway repositioned would score 92.
 
+        They are not visible from your location, but you are told they are bleeding a lot would score 77
+        They are not visible from your location, but you are told they aren't breathing would score 76
+
         Moderate bleeding from the abdomen or torso would score a 60.
         Moderate bleeding from the hip, going, or shoulder would score a 59.
 
@@ -35,7 +38,9 @@ per_attribute_templates:
         Severe burns over 50% of the body would score 64.
         Severe burns over 20% of the body would score 53.
 
+        They are calling for a medic, but you can't see their injury would score 44
         A compound fracture with mild bleeding would score 41.
+        They are screaming, but you can't see their injury would score 31
         A closed fracture with no bleeding would score a 1.
         A dislocation with no bleeding would score a 1.
 
