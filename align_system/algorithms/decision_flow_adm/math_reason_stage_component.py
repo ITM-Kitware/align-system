@@ -118,8 +118,7 @@ class MathReasonStageComponent(ADMComponent):
                     }
                 )
                 dialog.insert(0, DialogElement(role='system',
-                                              content=system_prompt,
-                                              tags=['decisionflow_system_prompt']))
+                                              content=system_prompt))
 
             prompt = call_with_coerced_args(
                 self.prompt_template,
@@ -134,8 +133,7 @@ class MathReasonStageComponent(ADMComponent):
             )
 
             dialog.append(DialogElement(role='user',
-                                       content=prompt,
-                                       tags=['decisionflow_math_reason']))
+                                       content=prompt))
 
             output_schema = call_with_coerced_args(
                 self.output_schema_template,
@@ -166,14 +164,14 @@ class MathReasonStageComponent(ADMComponent):
             log.info(f"MathReason stage completed: Selected action {answer_idx}")
 
             return chosen_action
-            
+
         except Exception as e:
             log.warning(f"MathReasonStageComponent failed with error: {e}")
             log.warning("Falling back to first action")
-            
+
             # Fallback: return first action
             chosen_action = actions[0]
             if hasattr(chosen_action, 'justification') and chosen_action.justification is None:
                 chosen_action.justification = f"Math reasoning failed, selected first action. Error: {str(e)}"
-            
+
             return chosen_action

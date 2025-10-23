@@ -90,8 +90,7 @@ class ExpressStageComponent(ADMComponent):
             )
 
             dialog.insert(0, DialogElement(role='system',
-                                          content=system_prompt,
-                                          tags=['decisionflow_system_prompt']))
+                                          content=system_prompt))
 
         prompt = call_with_coerced_args(
             self.prompt_template,
@@ -103,8 +102,7 @@ class ExpressStageComponent(ADMComponent):
         )
 
         dialog.append(DialogElement(role='user',
-                                   content=prompt,
-                                   tags=['decisionflow_express']))
+                                   content=prompt))
 
         output_schema = call_with_coerced_args(
             self.output_schema_template,

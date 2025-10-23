@@ -24,7 +24,7 @@ class ObjectiveStageComponent(ADMComponent):
         self.prompt_template = prompt_template
         self.output_schema_template = output_schema_template
         self.weight_threshold = weight_threshold
-        
+
         if attributes is None:
             attributes = {}
         self.attributes = attributes
@@ -104,11 +104,10 @@ class ObjectiveStageComponent(ADMComponent):
             )
 
             dialog.insert(0, DialogElement(role='system',
-                                          content=system_prompt,
-                                          tags=['decisionflow_system_prompt']))
+                                          content=system_prompt))
 
         log.info(f"Creating objective function with {len(objective_components)} components")
-        
+
         prompt = call_with_coerced_args(
             self.prompt_template,
             {
@@ -120,24 +119,23 @@ class ObjectiveStageComponent(ADMComponent):
             },
         )
         log.info(f"Objective prompt: {prompt}")
-        
+
         dialog.append(DialogElement(role='user',
-                                   content=prompt,
-                                   tags=['decisionflow_objective']))
+                                   content=prompt))
 
         output_schema = call_with_coerced_args(
             self.output_schema_template,
             {})
 
         dialog_prompt = self.structured_inference_engine.dialog_to_prompt(dialog)
-        
+
         response = self.structured_inference_engine.run_inference(
             dialog_prompt,
             output_schema
         )
 
         log.info(f"Objective function creation completed: {response.get('objective_function', objective_function_text)}")
-        
+
         return {
             'objective_function': response.get('objective_function', objective_function_text),
             'components': objective_components,

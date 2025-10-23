@@ -34,8 +34,7 @@ class VariablesStageComponent(ADMComponent):
                 )
 
                 dialog.insert(0, DialogElement(role='system',
-                                               content=system_prompt,
-                                               tags=['decisionflow_system_prompt']))
+                                               content=system_prompt))
 
         log.info(type(self.prompt_template))
         scenario_description = call_with_coerced_args(
@@ -48,8 +47,7 @@ class VariablesStageComponent(ADMComponent):
         )
         log.info(prompt)
         dialog.append(DialogElement(role='user',
-                                    content=prompt,
-                                    tags=['decisionflow_variables']))
+                                    content=prompt))
 
         output_schema = call_with_coerced_args(
             self.output_schema_template,

@@ -80,8 +80,7 @@ class AttributeStageComponent(ADMComponent):
                 )
 
                 dialog.insert(0, DialogElement(role='system',
-                                              content=system_prompt,
-                                              tags=['decisionflow_system_prompt']))
+                                              content=system_prompt))
 
             log.info(f"Processing attribute: {attribute.name}")
             log.info(f"Scenario description: {scenario_description}")
@@ -113,8 +112,7 @@ class AttributeStageComponent(ADMComponent):
             log.info(f"Attribute prompt: {prompt}")
 
             dialog.append(DialogElement(role='user',
-                                       content=prompt,
-                                       tags=['decisionflow_attribute']))
+                                       content=prompt))
 
             output_schema = call_with_coerced_args(
                 self.output_schema_template,

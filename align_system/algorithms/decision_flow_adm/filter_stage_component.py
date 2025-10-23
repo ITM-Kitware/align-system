@@ -22,7 +22,7 @@ class FilterStageComponent(ADMComponent):
         self.system_prompt_template = system_prompt_template
         self.prompt_template = prompt_template
         self.output_schema_template = output_schema_template
-        
+
         if attributes is None:
             attributes = {}
         self.attributes = attributes
@@ -43,12 +43,12 @@ class FilterStageComponent(ADMComponent):
             target_attributes = [self.attributes[n] for n in target_attribute_names if n in self.attributes]
 
         filter_results = {}
-        
+
         # Process each attribute's analysis individually to determine relevance and weight
         for attribute in target_attributes:
             # Get the attribute analysis results for this specific attribute
             attribute_data = attribute_analysis.get(attribute.name, []) if attribute_analysis else []
-            
+
             scenario_description = call_with_coerced_args(
                 self.scenario_description_template,
                 {
@@ -66,12 +66,11 @@ class FilterStageComponent(ADMComponent):
                 )
 
                 dialog.insert(0, DialogElement(role='system',
-                                              content=system_prompt,
-                                              tags=['decisionflow_system_prompt']))
+                                              content=system_prompt))
 
             log.info(f"Filtering attribute: {attribute.name}")
             log.info(f"Scenario description: {scenario_description}")
-            
+
             prompt = call_with_coerced_args(
                 self.prompt_template,
                 {
@@ -82,17 +81,16 @@ class FilterStageComponent(ADMComponent):
                 },
             )
             log.info(f"Filter prompt: {prompt}")
-            
+
             dialog.append(DialogElement(role='user',
-                                       content=prompt,
-                                       tags=['decisionflow_filter']))
+                                       content=prompt))
 
             output_schema = call_with_coerced_args(
                 self.output_schema_template,
                 {})
 
             dialog_prompt = self.structured_inference_engine.dialog_to_prompt(dialog)
-            
+
             response = self.structured_inference_engine.run_inference(
                 dialog_prompt,
                 output_schema
