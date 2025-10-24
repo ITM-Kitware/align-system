@@ -9,6 +9,7 @@ interface:
   username: "pipeline_zeroshot_comp_reg_test"
   domain: "p2triage"
 
-driver.apply_action_filtering: false
+driver:
+  apply_action_filtering: false
 force_determinism: true
 align_to_target: true
