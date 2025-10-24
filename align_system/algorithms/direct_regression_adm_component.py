@@ -16,28 +16,6 @@ log = logging.getLogger(__name__)
 JSON_HIGHLIGHTER = JSONHighlighter()
 
 
-class DefaultSchemaTemplate:
-    def __call__(self):
-        return '''
-{
-  "$schema": "http://json-schema.org/draft-07/schema#",
-  "type": "object",
-  "properties": {
-    "reasoning": {
-      "type": "string",
-      "maxLength": 512
-    },
-    "score": {
-      "type": "integer",
-      "minimum": 0,
-      "maximum": 100
-    }
-  },
-  "required": ["reasoning", "score"],
-  "additionalProperties": false
-}'''
-
-
 class DirectRegressionADMComponent(ADMComponent):
     def __init__(self,
                  structured_inference_engine,
@@ -166,8 +144,7 @@ class DirectRegressionADMComponent(ADMComponent):
                 if self.per_attribute_templates[attribute].get('system_prompt') is not None:
                     dialog.insert(0, DialogElement(
                         role='system',
-                        content=self.per_attribute_templates[attribute]['system_prompt'],
-                        tags=['regression']))
+                        content=self.per_attribute_templates[attribute]['system_prompt']))
 
                 prompt_template = self.per_attribute_templates[attribute]['prompt_template']
                 if callable(prompt_template):
@@ -183,8 +160,7 @@ class DirectRegressionADMComponent(ADMComponent):
                     raise RuntimeError("prompt_template is of an unexpected type")
 
                 dialog.append(DialogElement(role='user',
-                                            content=prompt,
-                                            tags=['regression']))
+                                            content=prompt))
 
                 dialog_prompt = self.structured_inference_engine.dialog_to_prompt(dialog)
 
