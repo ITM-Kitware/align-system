@@ -30,6 +30,7 @@ adm:
     comparative_regression_swap:
       enable_caching: true
 
-driver.apply_action_filtering: false
+driver:
+  apply_action_filtering: false
 force_determinism: true
 align_to_target: true
