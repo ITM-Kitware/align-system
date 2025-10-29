@@ -25,7 +25,11 @@ adm:
       num_samples: 1
       system_prompt_template:
         _target_: align_system.prompt_engineering.outlines_prompts.DefaultITMBaselineSystemPrompt
-    express:
+    # express:
+    #   num_samples: 1
+    #   system_prompt_template:
+    #     _target_: align_system.prompt_engineering.outlines_prompts.DefaultITMBaselineSystemPrompt
+    express_unstructured:
       num_samples: 1
       system_prompt_template:
         _target_: align_system.prompt_engineering.outlines_prompts.DefaultITMBaselineSystemPrompt
@@ -41,7 +45,8 @@ adm:
       - ${ref:adm.step_definitions.attribute}
       - ${ref:adm.step_definitions.filter}
       - ${ref:adm.step_definitions.objective}
-      - ${ref:adm.step_definitions.express}
+      # - ${ref:adm.step_definitions.express}
+      - ${ref:adm.step_definitions.express_unstructured}
       - ${ref:adm.step_definitions.math_reason}
       - ${ref:adm.step_definitions.ensure_chosen_action}
       - ${ref:adm.step_definitions.populate_choice_info}

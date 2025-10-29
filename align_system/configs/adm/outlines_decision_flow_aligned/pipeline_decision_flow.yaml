@@ -24,7 +24,8 @@ defaults:
   - /adm_component/decision_flow@step_definitions.attribute: attribute
   - /adm_component/decision_flow@step_definitions.filter: filter
   - /adm_component/decision_flow@step_definitions.objective: objective
-  - /adm_component/decision_flow@step_definitions.express: express
+  # - /adm_component/decision_flow@step_definitions.express: express
+  - /adm_component/decision_flow@step_definitions.express_unstructured: express_unstructured
   - /adm_component/decision_flow@step_definitions.math_reason: math_reason
   - /adm_component/misc@step_definitions.ensure_chosen_action: ensure_chosen_action
   - /adm_component/misc@step_definitions.populate_choice_info: populate_choice_info
@@ -90,10 +91,13 @@ step_definitions:
     prompt_template: ${ref:adm.objective_prompt_template}
     output_schema_template: ${ref:adm.objective_output_schema}
     attributes: ${adm.attribute_definitions}
-  express:
+  # express:
+  #   scenario_description_template: ${ref:adm.scenario_description_template}
+  #   prompt_template: ${ref:adm.express_prompt_template}
+  #   output_schema_template: ${ref:adm.express_output_schema}
+  express_unstructured:
     scenario_description_template: ${ref:adm.scenario_description_template}
     prompt_template: ${ref:adm.express_prompt_template}
-    output_schema_template: ${ref:adm.express_output_schema}
   math_reason:
     structured_inference_engine: ${ref:adm.structured_inference_engine}
     scenario_description_template: ${ref:adm.scenario_description_template}
@@ -113,7 +117,8 @@ instance:
     - ${ref:adm.step_definitions.attribute}
     - ${ref:adm.step_definitions.filter}
     - ${ref:adm.step_definitions.objective}
-    - ${ref:adm.step_definitions.express}
+    # - ${ref:adm.step_definitions.express}
+    - ${ref:adm.step_definitions.express_unstructured}
     - ${ref:adm.step_definitions.math_reason}
     - ${ref:adm.step_definitions.ensure_chosen_action}
     - ${ref:adm.step_definitions.populate_choice_info}

@@ -1,7 +1,9 @@
+import json
 from align_system.utils import logging, call_with_coerced_args
 from align_system.algorithms.abstracts import ADMComponent
 from align_system.utils.alignment_utils import attributes_in_alignment_target
 from align_system.data_models.dialog import DialogElement
+from align_system.algorithms.decision_flow_adm.utils import validate_structured_response
 
 log = logging.getLogger(__name__)
 
@@ -14,6 +16,7 @@ class AttributeStageComponent(ADMComponent):
         system_prompt_template,
         prompt_template,
         output_schema_template,
+        max_json_retries=5,
         attributes=None,
         **kwargs,
     ):
@@ -22,6 +25,7 @@ class AttributeStageComponent(ADMComponent):
         self.system_prompt_template = system_prompt_template
         self.prompt_template = prompt_template
         self.output_schema_template = output_schema_template
+        self.max_json_retries = max_json_retries
 
         if attributes is None:
             attributes = {}
@@ -120,10 +124,40 @@ class AttributeStageComponent(ADMComponent):
 
             dialog_prompt = self.structured_inference_engine.dialog_to_prompt(dialog)
 
-            response = self.structured_inference_engine.run_inference(
-                dialog_prompt,
-                output_schema
-            )
+            # Retry loop for structured inference with validation
+            response = None
+            last_error = None
+            context_str = f" for {attribute.name}"
+
+            for attempt in range(self.max_json_retries):
+                try:
+                    # Run structured inference
+                    raw_response = self.structured_inference_engine.run_inference(
+                        dialog_prompt,
+                        output_schema
+                    )
+
+                    # Validate response
+                    response = validate_structured_response(raw_response)
+
+                    # Success - break out of retry loop
+                    log.info(f"Attribute stage inference succeeded on attempt {attempt + 1}{context_str}")
+                    break
+
+                except (json.JSONDecodeError, ValueError, TypeError) as e:
+                    last_error = e
+                    log.warning(
+                        f"Attribute stage JSON decode error on attempt {attempt + 1}/{self.max_json_retries}{context_str}: {e}"
+                    )
+
+                    if attempt < self.max_json_retries - 1:
+                        log.info(f"Retrying Attribute stage inference{context_str}...")
+                    else:
+                        log.error(f"Attribute stage failed after {self.max_json_retries} attempts{context_str}")
+                        raise RuntimeError(
+                            f"Failed to generate valid JSON after {self.max_json_retries} attempts{context_str}. "
+                            f"Last error: {last_error}"
+                        ) from last_error
 
             log.info(f"Attribute analysis for {attribute.name} completed: {response.get('Variable', [])}")
             attribute_results[attribute.name] = response.get('Variable', [])

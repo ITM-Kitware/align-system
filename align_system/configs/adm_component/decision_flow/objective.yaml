@@ -4,5 +4,6 @@ structured_inference_engine: ${ref:adm.structured_inference_engine}
 num_samples: 1
 attributes: ${ref:adm.attribute_definitions}
 weight_threshold: 0.3
+max_json_retries: 5
 system_prompt_template:
   _target_: align_system.prompt_engineering.outlines_prompts.DefaultITMBaselineSystemPrompt
