@@ -1,7 +1,9 @@
+import json
 from align_system.utils import logging, call_with_coerced_args
 from align_system.algorithms.abstracts import ADMComponent
 from align_system.utils.alignment_utils import attributes_in_alignment_target
 from align_system.data_models.dialog import DialogElement
+from align_system.algorithms.decision_flow_adm.utils import validate_structured_response
 
 log = logging.getLogger(__name__)
 
@@ -14,6 +16,7 @@ class ObjectiveStageComponent(ADMComponent):
         system_prompt_template,
         prompt_template,
         output_schema_template,
+        max_json_retries=5,
         attributes=None,
         weight_threshold=0.3,
         **kwargs,
@@ -24,6 +27,7 @@ class ObjectiveStageComponent(ADMComponent):
         self.prompt_template = prompt_template
         self.output_schema_template = output_schema_template
         self.weight_threshold = weight_threshold
+        self.max_json_retries = max_json_retries
 
         if attributes is None:
             attributes = {}
@@ -129,10 +133,39 @@ class ObjectiveStageComponent(ADMComponent):
 
         dialog_prompt = self.structured_inference_engine.dialog_to_prompt(dialog)
 
-        response = self.structured_inference_engine.run_inference(
-            dialog_prompt,
-            output_schema
-        )
+        # Retry loop for structured inference with validation
+        response = None
+        last_error = None
+
+        for attempt in range(self.max_json_retries):
+            try:
+                # Run structured inference
+                raw_response = self.structured_inference_engine.run_inference(
+                    dialog_prompt,
+                    output_schema
+                )
+
+                # Validate response
+                response = validate_structured_response(raw_response)
+
+                # Success - break out of retry loop
+                log.info(f"Objective stage inference succeeded on attempt {attempt + 1}")
+                break
+
+            except (json.JSONDecodeError, ValueError, TypeError) as e:
+                last_error = e
+                log.warning(
+                    f"Objective stage JSON decode error on attempt {attempt + 1}/{self.max_json_retries}: {e}"
+                )
+
+                if attempt < self.max_json_retries - 1:
+                    log.info("Retrying Objective stage inference...")
+                else:
+                    log.error(f"Objective stage failed after {self.max_json_retries} attempts")
+                    raise RuntimeError(
+                        f"Failed to generate valid JSON after {self.max_json_retries} attempts. "
+                        f"Last error: {last_error}"
+                    ) from last_error
 
         log.info(f"Objective function creation completed: {response.get('objective_function', objective_function_text)}")
 

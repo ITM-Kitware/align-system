@@ -6,3 +6,4 @@ system_prompt_template: ???
 prompt_template: ${template.prompt.decision_flow.math_reason}
 output_schema_template: ${template.output_schema.decision_flow.math_reason}
 attributes: ???
+max_json_retries: 5
