@@ -4,6 +4,7 @@ from align_system.algorithms.abstracts import ADMComponent
 from align_system.utils.alignment_utils import attributes_in_alignment_target
 from align_system.data_models.dialog import DialogElement
 from align_system.algorithms.decision_flow_adm.utils import validate_structured_response
+from align_system.exceptions import SceneSkipException
 
 log = logging.getLogger(__name__)
 
@@ -154,9 +155,11 @@ class AttributeStageComponent(ADMComponent):
                         log.info(f"Retrying Attribute stage inference{context_str}...")
                     else:
                         log.error(f"Attribute stage failed after {self.max_json_retries} attempts{context_str}")
-                        raise RuntimeError(
+                        raise SceneSkipException(
                             f"Failed to generate valid JSON after {self.max_json_retries} attempts{context_str}. "
-                            f"Last error: {last_error}"
+                            f"Last error: {last_error}",
+                            component_name="AttributeStageComponent",
+                            last_error=last_error
                         ) from last_error
 
             log.info(f"Attribute analysis for {attribute.name} completed: {response.get('Variable', [])}")

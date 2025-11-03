@@ -3,6 +3,7 @@ from align_system.utils import logging, call_with_coerced_args
 from align_system.algorithms.abstracts import ADMComponent
 from align_system.data_models.dialog import DialogElement
 from align_system.algorithms.decision_flow_adm.utils import validate_structured_response
+from align_system.exceptions import SceneSkipException
 
 log = logging.getLogger(__name__)
 
@@ -147,9 +148,11 @@ class ExpressStageComponent(ADMComponent):
                     log.info("Retrying Express stage inference...")
                 else:
                     log.error(f"Express stage failed after {self.max_json_retries} attempts")
-                    raise RuntimeError(
+                    raise SceneSkipException(
                         f"Failed to generate valid JSON after {self.max_json_retries} attempts. "
-                        f"Last error: {last_error}"
+                        f"Last error: {last_error}",
+                        component_name="ExpressStageComponent",
+                        last_error=last_error
                     ) from last_error
 
         elapsed_time = time.time() - start_time

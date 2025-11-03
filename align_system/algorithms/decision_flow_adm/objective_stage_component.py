@@ -4,6 +4,7 @@ from align_system.algorithms.abstracts import ADMComponent
 from align_system.utils.alignment_utils import attributes_in_alignment_target
 from align_system.data_models.dialog import DialogElement
 from align_system.algorithms.decision_flow_adm.utils import validate_structured_response
+from align_system.exceptions import SceneSkipException
 
 log = logging.getLogger(__name__)
 
@@ -162,9 +163,11 @@ class ObjectiveStageComponent(ADMComponent):
                     log.info("Retrying Objective stage inference...")
                 else:
                     log.error(f"Objective stage failed after {self.max_json_retries} attempts")
-                    raise RuntimeError(
+                    raise SceneSkipException(
                         f"Failed to generate valid JSON after {self.max_json_retries} attempts. "
-                        f"Last error: {last_error}"
+                        f"Last error: {last_error}",
+                        component_name="ObjectiveStageComponent",
+                        last_error=last_error
                     ) from last_error
 
         log.info(f"Objective function creation completed: {response.get('objective_function', objective_function_text)}")

@@ -3,6 +3,7 @@ from align_system.utils import logging, call_with_coerced_args
 from align_system.algorithms.abstracts import ADMComponent
 from align_system.data_models.dialog import DialogElement
 from align_system.algorithms.decision_flow_adm.utils import validate_structured_response
+from align_system.exceptions import SceneSkipException
 
 log = logging.getLogger(__name__)
 
@@ -88,9 +89,11 @@ class VariablesStageComponent(ADMComponent):
                     log.info("Retrying Variables stage inference...")
                 else:
                     log.error(f"Variables stage failed after {self.max_json_retries} attempts")
-                    raise RuntimeError(
+                    raise SceneSkipException(
                         f"Failed to generate valid JSON after {self.max_json_retries} attempts. "
-                        f"Last error: {last_error}"
+                        f"Last error: {last_error}",
+                        component_name="VariablesStageComponent",
+                        last_error=last_error
                     ) from last_error
 
         log.info(f"Variables extracted: {response['variables']}")

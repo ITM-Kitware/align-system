@@ -1,5 +1,6 @@
 import os
 import json
+import random
 from copy import deepcopy
 
 from rich.highlighter import JSONHighlighter
@@ -8,6 +9,7 @@ from omegaconf import DictConfig, OmegaConf
 from timeit import default_timer as timer
 
 from align_system.utils import logging
+from align_system.exceptions import SceneSkipException
 
 log = logging.getLogger(__name__)
 JSON_HIGHLIGHTER = JSONHighlighter()
@@ -247,27 +249,40 @@ class ITMPhase1Driver:
                 else:
                     start_choose_action = timer()
 
-                    # Passing in a copy of available filtered actions to
-                    # prevent ADMs from modifying the originals (should
-                    # considering doing the same for current_state and
-                    # alignment_target)
-                    choose_action_result = adm.choose_action(
-                        current_state,
-                        [deepcopy(a) for a in available_actions_filtered],
-                        alignment_target if cfg.align_to_target else None,
-                        scenario_id=scenario.id(),
-                        **cfg.adm.get('inference_kwargs', {}))
+                    try:
+                        # Passing in a copy of available filtered actions to
+                        # prevent ADMs from modifying the originals (should
+                        # considering doing the same for current_state and
+                        # alignment_target)
+                        choose_action_result = adm.choose_action(
+                            current_state,
+                            [deepcopy(a) for a in available_actions_filtered],
+                            alignment_target if cfg.align_to_target else None,
+                            scenario_id=scenario.id(),
+                            **cfg.adm.get('inference_kwargs', {}))
 
-                    # Handle choose action result (for backwards compatibility if no choice_info)
-                    if isinstance(choose_action_result, tuple):
-                        action_to_take, choice_info = choose_action_result
-                        if 'choice_info' in choice_info:
-                            # Handle pipeline_adm
-                            choice_info = choice_info['choice_info']
-                    else:
-                        action_to_take = choose_action_result
+                        # Handle choose action result (for backwards compatibility if no choice_info)
+                        if isinstance(choose_action_result, tuple):
+                            action_to_take, choice_info = choose_action_result
+                            if 'choice_info' in choice_info:
+                                # Handle pipeline_adm
+                                choice_info = choice_info['choice_info']
+                        else:
+                            action_to_take = choose_action_result
+                            choice_info = {}
+
+                    except SceneSkipException as e:
+                        log.error(f"Scene skipped due to component failure: {e}")
+                        log.info(f"Component {e.component_name} failed - choosing random action to advance scene")
+
+                        # Choose a random action from available_actions_filtered to advance the scenario
+                        action_to_take = random.choice(available_actions_filtered)
+                        action_to_take.justification = f"Random action chosen due to component failure: {e.component_name}"
                         choice_info = {}
 
+                        log.warning(f"Taking random action to advance: {action_to_take.action_type if hasattr(action_to_take, 'action_type') else 'unknown'}")
+
+                    # Common code for both success and exception paths
                     end_choose_action = timer()
                     sce_times_s.append(end_choose_action - start_choose_action)
                     log.debug(f"choose_action took {end_choose_action - start_choose_action} seconds")
