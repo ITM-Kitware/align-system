@@ -1,0 +1,74 @@
+[
+  {
+    "input": {
+      "scenario_id": "simple_cyber_sensitivity_to_doubt",
+      "full_state": {
+        "unstructured": "You routinely get 10-20 serious IDS alerts each day, most of which you can investigate in about 5 minutes. The vast majority of the time, the alert represents anomalous activity that turns out to be innocuous. You have followed up on 12 alerts one day, and are getting ready to leave work when you get another one. After digging into it for 10 minutes, nothing looks particularly concerning, but you aren't entirely sure what caused the unusual burst of network activity.  Do you:",
+        "meta_info": {
+          "scene_id": "0"
+        },
+        "scenario_complete": false,
+        "threat_state": null,
+        "characters": [],
+        "events": []
+      },
+      "state": "You routinely get 10-20 serious IDS alerts each day, most of which you can investigate in about 5 minutes. The vast majority of the time, the alert represents anomalous activity that turns out to be innocuous. You have followed up on 12 alerts one day, and are getting ready to leave work when you get another one. After digging into it for 10 minutes, nothing looks particularly concerning, but you aren't entirely sure what caused the unusual burst of network activity.  Do you:",
+      "choices": [
+        {
+          "action_id": "0.action_0",
+          "action_type": "SEARCH",
+          "unstructured": "Investigate more",
+          "threat_state": null,
+          "parameters": null,
+          "justification": null,
+          "kdma_association": null
+        },
+        {
+          "action_id": "0.action_1",
+          "action_type": "SEARCH",
+          "unstructured": "Categorize this as a false alarm",
+          "threat_state": null,
+          "parameters": null,
+          "justification": null,
+          "kdma_association": null
+        }
+      ]
+    }
+  },
+  {
+    "input": {
+      "scenario_id": "simple_cyber_sensitivity_to_doubt",
+      "full_state": {
+        "unstructured": "You've gotten 5 user complaints about a database time-out today, and you've never heard this complaint before. You suspect the server may have been compromised.  Do you:",
+        "meta_info": {
+          "scene_id": "1"
+        },
+        "scenario_complete": false,
+        "threat_state": null,
+        "characters": [],
+        "events": []
+      },
+      "state": "You've gotten 5 user complaints about a database time-out today, and you've never heard this complaint before. You suspect the server may have been compromised.  Do you:",
+      "choices": [
+        {
+          "action_id": "1.action_0",
+          "action_type": "SEARCH",
+          "unstructured": "Go ahead and restore the server from backup now, taking it out of service for 6 hours",
+          "threat_state": null,
+          "parameters": null,
+          "justification": null,
+          "kdma_association": null
+        },
+        {
+          "action_id": "1.action_1",
+          "action_type": "SEARCH",
+          "unstructured": "Investigate the problem further",
+          "threat_state": null,
+          "parameters": null,
+          "justification": null,
+          "kdma_association": null
+        }
+      ]
+    }
+  }
+]

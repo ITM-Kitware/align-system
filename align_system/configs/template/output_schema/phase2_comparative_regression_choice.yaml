@@ -6,5 +6,13 @@ factor_lookup:
   merit: 100
   tendency to search vs stay: 100
   personal safety: 100
+  # Cyber
   empowerment focus: 100
   protocol focus: 100
+  availability focus: 100
+  resource usage focus: 100
+  prevention focus : 100
+  confidentiality focus: 100
+  personal reputation focus: 100
+  organization reputation focus: 100
+  sensitivity to doubt: 100

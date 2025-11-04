@@ -1,0 +1,6 @@
+_target_: align_system.data_models.attribute.Attribute
+
+name: prevention focus
+kdma: "prevention"
+description: Prevention focus means prioritizing proactive security measures to stop threats before they occur, rather than reactive detection and response after incidents happen.
+factor: 100

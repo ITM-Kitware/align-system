@@ -1,0 +1,36 @@
+# @package _global_
+defaults:
+  - override /adm: pipeline_baseline
+  - override /inference_engine@adm.structured_inference_engine: outlines_structured_greedy
+  - override /interface: input_output_file
+
+
+interface:
+  state_hydration_domain: p2triage
+  input_output_filepath: example_data/input_output_files/june26_cyber_scenarios/itm_ph2_input-output_simple_cyber_privacy_and_empowerment_focus.json
+
+adm:
+  step_definitions:
+    outlines_baseline:
+      scenario_description_template:
+        _target_: align_system.prompt_engineering.outlines_prompts.Phase2ScenarioDescription
+      prompt_template:
+        _target_: align_system.prompt_engineering.outlines_prompts.Phase2BaselinePrompt
+      system_prompt_template:
+        _target_: align_system.prompt_engineering.outlines_prompts.DomainAgnosticBaselineSystemPrompt
+
+      enable_caching: true
+
+  instance:
+    steps:
+    # Reference the step instances we want to use in order
+    - ${ref:adm.step_definitions.format_choices}
+    - ${ref:adm.step_definitions.outlines_baseline}
+    # - ${ref:adm.step_definitions.action_parameter_completion}
+    - ${ref:adm.step_definitions.ensure_chosen_action}
+    - ${ref:adm.step_definitions.populate_choice_info}
+
+apply_action_filtering: false
+
+force_determinism: true
+align_to_target: false

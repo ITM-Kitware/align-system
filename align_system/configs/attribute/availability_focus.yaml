@@ -1,0 +1,6 @@
+_target_: align_system.data_models.attribute.Attribute
+
+name: availability focus
+kdma: "availability"
+description: Availability focus means prioritizing system uptime and service accessibility, ensuring that security controls don't unnecessarily restrict legitimate user access or disrupt business operations.
+factor: 100
