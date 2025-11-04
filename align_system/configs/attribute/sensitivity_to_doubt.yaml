@@ -1,0 +1,6 @@
+_target_: align_system.data_models.attribute.Attribute
+
+name: sensitivity to doubt
+kdma: "sensitivity_to_doubt"
+description: Sensitivity to doubt means being highly responsive to uncertainty or incomplete information in security assessments, favoring cautious approaches when threat intelligence or system vulnerabilities are unclear.
+factor: 100

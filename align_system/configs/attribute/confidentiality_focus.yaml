@@ -1,0 +1,6 @@
+_target_: align_system.data_models.attribute.Attribute
+
+name: confidentiality focus
+kdma: "confidentiality"
+description: Confidentiality focus means prioritizing the protection of sensitive information from unauthorized access and disclosure, even if it requires stricter access controls or reduced convenience.
+factor: 100

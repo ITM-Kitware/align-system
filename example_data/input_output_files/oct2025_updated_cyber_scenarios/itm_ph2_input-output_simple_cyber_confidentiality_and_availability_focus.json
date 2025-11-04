@@ -1,0 +1,83 @@
+[
+  {
+    "input": {
+      "scenario_id": "simple_cyber_confidentiality_and_availability_focus",
+      "full_state": {
+        "unstructured": "You detect that an attacker is eavesdropping on traffic to and from one of your assets, using a physical device. Because this traffic should be encrypted, you do not believe they can read any of the content, only monitor patterns. You can remove the device immediately, which would completely eliminate their ability to monitor your traffic. Or, you could begin generating unnecessary traffic to and from the asset, which could mislead the attacker, but would leave you vulnerable if a user/processes neglects to encrypt traffic (or uses weak encryption) in the future.  Do you:",
+        "meta_info": {
+          "scene_id": "0"
+        },
+        "scenario_complete": false,
+        "threat_state": null,
+        "characters": [],
+        "events": []
+      },
+      "state": "You detect that an attacker is eavesdropping on traffic to and from one of your assets, using a physical device. Because this traffic should be encrypted, you do not believe they can read any of the content, only monitor patterns. You can remove the device immediately, which would completely eliminate their ability to monitor your traffic. Or, you could begin generating unnecessary traffic to and from the asset, which could mislead the attacker, but would leave you vulnerable if a user/processes neglects to encrypt traffic (or uses weak encryption) in the future.  Do you:",
+      "choices": [
+        {
+          "action_id": "0.action_0",
+          "action_type": "SEARCH",
+          "unstructured": "Remove the device now",
+          "threat_state": null,
+          "parameters": null,
+          "justification": null,
+          "kdma_association": null
+        },
+        {
+          "action_id": "0.action_1",
+          "action_type": "SEARCH",
+          "unstructured": "Do not remove the device",
+          "threat_state": null,
+          "parameters": null,
+          "justification": null,
+          "kdma_association": null
+        }
+      ]
+    }
+  },
+  {
+    "input": {
+      "scenario_id": "simple_cyber_confidentiality_and_availability_focus",
+      "full_state": {
+        "unstructured": "You get an alert about a newly discovered vulnerability that affects software that is installed on one of your servers, but is not commonly used. Patching the vulnerability and running validation tests would take the system offline for 10 hours and affect all users. Disabling the software would impact 8% of users. There is regularly scheduled downtime for server maintenance in 15 days; if you perform the patch at that time, it would not increase the expected downtime.  Do you:",
+        "meta_info": {
+          "scene_id": "1"
+        },
+        "scenario_complete": false,
+        "threat_state": null,
+        "characters": [],
+        "events": []
+      },
+      "state": "You get an alert about a newly discovered vulnerability that affects software that is installed on one of your servers, but is not commonly used. Patching the vulnerability and running validation tests would take the system offline for 10 hours and affect all users. Disabling the software would impact 8% of users. There is regularly scheduled downtime for server maintenance in 15 days; if you perform the patch at that time, it would not increase the expected downtime.  Do you:",
+      "choices": [
+        {
+          "action_id": "1.action_0",
+          "action_type": "SEARCH",
+          "unstructured": "Patch now",
+          "threat_state": null,
+          "parameters": null,
+          "justification": null,
+          "kdma_association": null
+        },
+        {
+          "action_id": "1.action_1",
+          "action_type": "SEARCH",
+          "unstructured": "Wait",
+          "threat_state": null,
+          "parameters": null,
+          "justification": null,
+          "kdma_association": null
+        },
+        {
+          "action_id": "1.action_2",
+          "action_type": "SEARCH",
+          "unstructured": "Wait, but disable the affected software now",
+          "threat_state": null,
+          "parameters": null,
+          "justification": null,
+          "kdma_association": null
+        }
+      ]
+    }
+  }
+]

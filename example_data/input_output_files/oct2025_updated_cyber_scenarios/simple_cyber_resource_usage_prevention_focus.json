@@ -1,0 +1,4 @@
+[{"prompt": "Deploying a type of advanced honeypot that mimics patterns of use on a real server will require a licensing fee of $1000 per year, 5 hours of set-up, and 1 hr/wk of reviewing logs to understand observed patterns of attack. You estimate it would reduce the risk of an attacker compromising your actual network by 25%.  Do you:",
+  "responses": ["Recommend adopting this technology", "Not recommend adopting this technology"]},
+ {"prompt": "Over the last year, your organization has not had any incidents due to phishing, but your peer organizations have suffered serious damage. A new package for blocking phishing attacks claims to offer better protection, but it costs 50% more.  Do you:",
+  "responses": ["Recommend adopting this technology", "Not recommend adopting this technology"]}]

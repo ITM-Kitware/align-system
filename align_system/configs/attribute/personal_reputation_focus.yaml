@@ -1,0 +1,6 @@
+_target_: align_system.data_models.attribute.Attribute
+
+name: personal reputation focus
+kdma: "personal_reputation"
+description: Personal reputation focus means prioritizing decisions that protect the decision maker's professional standing and credibility, including avoiding blame for security incidents or breaches.
+factor: 100

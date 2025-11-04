@@ -1,0 +1,74 @@
+[
+  {
+    "input": {
+      "scenario_id": "simple_cyber_resource_usage_prevention_focus",
+      "full_state": {
+        "unstructured": "Deploying a type of advanced honeypot that mimics patterns of use on a real server will require a licensing fee of $1000 per year, 5 hours of set-up, and 1 hr/wk of reviewing logs to understand observed patterns of attack. You estimate it would reduce the risk of an attacker compromising your actual network by 25%.  Do you:",
+        "meta_info": {
+          "scene_id": "0"
+        },
+        "scenario_complete": false,
+        "threat_state": null,
+        "characters": [],
+        "events": []
+      },
+      "state": "Deploying a type of advanced honeypot that mimics patterns of use on a real server will require a licensing fee of $1000 per year, 5 hours of set-up, and 1 hr/wk of reviewing logs to understand observed patterns of attack. You estimate it would reduce the risk of an attacker compromising your actual network by 25%.  Do you:",
+      "choices": [
+        {
+          "action_id": "0.action_0",
+          "action_type": "SEARCH",
+          "unstructured": "Recommend adopting this technology",
+          "threat_state": null,
+          "parameters": null,
+          "justification": null,
+          "kdma_association": null
+        },
+        {
+          "action_id": "0.action_1",
+          "action_type": "SEARCH",
+          "unstructured": "Not recommend adopting this technology",
+          "threat_state": null,
+          "parameters": null,
+          "justification": null,
+          "kdma_association": null
+        }
+      ]
+    }
+  },
+  {
+    "input": {
+      "scenario_id": "simple_cyber_resource_usage_prevention_focus",
+      "full_state": {
+        "unstructured": "Over the last year, your organization has not had any incidents due to phishing, but your peer organizations have suffered serious damage. A new package for blocking phishing attacks claims to offer better protection, but it costs 50% more.  Do you:",
+        "meta_info": {
+          "scene_id": "1"
+        },
+        "scenario_complete": false,
+        "threat_state": null,
+        "characters": [],
+        "events": []
+      },
+      "state": "Over the last year, your organization has not had any incidents due to phishing, but your peer organizations have suffered serious damage. A new package for blocking phishing attacks claims to offer better protection, but it costs 50% more.  Do you:",
+      "choices": [
+        {
+          "action_id": "1.action_0",
+          "action_type": "SEARCH",
+          "unstructured": "Recommend adopting this technology",
+          "threat_state": null,
+          "parameters": null,
+          "justification": null,
+          "kdma_association": null
+        },
+        {
+          "action_id": "1.action_1",
+          "action_type": "SEARCH",
+          "unstructured": "Not recommend adopting this technology",
+          "threat_state": null,
+          "parameters": null,
+          "justification": null,
+          "kdma_association": null
+        }
+      ]
+    }
+  }
+]

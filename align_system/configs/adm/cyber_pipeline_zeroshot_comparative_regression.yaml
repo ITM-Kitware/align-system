@@ -7,6 +7,13 @@ defaults:
   # Shared variables / components
   - /attribute@em: empowerment_focus
   - /attribute@pr: protocol_focus
+  - /attribute@av: availability_focus
+  - /attribute@ru: resource_usage_focus
+  - /attribute@pv: prevention_focus
+  - /attribute@cf: confidentiality_focus
+  - /attribute@per: personal_reputation_focus
+  - /attribute@or: organization_reputation_focus
+  - /attribute@sd: sensitivity_to_doubt
   - /inference_engine@structured_inference_engine: outlines_structured_greedy
   - /template/scenario_description@scenario_description_template: phase2
   - /template/prompt@prompt_template: phase2_comparative_regression
@@ -24,6 +31,13 @@ defaults:
 attribute_definitions:
   empowerment: ${adm.em}
   protocol: ${adm.pr}
+  availability: ${adm.av}
+  resource_usage: ${adm.ru}
+  prevention: ${adm.pv}
+  confidentiality: ${adm.cf}
+  personal_reputation: ${adm.per}
+  organization_reputation: ${adm.or}
+  sensitivity_to_doubt: ${adm.sd}
 
 step_definitions:
   comparative_regression:

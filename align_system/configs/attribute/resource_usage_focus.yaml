@@ -1,0 +1,6 @@
+_target_: align_system.data_models.attribute.Attribute
+
+name: resource usage focus
+kdma: "resource_usage"
+description: Resource usage focus means prioritizing efficient allocation of security resources, balancing protection measures against their computational, financial, and operational costs.
+factor: 100

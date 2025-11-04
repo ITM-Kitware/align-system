@@ -1,0 +1,6 @@
+_target_: align_system.data_models.attribute.Attribute
+
+name: organization reputation focus
+kdma: "organization_reputation"
+description: Organization reputation focus means prioritizing decisions that protect the organization's public image and stakeholder trust, minimizing reputational damage from security incidents or data breaches.
+factor: 100

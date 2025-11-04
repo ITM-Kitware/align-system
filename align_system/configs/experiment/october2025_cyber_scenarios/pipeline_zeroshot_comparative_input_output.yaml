@@ -1,0 +1,13 @@
+# @package _global_
+defaults:
+  - override /adm: cyber_pipeline_zeroshot_comparative_regression
+  - override /inference_engine@adm.structured_inference_engine: outlines_structured_greedy
+  - override /interface: input_output_file
+
+interface:
+  state_hydration_domain: p2triage
+  input_output_filepath: example_data/input_output_files/june26_cyber_scenarios/itm_ph2_input-output_simple_cyber_privacy_and_empowerment_focus.json
+
+apply_action_filtering: false
+force_determinism: true
+align_to_target: true
