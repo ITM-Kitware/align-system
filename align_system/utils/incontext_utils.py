@@ -20,7 +20,9 @@ from align_system.prompt_engineering.outlines_prompts import (
     relevance_classification_json_schema,
     phase2_scenario_state_description,
     comparative_regression_prompt,
-    comparative_regression_json_schema
+    comparative_regression_json_schema,
+    separate_regression_prompt,
+    separate_regression_json_schema
 )
 
 
@@ -144,11 +146,50 @@ def select_matching_characters_strategy(possible_examples, n_examples, prompt_to
         least_similar_examples=least_similar_examples
     )
 
+def select_character_bert_similarity_strategy(possible_examples, n_examples, character_to_match, least_similar_examples=False, **kwargs):
+    """Unstructured character-based BERT similarity selection strategy"""
+    final_candidates, possible_scenarios = [], []
+    for ex in possible_examples:
+        if 'action' in ex:
+            action = ex['action']
+            # If character id associated with action, use unstructured character description
+            if hasattr(action, 'character_id') and action.character_id is not None:
+                for character in ex['state'].characters:
+                    if character.id == action.character_id:
+                        text_to_match = character.unstructured
+                        break
+            # Else use scenario description
+            else:
+                text_to_match = ex['scenario_description']
+        elif 'actions' in ex:
+            # If multiple actions, concatenate unstructured character descriptions
+            action_chars = []
+            for action in ex['actions']:
+                if hasattr(action, 'character_id') and action.character_id is not None:
+                    for character in ex['state'].characters:
+                        if character.id == action.character_id:
+                            action_chars.append(character.unstructured)
+                            break
+            if len(action_chars) > 0:
+                text_to_match = "\n".join(action_chars)
+            else:
+                text_to_match = ex['scenario_description']
+        final_candidates.append(ex)
+        possible_scenarios.append(text_to_match)
+
+    return bert_similarity_selection(
+        final_candidates,
+        possible_scenarios,
+        character_to_match,
+        n_examples,
+        least_similar_examples=least_similar_examples
+    )
 
 ICL_SELECTION_STRATEGIES = {
     'random': select_random_strategy,
     'scenario_bert_similarity': select_scenario_bert_similarity_strategy,
     'prompt_bert_similarity': select_prompt_bert_similarity_strategy,
+    'character_bert_similarity': select_character_bert_similarity_strategy,
     'matching_actions': select_matching_actions_strategy,
     'matching_characters': select_matching_characters_strategy
 }
@@ -402,7 +443,7 @@ class IncontextExampleGenerator(object, metaclass=ABCMeta):
                 incontext_data[kdma][example_idx]['kdma_values'] = norm_values
         return incontext_data
 
-    def select_icl_examples(self, sys_kdma_name, scenario_description_to_match, prompt_to_match, state_comparison, actions):
+    def select_icl_examples(self, sys_kdma_name, scenario_description_to_match, prompt_to_match, state_comparison, actions, character_to_match=None):
         '''
         Selects a list of relevant ICL examples
         Input:
@@ -456,6 +497,7 @@ class IncontextExampleGenerator(object, metaclass=ABCMeta):
             n_examples=n_icl_examples,
             scenario_to_match=scenario_description_to_match,
             prompt_to_match=prompt_to_match,
+            character_to_match=character_to_match,
             actions=actions,
             least_similar_examples=least_similar_examples
         )
@@ -821,7 +863,8 @@ class Phase2ComparativeRegressionIncontextExampleGenerator(IncontextExampleGener
                     icl_response[choice]['score'] = scaled_kdma_value
                     included_choices.append(choice)
                 icl_response_with_reasoning={}
-                icl_response_with_reasoning['reasoning'] = self.get_chain_of_thought_reasoning(target_kdma, icl_response)
+                icl_response_with_reasoning['reasoning'] = self.get_chain_of_thought_reasoning(target_kdma, icl_response,
+                                                                                               example['state'], example['actions'])
                 icl_response_with_reasoning.update(icl_response) # reasoning first
                 # Check if response is valid against json schema
                 correct_schema = json.loads(comparative_regression_json_schema(included_choices, target_kdma["factor"]))
@@ -849,25 +892,123 @@ class Phase2ComparativeRegressionIncontextExampleGenerator(IncontextExampleGener
 
         self.icl_datasets = icl_datasets
 
-    def get_chain_of_thought_reasoning(self, target_kdma, scores):
+    def get_chain_of_thought_reasoning(self, target_kdma, scores, state, actions):
         '''
         Helper function for set_icl_datasets() - constructs example reasoning statements for responses
         Assumes only two choices
         '''
         choices = list(scores.keys())
-        if scores[choices[0]]['score'] >= scores[choices[1]]['score']:
-            max_choice = choices[0]
-            min_choice = choices[1]
-        else:
-            max_choice = choices[1]
-            min_choice = choices[0]
 
-        diff = abs(scores[choices[0]]['score'] - scores[choices[1]]['score'])
+        diff = scores[choices[0]]['score'] - scores[choices[1]]['score']
         adjective = ''
         if diff >= 75:
-            adjective = 'much'
-        elif diff <= 25:
-            adjective = 'slightly'
+            adjective = 'much more'
+        elif diff < 75 and diff >= 25:
+            adjective = 'more'
+        elif diff < 25 and diff > 0:
+            adjective = 'slightly more'
+        elif diff == 0:
+            adjective = 'equal'
+        elif diff < 0 and diff > -25:
+            adjective = 'slightly less'
+        elif diff <= -25 and diff > -75:
+            adjective = 'less'
+        elif diff <= -75:
+            adjective = 'much less'
 
-        cot_reasoning = f"{max_choice} demonstates {adjective} more {target_kdma['name']} than {min_choice}."
+        # get character associated with action
+        character_descriptions = []
+        for action in actions:
+            character_description = ''
+            if hasattr(action, 'character_id') and action.character_id is not None:
+                for character in state.characters:
+                    if character.id == action.character_id:
+                        unstructured = character.unstructured.splitlines()
+                        if len(unstructured) > 1:
+                            if target_kdma['kdma'] == 'medical':
+                                character_description = f'who has {unstructured[0]}'
+                            else:
+                                character_description = f'who is {unstructured[1]}'
+                        else:
+                            character_description = f'who has {unstructured[0]}'
+                        break
+            character_descriptions.append(character_description)
+
+        cot_reasoning = f"{choices[0]} {character_descriptions[0]} demonstates {adjective} {target_kdma['name']} than {choices[1]} {character_descriptions[1]}"
+        return cot_reasoning.strip().replace('.','')
+
+
+class Phase2SeparateRegressionIncontextExampleGenerator(IncontextExampleGenerator):
+    def set_icl_datasets(self):
+        icl_datasets = {}
+        incontext_data = self._read_icl_dataset_files()
+
+        # Add each target to icl_datasets
+        for target_kdma in self.target_kdmas:
+            sys_kdma_name = target_kdma['kdma']
+            icl_datasets[sys_kdma_name] = []
+            kdma_incontext_data = incontext_data[sys_kdma_name]
+            # Add each examples to icl_datasets
+            for example in kdma_incontext_data:
+                icl_scenario_description = phase2_scenario_state_description(example['state'])
+                for action, choice, kdma_value in zip(example['actions'], example['choices'], example["kdma_values"]):
+                    # Only include choice if there is a ground truth KDMA value available
+                    if kdma_value is None:
+                        continue
+                    # Get example response
+                    icl_response = {}
+                    icl_response['reasoning'] = self.get_chain_of_thought_reasoning(target_kdma, choice, kdma_value, example['state'], action)                    # Groundtruth KDMA values are 0-1, but ADM may predict on a different scale
+                    scaled_kdma_value = int(kdma_value * target_kdma["factor"])
+                    icl_response['score'] = scaled_kdma_value
+                    # Check if response is valid against json schema
+                    correct_schema = json.loads(separate_regression_json_schema(target_kdma["factor"]))
+                    validate(instance=icl_response, schema=correct_schema)
+                    icl_prompt = separate_regression_prompt(icl_scenario_description,
+                                                            choice,
+                                                            target_kdma['name'])
+                    # Add example
+                    icl_datasets[sys_kdma_name].append({
+                        "state": example["state"],
+                        "scenario_description": icl_scenario_description,
+                        "prompt": icl_prompt,
+                        "response": icl_response,
+                        "action": action
+                        })
+
+        self.icl_datasets = icl_datasets
+
+    def get_chain_of_thought_reasoning(self, target_kdma, choice, score, state, action):
+        '''
+        Helper function for set_icl_datasets() - constructs example reasoning statements for responses
+        '''
+        cot_reasoning = ""
+        # get character associated with action
+        character_description = None
+        if hasattr(action, 'character_id') and action.character_id is not None:
+            for character in state.characters:
+                if character.id == action.character_id:
+                    unstructured = character.unstructured.splitlines()
+                    if len(unstructured) > 1:
+                        if target_kdma['kdma'] == 'medical':
+                            character_description = f'{character.name} has {unstructured[0]}'
+                        else:
+                            character_description = f'{character.name} is {unstructured[1]}'
+                    else:
+                        character_description = f'{character.name} has {unstructured[0]}'
+                    break
+        if character_description is not None:
+            cot_reasoning += f"Because {character_description}, "
+        
+        
+        adjective = ''
+        if score >= .75:
+            adjective = 'extreme'
+        elif score >= .5:
+            adjective = 'moderate'
+        elif score >= .25:
+            adjective = 'some'
+        else:
+            adjective = 'very little'
+
+        cot_reasoning += f"{choice} demonstates {adjective} {target_kdma['name']}."
         return cot_reasoning

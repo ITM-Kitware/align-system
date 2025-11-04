@@ -126,13 +126,31 @@ class ICLADMComponent(ADMComponent):
                  'choices': choices,
                  'choice_outcomes': {c: None for c in choices},
                  'attribute': attribute.name})
+            
+            character_to_match = ''
+            for action in actions:
+                if hasattr(action, 'character_id') and action.character_id is not None:
+                    for character in scenario_state.characters:
+                        if character.id == action.character_id:
+                            unstructured = character.unstructured.splitlines()
+                            if len(unstructured) > 1:
+                                if attribute.kdma == 'medical':
+                                    character_to_match += f' {unstructured[0]}'
+                                else:
+                                    character_to_match += f' {unstructured[1]}'
+                            else:
+                                character_to_match += f' {unstructured[0]}'
+                            break
+                else:
+                    character_to_match += f' {scenario_description}'
 
             selected_icl_examples = icl_gen.select_icl_examples(
                 sys_kdma_name=attribute.kdma,
                 scenario_description_to_match=scenario_description,
                 prompt_to_match=prompt_to_match,
                 state_comparison=scenario_state,
-                actions=actions)
+                actions=actions,
+                character_to_match=character_to_match)
 
             for icl_sample in selected_icl_examples:
                 icl_dialog_elements[attribute.kdma].append(DialogElement(role='user',
@@ -289,3 +307,143 @@ class PromptBasedICLADMComponent(ADMComponent):
                               tags=['icl']))
 
         return pos_icl_dialog_elements, neg_icl_dialog_elements
+
+
+class SeparateICLADMComponent(ADMComponent):
+    def __init__(self,
+                 icl_generator_partial,
+                 scenario_description_template,
+                 prompt_template,
+                 attributes=None,
+                 target_attribute_names_override=None):
+        self.icl_generator_partial = icl_generator_partial
+        self.scenario_description_template = scenario_description_template
+
+        if attributes is None:
+            attributes = {}
+        self.attributes = attributes
+
+        self.prompt_template = prompt_template
+
+        self.target_attribute_names_override = target_attribute_names_override
+
+    def run_returns(self):
+        return ('icl_dialog_elements', 'icl_example_info')
+
+    def run(self,
+            scenario_state,
+            choices,
+            actions,
+            alignment_target=None):
+        if alignment_target is None:
+            target_attribute_names = []
+        else:
+            target_attribute_names = attributes_in_alignment_target(alignment_target)
+
+        if self.target_attribute_names_override is not None:
+            overridden_target_attribute_names = []
+            for attribute_name in self.target_attribute_names_override:
+                if attribute_name == '*':
+                    # '*' in the override means to include the attribute names
+                    # from the target (in addition to whatever else is
+                    # specified in the override)
+                    overridden_target_attribute_names.extend(target_attribute_names)
+                else:
+                    overridden_target_attribute_names.append(attribute_name)
+
+            target_attribute_names = overridden_target_attribute_names
+
+        target_attributes = [self.attributes[n] for n in target_attribute_names]
+
+        # Mapping covers `dict` and `omegaconf.dictconfig.DictConfig`
+        if not isinstance(alignment_target, Mapping):
+            alignment_target_dict = alignment_target.to_dict()
+        else:
+            alignment_target_dict = alignment_target
+
+        alignment_target_value_lookup = {
+            kdma_values['kdma']: kdma_values['value']
+            for kdma_values in alignment_target_dict['kdma_values']}
+
+        icl_dialog_elements = {}
+        icl_example_info = {}
+
+        for attribute in target_attributes:
+            icl_dialog_elements[attribute.kdma] = {}
+            icl_example_info[attribute.kdma] = {}
+
+            # Not sure how much this value actually matters for ICL;
+            # defaulting to `1.0` if not in the alignment target
+            # (e.g. for the "medical" attribute)
+            value_for_attribute = alignment_target_value_lookup.get(attribute.kdma, 1.0)
+
+            # Convert alignment target into kdma values (all that's
+            # needed for building the icl engines, and need something
+            # that's hashable for caching, dicts aren't hashable) as a
+            # tuple of tuples; when initializing the icl engine the
+            # lru_cache decorator doesn't allow mutable arguments such
+            # as lists, need to use tuple
+            kdma_values = ((attribute.kdma, value_for_attribute),)
+
+            icl_gen = init_icl_engine_from_target(
+                self.icl_generator_partial,
+                self.attributes,
+                kdma_values)
+
+            scenario_description = call_with_coerced_args(
+                self.scenario_description_template,
+                {'scenario_state': scenario_state,
+                 'alignment_target': alignment_target,
+                 'attribute': attribute.name,
+                 'attributes_of_interest': {attribute.name,}})
+            for choice, action in zip(choices, actions):
+                icl_dialog_elements[attribute.kdma][choice] = []
+                icl_example_info[attribute.kdma][choice] = []
+
+                prompt_to_match = call_with_coerced_args(
+                    self.prompt_template,
+                    {'scenario_state': scenario_state,
+                    'scenario_description': scenario_description,
+                    'choice': choice,
+                    'attribute': attribute.name})
+                
+                if hasattr(action, 'character_id') and action.character_id is not None:
+                    for character in scenario_state.characters:
+                        if character.id == action.character_id:
+                            unstructured = character.unstructured.splitlines()
+                            if len(unstructured) > 1:
+                                if attribute.kdma == 'medical':
+                                    character_to_match = unstructured[0].strip()
+                                else:
+                                    character_to_match = unstructured[1].strip()
+                            else:
+                                character_to_match = unstructured[0].strip()
+                            break
+                else:
+                    character_to_match = scenario_description
+
+                selected_icl_examples = icl_gen.select_icl_examples(
+                    sys_kdma_name=attribute.kdma,
+                    scenario_description_to_match=scenario_description,
+                    prompt_to_match=prompt_to_match,
+                    state_comparison=scenario_state,
+                    actions=actions,
+                    character_to_match=character_to_match)
+
+                for icl_sample in selected_icl_examples:
+                    icl_dialog_elements[attribute.kdma][choice].append(DialogElement(role='user',
+                                                            content=icl_sample['prompt'],
+                                                            tags=['icl']))
+                    icl_dialog_elements[attribute.kdma][choice].append(DialogElement(role='assistant',
+                                                            content=str(icl_sample['response']),
+                                                            tags=['icl']))
+
+                    # Capture ICL example info for choice_info
+                    icl_info = {
+                        'similarity_score': icl_sample['similarity_score'],
+                        'prompt': icl_sample['prompt'],
+                        'response': icl_sample['response'],
+                    }
+                    icl_example_info[attribute.kdma][choice].append(icl_info)
+
+        return icl_dialog_elements, icl_example_info

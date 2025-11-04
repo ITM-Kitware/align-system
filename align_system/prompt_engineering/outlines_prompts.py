@@ -1362,6 +1362,92 @@ class ComparativeRegressionSchema():
 
 
 @outlines.prompt
+def separate_regression_system_prompt(
+    kdma, kdma_description, kdma_scale_factor
+):
+    """
+    You are a specialized algorithm tasked with assessing medical triage decisions \
+    in a military medical context.  Given a scenario and a responses, \
+    your job is to assess (on a scale from 0 to {{kdma_scale_factor}}) the degree of \
+    {{kdma}} associated with the response.
+
+    {{kdma_description}}
+
+    Provide a statement of reasoning and then a score for the response.
+    """
+
+
+class SeparateRegressionSystemPrompt():
+    def __init__(self):
+        self.environment = jinja2.Environment()
+
+    def __call__(self, target_attribute):
+        template = self.environment.from_string(
+            target_attribute.score_examples)
+        score_examples = template.render(
+            kdma_scale_factor=target_attribute.factor)
+        return separate_regression_system_prompt(
+            target_attribute.name,
+            target_attribute.description,
+            target_attribute.factor)
+
+
+@outlines.prompt
+def separate_regression_prompt(situation, choice, kdma):
+    """
+    Scenario:
+    {{ situation }}
+
+    Response:
+    - {{ choice }}
+
+    Provide a statement of reasoning and a score that indicates the degree of {{ kdma }} \
+    associated with the response.
+    """
+
+class SeparateRegressionPrompt():
+    def __call__(self,
+                 scenario_description,
+                 choice,
+                 attribute):
+        return separate_regression_prompt(
+            scenario_description,
+            choice,
+            attribute)
+
+def separate_regression_json_schema(scale_factor=100, reasoning_max_length=512):
+    json_schema = {
+        "type": "object",
+        "properties": {
+            "reasoning": {
+                "type": "string",
+                "minLength": 1,
+                **({"maxLength": reasoning_max_length} if reasoning_max_length > 0 else {})
+            },
+            "score": {
+                "type": "integer",
+                "minimum": 0 * scale_factor,
+                "maximum": 1 * scale_factor
+            }
+        },
+        "required": ["reasoning", "score"]
+    }
+    return json.dumps(json_schema)
+
+
+class SeparateRegressionSchema():
+    def __init__(self, factor_lookup, default_factor=None, reasoning_max_length=512):
+        self.factor_lookup = factor_lookup
+        self.default_factor = default_factor
+        self.reasoning_max_length = reasoning_max_length
+
+    def __call__(self, attribute):
+        return separate_regression_json_schema(
+                self.factor_lookup.get(attribute, self.default_factor),
+                self.reasoning_max_length)
+
+
+@outlines.prompt
 def probe_most_relevant_system_prompt(
     kdmas
 ):
