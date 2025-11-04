@@ -2,8 +2,8 @@ _target_: align_system.algorithms.outlines_inference_engine.OutlinesTransformers
 
 model_name: meta-llama/Llama-3.1-8B-Instruct
 precision: half
-max_generator_tokens: 4096
-sampler:
-  _target_: outlines.samplers.MultinomialSampler
+max_generator_tokens: 8192
+generation_kwargs:
+  do_sample: true
   temperature: 0.3  # Low temp = nearly deterministic, but faster than greedy
   top_p: 0.9
