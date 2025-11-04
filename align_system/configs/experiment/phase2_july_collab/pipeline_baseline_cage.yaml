@@ -15,7 +15,7 @@ adm:
       prompt_template:
         _target_: align_system.prompt_engineering.outlines_prompts.Phase2BaselinePrompt
       system_prompt_template:
-        _target_: align_system.prompt_engineering.outlines_prompts.CAGESystemPrompt
+        _target_: align_system.prompt_engineering.outlines_prompts.CAGEACDSystemPrompt
 
       enable_caching: true
 
@@ -35,5 +35,5 @@ apply_action_filtering: false
 save_scoring_output: true
 
 force_determinism: true
-align_to_target: false
+align_to_target: true
 sort_available_actions: false
