@@ -2,7 +2,11 @@ import itertools
 import json
 from collections.abc import Iterable
 from textwrap import dedent
+import json
 
+import transformers
+import outlines
+from outlines.types import JsonSchema
 import jinja2
 import outlines
 import torch
@@ -18,17 +22,14 @@ DEFAULT_MAX_GENERATOR_TOKENS = 8192
 
 
 class OutlinesTransformersInferenceEngine(StructuredInferenceEngine):
-    def __init__(
-        self,
-        model_name,
-        device="auto",
-        precision="full",
-        max_generator_tokens=DEFAULT_MAX_GENERATOR_TOKENS,
-        inference_batch_size=5,
-        generation_kwargs=None,
-        model_kwargs=None,
-        tokenizer_kwargs=None,
-    ):
+    def __init__(self,
+                 model_name,
+                 precision='full',
+                 max_generator_tokens=None,
+                 inference_batch_size=5,
+                 generation_kwargs=None,
+                 model_kwargs=None,
+                 tokenizer_kwargs=None):
         self.model_name = model_name
         self.precision = precision
         self.inference_batch_size = inference_batch_size
@@ -57,21 +58,12 @@ class OutlinesTransformersInferenceEngine(StructuredInferenceEngine):
                 ", expecting either 'half' or 'full'"
             )
 
-        self.model_kwargs["dtype"] = torch_dtype
+        self.model_kwargs['dtype'] = torch_dtype
 
         self.model = outlines.from_transformers(
-            transformers.AutoModelForCausalLM.from_pretrained(
-                model_name, **self.model_kwargs, device_map=device
-            ),
-            transformers.AutoTokenizer.from_pretrained(
-                model_name, **self.tokenizer_kwargs
-            ),
-            device_dtype=torch_dtype,
-        )
-
-        # https://github.com/dottxt-ai/outlines/pull/1817
-        # newer verion of outlines fixes this issue, but we are blocked with the vllm dependency
-        self.model.tokenizer.is_llama = True
+            transformers.AutoModelForCausalLM.from_pretrained(model_name, **self.model_kwargs, device_map='auto'),
+            transformers.AutoTokenizer.from_pretrained(model_name, **self.tokenizer_kwargs),
+            device_dtype=torch_dtype)
 
     def dialog_to_prompt(self, dialog):
         tokenizer = self.model.tokenizer.tokenizer
@@ -108,20 +100,11 @@ class OutlinesTransformersInferenceEngine(StructuredInferenceEngine):
             yield batch
 
     @classmethod
-    def run_in_batches(
-        cls,
-        inference_function,
-        inputs,
-        batch_size,
-        max_generator_tokens=DEFAULT_MAX_GENERATOR_TOKENS,
-        **generation_kwargs,
-    ):
-        """Batch inference to avoid out of memory error"""
+    def run_in_batches(cls, inference_function, inputs, batch_size, max_generator_tokens=None, **generation_kwargs):
+        ''' Batch inference to avoid out of memory error'''
         outputs = []
         for batch in cls.batched(inputs, batch_size):
-            output = inference_function(
-                list(batch), max_new_tokens=max_generator_tokens, **generation_kwargs
-            )
+            output = inference_function(list(batch), max_new_tokens=max_generator_tokens, **generation_kwargs)
             if not isinstance(output, list):
                 output = [output]
             outputs.extend(output)
@@ -130,21 +113,17 @@ class OutlinesTransformersInferenceEngine(StructuredInferenceEngine):
     def run_inference(self, prompts, schema):
         json_schema = JsonSchema(schema, whitespace_pattern=r"[ ]?")
 
+        generator = outlines.Generator(
+            self.model,
+            json_schema)
+
         generator = outlines.Generator(self.model, json_schema)
         if isinstance(prompts, str):
-            output = generator(
-                prompts,
-                max_new_tokens=self.max_generator_tokens,
-                **self.generation_kwargs,
-            )
+            output = generator(prompts, max_new_tokens=self.max_generator_tokens, **self.generation_kwargs)
             return json.loads(output)
         elif isinstance(prompts, Iterable):
             output = self.run_in_batches(
-                generator.batch,
-                prompts,
-                self.inference_batch_size,
-                self.max_generator_tokens,
-                **self.generation_kwargs,
+                generator.batch, prompts, self.inference_batch_size, self.max_generator_tokens, **self.generation_kwargs
             )
             return [json.loads(r) for r in output]
         else:
@@ -155,9 +134,8 @@ class OutlinesTransformersInferenceEngine(StructuredInferenceEngine):
     def run_inference_unstructured(self, prompts):
         generator = outlines.generate.regex(
             self.model,
-            r".*",  # "allow anything" regex
-            **self.generation_kwargs,
-        )
+            r'.*',  # "allow anything" regex
+            **self.generation_kwargs)
 
         if isinstance(prompts, str):
             return generator(prompts, self.max_generator_tokens)
@@ -176,7 +154,7 @@ class OutlinesTransformersInferenceEngine(StructuredInferenceEngine):
         .i.e. if the return value of this function is the same for two
         object instances, it's assumed that inference output will be
         the same
-        """
+        '''
         return dedent(f"""
                        {self.__class__.__module__}.{self.__class__.__name__}(
                        model_name="{self.model_name}",
