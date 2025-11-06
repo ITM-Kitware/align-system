@@ -8,6 +8,7 @@ import jinja2
 import torch
 
 from align_system.algorithms.abstracts import StructuredInferenceEngine
+from transformers import AutoTokenizer, AutoModelForCausalLM
 
 
 class OutlinesTransformersInferenceEngine(StructuredInferenceEngine):
@@ -150,3 +151,57 @@ class OutlinesTransformersInferenceEngine(StructuredInferenceEngine):
                        model_kwargs={self.model_kwargs},
                        tokenizer_kwargs={self.tokenizer_kwargs},
                        )""").strip()
+
+
+class SpectrumTunedInferenceEngine(OutlinesTransformersInferenceEngine):
+    def __init__(self,
+                 model_name,
+                 device='auto',
+                 precision='full',
+                 max_generator_tokens=None,
+                 sampler=MultinomialSampler(),
+                 inference_batch_size=5,
+                 model_kwargs={},
+                 tokenizer_kwargs={}):
+        super().__init__(model_name,
+                         device,
+                         precision,
+                         max_generator_tokens,
+                         sampler,
+                         inference_batch_size,
+                         model_kwargs,
+                         tokenizer_kwargs)
+
+    def dialog_to_prompt(self, dialog):
+        tokenizer = self.model.tokenizer.tokenizer
+
+        # Use roles spectrum tuned models expect
+        # https://github.com/tsor13/spectrum/blob/main/README.md
+        for element in dialog:
+            if element.role == "system":
+                element.role = "description"
+            elif element.role == "user":
+                element.role = "input"
+            elif element.role == "assistant":
+                element.role = "output"
+            else:
+                raise RuntimeError(f"{element.role} dialog element unrecognized.")
+
+        try:
+            encoded_dialog = tokenizer.apply_chat_template(dialog)
+        except jinja2.exceptions.TemplateError:
+            # Assume that the tokenizer chat template doesn't accept
+            # system messages; combine system message first user
+            # message
+            # Ensure each dialog element is a dict
+            system_msg, user_msg, *rest = [dict(d) for d in dialog]
+
+            assert user_msg['role'] == 'user'
+
+            updated_content = system_msg['content'] + '\n' + user_msg['content']
+
+            dialog = [{'role': 'user', 'content': updated_content}, *rest]
+
+            encoded_dialog = tokenizer.apply_chat_template(dialog)
+
+        return tokenizer.decode(encoded_dialog)
