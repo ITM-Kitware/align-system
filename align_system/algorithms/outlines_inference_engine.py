@@ -8,7 +8,6 @@ import jinja2
 import torch
 
 from align_system.algorithms.abstracts import StructuredInferenceEngine
-from transformers import AutoTokenizer, AutoModelForCausalLM
 
 
 class OutlinesTransformersInferenceEngine(StructuredInferenceEngine):
