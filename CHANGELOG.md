@@ -12,6 +12,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 * Added option for ICL example choice ordering - fixed, swapped, or random
 * Added option to swap choice ordering for comparative regression pipeline ADM component
 * Added capability to resolve pipeline ADM step output conflicts with a custom function
+* Added inference engine for spectrum tuned LLMs that appropriately reformats chat template roles
 
 ## 0.5.9
 
