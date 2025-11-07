@@ -7,7 +7,7 @@ import copy
 from functools import partial
 
 import outlines
-from outlines.samplers import MultinomialSampler
+from outlines.types import JsonSchema
 import jinja2
 from rich.highlighter import JSONHighlighter
 from align_system.data_models.compat.ta3_ph1_client_models import (
@@ -16,6 +16,7 @@ from align_system.data_models.compat.ta3_ph1_client_models import (
     CharacterTagEnum,
     KDMAValue
 )
+import transformers
 
 from align_system.utils import logging
 from align_system.utils import adm_utils
@@ -67,7 +68,7 @@ class OutlinesTransformersADM(ActionBasedADM):
                  model_name,
                  device='auto',
                  baseline=False,
-                 sampler=MultinomialSampler(),
+                 generation_kwargs=None,
                  scenario_description_template=scenario_state_description_1,
                  action_selection_prompt_template=action_selection_prompt,
                  baseline_system_prompt=baseline_system_prompt,
@@ -86,19 +87,21 @@ class OutlinesTransformersADM(ActionBasedADM):
                     f"Unexpected value for 'precision' ({kwargs['precision']})"
                     ", expecting either 'half' or 'full'")
 
-            model_kwargs['torch_dtype'] = torch_dtype
+            model_kwargs['dtype'] = torch_dtype
 
-        self.model = outlines.models.transformers(
-            model_name,
-            device=device,
-            model_kwargs=model_kwargs,
-            tokenizer_kwargs=kwargs.get('tokenizer_kwargs', {}))
-        # NOTE: In cases where we want multiple samples, we're passing
-        # in a list of prompts (this allows us to shuffle answers in
-        # each prompt), rather than setting the number of samples in
-        # the sampler itself (which defaults to 1); setting the number
-        # of samples in the sampler may result in unexpected behavior
-        self.sampler = sampler
+        self.model = outlines.from_transformers(
+            transformers.AutoModelForCausalLM.from_pretrained(model_name, **model_kwargs, device_map=device),
+            transformers.AutoTokenizer.from_pretrained(model_name, **kwargs.get('tokenizer_kwargs', {})),
+            device_dtype=torch_dtype)
+
+        if generation_kwargs is None:
+            generation_kwargs = {'temperature': 0.7}
+        self.generation_kwargs = generation_kwargs
+
+        # Sometimes the internal default for outlines/transformers is 20,
+        # leading to very short (and often invalid JSON) outputs.  Setting a
+        # somewhat generous default.
+        self.generation_kwargs.setdefault('max_new_tokens', 8192)
 
         self.outlines_seed = outlines_seed
         if self.outlines_seed is None:
@@ -240,15 +243,11 @@ class OutlinesTransformersADM(ActionBasedADM):
             yield batch
 
     @classmethod
-    def run_in_batches(cls, inference_function, inputs, batch_size, rng=None):
+    def run_in_batches(cls, inference_function, inputs, batch_size, **generation_kwargs):
         ''' Batch inference to avoid out of memory error'''
         outputs = []
         for batch in cls.batched(inputs, batch_size):
-            if rng is None:
-                output = inference_function(list(batch))
-            else:
-                output = inference_function(list(batch), rng=rng)
-
+            output = inference_function(list(batch), **generation_kwargs)
             if not isinstance(output, list):
                 output = [output]
             outputs.extend(output)
@@ -432,11 +431,13 @@ class OutlinesTransformersADM(ActionBasedADM):
         # Need to set the whitespace_pattern to prevent the state
         # machine from looping indefinitely in some cases, see:
         # https://github.com/outlines-dev/outlines/issues/690#issuecomment-2102291934
-        generator = outlines.generate.json(
-            self.model,
+        json_schema = JsonSchema(
             action_choice_json_schema(json.dumps(choices), reasoning_max_length),
-            sampler=self.sampler,
             whitespace_pattern=r"[ ]?")
+
+        generator = outlines.Generator(
+            self.model,
+            json_schema)
 
         if max_generator_tokens >= 0:
             generator = partial(generator, max_tokens=max_generator_tokens)
@@ -454,7 +455,13 @@ class OutlinesTransformersADM(ActionBasedADM):
                  extra={"markup": True})
         log.info(dialog_texts[0])
 
-        responses = self.run_in_batches(generator, dialog_texts, generator_batch_size, rng=self.outlines_rng)
+        responses = self.run_in_batches(generator.batch,
+                                        dialog_texts,
+                                        generator_batch_size,
+                                        rng=self.outlines_rng,
+                                        **self.generation_kwargs)
+        responses = [json.loads(r) for r in responses]
+
         positive_responses_choices =\
             [r['action_choice'] for r in
              responses[0:num_positive_samples]]
@@ -657,17 +664,19 @@ class OutlinesTransformersADM(ActionBasedADM):
 
             character_names = [c.name for c in characters]
 
-            generator = outlines.generate.json(
-                self.model,
+            json_schema = JsonSchema(
                 character_choice_json_schema(json.dumps(character_names)),
-                sampler=self.sampler,
                 whitespace_pattern=r"[ ]?")
+
+            generator = outlines.Generator(
+                self.model,
+                json_schema)
 
             log.info("[bold]*DIALOG PROMPT*[/bold]",
                      extra={"markup": True})
             log.info(dialog_text)
 
-            selected_character = generator(dialog_text)
+            selected_character = json.loads(generator(dialog_text, **self.generation_kwargs))
             selected_character_idx = character_names.index(selected_character['character_choice'])
 
             log.info("[bold]*STRUCTURED RESPONSE*[/bold]",
@@ -727,19 +736,21 @@ class OutlinesTransformersADM(ActionBasedADM):
 
             dialog_text = self.dialog_to_prompt(dialog)
 
-            generator = outlines.generate.json(
-                self.model,
+            json_schema = JsonSchema(
                 treatment_choice_json_schema(
                     json.dumps([s.type for s in available_supplies]),
                     json.dumps(valid_treatment_locations)),
-                sampler=self.sampler,
                 whitespace_pattern=r"[ ]?")
+
+            generator = outlines.Generator(
+                self.model,
+                json_schema)
 
             log.info("[bold]*DIALOG PROMPT*[/bold]",
                      extra={"markup": True})
             log.info(dialog_text)
 
-            selected_treatment = generator(dialog_text)
+            selected_treatment = json.loads(generator(dialog_text, **self.generation_kwargs))
 
             log.info("[bold]*STRUCTURED RESPONSE*[/bold]",
                      extra={"markup": True})
@@ -799,14 +810,16 @@ class OutlinesTransformersADM(ActionBasedADM):
                      extra={"markup": True})
             log.info(dialog_text)
 
-            generator = outlines.generate.json(
-                self.model,
+            json_schema = JsonSchema(
                 treatment_choice_from_list_json_schema(
                     json.dumps(possible_treatments)),
-                sampler=self.sampler,
                 whitespace_pattern=r"[ ]?")
 
-            selected_treatment = generator(dialog_text)
+            generator = outlines.Generator(
+                self.model,
+                json_schema)
+
+            selected_treatment = json.loads(generator(dialog_text, **self.generation_kwargs))
             log.info("[bold]*STRUCTURED RESPONSE*[/bold]",
                      extra={"markup": True})
             log.info(selected_treatment, extra={"highlighter": JSON_HIGHLIGHTER})
@@ -843,18 +856,20 @@ class OutlinesTransformersADM(ActionBasedADM):
 
         dialog_text = self.dialog_to_prompt(dialog)
 
-        generator = outlines.generate.json(
-            self.model,
+        json_schema = JsonSchema(
             tag_choice_json_schema(
                 json.dumps(valid_tags)),
-            sampler=self.sampler,
             whitespace_pattern=r"[ ]?")
+
+        generator = outlines.Generator(
+            self.model,
+            json_schema)
 
         log.info("[bold]*DIALOG PROMPT*[/bold]",
                  extra={"markup": True})
         log.info(dialog_text)
 
-        selected_tag = generator(dialog_text)
+        selected_tag = json.loads(generator(dialog_text, **self.generation_kwargs))
 
         log.info("[bold]*STRUCTURED RESPONSE*[/bold]",
                  extra={"markup": True})
@@ -906,18 +921,20 @@ class OutlinesTransformersADM(ActionBasedADM):
 
             dialog_text = self.dialog_to_prompt(dialog)
 
-            generator = outlines.generate.json(
-                self.model,
+            json_schema = JsonSchema(
                 aid_choice_json_schema(
                     json.dumps([aid.id for aid in available_aids])),
-                sampler=self.sampler,
                 whitespace_pattern=r"[ ]?")
+
+            generator = outlines.Generator(
+                self.model,
+                json_schema)
 
             log.info("[bold]*DIALOG PROMPT*[/bold]",
                      extra={"markup": True})
             log.info(dialog_text)
 
-            selected_aid = generator(dialog_text)
+            selected_aid = json.loads(generator(dialog_text, **self.generation_kwargs))
 
             log.info("[bold]*STRUCTURED RESPONSE*[/bold]",
                      extra={"markup": True})
