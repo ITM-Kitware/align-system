@@ -5,9 +5,10 @@ import json
 import numpy as np
 
 import outlines
-from outlines.samplers import MultinomialSampler
+from outlines.types import JsonSchema
 from rich.highlighter import JSONHighlighter
 from swagger_client.models import kdma_value
+import transformers
 
 from align_system.utils import logging
 from align_system.utils import adm_utils
@@ -41,7 +42,7 @@ class OutlinesTransformersComparativeRegressionADM(OutlinesTransformersADM):
                  model_name,
                  device='auto',
                  baseline=False,
-                 sampler=MultinomialSampler(),
+                 generation_kwargs=None,
                  probabilistic=False,
                  **kwargs):
         self.baseline = baseline
@@ -60,19 +61,22 @@ class OutlinesTransformersComparativeRegressionADM(OutlinesTransformersADM):
                     f"Unexpected value for 'precision' ({kwargs['precision']})"
                     ", expecting either 'half' or 'full'")
 
-            model_kwargs['torch_dtype'] = torch_dtype
+            model_kwargs['dtype'] = torch_dtype
 
-        self.model = outlines.models.transformers(
-            model_name,
-            device=device,
-            model_kwargs=model_kwargs,
-            tokenizer_kwargs=kwargs.get('tokenizer_kwargs', {}))
-        # NOTE: In cases where we want multiple samples, we're passing
-        # in a list of prompts (this allows us to shuffle answers in
-        # each prompt), rather than setting the number of samples in
-        # the sampler itself (which defaults to 1); setting the number
-        # of samples in the sampler may result in unexpected behavior
-        self.sampler = sampler
+        self.model = outlines.from_transformers(
+            transformers.AutoModelForCausalLM.from_pretrained(model_name, **model_kwargs, device_map=device),
+            transformers.AutoTokenizer.from_pretrained(model_name, **kwargs.get('tokenizer_kwargs', {})),
+            device_dtype=torch_dtype)
+
+        if generation_kwargs is None:
+            generation_kwargs = {'temperature': 0.7}
+        self.generation_kwargs = generation_kwargs
+
+        # Sometimes the internal default for outlines/transformers is 20,
+        # leading to very short (and often invalid JSON) outputs.  Setting a
+        # somewhat generous default.
+        self.generation_kwargs.setdefault('max_new_tokens', 8192)
+
 
     def reset_history(self):
         self.choice_history = {}
@@ -98,11 +102,12 @@ class OutlinesTransformersComparativeRegressionADM(OutlinesTransformersADM):
         # Need to set the whitespace_pattern to prevent the state
         # machine from looping indefinitely in some cases, see:
         # https://github.com/outlines-dev/outlines/issues/690#issuecomment-2102291934
-        outcome_generator = outlines.generate.json(
+        json_schema = JsonSchema(comparative_outcome_prediction_json_schema(choices),
+                                 whitespace_pattern=r"[ ]?")
+
+        outcome_generator = outlines.Generator(
             self.model,
-            comparative_outcome_prediction_json_schema(choices),
-            sampler=self.sampler,
-            whitespace_pattern=r"[ ]?")
+            json_schema)
 
         outcome_dialog_texts = [self.dialog_to_prompt(d) for d in outcome_dialogs]
 
@@ -111,7 +116,12 @@ class OutlinesTransformersComparativeRegressionADM(OutlinesTransformersADM):
         log.info(outcome_dialog_texts[0])
 
         # List of {choice: {predicted_outcomes:str}, ...} with length = num_samples
-        predicted_outcomes = self.run_in_batches(outcome_generator, outcome_dialog_texts, batch_size)
+        predicted_outcomes = self.run_in_batches(outcome_generator.batch,
+                                                 outcome_dialog_texts,
+                                                 batch_size,
+                                                 **self.generation_kwargs)
+        # Newer outlines doesn't automatically JSON load output
+        predicted_outcomes = [json.loads(o) for o in predicted_outcomes]
 
         log.info("[bold]*OUTCOME PREDICTION RESPONSE*[/bold]",
                  extra={"markup": True})
@@ -175,12 +185,13 @@ class OutlinesTransformersComparativeRegressionADM(OutlinesTransformersADM):
         # Need to set the whitespace_pattern to prevent the state
         # machine from looping indefinitely in some cases, see:
         # https://github.com/outlines-dev/outlines/issues/690#issuecomment-2102291934
-        relevance_schema = relevance_classification_json_schema(choices, target_kdma['factor'])
-        relevance_generator = outlines.generate.json(
-            self.model,
-            relevance_schema,
-            sampler=self.sampler,
+        relevance_schema = JsonSchema(
+            relevance_classification_json_schema(choices, target_kdma['factor']),
             whitespace_pattern=r"[ ]?")
+
+        relevance_generator = outlines.Generator(
+            self.model,
+            relevance_schema)
 
         relevance_dialog_texts = [self.dialog_to_prompt(d) for d in relevance_dialogs]
 
@@ -189,7 +200,11 @@ class OutlinesTransformersComparativeRegressionADM(OutlinesTransformersADM):
         log.info(relevance_dialog_texts[0])
 
         # List of {choice: {score:int, reasoning:str}, ...} with length = num_samples*len(target_kdmas)
-        relevance_score_responses = self.run_in_batches(relevance_generator, relevance_dialog_texts, batch_size)
+        relevance_score_responses = self.run_in_batches(relevance_generator.batch,
+                                                        relevance_dialog_texts,
+                                                        batch_size,
+                                                        **self.generation_kwargs)
+        relevance_score_responses = [json.loads(r) for r in relevance_score_responses]
         # Reshape to matrix of num_samples x len(target_kdmas)
         relevance_responses = [relevance_score_responses[i:i+len(target_kdmas)] \
                                 for i in range(0,len(relevance_score_responses),len(target_kdmas))]
@@ -303,11 +318,12 @@ class OutlinesTransformersComparativeRegressionADM(OutlinesTransformersADM):
             score_schema = enum_comparative_kdma_score_prediction_json_schema(choices, target_kdma['valid_scores'])
         else:
             score_schema = comparative_kdma_score_prediction_json_schema(choices, target_kdma['factor'])
-        kdma_score_generator = outlines.generate.json(
+
+        score_json_schema = JsonSchema(score_schema, whitespace_pattern=r"[ ]?")
+
+        kdma_score_generator = outlines.Generator(
             self.model,
-            score_schema,
-            sampler=self.sampler,
-            whitespace_pattern=r"[ ]?")
+            score_json_schema)
 
         kdma_dialog_texts = [self.dialog_to_prompt(d) for d in kdma_dialogs]
 
@@ -316,7 +332,12 @@ class OutlinesTransformersComparativeRegressionADM(OutlinesTransformersADM):
         log.info(kdma_dialog_texts[0])
 
         # List of {choice: {score:int, reasoning:str}, ...} with length = num_samples*len(target_kdmas)
-        kdma_score_responses = self.run_in_batches(kdma_score_generator, kdma_dialog_texts, batch_size)
+        kdma_score_responses = self.run_in_batches(kdma_score_generator.batch,
+                                                   kdma_dialog_texts,
+                                                   batch_size,
+                                                   **self.generation_kwargs)
+        kdma_score_responses = [json.loads(r) for r in kdma_score_responses]
+
         # Reshape to matrix of num_samples x len(target_kdmas)
         kdma_score_responses = [kdma_score_responses[i:i+len(target_kdmas)] \
                                 for i in range(0,len(kdma_score_responses),len(target_kdmas))]

@@ -11,12 +11,16 @@ import torch
 
 from align_system.algorithms.abstracts import StructuredInferenceEngine
 
+# Sometimes the internal default for outlines/transformers is 20,
+# leading to very short (and often invalid JSON) outputs.  Setting a
+# somewhat generous default.
+DEFAULT_MAX_GENERATOR_TOKENS=8192
 
 class OutlinesTransformersInferenceEngine(StructuredInferenceEngine):
     def __init__(self,
                  model_name,
                  precision='full',
-                 max_generator_tokens=None,
+                 max_generator_tokens=DEFAULT_MAX_GENERATOR_TOKENS,
                  inference_batch_size=5,
                  generation_kwargs=None,
                  model_kwargs=None,
@@ -90,7 +94,12 @@ class OutlinesTransformersInferenceEngine(StructuredInferenceEngine):
             yield batch
 
     @classmethod
-    def run_in_batches(cls, inference_function, inputs, batch_size, max_generator_tokens=None, **generation_kwargs):
+    def run_in_batches(cls,
+                       inference_function,
+                       inputs,
+                       batch_size,
+                       max_generator_tokens=DEFAULT_MAX_GENERATOR_TOKENS,
+                       **generation_kwargs):
         ''' Batch inference to avoid out of memory error'''
         outputs = []
         for batch in cls.batched(inputs, batch_size):
