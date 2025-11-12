@@ -38,6 +38,10 @@ class MathReasonStageComponent(ADMComponent):
     def run(self, scenario_state, choices, actions, mathematical_model=None, attribute_analysis=None, alignment_target=None, **kwargs):
         """Use math_reason prompt to select optimal action based on mathematical model"""
 
+        log.info("=" * 80)
+        log.info("MathReason Stage Starting")
+        log.info("=" * 80)
+
         # Handle alignment_target workflow similar to other stage components
         if alignment_target is None:
             # No alignment target - use all attributes
@@ -51,11 +55,21 @@ class MathReasonStageComponent(ADMComponent):
         try:
             # Format structure for math_reason prompt
             if mathematical_model and isinstance(mathematical_model, dict):
-                structure = {
-                    "Objective Function": mathematical_model.get('Objective Function', 'weight * attribute of variable'),
-                    "Decision Variables": mathematical_model.get('Decision Variables', []),
-                    "Constraints": mathematical_model.get('Constraints', [])
-                }
+                # Check if we have the nested 'mathematical_model' key (from Express stage output)
+                if 'mathematical_model' in mathematical_model:
+                    nested_model = mathematical_model['mathematical_model']
+                    structure = {
+                        "Objective Function": nested_model.get('Objective Function', 'weight * attribute of variable'),
+                        "Decision Variables": nested_model.get('Decision Variables', []),
+                        "Constraints": nested_model.get('Constraints', [])
+                    }
+                else:
+                    # Direct access (for backwards compatibility)
+                    structure = {
+                        "Objective Function": mathematical_model.get('Objective Function', 'weight * attribute of variable'),
+                        "Decision Variables": mathematical_model.get('Decision Variables', []),
+                        "Constraints": mathematical_model.get('Constraints', [])
+                    }
             else:
                 # Fallback structure
                 structure = {
@@ -69,13 +83,34 @@ class MathReasonStageComponent(ADMComponent):
             if attribute_analysis:
                 for attr_name, variables_data in attribute_analysis.items():
                     if isinstance(variables_data, list):
-                        for var_data in variables_data:
+                        for i, var_data in enumerate(variables_data):
                             if isinstance(var_data, dict):
-                                attribute.append({
-                                    "Variable": var_data.get("Variable", ""),
-                                    "Attribute": attr_name,
-                                    "Value": var_data.get("Value", "")
-                                })
+                                variable_name = var_data.get("Variable", "")
+
+                                # Check if 'Attribute' key contains nested list of attribute dicts
+                                if 'Attribute' in var_data and isinstance(var_data['Attribute'], list):
+                                    # Iterate through nested attributes and extract all values
+                                    all_values = []
+                                    for nested_attr in var_data['Attribute']:
+                                        if isinstance(nested_attr, dict) and 'Value' in nested_attr:
+                                            nested_values = nested_attr.get('Value', [])
+                                            if isinstance(nested_values, list):
+                                                all_values.extend(nested_values)
+                                            else:
+                                                all_values.append(nested_values)
+
+                                    attribute.append({
+                                        "Variable": variable_name,
+                                        "Attribute": attr_name,
+                                        "Value": all_values
+                                    })
+                                else:
+                                    # Fallback to old behavior for backwards compatibility
+                                    attribute.append({
+                                        "Variable": variable_name,
+                                        "Attribute": attr_name,
+                                        "Value": var_data.get("Value", "")
+                                    })
 
             # Format choices as the math_reason prompt expects
             formatted_choices = [f"({i}) {choice}" for i, choice in enumerate(choices)]
@@ -100,15 +135,15 @@ class MathReasonStageComponent(ADMComponent):
             # Generate target bias for prompt with high/low determination
             if alignment_target and target_attributes:
                 bias_parts = []
-                for attribute in target_attributes:
-                    # Use attribute.kdma (not attribute.name) to match alignment_target kdma_values
-                    attr_value = kdma_value_dict.get(attribute.kdma)
+                for target_attr in target_attributes:
+                    # Use target_attr.kdma (not target_attr.name) to match alignment_target kdma_values
+                    attr_value = kdma_value_dict.get(target_attr.kdma)
                     if attr_value is not None and attr_value >= 0.5:
-                        bias_parts.append(f"high {attribute.name}")
+                        bias_parts.append(f"high {target_attr.name}")
                     elif attr_value is not None:
-                        bias_parts.append(f"low {attribute.name}")
+                        bias_parts.append(f"low {target_attr.name}")
                     else:
-                        bias_parts.append(f"low {attribute.name}")  # Conservative default
+                        bias_parts.append(f"low {target_attr.name}")  # Conservative default
                 target_bias = f"Focus on {', '.join(bias_parts)} when making decisions."
             else:
                 target_bias = "Make decisions based on medical triage best practices."
@@ -146,23 +181,40 @@ class MathReasonStageComponent(ADMComponent):
 
             dialog_prompt = self.structured_inference_engine.dialog_to_prompt(dialog)
 
+            log.info("=" * 80)
+            log.info("MathReason Dialog Prompt")
+            log.info("=" * 80)
+            log.info(dialog_prompt)
+            log.info("=" * 80)
+
             # Retry loop for structured inference with validation
             response = None
             last_error = None
 
+            import time
+            inference_start = time.time()
+
             for attempt in range(self.max_json_retries):
                 try:
                     # Run structured inference
+                    log.info(f"Running inference attempt {attempt + 1}/{self.max_json_retries}...")
                     raw_response = self.structured_inference_engine.run_inference(
                         dialog_prompt,
                         output_schema
                     )
 
+                    log.info("=" * 80)
+                    log.info("MathReason Raw Response")
+                    log.info("=" * 80)
+                    log.info(f"{raw_response}")
+                    log.info("=" * 80)
+
                     # Validate response
                     response = validate_structured_response(raw_response)
 
                     # Success - break out of retry loop
-                    log.info(f"MathReason stage inference succeeded on attempt {attempt + 1}")
+                    inference_elapsed = time.time() - inference_start
+                    log.info(f"MathReason stage inference succeeded on attempt {attempt + 1} (took {inference_elapsed:.2f}s)")
                     break
 
                 except (json.JSONDecodeError, ValueError, TypeError) as e:
@@ -186,6 +238,13 @@ class MathReasonStageComponent(ADMComponent):
             reasoning = response.get('Reasoning', '')
             answer_idx = response.get('Answer', 0)
 
+            log.info("=" * 80)
+            log.info("MathReason Parsed Response")
+            log.info("=" * 80)
+            log.info(f"Answer Index: {answer_idx}")
+            log.info(f"Reasoning: {reasoning}")
+            log.info("=" * 80)
+
             # Validate answer index
             if not isinstance(answer_idx, int) or answer_idx < 0 or answer_idx >= len(actions):
                 log.warning(f"Invalid answer index {answer_idx}, defaulting to 0")
@@ -197,7 +256,21 @@ class MathReasonStageComponent(ADMComponent):
             if hasattr(chosen_action, 'justification') and chosen_action.justification is None:
                 chosen_action.justification = reasoning
 
-            log.info(f"MathReason stage completed: Selected action {answer_idx}")
+            log.info("=" * 80)
+            log.info("MathReason Final Selection")
+            log.info("=" * 80)
+            log.info(f"Selected action index: {answer_idx}")
+            log.info(f"Selected choice: {choices[answer_idx] if answer_idx < len(choices) else 'N/A'}")
+            if hasattr(chosen_action, 'action_id'):
+                log.info(f"Action ID: {chosen_action.action_id}")
+            if hasattr(chosen_action, 'character_id'):
+                log.info(f"Character ID: {chosen_action.character_id}")
+            if hasattr(chosen_action, 'unstructured'):
+                log.info(f"Unstructured: {chosen_action.unstructured}")
+            log.info(f"Justification: {reasoning[:200]}{'...' if len(reasoning) > 200 else ''}")
+            log.info("=" * 80)
+            log.info("MathReason Stage Completed Successfully")
+            log.info("=" * 80)
 
             return chosen_action
 
