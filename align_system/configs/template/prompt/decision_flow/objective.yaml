@@ -1,1 +1,1 @@
-_target_: align_system.prompt_engineering.outlines_prompts.ObjectivePrompt
+_target_: align_system.prompt_engineering.decision_flow.high_low_prompts.ObjectivePrompt
