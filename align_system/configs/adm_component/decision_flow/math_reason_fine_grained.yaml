@@ -1,0 +1,9 @@
+_target_: align_system.algorithms.decision_flow_adm.math_reason_fine_grained_stage_component.MathReasonFineGrainedStageComponent
+
+structured_inference_engine: ???
+scenario_description_template: ???
+system_prompt_template: ???
+prompt_template: ${template.prompt.decision_flow.math_reason_fine_grained}
+output_schema_template: ${template.output_schema.decision_flow.math_reason_fine_grained}
+attributes: ???
+max_json_retries: 5
