@@ -16,11 +16,12 @@ class ActionBasedADM(ABC):
 
 class StructuredInferenceEngine(ABC):
     @abstractmethod
-    def dialog_to_prompt(dialog: list[dict]) -> str:
+    def dialog_to_prompt(self, dialog: list[dict]) -> str:
         pass
 
     @abstractmethod
-    def run_inference(prompts: Union[str, list[str]],
+    def run_inference(self,
+                      prompts: Union[str, list[str]],
                       schema: str) -> Union[dict, list[dict]]:
         pass
 
