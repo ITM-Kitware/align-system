@@ -12,7 +12,7 @@ url = "https://download.pytorch.org/whl/cu130"
 priority = "supplemental"
 
 [tool.poetry.dependencies]
-python = ">=3.9,<3.13"
+python = ">=3.10,<3.13"
 torch = { version = "^2.0.1", source = "pytorch" }
 transformers = "^4.57.1"
 llama-index = "^0.8.21"
@@ -29,11 +29,12 @@ rouge-score = "^0.1.2"
 swagger-client = {git = "https://github.com/NextCenturyCorporation/itm-evaluation-client.git", rev = "0.5.0"}
 hydra-core = "^1.3.2"
 outlines = "^1.2.7"
-setuptools = "^70.1.1"
+setuptools = "^77.0.3"
 sentencepiece = "^0.2.0"
 protobuf = "^5.28.3"
 datasets = "^3.3.2"
 ubelt = "1.3.6"
+vllm = "^0.11.1"
 
 [tool.poetry.scripts]
 run_align_system = 'align_system.cli.run_align_system:main'
