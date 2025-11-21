@@ -30,8 +30,6 @@ class VLLMInferenceEngine(StructuredInferenceEngine):
 
         try:
             encoded_dialog = tokenizer.apply_chat_template(dialog)
-        except AttributeError:
-            encoded_dialog = tokenizer.apply_chat_template([dict(d) for d in dialog])
         except jinja2.exceptions.TemplateError:
             # Assume that the tokenizer chat template doesn't accept
             # system messages; combine system message first user
@@ -52,12 +50,8 @@ class VLLMInferenceEngine(StructuredInferenceEngine):
     def run_inference(self,
                       prompts: Union[str, list[str]],
                       schema: str) -> Union[dict, list[dict]]:
-        try:
-            json_schema = json.loads(schema)
-        except json.decoder.JSONDecodeError:
-            schema_params = StructuredOutputsParams(regex=schema)
-        else:
-            schema_params = StructuredOutputsParams(json=json_schema)
+        json_schema = json.loads(schema)
+        schema_params = StructuredOutputsParams(json=json_schema)
 
         structured_sampling_params = SamplingParams(
             **self.sampling_params,
