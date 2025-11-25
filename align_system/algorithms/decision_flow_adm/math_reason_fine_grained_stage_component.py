@@ -42,9 +42,9 @@ class MathReasonFineGrainedStageComponent(ADMComponent):
         self.attributes = attributes
 
     def run_returns(self):
-        return 'chosen_action'
+        return ('chosen_choice', 'justification')
 
-    def run(self, scenario_state, choices, actions, mathematical_model=None, attribute_analysis=None, alignment_target=None, **kwargs):
+    def run(self, scenario_state, choices, actions, mathematical_model=None, attribute_analysis=None, objective_function=None, alignment_target=None, **kwargs):
         """Use fine-grained math_reason prompt with numeric target values"""
 
         log.info("=" * 80)
@@ -87,9 +87,27 @@ class MathReasonFineGrainedStageComponent(ADMComponent):
                     "Constraints": []
                 }
 
-            # Format attribute data for math_reason prompt
+            # Format attribute data for math_reason prompt using filtered_pairs from objective stage
             attribute = []
-            if attribute_analysis:
+
+            # Extract filtered_pairs from objective_function output (preferred - only pairs with weight > threshold)
+            filtered_pairs = []
+            if objective_function and isinstance(objective_function, dict):
+                filtered_pairs = objective_function.get('filtered_pairs', [])
+
+            if filtered_pairs:
+                # Use filtered pairs (Variable-Attribute pairs that exceeded weight threshold)
+                log.info(f"Using {len(filtered_pairs)} filtered pairs from Objective stage")
+                for pair in filtered_pairs:
+                    attribute.append({
+                        "Variable": pair.get("Variable", ""),
+                        "Attribute": pair.get("Attribute", ""),
+                        "Value": pair.get("Value", [])
+                    })
+                    log.info(f"  - {pair.get('Variable', '')[:50]}... | {pair.get('Attribute', '')} | Weight: {pair.get('Weight', 'N/A')}")
+            elif attribute_analysis:
+                # Fallback to attribute_analysis if no filtered_pairs available
+                log.info("No filtered_pairs available, falling back to attribute_analysis")
                 for attr_name, variables_data in attribute_analysis.items():
                     if isinstance(variables_data, list):
                         for i, var_data in enumerate(variables_data):
@@ -242,53 +260,61 @@ class MathReasonFineGrainedStageComponent(ADMComponent):
                             last_error=last_error
                         ) from last_error
 
-            # Parse response to get chosen action
+            # Parse response to get chosen choice (string-based selection)
             reasoning = response.get('Reasoning', '')
-            answer_idx = response.get('Answer', 0)
+            answer_text = response.get('Answer', '')
 
             log.info("=" * 80)
             log.info("MathReasonFineGrained Parsed Response")
             log.info("=" * 80)
-            log.info(f"Answer Index: {answer_idx}")
+            log.info(f"Answer Text: {answer_text}")
             log.info(f"Reasoning: {reasoning}")
             log.info("=" * 80)
 
-            # Validate answer index
-            if not isinstance(answer_idx, int) or answer_idx < 0 or answer_idx >= len(actions):
-                log.warning(f"Invalid answer index {answer_idx}, defaulting to 0")
-                answer_idx = 0
+            # Find matching choice using fuzzy matching
+            chosen_choice = None
 
-            chosen_action = actions[answer_idx]
+            # Try exact match first
+            if answer_text in choices:
+                chosen_choice = answer_text
+                log.info(f"Exact match found for answer: {answer_text}")
+            else:
+                # Try substring match (answer contains choice or vice versa)
+                for choice in choices:
+                    if answer_text.strip() in choice or choice in answer_text.strip():
+                        chosen_choice = choice
+                        log.info(f"Substring match: '{answer_text}' matched to '{choice}'")
+                        break
 
-            # Add reasoning as justification if possible
-            if hasattr(chosen_action, 'justification') and chosen_action.justification is None:
-                chosen_action.justification = reasoning
+                # Try case-insensitive match
+                if chosen_choice is None:
+                    answer_lower = answer_text.lower().strip()
+                    for choice in choices:
+                        if answer_lower in choice.lower() or choice.lower() in answer_lower:
+                            chosen_choice = choice
+                            log.info(f"Case-insensitive match: '{answer_text}' matched to '{choice}'")
+                            break
+
+            # Fallback to first choice if no match found
+            if chosen_choice is None:
+                log.warning(f"Could not match answer '{answer_text}' to any choice, defaulting to first choice")
+                chosen_choice = choices[0]
 
             log.info("=" * 80)
             log.info("MathReasonFineGrained Final Selection")
             log.info("=" * 80)
-            log.info(f"Selected action index: {answer_idx}")
-            log.info(f"Selected choice: {choices[answer_idx] if answer_idx < len(choices) else 'N/A'}")
-            if hasattr(chosen_action, 'action_id'):
-                log.info(f"Action ID: {chosen_action.action_id}")
-            if hasattr(chosen_action, 'character_id'):
-                log.info(f"Character ID: {chosen_action.character_id}")
-            if hasattr(chosen_action, 'unstructured'):
-                log.info(f"Unstructured: {chosen_action.unstructured}")
+            log.info(f"Selected choice: {chosen_choice}")
             log.info(f"Justification: {reasoning[:200]}{'...' if len(reasoning) > 200 else ''}")
             log.info("=" * 80)
             log.info("MathReasonFineGrained Stage Completed Successfully")
             log.info("=" * 80)
 
-            return chosen_action
+            # Return chosen_choice and justification - EnsureChosenActionADMComponent will convert to action
+            return chosen_choice, reasoning
 
         except Exception as e:
             log.warning(f"MathReasonFineGrainedStageComponent failed with error: {e}")
-            log.warning("Falling back to first action")
+            log.warning("Falling back to first choice")
 
-            # Fallback: return first action
-            chosen_action = actions[0]
-            if hasattr(chosen_action, 'justification') and chosen_action.justification is None:
-                chosen_action.justification = f"Fine-grained math reasoning failed, selected first action. Error: {str(e)}"
-
-            return chosen_action
+            # Fallback: return first choice string and error justification
+            return choices[0], f"Math reasoning failed, selected first choice. Error: {str(e)}"

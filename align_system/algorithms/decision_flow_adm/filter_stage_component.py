@@ -36,7 +36,12 @@ class FilterStageComponent(ADMComponent):
         return "filter_analysis"
 
     def run(self, scenario_state, choices, attribute_analysis=None, variables=None, extraction=None, alignment_target=None, **kwargs):
-        """Filter and weight attributes based on their relevance to the target bias"""
+        """Filter and weight attributes based on relevance to target bias.
+
+        Following DecisionFlow reference: each Attribute is evaluated individually
+        against the target bias. The weight is then applied to all Variable-Attribute
+        pairs containing that attribute.
+        """
 
         # Handle alignment_target workflow similar to attribute_stage_component
         if alignment_target is None:
@@ -47,96 +52,138 @@ class FilterStageComponent(ADMComponent):
             target_attribute_names = attributes_in_alignment_target(alignment_target)
             target_attributes = [self.attributes[n] for n in target_attribute_names if n in self.attributes]
 
+        # filter_results will contain weighted Variable-Attribute pairs organized by KDMA
         filter_results = {}
 
-        # Process each attribute's analysis individually to determine relevance and weight
-        for attribute in target_attributes:
-            # Get the attribute analysis results for this specific attribute
-            attribute_data = attribute_analysis.get(attribute.name, []) if attribute_analysis else []
+        # Process each KDMA's attribute analysis
+        for target_attr in target_attributes:
+            kdma_name = target_attr.name
+            # Get the attribute analysis results for this KDMA
+            attribute_data = attribute_analysis.get(kdma_name, []) if attribute_analysis else []
 
-            scenario_description = call_with_coerced_args(
-                self.scenario_description_template,
-                {
-                    'scenario_state': scenario_state,
-                    'alignment_target': alignment_target,
-                    'attribute': attribute.name,
-                    'attributes_of_interest': {attribute.name}
-                })
+            if not attribute_data:
+                log.info(f"No attribute data for {kdma_name}, skipping")
+                continue
 
-            dialog = []
-            if self.system_prompt_template is not None:
-                system_prompt = call_with_coerced_args(
-                    self.system_prompt_template,
-                    {'target_attribute': attribute}
+            log.info("=" * 60)
+            log.info(f"Filter Stage: Processing KDMA '{kdma_name}'")
+            log.info("=" * 60)
+
+            # Collect unique attribute names across all variables
+            unique_attributes = set()
+            for var_entry in attribute_data:
+                if not isinstance(var_entry, dict):
+                    continue
+                if var_entry.get("Variable") == "Environment":
+                    continue
+                for attr_entry in var_entry.get("Attribute", []):
+                    if isinstance(attr_entry, dict) and attr_entry.get("Attribute"):
+                        unique_attributes.add(attr_entry.get("Attribute"))
+
+            log.info(f"Found {len(unique_attributes)} unique attributes to evaluate: {unique_attributes}")
+
+            # Evaluate each unique attribute against target bias (cache weights)
+            attribute_weights = {}
+            for attr_name in unique_attributes:
+                log.info(f"Filtering attribute: {attr_name}")
+
+                dialog = []
+                if self.system_prompt_template is not None:
+                    system_prompt = call_with_coerced_args(
+                        self.system_prompt_template,
+                        {'target_attribute': target_attr}
+                    )
+                    dialog.insert(0, DialogElement(role='system', content=system_prompt))
+
+                prompt = call_with_coerced_args(
+                    self.prompt_template,
+                    {
+                        'attribute_name': attr_name,
+                        'target_bias': target_attr
+                    },
                 )
 
-                dialog.insert(0, DialogElement(role='system',
-                                              content=system_prompt))
+                dialog.append(DialogElement(role='user', content=prompt))
 
-            log.info(f"Filtering attribute: {attribute.name}")
-            log.info(f"Scenario description: {scenario_description}")
+                output_schema = call_with_coerced_args(
+                    self.output_schema_template,
+                    {})
 
-            prompt = call_with_coerced_args(
-                self.prompt_template,
-                {
-                    'scenario_description': scenario_description,
-                    'choices': choices,
-                    'attribute_information': attribute_data,
-                    'target_bias': attribute
-                },
-            )
-            log.info(f"Filter prompt: {prompt}")
+                dialog_prompt = self.structured_inference_engine.dialog_to_prompt(dialog)
 
-            dialog.append(DialogElement(role='user',
-                                       content=prompt))
+                # Retry loop for structured inference with validation
+                response = None
+                last_error = None
 
-            output_schema = call_with_coerced_args(
-                self.output_schema_template,
-                {})
+                for attempt in range(self.max_json_retries):
+                    try:
+                        raw_response = self.structured_inference_engine.run_inference(
+                            dialog_prompt,
+                            output_schema
+                        )
+                        response = validate_structured_response(raw_response)
+                        log.info(f"Filter inference succeeded for '{attr_name}' on attempt {attempt + 1}")
+                        break
 
-            dialog_prompt = self.structured_inference_engine.dialog_to_prompt(dialog)
+                    except (json.JSONDecodeError, ValueError, TypeError) as e:
+                        last_error = e
+                        log.warning(
+                            f"Filter JSON decode error for '{attr_name}' on attempt {attempt + 1}/{self.max_json_retries}: {e}"
+                        )
+                        if attempt < self.max_json_retries - 1:
+                            log.info(f"Retrying filter inference for '{attr_name}'...")
+                        else:
+                            log.error(f"Filter failed for '{attr_name}' after {self.max_json_retries} attempts")
+                            raise SceneSkipException(
+                                f"Failed to generate valid JSON after {self.max_json_retries} attempts for '{attr_name}'. "
+                                f"Last error: {last_error}",
+                                component_name="FilterStageComponent",
+                                last_error=last_error
+                            ) from last_error
 
-            # Retry loop for structured inference with validation
-            response = None
-            last_error = None
-            context_str = f" for {attribute.name}"
+                weight = response.get('Weight', 0)
+                explanation = response.get('Explanation', '')
 
-            for attempt in range(self.max_json_retries):
-                try:
-                    # Run structured inference
-                    raw_response = self.structured_inference_engine.run_inference(
-                        dialog_prompt,
-                        output_schema
-                    )
+                log.info(f"  -> Weight: {weight}, Explanation: {explanation[:100]}...")
 
-                    # Validate response
-                    response = validate_structured_response(raw_response)
+                # Cache the weight for this attribute
+                attribute_weights[attr_name] = {
+                    'Weight': weight,
+                    'Explanation': explanation
+                }
 
-                    # Success - break out of retry loop
-                    log.info(f"Filter stage inference succeeded on attempt {attempt + 1}{context_str}")
-                    break
+            # Apply cached weights to all Variable-Attribute pairs
+            weighted_pairs = []
+            for var_entry in attribute_data:
+                if not isinstance(var_entry, dict):
+                    continue
 
-                except (json.JSONDecodeError, ValueError, TypeError) as e:
-                    last_error = e
-                    log.warning(
-                        f"Filter stage JSON decode error on attempt {attempt + 1}/{self.max_json_retries}{context_str}: {e}"
-                    )
+                variable_name = var_entry.get("Variable", "")
+                if not variable_name or variable_name == "Environment":
+                    continue
 
-                    if attempt < self.max_json_retries - 1:
-                        log.info(f"Retrying Filter stage inference{context_str}...")
-                    else:
-                        log.error(f"Filter stage failed after {self.max_json_retries} attempts{context_str}")
-                        raise SceneSkipException(
-                            f"Failed to generate valid JSON after {self.max_json_retries} attempts{context_str}. "
-                            f"Last error: {last_error}",
-                            component_name="FilterStageComponent",
-                            last_error=last_error
-                        ) from last_error
+                for attr_entry in var_entry.get("Attribute", []):
+                    if not isinstance(attr_entry, dict):
+                        continue
 
-            log.info(f"Filter analysis for {attribute.name} completed: Weight={response.get('Weight', 0)}")
-            filter_results[attribute.name] = {
-                'explanation': response.get('Explanation', ''),
-                'weight': response.get('Weight', 0)
+                    attr_name = attr_entry.get("Attribute", "")
+                    attr_values = attr_entry.get("Value", [])
+
+                    if attr_name and attr_name in attribute_weights:
+                        weighted_pairs.append({
+                            "Variable": variable_name,
+                            "Attribute": attr_name,
+                            "Value": attr_values,
+                            "Weight": attribute_weights[attr_name]['Weight'],
+                            "Explanation": attribute_weights[attr_name]['Explanation']
+                        })
+
+            # Store all weighted pairs for this KDMA
+            filter_results[kdma_name] = {
+                'weighted_pairs': weighted_pairs,
+                'target_bias': target_attr.name
             }
+
+            log.info(f"Filter analysis for '{kdma_name}' completed: {len(unique_attributes)} attributes evaluated, {len(weighted_pairs)} pairs created")
 
         return filter_results
