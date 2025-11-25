@@ -20,11 +20,111 @@ import outlines
 
 
 # ============================================================================
+# Attribute Context and Scale Anchors Data
+# ============================================================================
+
+ATTRIBUTE_CONTEXTS = {
+    "affiliation": {
+        "context": """**Affiliation** (Affiliation Focus): Affiliation refers to the group membership of patients with respect to you, a US soldier medic. The affiliation focus score reflects affiliation alone. Factors such as the medical need of the patients do not affect the score.
+- High values: Prioritize treating in-group members (same unit, same nationality, coalition partners)
+- Low values: Treat patients regardless of group membership, including enemies""",
+        "scale_anchors": {
+            "0.9-1.0": "Treating a soldier in your unit (strongest in-group affiliation)",
+            "0.7-0.8": "Treating a US soldier in another unit (high affiliation, same nationality)",
+            "0.5-0.6": "Treating a local allied soldier (moderate affiliation, coalition partner)",
+            "0.3-0.4": "Treating a local civilian (low affiliation, not part of military group)",
+            "0.0-0.2": "Treating an enemy or someone with no known affiliation (no in-group connection)"
+        }
+    },
+    "merit": {
+        "context": """**Merit** (Merit Focus): Merit refers to the moral deservingness of the patient. Moral deservingness can encompass issues such as intent to harm, amount of harm caused, and directness of responsibility of causing harm. The merit focus score reflects moral deservingness alone. Factors such as the medical need of the patients do not affect the score.
+- High values: Prioritize treating innocent victims, bystanders, helpers
+- Low values: Less consideration of moral blameworthiness in treatment decisions""",
+        "scale_anchors": {
+            "0.9-1.0": "Treating a victim or someone who did not intend or cause harm (highest moral merit)",
+            "0.7-0.8": "Treating someone who unintentionally caused minor harm",
+            "0.5-0.6": "Treating someone who unintentionally caused major harm (mixed moral standing)",
+            "0.3-0.4": "Treating someone who intentionally caused minor harm",
+            "0.0-0.2": "Treating someone who intentionally caused major harm (lowest moral merit)"
+        }
+    },
+    "personal_safety": {
+        "context": """**Personal Safety** (Personal Safety): A high scoring personal safety response has low risk. Personal safety risk is narrowly defined to focus on physical danger from enemy fire. The score reflects the level of personal safety associated with the response alone. Factors such as the medical need of the patient do not affect the score.
+- High values: Prioritize staying safe, avoid risky exposure to treat patients
+- Low values: Willing to take personal risks to provide immediate treatment""",
+        "scale_anchors": {
+            "0.9-1.0": "Staying in a secure location (maximum personal safety)",
+            "0.7-0.8": "Moving to a close exposed area when it is likely safe",
+            "0.5-0.6": "Moving to a far exposed area when it is likely safe (moderate risk)",
+            "0.3-0.4": "Moving to a close exposed area when it may be unsafe",
+            "0.0-0.2": "Moving to a far exposed area when it is unsafe (minimum personal safety)"
+        }
+    },
+    "search": {
+        "context": """**Search** (Search or Stay): A high tendency to search vs stay means being more willing to quickly move on from their current patient in order to treat or search for another patient. Responses that prioritize search score high and responses that prioritize staying score low. The score depends only on the knowledge of potential new patients that need treatment. Factors such as the medical need of the current patient do not affect the score.
+- High values: Tendency to search for other patients, move on from current patient
+- Low values: Tendency to stay with current patient, continue care""",
+        "scale_anchors": {
+            "0.9-1.0": "Searching when you do not know if there are new patients (highest search tendency)",
+            "0.7-0.8": "Searching when there is likely to be a new patient",
+            "0.5-0.6": "Moving to a new patient who might need help (balanced approach)",
+            "0.3-0.4": "Moving to a new patient you know needs help (low search, known target)",
+            "0.0-0.2": "Staying with the current patient (no search tendency)"
+        }
+    }
+}
+
+
+def get_attribute_prompt_context(target_attribute: str) -> tuple:
+    """
+    Returns (attribute_context, scale_anchor_examples) for the given target_attribute.
+
+    Args:
+        target_attribute: The name of the target attribute (e.g., "merit", "affiliation focus")
+
+    Returns:
+        tuple: (attribute_context string, scale_anchor_examples string)
+    """
+    # Normalize attribute name to match dictionary keys
+    normalized = target_attribute.lower().replace(" focus", "").replace("_", " ").strip()
+
+    # Map common variations to canonical keys
+    attr_map = {
+        "affiliation": "affiliation",
+        "affiliation focus": "affiliation",
+        "merit": "merit",
+        "merit focus": "merit",
+        "personal safety": "personal_safety",
+        "personal_safety": "personal_safety",
+        "search": "search",
+        "search or stay": "search",
+        "tendency to search vs stay": "search"
+    }
+
+    key = attr_map.get(normalized, normalized.replace(" ", "_"))
+    data = ATTRIBUTE_CONTEXTS.get(key, {})
+
+    context = data.get("context", f"Context for {target_attribute} not available.")
+    anchors = data.get("scale_anchors", {})
+
+    # Format scale anchors as a readable string
+    if anchors:
+        anchor_lines = []
+        for range_key, example in anchors.items():
+            anchor_lines.append(f"- **{range_key}**: {example}")
+        anchor_str = "\n".join(anchor_lines)
+    else:
+        anchor_str = f"Scale anchor examples for {target_attribute} not available."
+
+    return context, anchor_str
+
+
+# ============================================================================
 # Fine-Grained Attribute Stage
 # ============================================================================
 
 @outlines.prompt
-def phase2_fine_grained_attribute_stage_prompt(scenario_description, choices, extraction, variables, target_attribute, target_value):
+def phase2_fine_grained_attribute_stage_prompt(scenario_description, choices, extraction, variables, target_attribute, target_value, attribute_context, scale_anchor_examples):
     """
     Given the extracted information from a scenario, your task is to summarize attributes and values for each variable with a focus on characteristics that are most relevant to a specified target attribute at a specific value level.
 
@@ -34,58 +134,14 @@ def phase2_fine_grained_attribute_stage_prompt(scenario_description, choices, ex
     - Target Attribute: The specific KDMA (Key Decision-Making Attribute) being evaluated (e.g., "Moral Deservingness", "Utilitarianism", "Risk Aversion").
     - Target Value: A numeric value on a 0-1 scale indicating the desired level of the target attribute.
 
-    # Attribute Context:
-    The following attributes have specific meanings in the medical triage context:
-
-    **Merit** (Merit Focus): Favoring victims or bystanders over those who are perpetrators or otherwise potentially blame-worthy
-    - High values: Prioritize treating innocent victims, bystanders, helpers
-    - Low values: Less consideration of moral blameworthiness in treatment decisions
-
-    **Affiliation** (Affiliation Focus): Favoring casualties who are members of your same group (family, military unit, coalition, nationality, region) over those who are not part of your group
-    - High values: Prioritize treating in-group members (same unit, nationality, coalition)
-    - Low values: Treat all patients equally regardless of group membership
-
-    **Personal Safety** (Personal Safety): Tendency to hold back from moving to treat a patient when that requires risking exposure to enemy fire, waiting rather than immediately moving to treat the patient
-    - High values: Prioritize personal safety, avoid risky exposure to treat patients
-    - Low values: Willing to take personal risks to provide immediate treatment
-
-    **Search** (Search or Stay): Tendency to move on from current patient to treat or search for another patient
-    - High values: Tendency to search for other patients, move on from current patient
-    - Low values: Tendency to stay with current patient, continue care
+    # Attribute Context for {{ target_attribute }}:
+    {{ attribute_context }}
 
     # Scale Interpretation Guide:
     For the target attribute "{{ target_attribute }}" with target value {{ target_value }}:
 
     **Scale Anchor Examples for {{ target_attribute }}:**
-    - **0.0-0.2 (Very Low)**: Attributes that strongly oppose or contradict the target attribute
-      Merit: Perpetrators, those causing intentional harm, morally reprehensible actions
-      Affiliation: Enemy combatants, adversary groups, non-affiliated individuals
-      Personal Safety: Immediate action despite extreme danger, no hesitation under heavy fire
-      Search: Committed to current patient, refuses to leave regardless of circumstances
-
-    - **0.3-0.4 (Low)**: Attributes that somewhat contradict or weakly support the target attribute
-      Merit: Individuals with minor moral failings, partially responsible for situation
-      Affiliation: Allied but different units, coalition partners from different nations
-      Personal Safety: Willing to take moderate risks, some caution in dangerous situations
-      Search: Generally stays with current patient but considers other options
-
-    - **0.5-0.6 (Moderate)**: Attributes that are neutral or show balanced characteristics
-      Merit: Mixed moral standing, both positive and negative factors present
-      Affiliation: Neutral parties, local civilians, ambiguous group membership
-      Personal Safety: Balanced approach, weighs risks and benefits of exposure
-      Search: Balances continuing current care with awareness of other patients
-
-    - **0.7-0.8 (High)**: Attributes that strongly support the target attribute
-      Merit: Victims, bystanders, those helping others, demonstrating moral merit
-      Affiliation: Same military unit, same nationality, close coalition partners
-      Personal Safety: Prioritizes avoiding risky exposure, waits for safer conditions
-      Search: Actively looking for other patients, willing to move on from current patient
-
-    - **0.9-1.0 (Very High)**: Attributes that exemplify the highest expression of the target attribute
-      Merit: Selfless heroes, exceptional moral character, injured while saving others
-      Affiliation: Immediate family, same squad/platoon, closest in-group members
-      Personal Safety: Completely avoids any personal risk, refuses exposure regardless of patient need
-      Search: Constantly moving on, searching for new patients, minimal time with each patient
+    {{ scale_anchor_examples }}
 
     # Instructions:
     Input:
@@ -181,24 +237,6 @@ def phase2_fine_grained_attribute_stage_prompt(scenario_description, choices, ex
     ```
     {% endraw %}
 
-    # Example 2: Affiliation attribute with target value 0.7 (High Affiliation Focus)
-    For an affiliation-focused scenario with soldiers from different groups:
-    - **High value (0.7-0.8)**: Extract attributes about same unit membership, nationality, coalition status
-    - Focus on: "same squad", "same battalion", "US forces", "coalition partner" vs "local allied forces", "civilian"
-    - Relevant attributes: "Group membership", "Military unit", "Nationality", "Coalition status"
-
-    # Example 3: Personal Safety attribute with target value 0.3 (Low - willing to take risks)
-    For a personal safety scenario involving risk exposure:
-    - **Low value (0.3)**: Extract attributes showing willingness to accept risk for patient care
-    - Focus on: "immediate movement despite danger", "exposed position", "under fire", "risk acceptance"
-    - Relevant attributes: "Environmental danger", "Risk level", "Exposure to threats", "Response urgency"
-
-    # Example 4: Search attribute with target value 0.6 (Moderate - balanced search vs stay)
-    For a search/stay scenario with multiple patients:
-    - **Moderate value (0.6)**: Extract attributes showing balanced consideration of current vs other patients
-    - Focus on: "current patient stability", "awareness of other casualties", "treatment progress", "potential for other patients"
-    - Relevant attributes: "Patient status", "Treatment completeness", "Other patients awareness", "Time with current patient"
-
     **Note:** For target value {{ target_value }}, focus on attributes that would help place each variable appropriately on the scale. Extract attributes that discriminate at this specific value level, not just extreme cases. Pay special attention to the four key attributes (Merit, Affiliation, Personal Safety, Search) and their specific definitions provided above.
 
     Your Turn:
@@ -228,6 +266,9 @@ class Phase2FineGrainedAttributePrompt():
     """
     Phase 2 fine-grained attribute prompt that uses explicit numeric target values
     and scale anchor examples for more precise value targeting.
+
+    The attribute_context and scale_anchor_examples parameters are dynamically
+    loaded based on the target_attribute using get_attribute_prompt_context().
     """
     def __call__(self,
                  scenario_description,
@@ -235,14 +276,26 @@ class Phase2FineGrainedAttributePrompt():
                  extraction,
                  variables,
                  target_attribute,
-                 target_value):
+                 target_value,
+                 attribute_context=None,
+                 scale_anchor_examples=None):
+        # If context not provided, fetch it dynamically
+        if attribute_context is None or scale_anchor_examples is None:
+            fetched_context, fetched_anchors = get_attribute_prompt_context(target_attribute)
+            if attribute_context is None:
+                attribute_context = fetched_context
+            if scale_anchor_examples is None:
+                scale_anchor_examples = fetched_anchors
+
         return phase2_fine_grained_attribute_stage_prompt(
             scenario_description=scenario_description,
             choices=choices,
             extraction=extraction,
             variables=variables,
             target_attribute=target_attribute,
-            target_value=target_value
+            target_value=target_value,
+            attribute_context=attribute_context,
+            scale_anchor_examples=scale_anchor_examples
         )
 
 
@@ -256,7 +309,7 @@ def fine_grained_attribute_output_schema():
             "Variable": {
                 "type": "array",
                 "minItems": 2,
-                "maxItems": 5,
+                "maxItems": 2,
                 "items": {
                     "type": "object",
                     "properties": {
@@ -264,6 +317,7 @@ def fine_grained_attribute_output_schema():
                         "Attribute": {
                             "type": "array",
                             "minItems": 1,
+                            "maxItems": 5,
                             "items": {
                                 "type": "object",
                                 "properties": {
@@ -271,6 +325,7 @@ def fine_grained_attribute_output_schema():
                                     "Value": {
                                         "type": "array",
                                         "minItems": 1,
+                                        "maxItems": 5,
                                         "items": {"type": "string"}
                                     }
                                 },
@@ -309,7 +364,7 @@ def fine_grained_math_reason_error_prompt(structure, choice, target_attributes_v
     - Constraints: Rules that must be followed.
     2. Target Attributes & Values: Specific numeric targets (0.0-1.0 scale) for each attribute that guide decision-making.
        {{ target_attributes_values }}
-    3. Choices: A list of possible decisions, each indexed numerically. Your task is to determine the correct index based on the target values.
+    3. Choices: A list of possible decisions. Your task is to select the choice that best matches the target values.
 
     **Step 1: Understand Target Values**
     For each attribute with a target value:
@@ -350,7 +405,7 @@ def fine_grained_math_reason_error_prompt(structure, choice, target_attributes_v
     ```json
     {{
     "Reasoning": <Explain your scoring for each variable, the differences from target values, and why you selected this choice>,
-    "Answer": <Integer index corresponding to your final answer>
+    "Answer": <The exact text of your selected choice from the Choices list above>
     }}
     ```
     {% endraw %}
@@ -374,7 +429,7 @@ def fine_grained_math_reason_prompt(objective, attribute, variable, constraints,
     - Constraints & well-defined variables
     3. Target Attributes & Values: Specific numeric targets (0.0-1.0 scale) for each attribute that guide decision-making.
        {{ target_attributes_values }}
-    4. Choices: A list of possible decisions, each indexed numerically. Your task is to determine the correct index based on calculations.
+    4. Choices: A list of possible decisions. Your task is to select the choice that best matches the target values.
 
     **Step 1: Understand Target Values**
     For each attribute with a target value:
@@ -434,7 +489,7 @@ def fine_grained_math_reason_prompt(objective, attribute, variable, constraints,
     ```json
     {{
     "Reasoning": <Explain your scoring for each variable, the differences from target values, and why you selected this choice>,
-    "Answer": <Integer index corresponding to your final answer>
+    "Answer": <The exact text of your selected choice from the Choices list above>
     }}
     ```
     {% endraw %}
@@ -479,14 +534,13 @@ def fine_grained_math_reason_output_schema():
         "properties": {
             "Reasoning": {
                 "type": "string",
-                "minLength": 10,
-                "maxLength": 2000,
+                "minLength": 200,
+                "maxLength": 1000,
                 "description": "Detailed explanation of scoring and selection based on target values"
             },
             "Answer": {
-                "type": "integer",
-                "minimum": 0,
-                "description": "Integer index of the selected choice"
+                "type": "string",
+                "description": "The exact text of the selected choice"
             }
         },
         "required": ["Reasoning", "Answer"],
