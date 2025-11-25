@@ -142,6 +142,12 @@ class AttributeFineGrainedStageComponent(ADMComponent):
 
             dialog_prompt = self.structured_inference_engine.dialog_to_prompt(dialog)
 
+            log.info("=" * 80)
+            log.info(f"Attribute Stage Dialog Prompt ({attribute.name})")
+            log.info("=" * 80)
+            log.info(dialog_prompt)
+            log.info("=" * 80)
+
             # Retry loop for structured inference with validation
             response = None
             last_error = None

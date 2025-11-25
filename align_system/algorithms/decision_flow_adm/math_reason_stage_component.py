@@ -35,7 +35,7 @@ class MathReasonStageComponent(ADMComponent):
     def run_returns(self):
         return 'chosen_action'
 
-    def run(self, scenario_state, choices, actions, mathematical_model=None, attribute_analysis=None, alignment_target=None, **kwargs):
+    def run(self, scenario_state, choices, actions, mathematical_model=None, attribute_analysis=None, objective_function=None, alignment_target=None, **kwargs):
         """Use math_reason prompt to select optimal action based on mathematical model"""
 
         log.info("=" * 80)
@@ -78,9 +78,27 @@ class MathReasonStageComponent(ADMComponent):
                     "Constraints": []
                 }
 
-            # Format attribute data for math_reason prompt
+            # Format attribute data for math_reason prompt using filtered_pairs from objective stage
             attribute = []
-            if attribute_analysis:
+
+            # Extract filtered_pairs from objective_function output (preferred - only pairs with weight > threshold)
+            filtered_pairs = []
+            if objective_function and isinstance(objective_function, dict):
+                filtered_pairs = objective_function.get('filtered_pairs', [])
+
+            if filtered_pairs:
+                # Use filtered pairs (Variable-Attribute pairs that exceeded weight threshold)
+                log.info(f"Using {len(filtered_pairs)} filtered pairs from Objective stage")
+                for pair in filtered_pairs:
+                    attribute.append({
+                        "Variable": pair.get("Variable", ""),
+                        "Attribute": pair.get("Attribute", ""),
+                        "Value": pair.get("Value", [])
+                    })
+                    log.info(f"  - {pair.get('Variable', '')[:50]}... | {pair.get('Attribute', '')} | Weight: {pair.get('Weight', 'N/A')}")
+            elif attribute_analysis:
+                # Fallback to attribute_analysis if no filtered_pairs available
+                log.info("No filtered_pairs available, falling back to attribute_analysis")
                 for attr_name, variables_data in attribute_analysis.items():
                     if isinstance(variables_data, list):
                         for i, var_data in enumerate(variables_data):

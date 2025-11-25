@@ -430,23 +430,23 @@ class AttributeOutputSchema():
 # ============================================================================
 
 @outlines.prompt
-def filter_stage_prompt(scenario_description, choices, attribute_information, target_bias):
+def filter_stage_prompt(attribute_name, target_bias):
     """
-    You are tasked with evaluating the relationship between a given attribute, and a specified target bias. The goal is to determine how relevant the given attribute are to the target bias and to assign a weight that reflects the strength of this relationship.
+    You are tasked with evaluating the relationship between a given attribute and a specified target bias. The goal is to determine how relevant the given attribute is to the target bias and to assign a weight that reflects the strength of this relationship.
 
     **Instructions**:
     1. Input:
     Attribute: After receiving the input, you should first infer the meaning of the attribute in the context of the target bias.
     Target Bias: The target bias is a set of principles or criteria that guide decision-making in a specific context.
     2. Evaluation Criteria:
-    Relevance: Assess how closely the attribute align with the target bias. Consider whether the attribute directly influences or is influenced by the principles outlined in the target bias.
+    Relevance: Assess how closely the attribute aligns with the target bias. Consider whether the attribute directly influences or is influenced by the principles outlined in the target bias.
     Weight Assignment: Assign a weight between 0 and 1, where:
     - 0 indicates no relationship.
     - 0.5 indicates a moderate relationship.
     - 1 indicates a strong relationship.
     3. Output
     You should return a JSON file containing the following elements:
-    - Relevance Explanation: Provide a brief explanation of why the attribute are relevant (or not) to the target bias.
+    - Relevance Explanation: Provide a brief explanation of why the attribute is relevant (or not) to the target bias.
     - Weight: Assign a weight based on the strength of the relationship.
 
     **Example**:
@@ -466,21 +466,14 @@ def filter_stage_prompt(scenario_description, choices, attribute_information, ta
 
     Your Turn:
     Input:
-    Scenario Description: {{ scenario_description }}
-
-    Choices:
-    {% for choice in choices %}
-    - {{ choice }}
-    {% endfor %}
-
-    Variable and attribute: {{ attribute_information }}
+    Attribute: {{ attribute_name }}
     Target Bias: {{ target_bias.description if target_bias.description else target_bias.name }}
 
     Output format:
     {% raw %}
     ```json
     {{
-        "Explanation": "<A brief explanation of why the variable and its attribute are relevant (or not) to the target bias.>",
+        "Explanation": "<A brief explanation of why the attribute is relevant (or not) to the target bias.>",
         "Weight": <A number between 0-1>
     }}
     ```
@@ -490,14 +483,10 @@ def filter_stage_prompt(scenario_description, choices, attribute_information, ta
 
 class FilterPrompt():
     def __call__(self,
-                 scenario_description,
-                 choices,
-                 attribute_information,
+                 attribute_name,
                  target_bias):
         return filter_stage_prompt(
-            scenario_description=scenario_description,
-            choices=choices,
-            attribute_information=attribute_information,
+            attribute_name=attribute_name,
             target_bias=target_bias
         )
 
@@ -534,7 +523,7 @@ class FilterOutputSchema():
 # ============================================================================
 
 @outlines.prompt
-def objective_stage_prompt(scenario_description, choices, objective_components, objective_function_text, weight_threshold):
+def objective_stage_prompt(scenario_description, choices, filtered_pairs, objective_function_text, weight_threshold):
     """
     You are tasked with creating and refining an objective function based on filtered attributes that exceeded the weight threshold. The objective function should mathematically represent the decision-making criteria based on the most relevant attributes.
 
@@ -553,11 +542,11 @@ def objective_stage_prompt(scenario_description, choices, objective_components, 
     {% endfor %}
 
     **Filtered Objective Components** (Weight > {{ weight_threshold }}):
-    {% for component in objective_components %}
-    - Variable: {{ component.Variable }}
-    - Attribute: {{ component.Attribute }}
-    - Weight: {{ component.Weight }}
-    - Explanation: {{ component.Explanation }}
+    {% for pair in filtered_pairs %}
+    - Variable: {{ pair.Variable }}
+    - Attribute: {{ pair.Attribute }}
+    - Weight: {{ pair.Weight }}
+    - Explanation: {{ pair.Explanation }}
     {% endfor %}
 
     **Auto-generated Objective Function**:
@@ -587,13 +576,13 @@ class ObjectivePrompt():
     def __call__(self,
                  scenario_description,
                  choices,
-                 objective_components,
+                 filtered_pairs,
                  objective_function_text,
                  weight_threshold):
         return objective_stage_prompt(
             scenario_description=scenario_description,
             choices=choices,
-            objective_components=objective_components,
+            filtered_pairs=filtered_pairs,
             objective_function_text=objective_function_text,
             weight_threshold=weight_threshold
         )
