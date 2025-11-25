@@ -42,9 +42,7 @@ defaults:
   # Prompt templates to be used in Filter Phase
   - /template/prompt/decision_flow@filter_prompt_template: filter
   - /template/output_schema/decision_flow@filter_output_schema: filter
-  # Prompt templates to be used in Objective Phase
-  - /template/prompt/decision_flow@objective_prompt_template: objective
-  - /template/output_schema/decision_flow@objective_output_schema: objective
+  # NOTE: Objective Phase does NOT use prompts (matches DecisionFlow reference)
   # Prompt templates to be used in Express Phase
   - /template/prompt/decision_flow@express_prompt_template: express
   - /template/output_schema/decision_flow@express_output_schema: express
@@ -87,9 +85,7 @@ step_definitions:
     output_schema_template: ${ref:adm.filter_output_schema}
     attributes: ${adm.attribute_definitions}
   objective:
-    scenario_description_template: ${ref:adm.scenario_description_template}
-    prompt_template: ${ref:adm.objective_prompt_template}
-    output_schema_template: ${ref:adm.objective_output_schema}
+    # NOTE: No prompts needed - Objective stage doesn't make LLM calls
     attributes: ${adm.attribute_definitions}
   # express:
   #   scenario_description_template: ${ref:adm.scenario_description_template}
