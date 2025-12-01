@@ -2,6 +2,13 @@
 defaults:
   - override /adm: outlines_decision_flow_aligned/phase2_pipeline_decision_flow_fine_grained
   - override /inference_engine@adm.structured_inference_engine: outlines_structured_multinomial_constrained
+  - override /interface: ta3
+
+interface:
+  session_type: adept
+  training_session: full
+  username: "pipeline_decision_flow_fine_grained"
+  domain: "p2triage"
 
 adm:
   step_definitions:
@@ -30,7 +37,6 @@ adm:
     #   system_prompt_template:
     #     _target_: align_system.prompt_engineering.outlines_prompts.DefaultITMBaselineSystemPrompt
     express_unstructured:
-      num_samples: 1
       system_prompt_template:
         _target_: align_system.prompt_engineering.outlines_prompts.DefaultITMBaselineSystemPrompt
     math_reason_fine_grained:
