@@ -16,8 +16,14 @@ _NEWLINE_PATTERN = re.compile(r'\\n')
 _COMMA_FIX_1 = re.compile(r'"\s+"')
 _COMMA_FIX_2 = re.compile(r'"\s+(?=["[])')
 
+# Repair patterns for common JSON errors
+_TRAILING_COMMA = re.compile(r',(\s*[}\]])')  # Trailing comma before } or ]
+
 # Key-value extraction pattern
 _KV_PATTERN = re.compile(r'"([^"]+)":\s*(?:"([^"]*)",?|(-?\d+)[,}\s\n])')
+
+# Array extraction pattern (handles arrays of strings)
+_ARRAY_PATTERN = re.compile(r'"([^"]+)":\s*\[([^\]]*)\]', re.DOTALL)
 
 
 def validate_structured_response(response: Any) -> Dict[str, Any]:
@@ -144,6 +150,43 @@ def extract_json_from_text(
     return None
 
 
+def repair_json_string(json_str: str) -> str:
+    """
+    Attempt to repair common JSON syntax errors.
+
+    Fixes:
+    - Trailing commas before ] or }
+    - Newlines inside string values
+    - Truncated JSON (missing closing braces/brackets)
+
+    Args:
+        json_str: JSON string that may have syntax errors
+
+    Returns:
+        Repaired JSON string
+    """
+    if not json_str:
+        return json_str
+
+    # Remove trailing commas before ] or }
+    json_str = _TRAILING_COMMA.sub(r'\1', json_str)
+
+    # Replace actual newlines inside strings with spaces
+    # This is a simplified approach - handles most cases
+    json_str = json_str.replace('\n', ' ').replace('\r', ' ')
+
+    # Fix truncated JSON by adding missing closing braces/brackets
+    open_braces = json_str.count('{') - json_str.count('}')
+    open_brackets = json_str.count('[') - json_str.count(']')
+
+    if open_brackets > 0:
+        json_str += '"]' * open_brackets  # Assume array of strings was truncated
+    if open_braces > 0:
+        json_str += '}' * open_braces
+
+    return json_str
+
+
 def clean_json_string(json_str: str) -> str:
     """
     Clean a JSON string by removing trailing characters, fixing newlines, and adding missing commas.
@@ -161,7 +204,8 @@ def clean_json_string(json_str: str) -> str:
 
     # Fast path: already clean JSON (common case)
     if json_str[0] == '{' and json_str[-1] == '}' and '</s>' not in json_str:
-        return json_str
+        # Still try to repair even if it looks clean
+        return repair_json_string(json_str)
 
     # Remove trailing tokens like </s> (only if needed)
     if '</s>' in json_str:
@@ -181,32 +225,46 @@ def clean_json_string(json_str: str) -> str:
     output = _COMMA_FIX_1.sub('", "', output)
     output = _COMMA_FIX_2.sub('", ', output)
 
+    # Apply repair as final step
+    output = repair_json_string(output)
+
     return output
 
 
 @lru_cache(maxsize=128)
 def _parse_all_keys_once(text: str) -> Dict[str, Any]:
     """
-    Parse text once and extract all key-value pairs using a single regex pass.
+    Parse text once and extract all key-value pairs using regex passes.
 
     This is O(n) instead of O(kxn) where k is the number of keys.
     LRU cache provides additional speedup for repeated calls with same text.
+
+    Extracts both simple key-value pairs and arrays of strings.
 
     Args:
         text: Text that may contain key-value pairs
 
     Returns:
-        Dict containing all found key-value pairs
+        Dict containing all found key-value pairs (including arrays)
     """
     result = {}
 
-    # Single regex pass to find all key-value pairs at once
+    # Extract arrays first (higher priority)
+    for match in _ARRAY_PATTERN.finditer(text):
+        key, array_content = match.groups()
+        # Parse array items (strings)
+        items = re.findall(r'"([^"]*)"', array_content)
+        if items:
+            result[key] = items
+
+    # Extract simple key-value pairs (won't overwrite arrays)
     for match in _KV_PATTERN.finditer(text):
         key, str_val, num_val = match.groups()
-        if str_val is not None:
-            result[key] = str_val.strip()
-        elif num_val is not None:
-            result[key] = int(num_val)
+        if key not in result:  # Don't overwrite array values
+            if str_val is not None:
+                result[key] = str_val.strip()
+            elif num_val is not None:
+                result[key] = int(num_val)
 
     return result
 

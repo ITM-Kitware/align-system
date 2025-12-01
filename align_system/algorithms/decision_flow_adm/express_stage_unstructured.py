@@ -23,14 +23,12 @@ class ExpressStageUnstructuredComponent(ADMComponent):
     def __init__(
         self,
         structured_inference_engine,
-        scenario_description_template,
         system_prompt_template,
         prompt_template,
         max_json_retries=5,
         **kwargs,
     ):
         self.structured_inference_engine = structured_inference_engine
-        self.scenario_description_template = scenario_description_template
         self.system_prompt_template = system_prompt_template
         self.prompt_template = prompt_template
         self.max_json_retries = max_json_retries
@@ -38,8 +36,20 @@ class ExpressStageUnstructuredComponent(ADMComponent):
     def run_returns(self):
         return "mathematical_model"
 
-    def run(self, scenario_state, choices, objective_function=None, filter_analysis=None, attribute_analysis=None, variables=None, extraction=None, alignment_target=None, **kwargs):
-        """Create complete mathematical optimization model following math_express template"""
+    def run(self, objective_function=None, variables=None, extraction=None, **kwargs):
+        """Create complete mathematical optimization model following math_express template.
+
+        Args:
+            objective_function: Output from Objective stage containing:
+                - objective_function: The formula string
+                - filtered_pairs: List of Variable-Attribute-Value triplets that passed weight threshold
+            variables: List of variables from Variables stage
+            extraction: List of extracted information from Extraction stage
+            **kwargs: Additional pipeline arguments (ignored)
+
+        Note: Uses filtered_pairs from Objective stage (already filtered by weight > 0.3).
+        Matches original DecisionFlow math_express which only takes structure.
+        """
 
         # Build structure following decision_flow_stages.py lines 158-188
         structure = {}
@@ -53,30 +63,21 @@ class ExpressStageUnstructuredComponent(ADMComponent):
         else:
             structure["objective_function"] = objective_function if objective_function else 'weight * attribute of variable'
 
-        # 3. Attributes from filtered analysis (lines 162-175)
+        # 3. Attributes from Objective stage's filtered pairs (already filtered by weight threshold)
+        # This matches original DecisionFlow which uses filtered triplets
         structure["attribute"] = []
-        if filter_analysis and attribute_analysis:
-            for attribute_name, filter_data in filter_analysis.items():
-                # Skip environment attributes (line 164)
-                if attribute_name.lower() == "environment":
+        if objective_function and isinstance(objective_function, dict):
+            filtered_pairs = objective_function.get('filtered_pairs', [])
+            for pair in filtered_pairs:
+                # Skip environment attributes (check if 'environment' is in the variable name)
+                variable = pair.get('Variable', '')
+                if 'environment' in variable.lower():
                     continue
-
-                # Get attribute analysis data for this attribute
-                attribute_data = attribute_analysis.get(attribute_name, [])
-
-                # Process attribute data to create triples (variable, attribute, value)
-                if isinstance(attribute_data, list):
-                    for variable_info in attribute_data:
-                        if isinstance(variable_info, dict) and 'Variable' in variable_info:
-                            variable_name = variable_info['Variable']
-                            if 'Attribute' in variable_info:
-                                for attr_info in variable_info['Attribute']:
-                                    if isinstance(attr_info, dict) and 'Attribute' in attr_info and 'Value' in attr_info:
-                                        structure["attribute"].append({
-                                            "Variable": variable_name,
-                                            "Attribute": attr_info['Attribute'],
-                                            "Value": attr_info['Value']
-                                        })
+                structure["attribute"].append({
+                    "Variable": variable,
+                    "Attribute": pair.get('Attribute', ''),
+                    "Value": pair.get('Value', [])
+                })
 
         # 4. Constraints from extraction information (lines 177-188)
         structure["constraints"] = []
@@ -89,13 +90,6 @@ class ExpressStageUnstructuredComponent(ADMComponent):
                     if any(indicator in info_item.lower() for indicator in constraint_indicators):
                         structure["constraints"].append(info_item)
 
-        scenario_description = call_with_coerced_args(
-            self.scenario_description_template,
-            {
-                'scenario_state': scenario_state,
-                'alignment_target': alignment_target
-            })
-
         dialog = []
         if self.system_prompt_template is not None:
             system_prompt = call_with_coerced_args(
@@ -106,13 +100,10 @@ class ExpressStageUnstructuredComponent(ADMComponent):
             dialog.insert(0, DialogElement(role='system',
                                           content=system_prompt))
 
+        # Express stage only requires structure (matches original DecisionFlow math_express)
         prompt = call_with_coerced_args(
             self.prompt_template,
-            {
-                'scenario_description': scenario_description,
-                'choices': choices,
-                'structure': structure
-            },
+            {'structure': structure},
         )
 
         dialog.append(DialogElement(role='user',

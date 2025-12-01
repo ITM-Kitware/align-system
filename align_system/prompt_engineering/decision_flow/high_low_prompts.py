@@ -623,100 +623,70 @@ class ObjectiveOutputSchema():
 # ============================================================================
 
 @outlines.prompt
-def express_stage_prompt(scenario_description, choices, structure):
+def express_stage_prompt(structure):
     """
-    You are an expert in optimization modeling and ethical decision-making. Your task is to construct an optimization model based on the following information.
+    Construct an optimization model from the structure below. Output valid JSON only.
 
-    Input Information:
-    1. Variables: A list of subjects or entities involved in the scenario.
-    2. Triples: A list of triples in the form (variable, attribute, value), where:
-    - Variable: The subject.
-    - Attribute: A property of the subject.
-    - Value: The specific value of that attribute.
-    3. Constraints: A list of limitations or conditions that must be satisfied.
-    4. Target Attribute: A set of values that the model should optimize for. It includes positive alignment (desirable behaviors) and negative alignment (undesirable behaviors).
+    **Input**:
+    - variables: Decision subjects
+    - objective_function: Weighted formula
+    - attribute: (Variable, Attribute, Value) triplets
+    - constraints: Conditions to satisfy
 
-    Your task:
-    1. Define the Objective Function:
-    - The objective function should reflect the alignment with the target attribute.
-    - The objective function should relate highly to the attributes from the triples to quantify the alignment.
-    - **Ensure that all variables used in the objective function are explicitly defined and explained, and that they are directly derived from the input information.**
-    2. Define variables and constraints. Make sure any variables you use in objective function and constraints are well defined in defining variables step.
-    3. Output the Optimization Model:
-    - Provide a clear mathematical formulation of the model, including: Decision variables, Objective function, Constraints.
-    - Explain how the model aligns with the target attribute.
-    - Your output should be in the form of JSON file.
+    **Task**: Create a mathematical optimization model with:
+    1. Objective Function (formula and explanation)
+    2. Decision Variables (binary variables for each subject)
+    3. Constraints (from input)
+    4. Brief Explanation
 
-    **Example Structure**:
+    **Example Output**:
     {% raw %}
+    ```json
     {
-       "variables": [
-           "Patient 1: The first is a rescue worker",
-           "Patient 2: The second is a looter"
-       ],
-       "objective_function": "The final formula to be calculated is 0.9 * (Action) of (Patient 1) + 0.1 * (Condition) of (Patient 2)",
-       "attribute": [
-           {
-               "Variable": "Patient 1: The first is a rescue worker",
-               "Attribute": "Action",
-               "Value": ["Pulling people from the rubble"]
-           },
-           {
-               "Variable": "Patient 2: The second is a looter",
-               "Attribute": "Condition",
-               "Value": ["Severe injuries", "Multiple fractures"]
-           }
-       ],
-       "constraints": [
-           "Time is limited; only one person can be saved."
-       ]
+        "Objective Function": ["Maximize Z = w1*A1 + w2*A2", "w1=0.9 for Action, w2=0.7 for Condition"],
+        "Decision Variables": ["x1=1 if Patient 1 saved else 0", "x2=1 if Patient 2 saved else 0"],
+        "Constraints": ["x1 + x2 <= 1", "x1 and x2 are binary"],
+        "Explanation": "Maximizes weighted attributes subject to saving only one patient."
     }
+    ```
     {% endraw %}
 
     **Your Structure**:
     {{ structure }}
 
-    **Scenario Context**:
-    {{ scenario_description }}
+    **JSON Rules** (CRITICAL - follow exactly):
+    - Use double quotes for ALL strings and keys
+    - NO trailing commas after last array item
+    - Keep each array item under 100 characters
+    - NO newlines inside string values
+    - Output ONLY the JSON block below, no other text
 
-    **Available Choices**:
-    {% for choice in choices %}
-    - {{ choice }}
-    {% endfor %}
-
-    Based on this structure, build a complete mathematical optimization model.
-
-    **Output Format**:
+    **Output** (replace placeholders with your values):
     {% raw %}
     ```json
-    {{
-       "Objective Function": [
-           "<Define the mathematical expression of the objective function>",
-           "<Explain each term and how it relates to the attributes and alignment values>"
-       ],
-       "Decision Variables": [
-           "<List and explain all decision variables, including binary variables and alignment terms>"
-       ],
-       "Constraints": [
-           "<List all constraints, both logical and numerical>"
-       ],
-       "Explanation": "<Explain how your model reflects ethical alignment and respects all given conditions>"
-    }}
+    {
+        "Objective Function": ["<formula>", "<weights>"],
+        "Decision Variables": ["<var1>", "<var2>"],
+        "Constraints": ["<constraint1>", "<constraint2>"],
+        "Explanation": "<one sentence>"
+    }
     ```
     {% endraw %}
     """
 
 
 class ExpressPrompt():
-    def __call__(self,
-                 scenario_description,
-                 choices,
-                 structure):
-        return express_stage_prompt(
-            scenario_description=scenario_description,
-            choices=choices,
-            structure=structure
-        )
+    def __call__(self, structure, **kwargs):
+        """Generate express stage prompt.
+
+        Args:
+            structure: The structure dict containing variables, objective_function, attribute, and constraints
+            **kwargs: Additional arguments (ignored for compatibility)
+
+        Returns:
+            Formatted prompt string
+        """
+        return express_stage_prompt(structure=structure)
 
 
 def express_output_schema():
