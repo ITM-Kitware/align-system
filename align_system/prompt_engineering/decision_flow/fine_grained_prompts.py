@@ -362,38 +362,48 @@ def fine_grained_math_reason_error_prompt(structure, choice, target_attributes_v
     - Objective Function: A function incorporating various attributes of different variables.
     - Decision Variables: The variables to choose from.
     - Constraints: Rules that must be followed.
-    2. Target Attributes & Values: Specific numeric targets (0.0-1.0 scale) for each attribute that guide decision-making.
+    2. Target Attributes & Values: Specific numeric targets (0.0-1.0 scale) for each attribute that guide decision-making. Each target includes:
+       - **value**: The numeric target (0.0-1.0)
+       - **description**: What the attribute means and how to interpret it
        {{ target_attributes_values }}
     3. Choices: A list of possible decisions. Your task is to select the choice that best matches the target values.
 
     **Step 1: Understand Target Values**
-    For each attribute with a target value:
-    - **0.0-0.2 (Very Low)**: Strongly oppose/contradict the attribute
+    Read each target attribute's description carefully. The description defines what high vs low values mean for that specific attribute.
+
+    General scale interpretation:
+    - **0.0-0.2 (Very Low)**: Strongly oppose/contradict the attribute as defined in its description
     - **0.3-0.4 (Low)**: Somewhat contradict or weakly support the attribute
     - **0.5-0.6 (Moderate)**: Neutral or balanced expression of the attribute
     - **0.7-0.8 (High)**: Strongly support/express the attribute
     - **0.9-1.0 (Very High)**: Exemplify the highest expression of the attribute
 
-    The objective is to select the variable whose characteristics BEST MATCH these target values.
+    The objective is to select the variable whose characteristics BEST MATCH these target values according to each attribute's description.
 
-    **Step 2: Score Each Variable**
-    For each decision variable:
-    - Based on the variable description and your understanding of the attributes, assign a score between 0 and 1 for each relevant attribute
-    - Use Normal Distribution (Normal(μ, σ)) to represent uncertainty: Example: ~N(0.6, 0.1) if moderate confidence
-    - Scores indicate how much that variable expresses each attribute
+    **Step 2: Pairwise Attribute Scoring**
+    For each attribute shared by two or more variables:
+    - Compare the values of the attribute between each pair of variables. Use the attribute's description to understand what constitutes a high vs low score.
+    - Assign a score between 0 and 1 to each variable's value for that attribute using Normal Distribution (Normal(μ, σ)) to represent uncertainty or estimation. Example: "Condition" ~ Normal(0.6, 0.1) if moderate, or ~N(0.9, 0.05) if critical.
+        - 1 = strongly matches the target value level (as defined by the attribute's description)
+        - 0 = strongly opposite of the target value level
+    - Scores are **relative**, based on comparative merit within that attribute.
+    - You should ignore the number now in front of the attribute, that is not the score for each attribute. So you cannot simply add them together to get the result.
 
-    **Step 3: Calculate Match with Target Values**
-    For each variable:
-    - For each attribute, compare the variable's score to the target value
-    - Calculate the difference: |variable_score - target_value|
-    - Compute expected value (mean) of distributions as the score
-    - Smaller differences mean better alignment with targets
+    For each attribute and variable:
 
-    **Step 4: Apply Objective Function & Select**
-    - Use the objective function (if meaningful) to combine attribute scores
-    - Select the variable with the smallest total difference from target values
-    - The optimal choice is the variable that BEST MATCHES the target value profile
-    - Respect all constraints (e.g., mutually exclusive choices)
+    Compute expected value (mean) of the distribution as the score.
+
+    These scores are still relative: compare each variable's attribute scores to others.
+
+    **Step 3: Apply Objective Function**
+    - Use the attribute scores and plug them into the objective function.
+    - Compute the final score for each decision variable using its respective terms and weights.
+
+    **Step 4: Enforce Constraints & Choose**
+    - Respect all constraints (e.g., mutually exclusive choices).
+    - Strictly follow the optimization direction from target values:
+      If target is high (>0.5): select the variable with the HIGHEST score for that attribute.
+      If target is low (<0.5): select the variable with the LOWEST score for that attribute.
 
     Your Turn:
     Structure: {{ structure }}
@@ -404,7 +414,7 @@ def fine_grained_math_reason_error_prompt(structure, choice, target_attributes_v
     {% raw %}
     ```json
     {{
-    "Reasoning": <Explain your scoring for each variable, the differences from target values, and why you selected this choice>,
+    "Reasoning": <Provide a reasoned explanation of your pairwise scoring, objective function application, and final selection>,
     "Answer": <The exact text of your selected choice from the Choices list above>
     }}
     ```
@@ -441,40 +451,32 @@ def fine_grained_math_reason_prompt(objective, attribute, variable, constraints,
 
     The objective is to select the variable whose attribute values BEST MATCH these target values.
 
-    **Step 2: Score Each Variable for Each Attribute**
-    For each variable and each relevant attribute:
-    - Examine the attribute values provided for that variable
-    - Assign a score between 0 and 1 indicating how much that variable expresses the attribute
-      - Use the attribute value descriptions to determine if the variable shows low, moderate, or high expression of the attribute
-      - Example: For "affiliation" attribute:
-        - "enemy combatant" → score ~0.0-0.1 (very low affiliation)
-        - "coalition partner" → score ~0.5-0.6 (moderate affiliation)
-        - "same unit" → score ~0.9-1.0 (very high affiliation)
-    - Base your score on the ACTUAL attribute values provided, not on assumptions
+    **Step 2: Pairwise Attribute Scoring**
+    For each attribute shared by two or more variables:
+    - Compare the values of the attribute between each pair of variables. Use the attribute's description to understand what constitutes a high vs low score.
+    - Assign a score between 0 and 1 to each variable's value for that attribute using Normal Distribution (Normal(μ, σ)) to represent uncertainty or estimation. Example: "Condition" ~ Normal(0.6, 0.1) if moderate, or ~N(0.9, 0.05) if critical.
+        - 1 = strongly matches the target value level (as defined by the attribute's description)
+        - 0 = strongly opposite of the target value level
+    - Scores are **relative**, based on comparative merit within that attribute.
+    - You should ignore the number now in front of the attribute, that is not the score for each attribute. So you cannot simply add them together to get the result.
 
-    **Step 3: Calculate Match with Target Values**
-    For each variable:
-    - For each attribute, compare the variable's score to the target value
-    - Calculate the difference: |variable_score - target_value|
-    - Smaller differences mean better alignment with targets
-    - You may also consider the objective function weighting if provided
+    For each attribute and variable:
 
-    **Step 4: Apply Objective Function & Select**
-    - Use the objective function (if meaningful) to combine attribute scores
-    - Alternatively, select the variable with the smallest total difference from target values
-    - The optimal choice is the variable that BEST MATCHES the target value profile
-    - Respect all constraints (e.g., mutually exclusive choices)
+    Compute expected value (mean) of the distribution as the score.
 
-    **Example**:
-    {% raw %}
-    If target values are: {"affiliation": 0.9, "merit": 0.3}
-    And you have two variables:
-    - Variable A: affiliation score 0.2, merit score 0.3
-      → affiliation diff = |0.2 - 0.9| = 0.7, merit diff = |0.3 - 0.3| = 0.0, total = 0.7
-    - Variable B: affiliation score 0.95, merit score 0.2
-      → affiliation diff = |0.95 - 0.9| = 0.05, merit diff = |0.2 - 0.3| = 0.1, total = 0.15
-    Variable B is the better match (total difference 0.15 vs 0.7)
-    {% endraw %}
+    These scores are still relative: compare each variable's attribute scores to others.
+
+    **Step 3: Apply Objective Function**
+    - Use the attribute scores and plug them into the objective function.
+    - Compute the final score for each decision variable using its respective terms and weights.
+
+    **Step 4: Interpret & Select**
+    - For high target values (>0.5): maximize that attribute's contribution to the final score
+    - For low target values (<0.5): minimize that attribute's contribution to the final score
+    - Respect all constraints (e.g., mutually exclusive choices).
+    - Select the decision variable that best achieves the target value profile.
+
+    If multiple variables have identical final scores, select arbitrarily among them without additional reasoning.
 
     Your Turn:
     Objective Function: {{ objective }}
@@ -488,8 +490,8 @@ def fine_grained_math_reason_prompt(objective, attribute, variable, constraints,
     {% raw %}
     ```json
     {{
-    "Reasoning": <Explain your scoring for each variable, the differences from target values, and why you selected this choice>,
-    "Answer": <The exact text of your selected choice from the Choices list above>
+    "Reasoning": "<Provide a reasoned explanation here>",
+    "Answer": "<The exact text of your selected choice from the Choices list above>"
     }}
     ```
     {% endraw %}
@@ -534,7 +536,7 @@ def fine_grained_math_reason_output_schema():
         "properties": {
             "Reasoning": {
                 "type": "string",
-                "minLength": 200,
+                "minLength": 0,
                 "maxLength": 1000,
                 "description": "Detailed explanation of scoring and selection based on target values"
             },
