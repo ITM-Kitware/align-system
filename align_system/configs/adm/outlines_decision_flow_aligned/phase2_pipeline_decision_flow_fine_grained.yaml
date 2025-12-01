@@ -92,7 +92,6 @@ step_definitions:
   #   prompt_template: ${ref:adm.express_prompt_template}
   #   output_schema_template: ${ref:adm.express_output_schema}
   express_unstructured:
-    scenario_description_template: ${ref:adm.scenario_description_template}
     prompt_template: ${ref:adm.express_prompt_template}
   math_reason_fine_grained:
     structured_inference_engine: ${ref:adm.structured_inference_engine}
