@@ -8,6 +8,7 @@ import jinja2
 import torch
 
 from align_system.algorithms.abstracts import StructuredInferenceEngine
+from align_system.data_models.dialog import DialogElement
 
 
 class OutlinesTransformersInferenceEngine(StructuredInferenceEngine):
@@ -185,6 +186,91 @@ class SpectrumTunedInferenceEngine(OutlinesTransformersInferenceEngine):
                 element.role = "output"
             else:
                 raise RuntimeError(f"{element.role} dialog element unrecognized.")
+
+        try:
+            encoded_dialog = tokenizer.apply_chat_template(dialog)
+        except jinja2.exceptions.TemplateError:
+            # Assume that the tokenizer chat template doesn't accept
+            # system messages; combine system message first user
+            # message
+            # Ensure each dialog element is a dict
+            system_msg, user_msg, *rest = [dict(d) for d in dialog]
+
+            assert user_msg['role'] == 'user'
+
+            updated_content = system_msg['content'] + '\n' + user_msg['content']
+
+            dialog = [{'role': 'user', 'content': updated_content}, *rest]
+
+            encoded_dialog = tokenizer.apply_chat_template(dialog)
+
+        return tokenizer.decode(encoded_dialog)
+
+class SpectrumTunedNoDescriptionInferenceEngine(OutlinesTransformersInferenceEngine):
+    def __init__(self,
+                 model_name,
+                 device='auto',
+                 precision='full',
+                 max_generator_tokens=None,
+                 sampler=MultinomialSampler(),
+                 inference_batch_size=5,
+                 model_kwargs={},
+                 tokenizer_kwargs={}):
+        super().__init__(model_name,
+                         device,
+                         precision,
+                         max_generator_tokens,
+                         sampler,
+                         inference_batch_size,
+                         model_kwargs,
+                         tokenizer_kwargs)
+
+    def dialog_to_prompt(self, dialog):
+        tokenizer = self.model.tokenizer.tokenizer
+
+        # Use roles spectrum tuned models expect
+        # https://github.com/tsor13/spectrum/blob/main/README.md
+        for element in dialog:
+            if element.role == "system":
+                element.role = "input"
+            elif element.role == "user":
+                element.role = "input"
+            elif element.role == "assistant":
+                element.role = "output"
+            else:
+                raise RuntimeError(f"{element.role} dialog element unrecognized.")
+
+        def merge_consecutive_inputs(dialogue):
+            if not dialogue:
+                return []
+
+            merged = []
+            buffer = None   # Will hold a DialogElement instance
+
+            for item in dialogue:
+                if item.role == "input":
+                    if buffer is None:
+                        # Start a new buffered input
+                        # Make a *copy* so we don't mutate the original
+                        buffer = DialogElement(role="input", content=item.content)
+                    else:
+                        # Append to the existing buffered content
+                        buffer.content += "\n" + item.content
+                else:
+                    # Flush buffer before adding an output element
+                    if buffer is not None:
+                        merged.append(buffer)
+                        buffer = None
+
+                    merged.append(item)
+
+            # Flush leftover buffer if needed
+            if buffer is not None:
+                merged.append(buffer)
+
+            return merged
+
+        dialog = merge_consecutive_inputs(dialog)
 
         try:
             encoded_dialog = tokenizer.apply_chat_template(dialog)
