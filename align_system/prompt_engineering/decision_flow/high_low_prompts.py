@@ -643,10 +643,10 @@ def express_stage_prompt(structure):
     {% raw %}
     ```json
     {
-        "Objective Function": ["Maximize Z = w1*A1 + w2*A2", "w1=0.9 for Action, w2=0.7 for Condition"],
+        "Objective Function": ["Z = w1*A1 + w2*A2", "w1=0.9 for Action, w2=0.7 for Condition"],
         "Decision Variables": ["x1=1 if Patient 1 saved else 0", "x2=1 if Patient 2 saved else 0"],
         "Constraints": ["x1 + x2 <= 1", "x1 and x2 are binary"],
-        "Explanation": "Maximizes weighted attributes subject to saving only one patient."
+        "Explanation": "Computes weighted attributes subject to saving only one patient."
     }
     ```
     {% endraw %}
