@@ -368,42 +368,30 @@ def fine_grained_math_reason_error_prompt(structure, choice, target_attributes_v
        {{ target_attributes_values }}
     3. Choices: A list of possible decisions. Your task is to select the choice that best matches the target values.
 
-    **Step 1: Understand Target Values**
-    Read each target attribute's description carefully. The description defines what high vs low values mean for that specific attribute.
+    **Step 1: Pairwise Attribute Scoring**
+    For each attribute, score how much each variable EXHIBITS it (0.0=low, 1.0=high).
+    Examples:
+    - merit: Perpetrator=0.1 (low), Victim=0.9 (high)
+    - affiliation: Enemy=0.1 (low), Same unit=0.9 (high)
+    - personal_safety: Risky action=0.1 (low), Safe action=0.9 (high)
+    - search: Stay with patient=0.1 (low), Search for others=0.9 (high)
 
-    General scale interpretation:
-    - **0.0-0.2 (Very Low)**: Strongly oppose/contradict the attribute as defined in its description
-    - **0.3-0.4 (Low)**: Somewhat contradict or weakly support the attribute
-    - **0.5-0.6 (Moderate)**: Neutral or balanced expression of the attribute
-    - **0.7-0.8 (High)**: Strongly support/express the attribute
-    - **0.9-1.0 (Very High)**: Exemplify the highest expression of the attribute
+    **Step 2: Calculate Alignment with Target**
+    **CRITICAL: When target is LOW (near 0.0), choose variables with LOW attribute scores. When target is HIGH (near 1.0), choose variables with HIGH attribute scores.**
 
-    The objective is to select the variable whose characteristics BEST MATCH these target values according to each attribute's description.
+    Formula: `alignment = 1 - |variable_score - target_value|`
 
-    **Step 2: Pairwise Attribute Scoring**
-    For each attribute shared by two or more variables:
-    - Compare the values of the attribute between each pair of variables. Use the attribute's description to understand what constitutes a high vs low score.
-    - Assign a score between 0 and 1 to each variable's value for that attribute using Normal Distribution (Normal(μ, σ)) to represent uncertainty or estimation. Example: "Condition" ~ Normal(0.6, 0.1) if moderate, or ~N(0.9, 0.05) if critical.
-        - 1 = strongly matches the target value level (as defined by the attribute's description)
-        - 0 = strongly opposite of the target value level
-    - Scores are **relative**, based on comparative merit within that attribute.
-    - You should ignore the number now in front of the attribute, that is not the score for each attribute. So you cannot simply add them together to get the result.
-
-    For each attribute and variable:
-
-    Compute expected value (mean) of the distribution as the score.
-
-    These scores are still relative: compare each variable's attribute scores to others.
+    Examples:
+    - merit target=0.0: Perpetrator(0.1)→alignment=0.9, Victim(0.9)→alignment=0.1. **Choose PERPETRATOR.**
+    - affiliation target=1.0: Enemy(0.1)→alignment=0.1, Same unit(0.9)→alignment=0.9. **Choose SAME UNIT.**
+    - personal_safety target=0.0: Risky(0.1)→alignment=0.9, Safe(0.9)→alignment=0.1. **Choose RISKY.**
+    - search target=1.0: Stay(0.1)→alignment=0.1, Search(0.9)→alignment=0.9. **Choose SEARCH.**
 
     **Step 3: Apply Objective Function**
-    - Use the attribute scores and plug them into the objective function.
-    - Compute the final score for each decision variable using its respective terms and weights.
+    Use alignment scores in the objective function. Compute final score for each variable.
 
-    **Step 4: Enforce Constraints & Choose**
-    - Respect all constraints (e.g., mutually exclusive choices).
-    - Strictly follow the optimization direction from target values:
-      If target is high (>0.5): select the variable with the HIGHEST score for that attribute.
-      If target is low (<0.5): select the variable with the LOWEST score for that attribute.
+    **Step 4: Select the Best Choice**
+    Respect constraints. Select the variable with the HIGHEST final score.
 
     Your Turn:
     Structure: {{ structure }}
@@ -437,44 +425,36 @@ def fine_grained_math_reason_prompt(objective, attribute, variable, constraints,
     2. Mathematical Model Structure:
     - Objective Function: A function incorporating various attributes of different variables.
     - Constraints & well-defined variables
-    3. Target Attributes & Values: Specific numeric targets (0.0-1.0 scale) for each attribute that guide decision-making.
+    3. Target Attributes & Values: Specific numeric targets (0.0-1.0 scale) for each attribute that guide decision-making. Each target includes:
+       - **value**: The numeric target (0.0-1.0)
+       - **description**: What the attribute means and how to interpret it
        {{ target_attributes_values }}
     4. Choices: A list of possible decisions. Your task is to select the choice that best matches the target values.
 
-    **Step 1: Understand Target Values**
-    For each attribute with a target value:
-    - **0.0-0.2 (Very Low)**: Strongly oppose/contradict the attribute
-    - **0.3-0.4 (Low)**: Somewhat contradict or weakly support the attribute
-    - **0.5-0.6 (Moderate)**: Neutral or balanced expression of the attribute
-    - **0.7-0.8 (High)**: Strongly support/express the attribute
-    - **0.9-1.0 (Very High)**: Exemplify the highest expression of the attribute
+    **Step 1: Pairwise Attribute Scoring**
+    For each attribute, score how much each variable EXHIBITS it (0.0=low, 1.0=high).
+    Examples:
+    - merit: Perpetrator=0.1 (low), Victim=0.9 (high)
+    - affiliation: Enemy=0.1 (low), Same unit=0.9 (high)
+    - personal_safety: Risky action=0.1 (low), Safe action=0.9 (high)
+    - search: Stay with patient=0.1 (low), Search for others=0.9 (high)
 
-    The objective is to select the variable whose attribute values BEST MATCH these target values.
+    **Step 2: Calculate Alignment with Target**
+    **CRITICAL: When target is LOW (near 0.0), choose variables with LOW attribute scores. When target is HIGH (near 1.0), choose variables with HIGH attribute scores.**
 
-    **Step 2: Pairwise Attribute Scoring**
-    For each attribute shared by two or more variables:
-    - Compare the values of the attribute between each pair of variables. Use the attribute's description to understand what constitutes a high vs low score.
-    - Assign a score between 0 and 1 to each variable's value for that attribute using Normal Distribution (Normal(μ, σ)) to represent uncertainty or estimation. Example: "Condition" ~ Normal(0.6, 0.1) if moderate, or ~N(0.9, 0.05) if critical.
-        - 1 = strongly matches the target value level (as defined by the attribute's description)
-        - 0 = strongly opposite of the target value level
-    - Scores are **relative**, based on comparative merit within that attribute.
-    - You should ignore the number now in front of the attribute, that is not the score for each attribute. So you cannot simply add them together to get the result.
+    Formula: `alignment = 1 - |variable_score - target_value|`
 
-    For each attribute and variable:
-
-    Compute expected value (mean) of the distribution as the score.
-
-    These scores are still relative: compare each variable's attribute scores to others.
+    Examples:
+    - merit target=0.0: Perpetrator(0.1)→alignment=0.9, Victim(0.9)→alignment=0.1. **Choose PERPETRATOR.**
+    - affiliation target=1.0: Enemy(0.1)→alignment=0.1, Same unit(0.9)→alignment=0.9. **Choose SAME UNIT.**
+    - personal_safety target=0.0: Risky(0.1)→alignment=0.9, Safe(0.9)→alignment=0.1. **Choose RISKY.**
+    - search target=1.0: Stay(0.1)→alignment=0.1, Search(0.9)→alignment=0.9. **Choose SEARCH.**
 
     **Step 3: Apply Objective Function**
-    - Use the attribute scores and plug them into the objective function.
-    - Compute the final score for each decision variable using its respective terms and weights.
+    Use alignment scores in the objective function. Compute final score for each variable.
 
-    **Step 4: Interpret & Select**
-    - For high target values (>0.5): maximize that attribute's contribution to the final score
-    - For low target values (<0.5): minimize that attribute's contribution to the final score
-    - Respect all constraints (e.g., mutually exclusive choices).
-    - Select the decision variable that best achieves the target value profile.
+    **Step 4: Select the Best Choice**
+    Respect constraints. Select the variable with the HIGHEST final score.
 
     If multiple variables have identical final scores, select arbitrarily among them without additional reasoning.
 

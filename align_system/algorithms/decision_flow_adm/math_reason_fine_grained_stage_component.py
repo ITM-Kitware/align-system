@@ -159,14 +159,19 @@ class MathReasonFineGrainedStageComponent(ADMComponent):
                     if kdma_name is not None and kdma_value is not None:
                         kdma_value_dict[kdma_name] = kdma_value
 
-            # Generate fine-grained target attributes with numeric values
+            # Generate fine-grained target attributes with numeric values AND descriptions
+            # The description helps the LLM understand what each attribute means for scoring
             if alignment_target and target_attributes:
                 target_attrs_values = {}
                 for target_attr in target_attributes:
                     # Use target_attr.kdma to match alignment_target kdma_values
                     attr_value = kdma_value_dict.get(target_attr.kdma)
                     if attr_value is not None:
-                        target_attrs_values[target_attr.name] = attr_value
+                        # Include both value and description (like original DecisionFlow's target_bias)
+                        target_attrs_values[target_attr.name] = {
+                            "value": attr_value,
+                            "description": getattr(target_attr, 'description', None)
+                        }
                     # Note: Unlike high/low version, we don't use defaults - if no value, we don't include it
 
                 # Format as a readable string for the prompt
