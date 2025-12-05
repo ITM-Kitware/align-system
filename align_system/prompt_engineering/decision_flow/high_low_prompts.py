@@ -396,6 +396,7 @@ def attribute_output_schema():
                         "Attribute": {
                             "type": "array",
                             "minItems": 1,
+                            "maxItems": 5,
                             "items": {
                                 "type": "object",
                                 "properties": {
@@ -403,6 +404,7 @@ def attribute_output_schema():
                                     "Value": {
                                         "type": "array",
                                         "minItems": 1,
+                                        "maxItems": 5,
                                         "items": {"type": "string"}
                                     }
                                 },
