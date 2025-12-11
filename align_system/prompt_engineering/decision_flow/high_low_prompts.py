@@ -396,7 +396,6 @@ def attribute_output_schema():
                         "Attribute": {
                             "type": "array",
                             "minItems": 1,
-                            "maxItems": 5,
                             "items": {
                                 "type": "object",
                                 "properties": {
@@ -404,7 +403,6 @@ def attribute_output_schema():
                                     "Value": {
                                         "type": "array",
                                         "minItems": 1,
-                                        "maxItems": 5,
                                         "items": {"type": "string"}
                                     }
                                 },
@@ -627,33 +625,26 @@ class ObjectiveOutputSchema():
 @outlines.prompt
 def express_stage_prompt(structure):
     """
-    Construct an optimization model from the structure below. Output valid JSON only.
+    You are an expert in optimization modeling and ethical decision-making. Your task is to construct an optimization model based on the following information.
 
-    **Input**:
-    - variables: Decision subjects
-    - objective_function: Weighted formula
-    - attribute: (Variable, Attribute, Value) triplets
-    - constraints: Conditions to satisfy
+    **Input Information**:
+    1. Variables: A list of subjects or entities involved in the scenario.
+    2. Triples: A list of triples in the form (variable, attribute, value), where:
+       - Variable: The subject.
+       - Attribute: A property of the subject.
+       - Value: The specific value of that attribute.
+    3. Constraints: A list of limitations or conditions that must be satisfied.
+    4. Target Attribute: A set of values that the model should optimize for. It includes positive alignment (desirable behaviors) and negative alignment (undesirable behaviors).
 
-    **Task**: Create a mathematical optimization model with:
-    1. Objective Function (formula and explanation)
-    2. Decision Variables (binary variables for each subject)
-    3. Constraints (from input)
-    4. Brief Explanation
+    **Your task**:
+    1. Define the Objective Function:
+       - The objective function should reflect the alignment with the target attribute.
+       - The objective function should relate highly to the attributes from the triples to quantify the alignment.
+       - **Ensure that all variables used in the objective function are explicitly defined and explained, and that they are directly derived from the input information.**
+    2. Define variables and constraints. Make sure any variables you use in objective function and constraints are well defined in defining variables step.
+    3. Output the Optimization Model in JSON format.
 
-    **Example Output**:
-    {% raw %}
-    ```json
-    {
-        "Objective Function": ["Z = w1*A1 + w2*A2", "w1=0.9 for Action, w2=0.7 for Condition"],
-        "Decision Variables": ["x1=1 if Patient 1 saved else 0", "x2=1 if Patient 2 saved else 0"],
-        "Constraints": ["x1 + x2 <= 1", "x1 and x2 are binary"],
-        "Explanation": "Computes weighted attributes subject to saving only one patient."
-    }
-    ```
-    {% endraw %}
-
-    **Your Structure**:
+    **Structure**:
     {{ structure }}
 
     **JSON Rules** (CRITICAL - follow exactly):
@@ -667,10 +658,10 @@ def express_stage_prompt(structure):
     {% raw %}
     ```json
     {
-        "Objective Function": ["<formula>", "<weights>"],
+        "Objective Function": ["<formula>", "<weights explanation>"],
         "Decision Variables": ["<var1>", "<var2>"],
         "Constraints": ["<constraint1>", "<constraint2>"],
-        "Explanation": "<one sentence>"
+        "Explanation": "<how model reflects ethical alignment>"
     }
     ```
     {% endraw %}

@@ -26,6 +26,7 @@ class ExpressStageUnstructuredComponent(ADMComponent):
         system_prompt_template,
         prompt_template,
         max_json_retries=5,
+        attributes=None,
         **kwargs,
     ):
         self.structured_inference_engine = structured_inference_engine
@@ -33,10 +34,14 @@ class ExpressStageUnstructuredComponent(ADMComponent):
         self.prompt_template = prompt_template
         self.max_json_retries = max_json_retries
 
+        if attributes is None:
+            attributes = {}
+        self.attributes = attributes
+
     def run_returns(self):
         return "mathematical_model"
 
-    def run(self, objective_function=None, variables=None, extraction=None, **kwargs):
+    def run(self, objective_function=None, variables=None, extraction=None, alignment_target=None, **kwargs):
         """Create complete mathematical optimization model following math_express template.
 
         Args:
@@ -45,6 +50,7 @@ class ExpressStageUnstructuredComponent(ADMComponent):
                 - filtered_pairs: List of Variable-Attribute-Value triplets that passed weight threshold
             variables: List of variables from Variables stage
             extraction: List of extracted information from Extraction stage
+            alignment_target: AlignmentTarget with kdma_values for target attribute context
             **kwargs: Additional pipeline arguments (ignored)
 
         Note: Uses filtered_pairs from Objective stage (already filtered by weight > 0.3).
@@ -89,6 +95,37 @@ class ExpressStageUnstructuredComponent(ADMComponent):
                     # Check for constraint indicators like "only", "limited", "must", "cannot"
                     if any(indicator in info_item.lower() for indicator in constraint_indicators):
                         structure["constraints"].append(info_item)
+
+        # 5. Target Attribute with positive/negative alignment (matches original DecisionFlow)
+        # Read descriptions from attribute YAML configs
+        structure["target_attribute"] = {}
+        if alignment_target is not None and hasattr(alignment_target, 'kdma_values'):
+            for kdma_entry in alignment_target.kdma_values:
+                # Support both KDMAValue objects and dict access
+                if isinstance(kdma_entry, dict):
+                    kdma_name = kdma_entry.get('kdma')
+                    kdma_value = kdma_entry.get('value')
+                else:
+                    kdma_name = kdma_entry.kdma
+                    kdma_value = kdma_entry.value
+
+                if kdma_name and kdma_name in self.attributes:
+                    attr = self.attributes[kdma_name]
+                    description = getattr(attr, 'description', '') or ''
+                    score_examples = getattr(attr, 'score_examples', '') or ''
+                    attr_name = getattr(attr, 'name', kdma_name)
+
+                    # Determine high/low focus based on target value
+                    focus = "high" if (kdma_value is not None and kdma_value >= 0.5) else "low"
+
+                    # Build positive/negative alignment from description and score_examples
+                    structure["target_attribute"][kdma_name] = {
+                        "focus": focus,
+                        "description": description,
+                        "positive_alignment": f"Actions demonstrating {focus} {attr_name}",
+                        "negative_alignment": f"Actions demonstrating {'low' if focus == 'high' else 'high'} {attr_name}",
+                        "score_examples": score_examples
+                    }
 
         dialog = []
         if self.system_prompt_template is not None:
