@@ -2,5 +2,6 @@ _target_: align_system.algorithms.decision_flow_adm.express_stage_unstructured.E
 
 structured_inference_engine: ${ref:adm.structured_inference_engine}
 max_json_retries: 100
+attributes: ${ref:adm.attribute_definitions}
 system_prompt_template:
   _target_: align_system.prompt_engineering.outlines_prompts.DefaultITMBaselineSystemPrompt
