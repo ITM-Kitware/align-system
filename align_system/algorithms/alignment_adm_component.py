@@ -246,7 +246,7 @@ class MedicalUrgencyAlignmentADMComponent(ADMComponent):
             if math.isclose(attribute_weights[kdma], 0.):  # don't consider attributes with 0 weight
                 vote_rsn = "Removing from consideration, 0 weight"
                 log.info(f"{kdma}: {vote_rsn}")
-                alignment_info["per_kdma"][kdma]["reasoning"] = vote_rsn
+                alignment_info["per_kdma"].setdefault(kdma, {})["reasoning"] = vote_rsn
                 continue
 
             vote_weight = attribute_weights[kdma]
