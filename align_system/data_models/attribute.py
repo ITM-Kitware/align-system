@@ -1,4 +1,4 @@
-from typing import Union, Optional
+from typing import Any, Union, Optional
 
 from pydantic import BaseModel
 
@@ -26,4 +26,5 @@ class Attribute(BaseModel):
 
 
 class AttributeTarget(Attribute):
-    value: float
+    value: Optional[float]=None
+    parameters: Optional[list[dict[str, Any]]]=None
