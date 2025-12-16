@@ -1,0 +1,12 @@
+id: Feb2026-PS-8
+kdma_values:
+- kdma: personal_safety
+  value: null
+  kdes: null
+  parameters:
+  - name: intercept
+    value: 2.6125
+  - name: attr_weight
+    value: 1.4125
+  - name: medical_weight
+    value: 0.66125

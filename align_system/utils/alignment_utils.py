@@ -591,6 +591,6 @@ def alignment_target_to_attribute_targets(alignment_target,
         attribute = attribute_definitions[t['kdma']]
 
         output_attribute_targets.append(
-            AttributeTarget(**dict(attribute), value=t['value']))
+            AttributeTarget(**dict(attribute), value=t['value'], parameters=t['parameters'] if 'parameters' in t else None))
 
     return output_attribute_targets

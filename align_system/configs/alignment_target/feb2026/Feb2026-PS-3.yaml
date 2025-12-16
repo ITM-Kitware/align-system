@@ -1,0 +1,12 @@
+id: Feb2026-PS-3
+kdma_values:
+- kdma: personal_safety
+  value: null
+  kdes: null
+  parameters:
+  - name: intercept
+    value: -1.2625
+  - name: attr_weight
+    value: 0.2375
+  - name: medical_weight
+    value: 0.75875

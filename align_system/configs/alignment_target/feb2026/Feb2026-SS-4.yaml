@@ -1,0 +1,12 @@
+id: Feb2026-SS-4
+kdma_values:
+- kdma: search
+  value: null
+  kdes: null
+  parameters:
+  - name: intercept
+    value: -0.45
+  - name: attr_weight
+    value: -0.996875
+  - name: medical_weight
+    value: -1.09375

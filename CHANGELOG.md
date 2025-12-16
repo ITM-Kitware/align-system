@@ -13,6 +13,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 * Added option to swap choice ordering for comparative regression pipeline ADM component
 * Added capability to resolve pipeline ADM step output conflicts with a custom function
 * Added inference engine for spectrum tuned LLMs that appropriately reformats chat template roles
+* Added alignment function based on a random-effects model
 
 ## 0.5.9
 

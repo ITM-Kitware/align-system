@@ -1,0 +1,22 @@
+id: Feb2026-MF8-SS1
+kdma_values:
+- kdma: merit
+  value: null
+  kdes: null
+  parameters:
+  - name: intercept
+    value: 4.0875
+  - name: attr_weight
+    value: 1.4125
+  - name: medical_weight
+    value: 1.55
+- kdma: search
+  value: null
+  kdes: null
+  parameters:
+  - name: intercept
+    value: 1.65
+  - name: attr_weight
+    value: -0.715625
+  - name: medical_weight
+    value: -2.03125
