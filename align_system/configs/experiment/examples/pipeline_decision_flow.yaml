@@ -4,38 +4,6 @@ defaults:
   - override /inference_engine@adm.structured_inference_engine: outlines_structured_multinomial_constrained
 
 adm:
-  step_definitions:
-    variables:
-      num_samples: 1
-      system_prompt_template:
-        _target_: align_system.prompt_engineering.outlines_prompts.DefaultITMBaselineSystemPrompt
-    extraction:
-      num_samples: 1
-      system_prompt_template:
-        _target_: align_system.prompt_engineering.outlines_prompts.DefaultITMBaselineSystemPrompt
-    attribute:
-      num_samples: 1
-      system_prompt_template:
-        _target_: align_system.prompt_engineering.outlines_prompts.DefaultITMBaselineSystemPrompt
-    filter:
-      num_samples: 1
-      system_prompt_template:
-        _target_: align_system.prompt_engineering.outlines_prompts.DefaultITMBaselineSystemPrompt
-    objective:
-      num_samples: 1
-      system_prompt_template:
-        _target_: align_system.prompt_engineering.outlines_prompts.DefaultITMBaselineSystemPrompt
-    # express:
-    #   num_samples: 1
-    #   system_prompt_template:
-    #     _target_: align_system.prompt_engineering.outlines_prompts.DefaultITMBaselineSystemPrompt
-    express_unstructured:
-      system_prompt_template:
-        _target_: align_system.prompt_engineering.outlines_prompts.DefaultITMBaselineSystemPrompt
-    math_reason:
-      system_prompt_template:
-        _target_: align_system.prompt_engineering.outlines_prompts.DefaultITMBaselineSystemPrompt
-
   instance:
     steps:
       - ${ref:adm.step_definitions.format_choices}
