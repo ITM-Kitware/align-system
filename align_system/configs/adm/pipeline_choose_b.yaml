@@ -1,0 +1,29 @@
+name: pipeline_choose_b
+
+defaults:
+  # Import defaults into this namspace (adm) as @name, for further
+  # customization
+
+  # ADM components to be used in "steps"
+  - /adm_component/misc@step_definitions.format_choices: itm_format_choices
+  - /adm_component/direct@step_definitions.choose_idx: choose_idx
+  - /adm_component/misc@step_definitions.random_action_parameter_completion: random_action_parameter_completion
+  - /adm_component/misc@step_definitions.ensure_chosen_action: ensure_chosen_action
+  - /adm_component/misc@step_definitions.populate_choice_info: populate_choice_info
+  # Use definitions in this file to override defaults defined above
+  - _self_
+
+step_definitions:
+  choose_idx:
+    choice_idx: 1
+
+instance:
+  _target_: align_system.algorithms.pipeline_adm.PipelineADM
+
+  steps:
+    # Reference the step instances we want to use in order
+    - ${ref:adm.step_definitions.format_choices}
+    - ${ref:adm.step_definitions.choose_idx}
+    - ${ref:adm.step_definitions.random_action_parameter_completion}
+    - ${ref:adm.step_definitions.ensure_chosen_action}
+    - ${ref:adm.step_definitions.populate_choice_info}

@@ -14,6 +14,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 * Added capability to resolve pipeline ADM step output conflicts with a custom function
 * Added inference engine for spectrum tuned LLMs that appropriately reformats chat template roles
 * Added alignment function based on a random-effects model
+* Added "always choose index X" ADM
 
 ## 0.5.9
 
