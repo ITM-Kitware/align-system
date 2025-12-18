@@ -1,0 +1,17 @@
+# @package _global_
+defaults:
+  - override /adm: phase2_pipeline_oracle
+  - override /interface: ta3
+  - override /adm_component/alignment@adm.step_definitions.scalar_alignment: random_effects_tuple
+
+interface:
+  api_endpoint: "https://darpaitm.caci.com"
+  session_type: adept
+  training_session: full
+  username: "testrun-pipeline_oracle_test"
+  domain: "p2triage"
+
+driver:
+  apply_action_filtering: false
+force_determinism: true
+align_to_target: true

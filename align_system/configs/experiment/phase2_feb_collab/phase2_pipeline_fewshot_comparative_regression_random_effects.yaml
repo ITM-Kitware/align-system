@@ -5,9 +5,10 @@ defaults:
   - override /adm_component/alignment@adm.step_definitions.scalar_alignment: random_effects_tuple
 
 interface:
+  api_endpoint: "https://darpaitm.caci.com"
   session_type: adept
   training_session: full
-  username: "pipeline_fewshot_comp_reg_loo"
+  username: "testrun-pipeline_fewshot_comp_reg_loo"
   domain: "p2triage"
 
 adm:
