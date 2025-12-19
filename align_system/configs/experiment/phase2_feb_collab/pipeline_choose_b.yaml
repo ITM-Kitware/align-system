@@ -4,9 +4,10 @@ defaults:
   - override /interface: ta3
 
 interface:
+  api_endpoint: "https://darpaitm.caci.com"
   session_type: adept
   training_session: full
-  username: "pipeline_feb2026_choose_b"
+  username: "testrun-pipeline_feb2026_choose_b"
   domain: "p2triage"
 
 adm:
