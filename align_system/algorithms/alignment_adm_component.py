@@ -1,4 +1,5 @@
 import math
+import numpy as np
 
 from align_system.utils import call_with_coerced_args, logging
 from align_system.algorithms.abstracts import ADMComponent
@@ -316,11 +317,14 @@ class MedicalUrgencyAlignmentWeightedADMComponent(MedicalUrgencyAlignmentADMComp
 class RandomEffectsModelAlignmentADMComponent(ADMComponent):
     def __init__(
         self,
-        attributes=None
+        attributes=None,
+        probabilistic: bool=False,
     ):
         if attributes is None:
             attributes = {}
         self.attributes = attributes
+
+        self.probabilistic = probabilistic
 
     def run_returns(self):
         return ('chosen_choice', 'best_sample_idx', 'alignment_info')
@@ -451,7 +455,14 @@ class RandomEffectsModelAlignmentADMComponent(ADMComponent):
                 "p_choose_a": p_choose_a,
             }
 
-            if p_choose_a >= 0.5:
-                return (opt_a["choice"], best_sample_idx, alignment_info)
+            if not self.probabilistic:
+                if p_choose_a >= 0.5:
+                    return (opt_a["choice"], best_sample_idx, alignment_info)
+                else:
+                    return (opt_b["choice"], best_sample_idx, alignment_info)
             else:
-                return (opt_b["choice"], best_sample_idx, alignment_info)
+                choices = [opt_a["choice"], opt_b["choice"]]
+                probs = [p_choose_a, 1-p_choose_a]
+
+                choice = np.random.choice(choices, p=probs)
+                return (choice, best_sample_idx, alignment_info)
