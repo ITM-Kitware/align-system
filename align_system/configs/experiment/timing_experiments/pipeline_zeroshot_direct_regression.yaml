@@ -1,0 +1,21 @@
+# @package _global_
+defaults:
+  - /alignment_target: "june2025/ADEPT-June2025-affiliation-1.0.yaml"
+  - override /adm: phase2_pipeline_direct_regression
+  - override /adm_component/alignment@adm.step_definitions.scalar_alignment: medical_urgency_weighted_scalar
+  - override /interface: input_output_file
+
+interface:
+  state_hydration_domain: "p2triage"
+  input_output_filepath: ${test_data_dir}/July2025-AF-train_20250804_timing_subsample.json
+
+adm:
+  step_definitions:
+    direct_regression:
+      enable_caching: false
+
+driver:
+  apply_action_filtering: false
+
+force_determinism: true
+align_to_target: true
