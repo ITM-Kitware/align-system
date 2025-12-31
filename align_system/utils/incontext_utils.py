@@ -5,6 +5,7 @@ import random
 import numpy as np
 from abc import ABCMeta, abstractmethod
 from bert_score import score as bert_score
+from omegaconf import ListConfig, OmegaConf
 
 from align_system.utils import adm_utils
 from align_system.utils import outlines_prompts_utils
@@ -223,6 +224,8 @@ class IncontextExampleGenerator(object, metaclass=ABCMeta):
             # Add examples for each dataset file
             dset_files = self.incontext_settings["datasets"][sys_kdma_name]
             # If there is only one, make it a list for the following loop
+            if isinstance(dset_files, ListConfig):
+                dset_files = OmegaConf.to_object(dset_files)
             if not isinstance(dset_files, list):
                 dset_files = [dset_files]
 

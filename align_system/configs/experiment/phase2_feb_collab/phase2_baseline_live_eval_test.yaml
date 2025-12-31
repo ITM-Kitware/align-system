@@ -1,20 +1,17 @@
 # @package _global_
 defaults:
   - override /adm: pipeline_baseline
+  - override /inference_engine@adm.structured_inference_engine: outlines_structured_greedy
   - override /interface: ta3
 
 interface:
   api_endpoint: "https://darpaitm.caci.com"
-  session_type: adept
-  training_session: full
-  username: "testrun-pipeline_baseline_spectrum_qwen"
+  session_type: eval
+  training_session: null
+  username: "testrun-pipeline_baseline"
   domain: "p2triage"
 
 adm:
-  structured_inference_engine:
-    _target_: align_system.algorithms.outlines_inference_engine.SpectrumTunedInferenceEngine
-    model_name: tsor13/spectrum-Qwen3-14B-v1
-
   step_definitions:
     outlines_baseline:
       scenario_description_template:
@@ -38,3 +35,8 @@ driver:
 
 force_determinism: true
 align_to_target: false
+save_last_unstructured_state_per_scenario: true
+
+hydra:
+  run:
+    dir: 'phase2_feb2026_results_local/phase2_baseline_live_eval_test/${now:%Y-%m-%d__%H-%M-%S}'

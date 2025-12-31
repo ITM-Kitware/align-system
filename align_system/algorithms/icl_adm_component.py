@@ -85,7 +85,8 @@ class ICLADMComponent(ADMComponent):
 
         alignment_target_value_lookup = {
             kdma_values['kdma']: kdma_values['value']
-            for kdma_values in alignment_target_dict['kdma_values']}
+            for kdma_values in alignment_target_dict['kdma_values']
+            if 'value' in kdma_values}
 
         icl_dialog_elements = {}
         icl_example_info = {}
