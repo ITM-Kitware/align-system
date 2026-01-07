@@ -17,13 +17,13 @@ adm:
       icl_generator_partial:
         incontext_settings:
           number: 20
-          leave_one_out_strategy: 'scenario_description' # LOO - Remove for eval
           datasets:
             medical: /data/shared/samba/phase2_icl/Feb2026-MU-train_20251218.json
             affiliation: /data/shared/samba/phase2_icl/Feb2026-AF-train_20251218.json
             merit: /data/shared/samba/phase2_icl/Feb2026-MF-train_20251218.json
             personal_safety: /data/shared/samba/phase2_icl/Feb2026-PS-train_20251218.json
             search: /data/shared/samba/phase2_icl/Feb2026-SS-train_20251218.json
+      enable_caching: true
     direct_regression:
       enable_caching: true
 
