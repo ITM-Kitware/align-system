@@ -1,4 +1,4 @@
-name: phase2_pipeline_zeroshot_comparative_regression_swap_average
+name: phase2_pipeline_direct_regression
 
 defaults:
   # Import defaults into this namspace (adm) as @name, for further
