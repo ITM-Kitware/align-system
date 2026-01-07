@@ -1,5 +1,10 @@
+import re
+import inspect
+import copy
 from functools import lru_cache
 from collections.abc import Mapping
+
+import ubelt as ub
 
 from align_system.utils import logging, call_with_coerced_args
 from align_system.utils.alignment_utils import attributes_in_alignment_target
@@ -37,7 +42,8 @@ class ICLADMComponent(ADMComponent):
                  scenario_description_template,
                  prompt_template,
                  attributes=None,
-                 target_attribute_names_override=None):
+                 target_attribute_names_override=None,
+                 enable_caching=False):
         self.icl_generator_partial = icl_generator_partial
         self.scenario_description_template = scenario_description_template
 
@@ -48,6 +54,8 @@ class ICLADMComponent(ADMComponent):
         self.prompt_template = prompt_template
 
         self.target_attribute_names_override = target_attribute_names_override
+
+        self.enable_caching = enable_caching
 
     def run_returns(self):
         return ('icl_dialog_elements', 'icl_example_info')
@@ -76,6 +84,29 @@ class ICLADMComponent(ADMComponent):
             target_attribute_names = overridden_target_attribute_names
 
         target_attributes = [self.attributes[n] for n in target_attribute_names]
+
+        if self.enable_caching:
+            scenario_state_copy = copy.deepcopy(scenario_state)
+            if hasattr(scenario_state, 'elapsed_time'):
+                # Don't consider the elapsed_time of the state when caching
+                scenario_state_copy.elapsed_time = 0
+
+            depends = '\n'.join((
+                self.cache_repr(),
+                repr(scenario_state_copy),
+                repr(choices),
+                repr(target_attribute_names)))
+
+            cacher = ub.Cacher('icl_adm_component', depends, verbose=0)
+            log.debug(f'cacher.fpath={cacher.fpath}')
+
+            cached_output = cacher.tryload()
+            if cached_output is not None:
+                log.info("Cache hit for `icl_adm_component`"
+                         " returning cached output")
+                return cached_output
+            else:
+                log.info("Cache miss for `icl_adm_component` ..")
 
         # Mapping covers `dict` and `omegaconf.dictconfig.DictConfig`
         if not isinstance(alignment_target, Mapping):
@@ -149,7 +180,40 @@ class ICLADMComponent(ADMComponent):
                 }
                 icl_example_info[attribute.kdma].append(icl_info)
 
-        return icl_dialog_elements, icl_example_info
+        outputs = (icl_dialog_elements, icl_example_info)
+
+        if self.enable_caching:
+            cacher.save(outputs)
+
+        return outputs
+
+    def cache_repr(self):
+        '''
+        Return a string representation of this object for caching;
+        .i.e. if the return value of this function is the same for two
+        object instances, it's assumed that `run` output will be
+        the same if given the same parameters
+        '''
+
+        def _generic_object_repr(obj):
+            init_params = inspect.signature(obj.__class__.__init__).parameters
+            obj_vars = vars(obj)
+
+            return "{}.{}({})".format(
+                obj.__class__.__module__,
+                obj.__class__.__name__,
+                ", ".join([f"{p}={obj_vars[p]}" for p in init_params
+                           if p != 'self' and p != 'args' and p != 'kwargs']))
+
+        return re.sub(r'^\s+', '',
+                      f"""
+                       {self.__class__.__module__}.{self.__class__.__name__}(
+                       icl_generator_partial={self.icl_generator_partial},
+                       scenario_description_template={_generic_object_repr(self.scenario_description_template)},
+                       prompt_template={_generic_object_repr(self.prompt_template)},
+                       attributes={self.attributes},
+                       target_attribute_names_override={self.target_attribute_names_override},
+                       )""", flags=re.MULTILINE).strip()
 
 
 # ICL Engines dependent on alignment target, but that could change
