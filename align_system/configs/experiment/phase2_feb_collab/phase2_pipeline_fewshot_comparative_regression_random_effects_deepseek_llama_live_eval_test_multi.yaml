@@ -26,6 +26,7 @@ adm:
             merit: /data/shared/samba/phase2_icl/Feb2026-MF-train_20251218.json
             personal_safety: /data/shared/samba/phase2_icl/Feb2026-PS-train_20251218.json
             search: /data/shared/samba/phase2_icl/Feb2026-SS-train_20251218.json
+      enable_caching: true
     comparative_regression:
       enable_caching: true
 
