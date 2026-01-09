@@ -1,0 +1,45 @@
+# @package _global_
+defaults:
+  - override /adm: pipeline_baseline
+  - override /interface: ta3
+
+interface:
+  api_endpoint: "https://darpaitm.caci.com"
+  session_type: eval
+  training_session: null
+  username: "ALIGN-ADM-OutlinesBaseline-spectrum-Qwen3-14B-v1"
+  domain: "p2triage"
+
+adm:
+  structured_inference_engine:
+    _target_: align_system.algorithms.outlines_inference_engine.SpectrumTunedInferenceEngine
+    model_name: tsor13/spectrum-Qwen3-14B-v1
+
+  step_definitions:
+    outlines_baseline:
+      scenario_description_template:
+        _target_: align_system.prompt_engineering.outlines_prompts.Phase2ScenarioDescription
+      prompt_template:
+        _target_: align_system.prompt_engineering.outlines_prompts.Phase2BaselinePrompt
+
+      enable_caching: true
+
+  instance:
+    steps:
+    # Reference the step instances we want to use in order
+    - ${ref:adm.step_definitions.format_choices}
+    - ${ref:adm.step_definitions.outlines_baseline}
+    # - ${ref:adm.step_definitions.action_parameter_completion}
+    - ${ref:adm.step_definitions.ensure_chosen_action}
+    - ${ref:adm.step_definitions.populate_choice_info}
+
+driver:
+  apply_action_filtering: false
+
+force_determinism: true
+align_to_target: false
+save_last_unstructured_state_per_scenario: true
+
+hydra:
+  run:
+    dir: 'phase2_feb2026_multi_results_live/phase2_baseline_spectrum_qwen_live_eval_multi/${now:%Y-%m-%d__%H-%M-%S}'
