@@ -1,13 +1,13 @@
 # @package _global_
 defaults:
-  - override /adm: pipeline_choose_a
+  - override /adm: pipeline_random
   - override /interface: ta3
 
 interface:
   api_endpoint: "https://darpaitm.caci.com"
   session_type: adept
   training_session: full
-  username: "testrun-pipeline_feb2026_choose_a"
+  username: "testrun-pipeline_random"
   domain: "p2triage"
 
 adm:
@@ -15,7 +15,7 @@ adm:
     steps:
     # Reference the step instances we want to use in order
     - ${ref:adm.step_definitions.format_choices}
-    - ${ref:adm.step_definitions.choose_idx}
+    - ${ref:adm.step_definitions.random_choice}
     # - ${ref:adm.step_definitions.action_parameter_completion}
     - ${ref:adm.step_definitions.ensure_chosen_action}
     - ${ref:adm.step_definitions.populate_choice_info}

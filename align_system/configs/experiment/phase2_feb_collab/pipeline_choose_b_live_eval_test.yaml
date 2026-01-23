@@ -1,13 +1,13 @@
 # @package _global_
 defaults:
-  - override /adm: pipeline_choose_a
+  - override /adm: pipeline_choose_b
   - override /interface: ta3
 
 interface:
   api_endpoint: "https://darpaitm.caci.com"
-  session_type: adept
-  training_session: full
-  username: "testrun-pipeline_feb2026_choose_a"
+  session_type: eval
+  training_session: null
+  username: "testrun-pipeline_feb2026_choose_b"
   domain: "p2triage"
 
 adm:
@@ -25,3 +25,8 @@ driver:
 
 force_determinism: true
 align_to_target: false
+save_last_unstructured_state_per_scenario: true
+
+hydra:
+  run:
+    dir: 'phase2_feb2026_results_local/pipeline_choose_b_live_eval_test/${now:%Y-%m-%d__%H-%M-%S}'

@@ -1,29 +1,33 @@
 # @package _global_
 defaults:
-  - override /adm: phase2_pipeline_fewshot_comparative_regression
+  - override /adm: phase2_pipeline_fewshot_comparative_regression_bert_relevance
   - override /interface: ta3
   - override /adm_component/alignment@adm.step_definitions.scalar_alignment: random_effects_tuple
 
 interface:
   api_endpoint: "https://darpaitm.caci.com"
-  session_type: adept
-  training_session: full
-  username: "testrun-pipeline_fewshot_comp_reg_loo"
+  session_type: eval
+  training_session: null
+  username: "ALIGN-ADM-Ph2-ComparativeRegression-BertRelevance-spectrum-Qwen3-14B-v1"
   domain: "p2triage"
 
 adm:
+  structured_inference_engine:
+    _target_: align_system.algorithms.outlines_inference_engine.SpectrumTunedInferenceEngine
+    model_name: tsor13/spectrum-Qwen3-14B-v1
+
   step_definitions:
     regression_icl:
       icl_generator_partial:
         incontext_settings:
           number: 20
-          leave_one_out_strategy: 'scenario_description' # LOO - Remove for eval
           datasets:
             medical: /data/shared/samba/phase2_icl/Feb2026-MU-train_20251218.json
             affiliation: /data/shared/samba/phase2_icl/Feb2026-AF-train_20251218.json
             merit: /data/shared/samba/phase2_icl/Feb2026-MF-train_20251218.json
             personal_safety: /data/shared/samba/phase2_icl/Feb2026-PS-train_20251218.json
             search: /data/shared/samba/phase2_icl/Feb2026-SS-train_20251218.json
+      enable_caching: true
     comparative_regression:
       enable_caching: true
 
@@ -31,3 +35,8 @@ driver:
   apply_action_filtering: false
 force_determinism: true
 align_to_target: true
+save_last_unstructured_state_per_scenario: true
+
+hydra:
+  run:
+    dir: 'phase2_feb2026_multi_results_live/phase2_pipeline_fewshot_comparative_regression_random_effects_spectrum_qwen_live_eval_multi/${now:%Y-%m-%d__%H-%M-%S}'

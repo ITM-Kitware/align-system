@@ -5,8 +5,8 @@ defaults:
 
 interface:
   api_endpoint: "https://darpaitm.caci.com"
-  session_type: adept
-  training_session: full
+  session_type: eval
+  training_session: null
   username: "testrun-pipeline_feb2026_choose_a"
   domain: "p2triage"
 
@@ -25,3 +25,8 @@ driver:
 
 force_determinism: true
 align_to_target: false
+save_last_unstructured_state_per_scenario: true
+
+hydra:
+  run:
+    dir: 'phase2_feb2026_results_local/pipeline_choose_a_live_eval_test/${now:%Y-%m-%d__%H-%M-%S}'

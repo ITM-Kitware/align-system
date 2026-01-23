@@ -1,19 +1,18 @@
 # @package _global_
 defaults:
-  - override /adm: phase2_pipeline_fewshot_comparative_regression
+  - override /adm: phase2_pipeline_direct_regression_bert_relevance
   - override /interface: ta3
   - override /adm_component/alignment@adm.step_definitions.scalar_alignment: random_effects_tuple
 
 interface:
-  api_endpoint: "https://darpaitm.caci.com"
   session_type: adept
   training_session: full
-  username: "testrun-pipeline_fewshot_comp_reg_loo"
+  username: "testrun-pipeline_direct_multi"
   domain: "p2triage"
 
 adm:
   step_definitions:
-    regression_icl:
+    regression_icl:  # Need ICL for bert relevance
       icl_generator_partial:
         incontext_settings:
           number: 20
@@ -24,10 +23,13 @@ adm:
             merit: /data/shared/samba/phase2_icl/Feb2026-MF-train_20251218.json
             personal_safety: /data/shared/samba/phase2_icl/Feb2026-PS-train_20251218.json
             search: /data/shared/samba/phase2_icl/Feb2026-SS-train_20251218.json
-    comparative_regression:
+    bert_relevance:
+      enable_caching: true
+    direct_regression:
       enable_caching: true
 
 driver:
   apply_action_filtering: false
+
 force_determinism: true
 align_to_target: true

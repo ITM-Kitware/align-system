@@ -1480,7 +1480,18 @@ class DirectRegressionPersonalSafetyTemplate:
         threat_unstructured = scenario_state['threat_state']['unstructured']
         char_unstructured = character['unstructured']
 
-        if m := re.match(f'{threat_unstructured}(.+){char_unstructured}', full_state_unstructured.replace("\n", " ")):
+        pattern = "{}(.+?){}".format(
+            threat_unstructured.replace("\n", " "),
+            char_unstructured.replace("\n", " "))
+
+        if m := re.match(pattern, full_state_unstructured.replace("\n", " ")):
             setup = m.group(1).strip()
+        else:
+            # FIXME: This case is needed specifically for
+            # multi-attribute targets (and single attribute scenarios)
+            # where we may need to run regression for Personal Safety
+            # on an Affiliation scenario (where the text structure is
+            # a bit different)
+            return f"  - {char_unstructured}"
 
         return f"{setup}\n  - {char_unstructured}"

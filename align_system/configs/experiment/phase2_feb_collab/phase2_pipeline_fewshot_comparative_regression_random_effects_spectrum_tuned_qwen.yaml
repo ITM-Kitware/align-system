@@ -8,10 +8,14 @@ interface:
   api_endpoint: "https://darpaitm.caci.com"
   session_type: adept
   training_session: full
-  username: "testrun-pipeline_fewshot_comp_reg_loo"
+  username: "testrun-pipeline_fewshot_comp_reg_loo_spectrum_qwen"
   domain: "p2triage"
 
 adm:
+  structured_inference_engine:
+    _target_: align_system.algorithms.outlines_inference_engine.SpectrumTunedInferenceEngine
+    model_name: tsor13/spectrum-Qwen3-14B-v1
+
   step_definitions:
     regression_icl:
       icl_generator_partial:
