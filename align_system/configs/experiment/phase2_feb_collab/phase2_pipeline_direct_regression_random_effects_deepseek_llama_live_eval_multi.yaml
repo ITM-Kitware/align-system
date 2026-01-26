@@ -14,7 +14,7 @@ interface:
 adm:
   structured_inference_engine:
     model_name: deepseek-ai/DeepSeek-R1-Distill-Llama-8B
-  
+
   step_definitions:
     regression_icl:  # Need ICL for bert relevance
       icl_generator_partial:
