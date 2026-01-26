@@ -327,14 +327,15 @@ class RandomEffectsModelAlignmentADMComponent(ADMComponent):
 
     def _compute_p_choose_a(self, kdma, intercept, medical_weight, attr_weight, raw_medical_delta, raw_attr_score):
         # Provided by ADEPT 2025-12-12
+        # MF updated 2026-01-21
         scaling = {
             "affiliation": {
                 "medical": [0.403801, 0.297245],
                 "attribute": [0.405073, 0.298288],
             },
             "merit": {
-                "medical": [0.433409, 0.308294],
-                "attribute": [0.357632, 0.27947],
+                "medical": [0.428961, 0.301250],
+                "attribute": [0.337618, 0.272520],
             },
             "personal_safety": {
                 "medical": [0.456221, 0.246484],
