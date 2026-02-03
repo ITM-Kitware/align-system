@@ -342,7 +342,7 @@ class ITMPhase1Driver:
                 _tmp_current_state = deepcopy(current_state)
                 if hasattr(last_state, "elapsed_time"):
                     _tmp_current_state.elapsed_time = last_state.elapsed_time
-                    state_has_changed = (_tmp_current_state != last_state)
+                state_has_changed = (_tmp_current_state != last_state)
                 if state_has_changed:
                     noop_actions = []
                 else:
