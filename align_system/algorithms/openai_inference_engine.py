@@ -1,13 +1,11 @@
-from typing import Union, Optional, Literal
-from functools import partial
-from copy import deepcopy
-from openai import OpenAI
+import json
 
+from typing import Union, Optional, Literal, Iterable
+from copy import deepcopy
+from openai import OpenAI, not_given
 
 from align_system.algorithms.abstracts import StructuredInferenceEngine
 
-
-class VLLMInferenceEngine(StructuredInferenceEngine):
 
 # TODO Either create a second class VLLMInferenceEngine or two different params classes
 class OpenAIInferenceEngine(StructuredInferenceEngine):
@@ -16,7 +14,7 @@ class OpenAIInferenceEngine(StructuredInferenceEngine):
                  temperature: float,
                  top_p: float,
                  max_tokens: int,
-                 inference_batch_size: int
+                 inference_batch_size: int,
                  base_url: Optional[str] = None,
                  api_key: Optional[str] = None,
                  organization: Optional[str] = None,
@@ -30,9 +28,7 @@ class OpenAIInferenceEngine(StructuredInferenceEngine):
         self.temperature = temperature
         self.top_p = top_p
         self.inference_batch_size = inference_batch_size
-
-        # Delete if VLLM does not care about the presence of an api key
-        # _api_key = os.environ.get("OPENAI_API_KEY") if not (base_url or api_key) else api_key
+        self.max_tokens = max_tokens
 
         self.client = OpenAI(
             api_key=api_key,
@@ -40,12 +36,43 @@ class OpenAIInferenceEngine(StructuredInferenceEngine):
             project=project,
             webhook_secret=webhook_secret,
             base_url=base_url,
-            timeout=timeout,
+            timeout=not_given if timeout == "NOT_GIVEN" else timeout,
             _strict_response_validation=_strict_response_validation
         )
 
-        self.responses_kwargs = {
-            "model": self.model,
+    def dialog_to_prompt(self, dialog: list[dict]) -> str:
+        # OpenAI uses "developer" prompt instread of "system" (which is not exposed to the caller)
+        # https://platform.openai.com/docs/guides/prompt-engineering#message-roles-and-instruction-following
+        # https://model-spec.openai.com/2025-02-12.html#definitions
+        if not self.client.base_url:
+            # We are targetting the OpenAI service
+            prompt = deepcopy(dialog)
+            for p in prompt:
+                if p["role"] == "system":
+                    p["role"] = "developer"
+        else:
+            # TOOD verify with local VLLM model if we need-to/should-be doing the above remapping regardless
+            prompt = dialog
+        return json.dumps(prompt)
+
+    def run_inference(self, prompts: Union[str, list[str]], schema: str) -> Union[dict, list[dict]]:
+        prompts = [prompts] if isinstance(prompts, str) else prompts
+        text = self.text_field(schema)
+        if isinstance(prompts, Iterable):
+            return [
+                    self.client.responses.create(
+                        input=json.loads(p),
+                        text=text,
+                        **self.responses_kwargs()) 
+                    for p in prompts
+                    ]
+        else:
+            raise TypeError("Don't know how to run inference on provided "
+                            "`prompts` object")                                  
+
+    def responses_kwargs(self) -> dict:
+        return {
+            "model": self.model_name,
             "reasoning": {"effort": "medium",  "summary": "auto"},
             "max_output_tokens": self.max_tokens,
             "temperature": self.temperature,
@@ -54,32 +81,13 @@ class OpenAIInferenceEngine(StructuredInferenceEngine):
             "store":True
         }
 
-    def dialog_to_prompt(self, dialog: list[dict]) -> str:
-        # OpenAI uses "developer" prompt instread of "system" (which is not exposed to the caller)
-        # https://platform.openai.com/docs/guides/prompt-engineering#message-roles-and-instruction-following
-        if not self.base_url:
-            # We are targetting the OpenAI service
-            prompt = deepcopy(dialog)
-            for p in prompt:
-                if p["role"] == "system":
-                    p["role"] = "developer"
-        return prompt   
-
-
-    def run_inference(self, prompts: Union[str, list[str]], schema: str) -> Union[dict, list[dict]]:
-        return self.client.responses.create(
-                                                input=prompts,
-                                                text=self.text_field(schema)
-                                                **self.responses_kwargs
-                                            )
-
     @staticmethod
-    def text_field(schema):
+    def text_field(schema: str) -> dict:
         return {
             "format": {
                 "type": "json_schema",
                 "name": "ITM Schema",
-                "schema": schema,
+                "schema": json.loads(schema),
                 "strict": True
             }
         }
