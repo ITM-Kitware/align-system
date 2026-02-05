@@ -7,7 +7,6 @@ from openai import OpenAI, not_given
 from align_system.algorithms.abstracts import StructuredInferenceEngine
 
 
-# TODO Either create a second class VLLMInferenceEngine or two different params classes
 class OpenAIInferenceEngine(StructuredInferenceEngine):
     def __init__(self,
                  model_name: str,
