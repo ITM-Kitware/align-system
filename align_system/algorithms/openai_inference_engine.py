@@ -23,11 +23,6 @@ class OpenAIInferenceEngine(StructuredInferenceEngine):
                  timeout: Union[float, None, Literal["NOT_GIVEN"]] = "NOT_GIVEN"
                 ):
 
-        self.model_name = model_name
-        self.temperature = temperature
-        self.top_p = top_p
-        self.max_tokens = max_tokens
-
         self.client = OpenAI(
             api_key=api_key,
             organization=organization,
@@ -37,6 +32,16 @@ class OpenAIInferenceEngine(StructuredInferenceEngine):
             timeout=not_given if timeout == "NOT_GIVEN" else timeout,
             _strict_response_validation=_strict_response_validation
         )
+
+        self.static_responses_kwargs = {
+            "model": model_name,
+            "reasoning": {"effort": "medium",  "summary": "auto"},
+            "max_output_tokens": max_tokens,
+            "temperature": temperature,
+            "top_p": top_p,
+            "service_tier":"flex",
+            "store":True
+        }
 
         self._cache_repr: str = dedent(f"""
                         {self.__class__.__module__}.{self.__class__.__name__}(
@@ -76,7 +81,7 @@ class OpenAIInferenceEngine(StructuredInferenceEngine):
                     self.client.responses.create(
                         input=json.loads(p),
                         text=text,
-                        **self.responses_kwargs()) 
+                        **self.static_responses_kwargs) 
                     for p in prompts
                     ]
         else:
@@ -85,17 +90,6 @@ class OpenAIInferenceEngine(StructuredInferenceEngine):
 
     def cache_repr(self):
         return self._cache_repr
-
-    def responses_kwargs(self) -> dict:
-        return {
-            "model": self.model_name,
-            "reasoning": {"effort": "medium",  "summary": "auto"},
-            "max_output_tokens": self.max_tokens,
-            "temperature": self.temperature,
-            "top_p": self.top_p,
-            "service_tier":"flex",
-            "store":True
-        }
 
     @staticmethod
     def text_field(schema: str) -> dict:
