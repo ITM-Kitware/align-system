@@ -25,8 +25,6 @@ class OpenAIInferenceEngine(StructuredInferenceEngine):
 
         self.model_name = model_name
         self.temperature = temperature
-        self.top_p = top_p
-        self.inference_batch_size = inference_batch_size
         self.max_tokens = max_tokens
 
         self.client = OpenAI(
