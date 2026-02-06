@@ -41,3 +41,9 @@ run_align_system = 'align_system.cli.run_align_system:main'
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[dependency-groups]
+openai = [
+    "openai (>=2.15.0,<3.0.0)",
+    "httpx (>=0.28.1,<0.29.0)"
+]

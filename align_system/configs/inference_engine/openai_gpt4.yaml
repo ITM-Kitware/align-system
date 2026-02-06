@@ -1,0 +1,17 @@
+_target_: align_system.algorithms.openai_inference_engine.OpenAIInferenceEngine
+
+# https://github.com/openai/openai-python/blob/main/src/openai/_client.py#L99
+model_name: gpt-4
+temperature: 0.7
+top_p: 0.9
+max_tokens: 4096
+
+# Optional kwargs
+base_url: null       # Set to null for OpenAI cloud
+api_key: null        # Reads from OPENAI_API_KEY env var if null
+organization: null   # Reads from OPENAI_ORG_ID  env var if null
+project: null        # Reads from OPENAI_PROJECT_ID  env var if null
+webhook_secret: null # Reads from OPENAI_WEBHOOK_SECRET  env var if null
+timeout: "NOT_GIVEN"
+# Optional unstable kwargs
+_strict_response_validation: True
