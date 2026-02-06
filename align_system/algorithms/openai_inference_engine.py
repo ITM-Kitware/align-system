@@ -3,6 +3,7 @@ import json
 from typing import Union, Optional, Literal, Iterable
 from copy import deepcopy
 from openai import OpenAI, not_given
+from textwrap import dedent
 
 from align_system.algorithms.abstracts import StructuredInferenceEngine
 
@@ -13,7 +14,6 @@ class OpenAIInferenceEngine(StructuredInferenceEngine):
                  temperature: float,
                  top_p: float,
                  max_tokens: int,
-                 inference_batch_size: int,
                  base_url: Optional[str] = None,
                  api_key: Optional[str] = None,
                  organization: Optional[str] = None,
@@ -38,6 +38,21 @@ class OpenAIInferenceEngine(StructuredInferenceEngine):
             timeout=not_given if timeout == "NOT_GIVEN" else timeout,
             _strict_response_validation=_strict_response_validation
         )
+
+        self._cache_repr: str = dedent(f"""
+                        {self.__class__.__module__}.{self.__class__.__name__}(
+                        model_name="{model_name}",
+                        temperature="{temperature}",
+                        top_p="{top_p}",
+                        max_tokens="{max_tokens}",
+                        base_url="{base_url}",
+                        api_key="{api_key}",
+                        organization="{organization}",
+                        project="{project}",
+                        webhook_secret="{webhook_secret}",
+                        _strict_response_validation="{_strict_response_validation}",
+                        timeout="{timeout}"
+                       )""").strip()
 
     def dialog_to_prompt(self, dialog: list[dict]) -> str:
         # OpenAI uses "developer" prompt instread of "system" (which is not exposed to the caller)
@@ -68,6 +83,9 @@ class OpenAIInferenceEngine(StructuredInferenceEngine):
         else:
             raise TypeError("Don't know how to run inference on provided "
                             "`prompts` object")                                  
+
+    def cache_repr(self):
+        return self._cache_repr
 
     def responses_kwargs(self) -> dict:
         return {
