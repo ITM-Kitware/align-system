@@ -74,19 +74,25 @@ class OpenAIInferenceEngine(StructuredInferenceEngine):
         return json.dumps(prompt)
 
     def run_inference(self, prompts: Union[str, list[str]], schema: str) -> Union[dict, list[dict]]:
+        return self._run_inference(prompts, schema)                                
+
+    def run_inference_unstructured(self, prompts: Union[str, list[str]]) -> Union[dict, list[dict]]:
+        return self._run_inference(prompts)                            
+
+    def _run_inference(self, prompts: Union[str, list[str]], schema: Optional[str] = None):
         prompts = [prompts] if isinstance(prompts, str) else prompts
-        text = self.text_field(schema)
+        text_kwarg = {"text": self.text_field(schema)} if schema else {}
         if isinstance(prompts, Iterable):
             return [
                     self.client.responses.create(
                         input=json.loads(p),
-                        text=text,
+                        **text_kwarg,
                         **self.static_responses_kwargs) 
                     for p in prompts
                     ]
         else:
             raise TypeError("Don't know how to run inference on provided "
-                            "`prompts` object")                                  
+                            "`prompts` object")  
 
     def cache_repr(self):
         return self._cache_repr
