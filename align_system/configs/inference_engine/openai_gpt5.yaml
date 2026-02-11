@@ -1,7 +1,7 @@
 _target_: align_system.algorithms.openai_inference_engine.OpenAIInferenceEngine
 
 # https://github.com/openai/openai-python/blob/main/src/openai/_client.py#L99
-model_name: gpt-4o
+model_name: gpt-5.2
 temperature: 0.7
 top_p: 0.9
 max_tokens: 4096
