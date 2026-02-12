@@ -22,7 +22,7 @@ class OpenAIInferenceEngine(StructuredInferenceEngine):
                  webhook_secret: Optional[str] = None,
                  _strict_response_validation: bool = False,
                  timeout: Union[float, None, Literal["NOT_GIVEN"]] = "NOT_GIVEN",
-                 use_batch_api: bool = False
+                 use_batch_api: bool = True
                 ):
 
         self.client = OpenAI(
@@ -49,8 +49,15 @@ class OpenAIInferenceEngine(StructuredInferenceEngine):
             "store":True
         }
 
-        print(self.static_responses_kwargs)
-
+        self.static_batches_kwargs = {
+            "model": model_name,
+            "reasoning": {"effort": "medium",  "summary": "auto"},
+            "max_output_tokens": max_tokens,
+            # Server is telling me these are not supported, but docs say they are.
+            # "temperature": temperature,
+            # "top_p": top_p,
+            "store":True
+        }
         self._cache_repr: str = dedent(f"""
                         {self.__class__.__module__}.{self.__class__.__name__}(
                         model_name="{model_name}",
@@ -74,7 +81,6 @@ class OpenAIInferenceEngine(StructuredInferenceEngine):
         # https://platform.openai.com/docs/guides/prompt-engineering#message-roles-and-instruction-following
         # https://model-spec.openai.com/2025-02-12.html#definitions
         if not self.using_vllm:
-            print("We are targetting the OpenAI service")
             for p in prompt:
                 if p["role"] == "system":
                     p["role"] = "developer"
@@ -87,11 +93,7 @@ class OpenAIInferenceEngine(StructuredInferenceEngine):
         return self._run_inference(prompts)                            
 
     def _run_inference(self, prompts: Union[str, list[str]], schema: Optional[str] = None) -> Union[Dict, List[Dict]]:
-        print(prompts)
-        
         json_prompts = self._deserialize_prompts(prompts)
-        print(f"JSON Prompts: {json_prompts}")
-
         text_kwargs = {"text": self.response_format_field(schema)} if schema else {}
 
         # Use batch API if enabled and we have multiple prompts
@@ -126,7 +128,6 @@ class OpenAIInferenceEngine(StructuredInferenceEngine):
             create_responses = partial(self.client.responses.create, **text_kwargs, **self.static_responses_kwargs)
             results = []
             for p in prompts:
-                print(f"prompt for responses api: {p}")
                 response = create_responses(input=p)
                 # Convert response object to dict for processing
                 response_dict = response.model_dump()
@@ -153,7 +154,7 @@ class OpenAIInferenceEngine(StructuredInferenceEngine):
             print("----")
             # Build the request parameters
             request_params = {
-                **self.static_responses_kwargs,
+                **self.static_batches_kwargs,
                 **text_kwarg,
                 "input": prompt
             }
@@ -198,6 +199,26 @@ class OpenAIInferenceEngine(StructuredInferenceEngine):
             if batch.status == "completed":
                 # Download and parse results
                 result_file_id = batch.output_file_id
+
+                # Retry a few times if output_file_id is None (API may need time to populate it)
+                retry_count = 0
+                max_retries = 3
+                while result_file_id is None and retry_count < max_retries:
+                    print(f"Warning: output_file_id is None, retrying ({retry_count + 1}/{max_retries})...")
+                    time.sleep(2)  # Wait 2 seconds
+                    batch = self.client.batches.retrieve(batch.id)
+                    result_file_id = batch.output_file_id
+                    retry_count += 1
+
+                # If still None after retries, raise error
+                if result_file_id is None:
+                    print(f"ERROR: Batch {batch.id} marked as completed but output_file_id is None after {max_retries} retries")
+                    print(f"Batch details: {batch}")
+                    raise RuntimeError(
+                        f"Batch {batch.id} completed but output_file_id was not populated after {max_retries} retries. "
+                        f"Check batch error details: {getattr(batch, 'errors', 'No error info available')}"
+                    )
+
                 result_content = self.client.files.content(result_file_id)
                 result_lines = result_content.text.strip().split('\n')
 
