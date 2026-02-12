@@ -1,7 +1,8 @@
 import json
+import time
+import tempfile
 
-from typing import Union, Optional, Literal, Iterable, Callable, List, Dict
-from copy import deepcopy
+from typing import Union, Optional, Literal, Iterable, List, Dict, Tuple
 from openai import OpenAI, not_given
 from textwrap import dedent
 from functools import partial
@@ -20,7 +21,8 @@ class OpenAIInferenceEngine(StructuredInferenceEngine):
                  project: Optional[str] = None,
                  webhook_secret: Optional[str] = None,
                  _strict_response_validation: bool = False,
-                 timeout: Union[float, None, Literal["NOT_GIVEN"]] = "NOT_GIVEN"
+                 timeout: Union[float, None, Literal["NOT_GIVEN"]] = "NOT_GIVEN",
+                 use_batch_api: bool = False
                 ):
 
         self.client = OpenAI(
@@ -34,6 +36,7 @@ class OpenAIInferenceEngine(StructuredInferenceEngine):
         )
 
         self.using_vllm = base_url is not None
+        self.use_batch_api = use_batch_api
 
         self.static_responses_kwargs = {
             "model": model_name,
@@ -70,12 +73,11 @@ class OpenAIInferenceEngine(StructuredInferenceEngine):
         # OpenAI uses "developer" prompt instread of "system" (which is not exposed to the caller)
         # https://platform.openai.com/docs/guides/prompt-engineering#message-roles-and-instruction-following
         # https://model-spec.openai.com/2025-02-12.html#definitions
-        if self.using_vllm:
+        if not self.using_vllm:
             print("We are targetting the OpenAI service")
             for p in prompt:
                 if p["role"] == "system":
                     p["role"] = "developer"
-        print(prompt)
         return json.dumps(prompt)
 
     def run_inference(self, prompts: Union[str, List[str]], schema: str) -> Union[Dict, List[Dict]]:
@@ -85,58 +87,195 @@ class OpenAIInferenceEngine(StructuredInferenceEngine):
         return self._run_inference(prompts)                            
 
     def _run_inference(self, prompts: Union[str, list[str]], schema: Optional[str] = None) -> Union[Dict, List[Dict]]:
+        print(prompts)
+        
+        json_prompts = self._deserialize_prompts(prompts)
+        print(f"JSON Prompts: {json_prompts}")
 
-        run_async = False if isinstance(prompts, str) else True
-        run_async = False  # DELETE ME
-        prompts = [prompts] if isinstance(prompts, str) else prompts
+        text_kwargs = {"text": self.response_format_field(schema)} if schema else {}
 
-        text_kwarg = {"text": self.response_format_field(schema)} if schema else {}
+        # Use batch API if enabled and we have multiple prompts
+        if len(json_prompts) > 1 and self.use_batch_api:
+            return self._create_batches(json_prompts, text_kwargs)
+        else:
+            return self._create_responses(json_prompts, text_kwargs)
+        
+    @staticmethod
+    def _deserialize_prompts(prompts: Union[str, List[str]]) -> List[List[Dict]]:
+        # We assume that we are either receiving:
+        # 1: A json string containing a single developer-user prompt-pair (List[Dict]). 
+        # 2: An iterable of json strings containing multiple developer-user prompt-pairs (List[List[Dict]])
+        # 3: An iterable of a single json string containing a single developer-user prompt-pair wrapped in an iterable container (List[List[Dict]]) but outer List has len == 1.
+        # Hence, the need for this check.
+        is_single_json_string = isinstance(prompts, str)
+        is_multiple_json_strings = isinstance(prompts, list) and len(prompts) > 1 and all([isinstance(p,str) for p in prompts])
+        is_wrapped_single_json_string = isinstance(prompts, list) and len(prompts) == 1 and isinstance(prompts[0], str)
 
-        if isinstance(prompts, Iterable) and run_async:
-            # https://developers.openai.com/api/docs/guides/batch?lang=python
-            pass
-        elif isinstance(prompts, Iterable) and not run_async:
-            create_responses = partial(self.client.responses.create, **text_kwarg, **self.static_responses_kwargs)
-            # return [create_responses(input=json.loads(p)).model_dump() for p in prompts]
+        assert is_single_json_string or is_multiple_json_strings or is_wrapped_single_json_string
+
+        if is_single_json_string:
+            # Single developer-user prompt-pair; wrap it for uniformity
+            return [json.loads(prompts)]
+        elif is_multiple_json_strings or is_wrapped_single_json_string:
+            return [json.loads(p) for p in prompts]
+        else:
+            raise TypeError("Argument prompts had an unexpected type")
+
+    def _create_responses(self, prompts: List[List[Dict]], text_kwargs):
+            # Synchronous processing (default)
+            create_responses = partial(self.client.responses.create, **text_kwargs, **self.static_responses_kwargs)
             results = []
             for p in prompts:
-                response = create_responses(input=json.loads(p))
+                print(f"prompt for responses api: {p}")
+                response = create_responses(input=p)
+                # Convert response object to dict for processing
+                response_dict = response.model_dump()
+                parsed_result = self._extract_response_content(response_dict, has_schema=bool(text_kwargs))
+                results.append(parsed_result)
+            return results  
 
-                # Extract the parsed JSON content from the response
-                # response.output is a list that can contain:
-                # - ResponseReasoningItem (type='reasoning') - the internal reasoning
-                # - ResponseOutputMessage (type='message') - the actual output
-                if response.output and len(response.output) > 0:
-                    # Find the message output (not the reasoning)
-                    message_output = None
-                    for output_item in response.output:
-                        if hasattr(output_item, 'type') and output_item.type == 'message':
-                            message_output = output_item
-                            break
+    def _create_batches(self, prompts: List[List[Dict]], text_kwarg: dict) -> List[Dict]:
+        """
+        Run inference using OpenAI Batch API for async processing.
+        Docs: https://platform.openai.com/docs/guides/batch
 
-                    if message_output and message_output.content and len(message_output.content) > 0:
-                        # Get the text from the first content item (handle different content types)
-                        first_content = message_output.content[0]
-                        text_content = getattr(first_content, 'text', None)
-                        if text_content:
-                            if schema:
-                                # Parse as JSON for structured outputs
-                                results.append(json.loads(text_content))
-                            else:
-                                # Return as plain text for unstructured outputs
-                                results.append({"response": text_content})
-                        else:
-                            # Handle refusal or other content types
-                            results.append(None)
+        Args:
+            prompts: List of List of 2 JSON dictionaries each
+            text_kwarg: Dictionary containing text format configuration
+
+        Returns:
+            List of parsed response dictionaries
+        """
+        # Prepare batch requests in JSONL format
+        batch_requests = []
+        for idx, prompt in enumerate(prompts):
+            print(prompt)
+            print("----")
+            # Build the request parameters
+            request_params = {
+                **self.static_responses_kwargs,
+                **text_kwarg,
+                "input": prompt
+            }
+
+            # Create batch request in the format expected by the Batch API
+            batch_request = {
+                "custom_id": f"request-{idx}",
+                "method": "POST",
+                "url": "/v1/responses",
+                "body": request_params
+            }
+            batch_requests.append(batch_request)
+
+        # Write batch requests to a temporary JSONL file
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.jsonl', delete=False) as f:
+            for request in batch_requests:
+                f.write(json.dumps(request) + '\n')
+            batch_file_path = f.name
+
+        try:
+            # Upload the batch file
+            with open(batch_file_path, 'rb') as f:
+                batch_input_file = self.client.files.create(
+                    file=f,
+                    purpose="batch"
+                )
+
+            # Create the batch
+            batch = self.client.batches.create(
+                input_file_id=batch_input_file.id,
+                endpoint="/v1/responses",
+                completion_window="24h"
+            )
+
+            # Poll for batch completion
+            print(f"Batch {batch.id} created, polling for completion...")
+            while batch.status in ["validating", "in_progress", "finalizing"]:
+                time.sleep(5)  # Poll every 5 seconds
+                batch = self.client.batches.retrieve(batch.id)
+                print(f"Batch status: {batch.status}")
+
+            if batch.status == "completed":
+                # Download and parse results
+                result_file_id = batch.output_file_id
+                result_content = self.client.files.content(result_file_id)
+                result_lines = result_content.text.strip().split('\n')
+
+                # Parse results and match to original order by custom_id
+                results_dict = {}
+                for line in result_lines:
+                    result = json.loads(line)
+                    custom_id = result['custom_id']
+                    idx = int(custom_id.split('-')[1])
+
+                    # Extract the response
+                    if result.get('response'):
+                        response_data = result['response']['body']
+                        # Parse the response similar to sync path
+                        parsed_result = self._extract_response_content(
+                            response_data,
+                            has_schema=bool(text_kwarg)
+                        )
+                        results_dict[idx] = parsed_result
                     else:
-                        results.append(None)
-                else:
-                    results.append(None)
-            return results
-        else:
-            raise TypeError("Don't know how to run inference on provided "
-                            "`prompts` object")  
-    
+                        # Handle errors
+                        results_dict[idx] = None
+
+                # Return results in original order
+                return [results_dict.get(i) for i in range(len(prompts))]
+
+            elif batch.status == "failed":
+                raise RuntimeError(f"Batch processing failed: {batch}")
+            elif batch.status == "expired":
+                raise RuntimeError(f"Batch processing expired: {batch}")
+            else:
+                raise RuntimeError(f"Unexpected batch status: {batch.status}")
+
+        finally:
+            # Clean up the temporary file
+            import os
+            if os.path.exists(batch_file_path):
+                os.remove(batch_file_path)
+
+    def _extract_response_content(self, response_data: dict, has_schema: bool) -> Optional[Dict]:
+        """
+        Extract and parse content from a response object.
+
+        Args:
+            response_data: The response data dictionary
+            has_schema: Whether structured output was requested
+
+        Returns:
+            Parsed content dictionary or None
+        """
+        output = response_data.get('output', [])
+        if not output:
+            return None
+
+        # Find the message output (not the reasoning)
+        message_output = None
+        for output_item in output:
+            if isinstance(output_item, dict) and output_item.get('type') == 'message':
+                message_output = output_item
+                break
+
+        if not message_output or not message_output.get('content'):
+            return None
+
+        # Get the text from the first content item
+        first_content = message_output['content'][0]
+        text_content = first_content.get('text')
+
+        if text_content:
+            if has_schema:
+                # Parse as JSON for structured outputs
+                return json.loads(text_content)
+            else:
+                # Return as plain text for unstructured outputs
+                return {"response": text_content}
+
+        return None
+
     def cache_repr(self):
         return self._cache_repr
 
