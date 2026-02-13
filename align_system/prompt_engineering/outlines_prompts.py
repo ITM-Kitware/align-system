@@ -1494,3 +1494,45 @@ class DirectRegressionPersonalSafetyTemplate:
             return f"  - {char_unstructured}"
 
         return f"{setup}\n  - {char_unstructured}"
+
+
+def comparative_regression_regex(choices, scale_factor=100, reasoning_max_length=512):
+    assert scale_factor == 100
+
+    choice_regexes = []
+    for choice in choices:
+        choice_regexes.append(
+            rf'"{re.escape(choice)}":\s\{{"score":\s(\d|\d{{2}}|100)\}}')
+
+    return r'\{{"reasoning":\s"[^"]{{0,{}}}",\s{}\}}'.format(
+        reasoning_max_length, (r',\s'.join(choice_regexes)))
+
+
+class ComparativeRegressionRegex():
+    def __init__(self, factor_lookup, default_factor=None, reasoning_max_length=512):
+        self.factor_lookup = factor_lookup
+        self.default_factor = default_factor
+        self.reasoning_max_length = reasoning_max_length
+
+    def __call__(self, choices, attribute):
+        return comparative_regression_regex(
+                choices,
+                self.factor_lookup.get(attribute, self.default_factor),
+                self.reasoning_max_length)
+
+
+class DirectRegressionSchemaTemplateRegex:
+    def __init__(self,
+                 min_value=0,
+                 max_value=100,
+                 max_reasoning_length=512):
+        self.min_value = min_value
+        self.max_value = max_value
+        self.max_reasoning_length = max_reasoning_length
+
+    def __call__(self):
+        assert self.min_value == 0
+        assert self.max_value == 100
+
+        return r'\{{"reasoning":\s"[^"]{{0,{}}}",\s"score":\s(\d|\d{{2}}|100)\}}'.format(
+            self.max_reasoning_length)
