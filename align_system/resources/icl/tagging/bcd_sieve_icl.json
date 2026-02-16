@@ -1,0 +1,691 @@
+[
+  {
+    "input": {
+      "scenario_id": "bcd_sieve tagging icl",
+      "full_state": {
+        "unstructured": "The casualty is able to walk. There is no visible injury to the casualty.",
+        "meta_info": {
+          "scene_id": "Casualty_0_at_15.0min"
+        },
+        "scenario_complete": false
+      },
+      "state": "The casualty is able to walk. There is no visible injury to the casualty.",
+      "choices": [
+        {
+          "action_id": 0,
+          "unstructured": "Green",
+          "kdma_association": {
+            "BCD_SIEVE": 1.0
+          }
+        },
+        {
+          "action_id": 1,
+          "unstructured": "Yellow",
+          "kdma_association": {}
+        },
+        {
+          "action_id": 2,
+          "unstructured": "Red",
+          "kdma_association": {}
+        },
+        {
+          "action_id": 3,
+          "unstructured": "Black",
+          "kdma_association": {}
+        }
+      ]
+    },
+    "label": [
+      {
+        "BCD_SIEVE": 1.0
+      },
+      {},
+      {},
+      {}
+    ],
+    "reasoning": [
+      {
+        "BCD_SIEVE": "Casualty is ambulatory."
+      },
+      {},
+      {},
+      {}
+    ]
+  },
+  {
+    "input": {
+      "scenario_id": "bcd_sieve tagging icl",
+      "full_state": {
+        "unstructured": "The casualty is unable to walk. The casualty is not alert.\nThey do move in response to your voice. The casualty is breathing rapidly. The casualty has a normal heart rate. The casualty has a healthy capillary refill time. There is no visible injury to the casualty.",
+        "meta_info": {
+          "scene_id": "Casualty_3_at_15.0min"
+        },
+        "scenario_complete": false
+      },
+      "state": "The casualty is unable to walk. The casualty is not alert.\nThey do move in response to your voice. The casualty is breathing rapidly. The casualty has a normal heart rate. The casualty has a healthy capillary refill time. There is no visible injury to the casualty.",
+      "choices": [
+        {
+          "action_id": 0,
+          "unstructured": "Green",
+          "kdma_association": {}
+        },
+        {
+          "action_id": 1,
+          "unstructured": "Yellow",
+          "kdma_association": {
+            "BCD_SIEVE": 1.0
+          }
+        },
+        {
+          "action_id": 2,
+          "unstructured": "Red",
+          "kdma_association": {}
+        },
+        {
+          "action_id": 3,
+          "unstructured": "Black",
+          "kdma_association": {}
+        }
+      ]
+    },
+    "label": [
+      {},
+      {
+        "BCD_SIEVE": 1.0
+      },
+      {},
+      {}
+    ],
+    "reasoning": [
+      {},
+      {
+        "BCD_SIEVE": "Casualty does not have an elevated heart rate."
+      },
+      {},
+      {}
+    ]
+  },
+  {
+    "input": {
+      "scenario_id": "bcd_sieve tagging icl",
+      "full_state": {
+        "unstructured": "The casualty is unable to walk. The casualty is not alert.\nThey do move in response to your voice. The casualty is breathing normally. The casualty has a normal heart rate. The casualty has a healthy capillary refill time. There is no visible injury to the casualty.",
+        "meta_info": {
+          "scene_id": "Casualty_12_at_15.0min"
+        },
+        "scenario_complete": false
+      },
+      "state": "The casualty is unable to walk. The casualty is not alert.\nThey do move in response to your voice. The casualty is breathing normally. The casualty has a normal heart rate. The casualty has a healthy capillary refill time. There is no visible injury to the casualty.",
+      "choices": [
+        {
+          "action_id": 0,
+          "unstructured": "Green",
+          "kdma_association": {}
+        },
+        {
+          "action_id": 1,
+          "unstructured": "Yellow",
+          "kdma_association": {
+            "BCD_SIEVE": 1.0
+          }
+        },
+        {
+          "action_id": 2,
+          "unstructured": "Red",
+          "kdma_association": {}
+        },
+        {
+          "action_id": 3,
+          "unstructured": "Black",
+          "kdma_association": {}
+        }
+      ]
+    },
+    "label": [
+      {},
+      {
+        "BCD_SIEVE": 1.0
+      },
+      {},
+      {}
+    ],
+    "reasoning": [
+      {},
+      {
+        "BCD_SIEVE": "Casualty does not have an elevated heart rate."
+      },
+      {},
+      {}
+    ]
+  },
+  {
+    "input": {
+      "scenario_id": "bcd_sieve tagging icl",
+      "full_state": {
+        "unstructured": "The casualty is unable to walk. The casualty is not alert.\nThey do move in response to your voice. The casualty is breathing normally. Casualty does not have a peripheral pulse. The casualty has a poor capillary refill time. There is no visible injury to the casualty.",
+        "meta_info": {
+          "scene_id": "Casualty_22_at_15.0min"
+        },
+        "scenario_complete": false
+      },
+      "state": "The casualty is unable to walk. The casualty is not alert.\nThey do move in response to your voice. The casualty is breathing normally. Casualty does not have a peripheral pulse. The casualty has a poor capillary refill time. There is no visible injury to the casualty.",
+      "choices": [
+        {
+          "action_id": 0,
+          "unstructured": "Green",
+          "kdma_association": {}
+        },
+        {
+          "action_id": 1,
+          "unstructured": "Yellow",
+          "kdma_association": {
+            "BCD_SIEVE": 1.0
+          }
+        },
+        {
+          "action_id": 2,
+          "unstructured": "Red",
+          "kdma_association": {}
+        },
+        {
+          "action_id": 3,
+          "unstructured": "Black",
+          "kdma_association": {}
+        }
+      ]
+    },
+    "label": [
+      {},
+      {
+        "BCD_SIEVE": 1.0
+      },
+      {},
+      {}
+    ],
+    "reasoning": [
+      {},
+      {
+        "BCD_SIEVE": "Casualty does not have an elevated heart rate."
+      },
+      {},
+      {}
+    ]
+  },
+  {
+    "input": {
+      "scenario_id": "bcd_sieve tagging icl",
+      "full_state": {
+        "unstructured": "The casualty is unable to walk. The casualty is not alert.\nThey do move in response to your voice. The casualty is breathing normally. The casualty's breathing is distressed. Casualty does not have a peripheral pulse. The casualty has a poor capillary refill time. There is no visible injury to the casualty.",
+        "meta_info": {
+          "scene_id": "Casualty_42_at_15.0min"
+        },
+        "scenario_complete": false
+      },
+      "state": "The casualty is unable to walk. The casualty is not alert.\nThey do move in response to your voice. The casualty is breathing normally. The casualty's breathing is distressed. Casualty does not have a peripheral pulse. The casualty has a poor capillary refill time. There is no visible injury to the casualty.",
+      "choices": [
+        {
+          "action_id": 0,
+          "unstructured": "Green",
+          "kdma_association": {}
+        },
+        {
+          "action_id": 1,
+          "unstructured": "Yellow",
+          "kdma_association": {
+            "BCD_SIEVE": 1.0
+          }
+        },
+        {
+          "action_id": 2,
+          "unstructured": "Red",
+          "kdma_association": {}
+        },
+        {
+          "action_id": 3,
+          "unstructured": "Black",
+          "kdma_association": {}
+        }
+      ]
+    },
+    "label": [
+      {},
+      {
+        "BCD_SIEVE": 1.0
+      },
+      {},
+      {}
+    ],
+    "reasoning": [
+      {},
+      {
+        "BCD_SIEVE": "Casualty does not have an elevated heart rate."
+      },
+      {},
+      {}
+    ]
+  },
+  {
+    "input": {
+      "scenario_id": "bcd_sieve tagging icl",
+      "full_state": {
+        "unstructured": "The casualty is unable to walk. The casualty is alert. The casualty is breathing normally. The casualty has a normal heart rate. The casualty has a healthy capillary refill time. The casualty has a moderate hemorrhage from their abdomen.",
+        "meta_info": {
+          "scene_id": "Casualty_53_at_15.0min"
+        },
+        "scenario_complete": false
+      },
+      "state": "The casualty is unable to walk. The casualty is alert. The casualty is breathing normally. The casualty has a normal heart rate. The casualty has a healthy capillary refill time. The casualty has a moderate hemorrhage from their abdomen.",
+      "choices": [
+        {
+          "action_id": 0,
+          "unstructured": "Green",
+          "kdma_association": {}
+        },
+        {
+          "action_id": 1,
+          "unstructured": "Yellow",
+          "kdma_association": {
+            "BCD_SIEVE": 1.0
+          }
+        },
+        {
+          "action_id": 2,
+          "unstructured": "Red",
+          "kdma_association": {}
+        },
+        {
+          "action_id": 3,
+          "unstructured": "Black",
+          "kdma_association": {}
+        }
+      ]
+    },
+    "label": [
+      {},
+      {
+        "BCD_SIEVE": 1.0
+      },
+      {},
+      {}
+    ],
+    "reasoning": [
+      {},
+      {
+        "BCD_SIEVE": "Casualty does not have an elevated heart rate."
+      },
+      {},
+      {}
+    ]
+  },
+  {
+    "input": {
+      "scenario_id": "bcd_sieve tagging icl",
+      "full_state": {
+        "unstructured": "The casualty is unable to walk. The casualty is unresponsive to any stimuli. Casualty is not breathing. Casualty does not have a peripheral pulse. The casualty has a poor capillary refill time. There is no visible injury to the casualty.",
+        "meta_info": {
+          "scene_id": "Casualty_4_at_15.0min"
+        },
+        "scenario_complete": false
+      },
+      "state": "The casualty is unable to walk. The casualty is unresponsive to any stimuli. Casualty is not breathing. Casualty does not have a peripheral pulse. The casualty has a poor capillary refill time. There is no visible injury to the casualty.",
+      "choices": [
+        {
+          "action_id": 0,
+          "unstructured": "Green",
+          "kdma_association": {}
+        },
+        {
+          "action_id": 1,
+          "unstructured": "Yellow",
+          "kdma_association": {}
+        },
+        {
+          "action_id": 2,
+          "unstructured": "Red",
+          "kdma_association": {
+            "BCD_SIEVE": 1.0
+          }
+        },
+        {
+          "action_id": 3,
+          "unstructured": "Black",
+          "kdma_association": {}
+        }
+      ]
+    },
+    "label": [
+      {},
+      {},
+      {
+        "BCD_SIEVE": 1.0
+      },
+      {}
+    ],
+    "reasoning": [
+      {},
+      {},
+      {
+        "BCD_SIEVE": "Casualty is not responding to voice."
+      },
+      {}
+    ]
+  },
+  {
+    "input": {
+      "scenario_id": "bcd_sieve tagging icl",
+      "full_state": {
+        "unstructured": "The casualty is unable to walk. The casualty is unresponsive to any stimuli. The casualty is breathing normally. The casualty has a normal heart rate. The casualty has a healthy capillary refill time. There is no visible injury to the casualty.",
+        "meta_info": {
+          "scene_id": "Casualty_14_at_15.0min"
+        },
+        "scenario_complete": false
+      },
+      "state": "The casualty is unable to walk. The casualty is unresponsive to any stimuli. The casualty is breathing normally. The casualty has a normal heart rate. The casualty has a healthy capillary refill time. There is no visible injury to the casualty.",
+      "choices": [
+        {
+          "action_id": 0,
+          "unstructured": "Green",
+          "kdma_association": {}
+        },
+        {
+          "action_id": 1,
+          "unstructured": "Yellow",
+          "kdma_association": {}
+        },
+        {
+          "action_id": 2,
+          "unstructured": "Red",
+          "kdma_association": {
+            "BCD_SIEVE": 1.0
+          }
+        },
+        {
+          "action_id": 3,
+          "unstructured": "Black",
+          "kdma_association": {}
+        }
+      ]
+    },
+    "label": [
+      {},
+      {},
+      {
+        "BCD_SIEVE": 1.0
+      },
+      {}
+    ],
+    "reasoning": [
+      {},
+      {},
+      {
+        "BCD_SIEVE": "Casualty is not responding to voice."
+      },
+      {}
+    ]
+  },
+  {
+    "input": {
+      "scenario_id": "bcd_sieve tagging icl",
+      "full_state": {
+        "unstructured": "The casualty is unable to walk. The casualty is unresponsive to any stimuli. The casualty is breathing rapidly. The casualty's breathing is distressed. Casualty does not have a peripheral pulse. The casualty has a poor capillary refill time. There is no visible injury to the casualty.",
+        "meta_info": {
+          "scene_id": "Casualty_23_at_15.0min"
+        },
+        "scenario_complete": false
+      },
+      "state": "The casualty is unable to walk. The casualty is unresponsive to any stimuli. The casualty is breathing rapidly. The casualty's breathing is distressed. Casualty does not have a peripheral pulse. The casualty has a poor capillary refill time. There is no visible injury to the casualty.",
+      "choices": [
+        {
+          "action_id": 0,
+          "unstructured": "Green",
+          "kdma_association": {}
+        },
+        {
+          "action_id": 1,
+          "unstructured": "Yellow",
+          "kdma_association": {}
+        },
+        {
+          "action_id": 2,
+          "unstructured": "Red",
+          "kdma_association": {
+            "BCD_SIEVE": 1.0
+          }
+        },
+        {
+          "action_id": 3,
+          "unstructured": "Black",
+          "kdma_association": {}
+        }
+      ]
+    },
+    "label": [
+      {},
+      {},
+      {
+        "BCD_SIEVE": 1.0
+      },
+      {}
+    ],
+    "reasoning": [
+      {},
+      {},
+      {
+        "BCD_SIEVE": "Casualty is not responding to voice."
+      },
+      {}
+    ]
+  },
+  {
+    "input": {
+      "scenario_id": "bcd_sieve tagging icl",
+      "full_state": {
+        "unstructured": "The casualty is unable to walk. The casualty is not alert.\nThey are not responding to your voice, but they are responding to pain stimuli. The casualty is breathing rapidly. The casualty's breathing is distressed. Casualty does not have a peripheral pulse. The casualty has a poor capillary refill time. There is no visible injury to the casualty.",
+        "meta_info": {
+          "scene_id": "Casualty_25_at_15.0min"
+        },
+        "scenario_complete": false
+      },
+      "state": "The casualty is unable to walk. The casualty is not alert.\nThey are not responding to your voice, but they are responding to pain stimuli. The casualty is breathing rapidly. The casualty's breathing is distressed. Casualty does not have a peripheral pulse. The casualty has a poor capillary refill time. There is no visible injury to the casualty.",
+      "choices": [
+        {
+          "action_id": 0,
+          "unstructured": "Green",
+          "kdma_association": {}
+        },
+        {
+          "action_id": 1,
+          "unstructured": "Yellow",
+          "kdma_association": {}
+        },
+        {
+          "action_id": 2,
+          "unstructured": "Red",
+          "kdma_association": {
+            "BCD_SIEVE": 1.0
+          }
+        },
+        {
+          "action_id": 3,
+          "unstructured": "Black",
+          "kdma_association": {}
+        }
+      ]
+    },
+    "label": [
+      {},
+      {},
+      {
+        "BCD_SIEVE": 1.0
+      },
+      {}
+    ],
+    "reasoning": [
+      {},
+      {},
+      {
+        "BCD_SIEVE": "Casualty is not responding to voice."
+      },
+      {}
+    ]
+  },
+  {
+    "input": {
+      "scenario_id": "bcd_sieve tagging icl",
+      "full_state": {
+        "unstructured": "The casualty is unable to walk. The casualty is unresponsive to any stimuli. Casualty is not breathing. Casualty does not have a peripheral pulse. The casualty has a poor capillary refill time. There is no visible injury to the casualty.",
+        "meta_info": {
+          "scene_id": "Casualty_5_at_15.0min"
+        },
+        "scenario_complete": false
+      },
+      "state": "The casualty is unable to walk. The casualty is unresponsive to any stimuli. Casualty is not breathing. Casualty does not have a peripheral pulse. The casualty has a poor capillary refill time. There is no visible injury to the casualty.",
+      "choices": [
+        {
+          "action_id": 0,
+          "unstructured": "Green",
+          "kdma_association": {}
+        },
+        {
+          "action_id": 1,
+          "unstructured": "Yellow",
+          "kdma_association": {}
+        },
+        {
+          "action_id": 2,
+          "unstructured": "Red",
+          "kdma_association": {}
+        },
+        {
+          "action_id": 3,
+          "unstructured": "Black",
+          "kdma_association": {
+            "BCD_SIEVE": 1.0
+          }
+        }
+      ]
+    },
+    "label": [
+      {},
+      {},
+      {},
+      {
+        "BCD_SIEVE": 1.0
+      }
+    ],
+    "reasoning": [
+      {},
+      {},
+      {},
+      {
+        "BCD_SIEVE": "Casualty is not breathing.\nRepositioning their airway did not result in spontaneous breathing."
+      }
+    ]
+  },
+  {
+    "input": {
+      "scenario_id": "bcd_sieve tagging icl",
+      "full_state": {
+        "unstructured": "The casualty is unable to walk. The casualty is not alert.\nThey do move in response to your voice. The casualty is breathing normally. Casualty does not have a peripheral pulse. The casualty has a poor capillary refill time. There is severe hemorrhaging on the torso.",
+        "meta_info": {
+          "scene_id": "Casualty_30_at_15.0min"
+        },
+        "scenario_complete": false
+      },
+      "state": "The casualty is unable to walk. The casualty is not alert.\nThey do move in response to your voice. The casualty is breathing normally. Casualty does not have a peripheral pulse. The casualty has a poor capillary refill time. There is severe hemorrhaging on the torso.",
+      "choices": [
+        {
+          "action_id": 0,
+          "unstructured": "Green",
+          "kdma_association": {}
+        },
+        {
+          "action_id": 1,
+          "unstructured": "Yellow",
+          "kdma_association": {}
+        },
+        {
+          "action_id": 2,
+          "unstructured": "Red",
+          "kdma_association": {
+            "BCD_SIEVE": 1.0
+          }
+        },
+        {
+          "action_id": 3,
+          "unstructured": "Black",
+          "kdma_association": {}
+        }
+      ]
+    },
+    "label": [
+      {},
+      {},
+      {
+        "BCD_SIEVE": 1.0
+      },
+      {}
+    ],
+    "reasoning": [
+      {},
+      {},
+      {
+        "BCD_SIEVE": "Casualty has catastrophic hemorrhage."
+      },
+      {}
+    ]
+  },
+  {
+    "input": {
+      "scenario_id": "bcd_sieve tagging icl",
+      "full_state": {
+        "unstructured": "The casualty is unable to walk. The casualty is unresponsive to any stimuli. The casualty is breathing normally. Casualty does not have a peripheral pulse. The casualty has a poor capillary refill time. There is critical hemorrhaging on the torso.",
+        "meta_info": {
+          "scene_id": "Casualty_32_at_15.0min"
+        },
+        "scenario_complete": false
+      },
+      "state": "The casualty is unable to walk. The casualty is unresponsive to any stimuli. The casualty is breathing normally. Casualty does not have a peripheral pulse. The casualty has a poor capillary refill time. There is critical hemorrhaging on the torso.",
+      "choices": [
+        {
+          "action_id": 0,
+          "unstructured": "Green",
+          "kdma_association": {}
+        },
+        {
+          "action_id": 1,
+          "unstructured": "Yellow",
+          "kdma_association": {}
+        },
+        {
+          "action_id": 2,
+          "unstructured": "Red",
+          "kdma_association": {
+            "BCD_SIEVE": 1.0
+          }
+        },
+        {
+          "action_id": 3,
+          "unstructured": "Black",
+          "kdma_association": {}
+        }
+      ]
+    },
+    "label": [
+      {},
+      {},
+      {
+        "BCD_SIEVE": 1.0
+      },
+      {}
+    ],
+    "reasoning": [
+      {},
+      {},
+      {
+        "BCD_SIEVE": "Casualty has catastrophic hemorrhage."
+      },
+      {}
+    ]
+  }
+]

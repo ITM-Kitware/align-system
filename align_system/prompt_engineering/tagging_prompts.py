@@ -152,7 +152,7 @@ based only on the provided description and the following criteria. \
   * If <12 or >23 breaths per minute: tag as Red
   * If within normal range (12-23): proceed to Step 6
 6. Circulatory Status
-  * If pulse >120 bpm or capillary refill time >2 seconds: tag as Red
+  * If pulse >100 bpm: tag as Red
   * If normal: proceed to Step 7
 7. Final Determination
   * If none of the above critical conditions apply: tag as Yellow
