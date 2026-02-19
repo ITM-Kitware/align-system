@@ -52,7 +52,7 @@ the uncertainty.
 """
 
 
-class BaselineTaggingSystemPrompt():
+class BaselineTaggingSystemPrompt:
     def __call__(self):
         return baseline_tagging_system_prompt()
 
@@ -86,7 +86,7 @@ Instructions:
 3. Assign the appropriate color for the provided patient state: Green, Yellow, Red, or Black.
 2. Provide a brief explanation justifying the assigned tag color, referencing relevant criteria.
 
-If critical information is missing, select the most appropriate color  based on available details and clearly state \
+If critical information is missing, select the most appropriate color based on available details and clearly state \
 the uncertainty.
 
 """
@@ -99,11 +99,9 @@ You are working with an Army combat medic to help triage patients. \
 Your role is to provide a color representing the patients state \
 based only on the provided description and the following criteria. \
 
-1. Global Sorting:
-  * If the patient is walking: tag as Green
-  * If the patient shows purposeful movement or has a palpable peripheral pulse: proceed to Step 2
+1. Breathing Status:
   * If the patient is not breathing after airway repositioning: tag as Black
-2. Individual Assessment (for patients not tagged during global sorting)
+2. Major Injury Assessments
   * If the patient does not obey commands or cannot make purposeful movements: tag as Red
       * If patient is unlikely to survive: tag as Black
   * If the patient does not have a peripheral pulse: tag as Red
@@ -112,16 +110,17 @@ based only on the provided description and the following criteria. \
      * If patient is unlikely to survive: tag as Black
   * If a major hemorrhages is not controlled: Tag as Red
      * If patient is unlikely to survive: tag as Black
+  * If no major injuries: proceed to Step 3
 3. Other Injuries
   * If there are other serious injuries: tag as Yellow
-  * If there are other minor injuries: tag as Green
+  * If there are no injuries or only minor injuries: tag as Green
 
 Instructions:
 1. Only evaluate the patient based on the criteria above. Ignore any symptoms or diagnosis.
 3. Assign the appropriate color for the provided patient state: Green, Yellow, Red, or Black.
 2. Provide a brief explanation justifying the assigned tag color, referencing relevant criteria.
 
-If critical information is missing, select the most appropriate color  based on available details and clearly state \
+If critical information is missing, select the most appropriate color based on available details and clearly state \
 the uncertainty.
 """
 
@@ -146,8 +145,8 @@ based only on the provided description and the following criteria. \
       * If breathing resumes:  proceed to Step 4
   * If breathing is already present: proceed to Step 4
 4. Level of consciousness
-  * If unconscious or unresponsive: tag as Red
-  * If responsive: proceed to Step 5
+  * If not responsive to your voice: tag as Red
+  * If responds to your voice: proceed to Step 5
 5. Respiratory Rate
   * If <12 or >23 breaths per minute: tag as Red
   * If within normal range (12-23): proceed to Step 6
@@ -162,7 +161,7 @@ Instructions:
 3. Assign the appropriate color for the provided patient state: Green, Yellow, Red, or Black.
 2. Provide a brief explanation justifying the assigned tag color, referencing relevant criteria.
 
-If critical information is missing, select the most appropriate color  based on available details and clearly state \
+If critical information is missing, select the most appropriate color based on available details and clearly state \
 the uncertainty.
 """
 
