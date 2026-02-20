@@ -83,10 +83,10 @@ based only on the provided description and the following criteria. \
 
 Instructions:
 1. Only evaluate the patient based on the criteria above. Ignore any injuries, symptoms or diagnosis.
-3. Assign the appropriate color for the provided patient state: Line, Triangle, Circle, Square.
-2. Provide a brief explanation justifying the assigned tag color, referencing relevant criteria.
+3. Assign the appropriate shape for the provided patient state: Line, Triangle, Circle, Square.
+2. Provide a brief explanation justifying the assigned tag shape, referencing relevant criteria.
 
-If critical information is missing, select the most appropriate color based on available details and clearly state \
+If critical information is missing, select the most appropriate shape based on available details and clearly state \
 the uncertainty.
 
 """
@@ -117,10 +117,10 @@ based only on the provided description and the following criteria. \
 
 Instructions:
 1. Only evaluate the patient based on the criteria above. Ignore any symptoms or diagnosis.
-3. Assign the appropriate color for the provided patient state: Line, Triangle, Circle, Square.
-2. Provide a brief explanation justifying the assigned tag color, referencing relevant criteria.
+3. Assign the appropriate shape for the provided patient state: Line, Triangle, Circle, Square.
+2. Provide a brief explanation justifying the assigned tag shape, referencing relevant criteria.
 
-If critical information is missing, select the most appropriate color based on available details and clearly state \
+If critical information is missing, select the most appropriate shape based on available details and clearly state \
 the uncertainty.
 """
 
@@ -158,10 +158,10 @@ based only on the provided description and the following criteria. \
 
 Instructions:
 1. Only evaluate the patient based on the criteria above. Do not diagnose the patient. Do not treat the patient.
-3. Assign the appropriate color for the provided patient state: Line, Triangle, Circle, Square.
-2. Provide a brief explanation justifying the assigned tag color, referencing relevant criteria.
+3. Assign the appropriate shape for the provided patient state: Line, Triangle, Circle, Square.
+2. Provide a brief explanation justifying the assigned tag shape, referencing relevant criteria.
 
-If critical information is missing, select the most appropriate color based on available details and clearly state \
+If critical information is missing, select the most appropriate shape based on available details and clearly state \
 the uncertainty.
 """
 
