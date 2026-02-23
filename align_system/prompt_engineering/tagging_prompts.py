@@ -66,7 +66,7 @@ based only on the provided description and the following protocol. \
 
 1. Ambulatory Status
   * If the patient can walk: tag as Line and stop protocol
-  * If unknown or non-ambulatory: proceed to step 2
+  * If the patient cannot walk: proceed to step 2
 2. Breathing
   * If not breathing: open or reposition airway
       * Breathing does not resume: tag as Square and stop protocol
@@ -82,7 +82,7 @@ based only on the provided description and the following protocol. \
   * Able to follow commands: tag as Triangle and stop protocol
 
 Instructions:
-1. Only evaluate the patient based on the criteria above. Ignore any injuries, symptoms or diagnosis.
+1. Only evaluate the patient based on the criteria above. Ignore injuries, symptoms or diagnosis.
 3. Assign the appropriate shape for the provided patient state: Line, Triangle, Circle, Square.
 2. Provide a brief explanation justifying the assigned tag shape, referencing relevant criteria.
 
@@ -116,7 +116,7 @@ based only on the provided description and the following protocol. \
   * If there are no injuries or only minor injuries: tag as Line
 
 Instructions:
-1. Only evaluate the patient based on the criteria above. Ignore any symptoms or diagnosis.
+1. Only evaluate the patient based on the criteria above. Ignore injuries, symptoms or diagnosis.
 3. Assign the appropriate shape for the provided patient state: Line, Triangle, Circle, Square.
 2. Provide a brief explanation justifying the assigned tag shape, referencing relevant criteria.
 
@@ -137,7 +137,7 @@ based only on the provided description and the following protocol. \
   * If absent: proceed to Step 2
 2. Ambulatory Status
   * If the patient can walk: tag as Line and stop protocol
-  * If not: proceed to Step 3
+  * If the patient is unable to walk: proceed to Step 3
 3. Breathing
   * If not breathing:
     * Open/reposition the airway
@@ -152,10 +152,12 @@ based only on the provided description and the following protocol. \
   * If within normal range (12-23): proceed to Step 6
 6. Circulatory Status
   * If pulse >100 bpm: tag as Circle and stop protocol
-  * If pulse is <100 bpm: tag as Triangle and stop protocol
+  * Else proceed to Step 7
+7. Final Step
+  * Tag as Triangle and stop protocol
 
 Instructions:
-1. Only evaluate the patient based on the criteria above. Do not diagnose the patient. Do not treat the patient.
+1. Only evaluate the patient based on the criteria above. Ignore non hemorrhage injuries. Do not diagnose the patient.
 3. Assign the appropriate shape for the provided patient state: Line, Triangle, Circle, Square.
 2. Provide a brief explanation justifying the assigned tag shape, referencing relevant criteria.
 
