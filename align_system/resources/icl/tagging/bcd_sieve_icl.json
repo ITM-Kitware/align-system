@@ -3,13 +3,13 @@
     "input": {
       "scenario_id": "0 tagging icl",
       "full_state": {
-        "unstructured": "The casualty is breathing normally. The casualty has a normal heart rate. The casualty has a healthy capillary refill time. The casualty is able to walk.",
+        "unstructured": "The casualty has a healthy capillary refill time. The casualty has a normal heart rate. The casualty is breathing normally. The casualty is able to walk.",
         "meta_info": {
           "scene_id": "Casualty_0_at_15.0min"
         },
         "scenario_complete": false
       },
-      "state": "The casualty is breathing normally. The casualty has a normal heart rate. The casualty has a healthy capillary refill time. The casualty is able to walk.",
+      "state": "The casualty has a healthy capillary refill time. The casualty has a normal heart rate. The casualty is breathing normally. The casualty is able to walk.",
       "choices": [
         {
           "action_id": 0,
@@ -56,13 +56,13 @@
     "input": {
       "scenario_id": "27 tagging icl",
       "full_state": {
-        "unstructured": "The casualty is able to walk. The casualty has a healthy capillary refill time. The casualty is breathing normally. The casualty has a normal heart rate. A thorax hemorrhage was treated and is controlled.",
+        "unstructured": "The casualty is able to walk. The casualty has a healthy capillary refill time. The casualty has a normal heart rate. The casualty is breathing normally. A thorax hemorrhage was treated and is controlled.",
         "meta_info": {
           "scene_id": "Casualty_27_at_15.0min"
         },
         "scenario_complete": false
       },
-      "state": "The casualty is able to walk. The casualty has a healthy capillary refill time. The casualty is breathing normally. The casualty has a normal heart rate. A thorax hemorrhage was treated and is controlled.",
+      "state": "The casualty is able to walk. The casualty has a healthy capillary refill time. The casualty has a normal heart rate. The casualty is breathing normally. A thorax hemorrhage was treated and is controlled.",
       "choices": [
         {
           "action_id": 0,
@@ -109,13 +109,13 @@
     "input": {
       "scenario_id": "3 tagging icl",
       "full_state": {
-        "unstructured": "The casualty is not alert. They do move in response to your voice. The casualty has a healthy capillary refill time. The casualty is unable to walk. The casualty is breathing rapidly. The casualty has a normal heart rate.",
+        "unstructured": "The casualty has a healthy capillary refill time. The casualty is breathing rapidly. The casualty has a normal heart rate. The casualty is not alert. They do move in response to your voice. The casualty is unable to walk.",
         "meta_info": {
           "scene_id": "Casualty_3_at_15.0min"
         },
         "scenario_complete": false
       },
-      "state": "The casualty is not alert. They do move in response to your voice. The casualty has a healthy capillary refill time. The casualty is unable to walk. The casualty is breathing rapidly. The casualty has a normal heart rate.",
+      "state": "The casualty has a healthy capillary refill time. The casualty is breathing rapidly. The casualty has a normal heart rate. The casualty is not alert. They do move in response to your voice. The casualty is unable to walk.",
       "choices": [
         {
           "action_id": 0,
@@ -162,13 +162,13 @@
     "input": {
       "scenario_id": "53 tagging icl",
       "full_state": {
-        "unstructured": "The casualty has a normal heart rate. The casualty is unable to walk. The casualty is breathing normally. The casualty is alert. The casualty has a healthy capillary refill time. An abdominal hemorrhage was treated and is controlled.",
+        "unstructured": "The casualty has a normal heart rate. The casualty is alert with good mental status. The casualty has a healthy capillary refill time. The casualty is breathing normally. The casualty is unable to walk. An abdominal hemorrhage was treated and is controlled.",
         "meta_info": {
           "scene_id": "Casualty_53_at_15.0min"
         },
         "scenario_complete": false
       },
-      "state": "The casualty has a normal heart rate. The casualty is unable to walk. The casualty is breathing normally. The casualty is alert. The casualty has a healthy capillary refill time. An abdominal hemorrhage was treated and is controlled.",
+      "state": "The casualty has a normal heart rate. The casualty is alert with good mental status. The casualty has a healthy capillary refill time. The casualty is breathing normally. The casualty is unable to walk. An abdominal hemorrhage was treated and is controlled.",
       "choices": [
         {
           "action_id": 0,
@@ -215,13 +215,13 @@
     "input": {
       "scenario_id": "4 tagging icl",
       "full_state": {
-        "unstructured": "The casualty is not breathing. The casualty is unable to walk. The casualty has a poor capillary refill time. The casualty is unresponsive to any stimuli. The casualty does not have a peripheral pulse. Repositioning their airway resulted in spontaneous breathing. Casualty is now breathing.",
+        "unstructured": "The casualty does not have a peripheral pulse. The casualty is not breathing. The casualty is unresponsive to any stimuli. The casualty has a poor capillary refill time. The casualty is unable to walk. Repositioning their airway resulted in spontaneous breathing. Casualty is now breathing.",
         "meta_info": {
           "scene_id": "Casualty_4_at_15.0min"
         },
         "scenario_complete": false
       },
-      "state": "The casualty is not breathing. The casualty is unable to walk. The casualty has a poor capillary refill time. The casualty is unresponsive to any stimuli. The casualty does not have a peripheral pulse. Repositioning their airway resulted in spontaneous breathing. Casualty is now breathing.",
+      "state": "The casualty does not have a peripheral pulse. The casualty is not breathing. The casualty is unresponsive to any stimuli. The casualty has a poor capillary refill time. The casualty is unable to walk. Repositioning their airway resulted in spontaneous breathing. Casualty is now breathing.",
       "choices": [
         {
           "action_id": 0,
@@ -268,13 +268,13 @@
     "input": {
       "scenario_id": "14 tagging icl",
       "full_state": {
-        "unstructured": "The casualty has a normal heart rate. The casualty is unable to walk. The casualty is unresponsive to any stimuli. The casualty is breathing normally. The casualty has a healthy capillary refill time.",
+        "unstructured": "The casualty is unresponsive to any stimuli. The casualty has a normal heart rate. The casualty has a healthy capillary refill time. The casualty is unable to walk. The casualty is breathing normally.",
         "meta_info": {
           "scene_id": "Casualty_14_at_15.0min"
         },
         "scenario_complete": false
       },
-      "state": "The casualty has a normal heart rate. The casualty is unable to walk. The casualty is unresponsive to any stimuli. The casualty is breathing normally. The casualty has a healthy capillary refill time.",
+      "state": "The casualty is unresponsive to any stimuli. The casualty has a normal heart rate. The casualty has a healthy capillary refill time. The casualty is unable to walk. The casualty is breathing normally.",
       "choices": [
         {
           "action_id": 0,
@@ -321,13 +321,13 @@
     "input": {
       "scenario_id": "24 tagging icl",
       "full_state": {
-        "unstructured": "The casualty is unable to walk. The casualty's breathing is distressed. The casualty is unresponsive to any stimuli. The casualty is breathing rapidly. The casualty has a poor capillary refill time. The casualty does not have a peripheral pulse.",
+        "unstructured": "The casualty has a poor capillary refill time. The casualty is unresponsive to any stimuli. The casualty does not have a peripheral pulse. The casualty is breathing rapidly. The casualty's breathing is distressed. The casualty is unable to walk.",
         "meta_info": {
           "scene_id": "Casualty_24_at_15.0min"
         },
         "scenario_complete": false
       },
-      "state": "The casualty is unable to walk. The casualty's breathing is distressed. The casualty is unresponsive to any stimuli. The casualty is breathing rapidly. The casualty has a poor capillary refill time. The casualty does not have a peripheral pulse.",
+      "state": "The casualty has a poor capillary refill time. The casualty is unresponsive to any stimuli. The casualty does not have a peripheral pulse. The casualty is breathing rapidly. The casualty's breathing is distressed. The casualty is unable to walk.",
       "choices": [
         {
           "action_id": 0,
@@ -374,13 +374,13 @@
     "input": {
       "scenario_id": "35 tagging icl",
       "full_state": {
-        "unstructured": "The casualty's breathing is distressed. The casualty does not have a peripheral pulse. The casualty has a poor capillary refill time. The casualty is unable to walk. The casualty is breathing rapidly. The casualty is not alert. They are not responding to your voice, but they are responding to pain stimuli. A left lung pneumothorax was treated and is controlled.",
+        "unstructured": "The casualty is breathing rapidly. The casualty is unable to walk. The casualty's breathing is distressed. The casualty is not alert. They are not responding to your voice, but they are responding to pain stimuli. The casualty has a poor capillary refill time. The casualty does not have a peripheral pulse. A left lung pneumothorax was treated and is controlled.",
         "meta_info": {
           "scene_id": "Casualty_35_at_15.0min"
         },
         "scenario_complete": false
       },
-      "state": "The casualty's breathing is distressed. The casualty does not have a peripheral pulse. The casualty has a poor capillary refill time. The casualty is unable to walk. The casualty is breathing rapidly. The casualty is not alert. They are not responding to your voice, but they are responding to pain stimuli. A left lung pneumothorax was treated and is controlled.",
+      "state": "The casualty is breathing rapidly. The casualty is unable to walk. The casualty's breathing is distressed. The casualty is not alert. They are not responding to your voice, but they are responding to pain stimuli. The casualty has a poor capillary refill time. The casualty does not have a peripheral pulse. A left lung pneumothorax was treated and is controlled.",
       "choices": [
         {
           "action_id": 0,
@@ -427,13 +427,13 @@
     "input": {
       "scenario_id": "74 tagging icl",
       "full_state": {
-        "unstructured": "The casualty is unresponsive to any stimuli. The casualty is breathing normally. The casualty is unable to walk. The casualty has a normal heart rate. The casualty has a healthy capillary refill time. An abdominal laceration was treated but is not controlled.",
+        "unstructured": "The casualty is unresponsive to any stimuli. The casualty has a healthy capillary refill time. The casualty has a normal heart rate. The casualty is breathing normally. The casualty is unable to walk. An abdominal laceration was treated but is not controlled.",
         "meta_info": {
           "scene_id": "Casualty_74_at_15.0min"
         },
         "scenario_complete": false
       },
-      "state": "The casualty is unresponsive to any stimuli. The casualty is breathing normally. The casualty is unable to walk. The casualty has a normal heart rate. The casualty has a healthy capillary refill time. An abdominal laceration was treated but is not controlled.",
+      "state": "The casualty is unresponsive to any stimuli. The casualty has a healthy capillary refill time. The casualty has a normal heart rate. The casualty is breathing normally. The casualty is unable to walk. An abdominal laceration was treated but is not controlled.",
       "choices": [
         {
           "action_id": 0,
@@ -480,13 +480,13 @@
     "input": {
       "scenario_id": "93 tagging icl",
       "full_state": {
-        "unstructured": "The casualty is unresponsive to any stimuli. The casualty is unable to walk. The casualty does not have a peripheral pulse. The casualty is breathing rapidly. The casualty has a poor capillary refill time. The casualty's breathing is distressed. There is serious hemorrhaging on the torso. The casualty chest is showing reduced breathing movements. A left lung pneumothorax was treated and is controlled. A thorax hemorrhage was treated and is controlled.",
+        "unstructured": "The casualty's breathing is distressed. The casualty is unresponsive to any stimuli. The casualty is unable to walk. The casualty has a poor capillary refill time. The casualty is breathing rapidly. The casualty does not have a peripheral pulse. There is serious hemorrhaging on the torso. The casualty chest is showing reduced breathing movements. A left lung pneumothorax was treated and is controlled. A thorax hemorrhage was treated and is controlled.",
         "meta_info": {
           "scene_id": "Casualty_93_at_15.0min"
         },
         "scenario_complete": false
       },
-      "state": "The casualty is unresponsive to any stimuli. The casualty is unable to walk. The casualty does not have a peripheral pulse. The casualty is breathing rapidly. The casualty has a poor capillary refill time. The casualty's breathing is distressed. There is serious hemorrhaging on the torso. The casualty chest is showing reduced breathing movements. A left lung pneumothorax was treated and is controlled. A thorax hemorrhage was treated and is controlled.",
+      "state": "The casualty's breathing is distressed. The casualty is unresponsive to any stimuli. The casualty is unable to walk. The casualty has a poor capillary refill time. The casualty is breathing rapidly. The casualty does not have a peripheral pulse. There is serious hemorrhaging on the torso. The casualty chest is showing reduced breathing movements. A left lung pneumothorax was treated and is controlled. A thorax hemorrhage was treated and is controlled.",
       "choices": [
         {
           "action_id": 0,
@@ -533,13 +533,13 @@
     "input": {
       "scenario_id": "5 tagging icl",
       "full_state": {
-        "unstructured": "The casualty has a poor capillary refill time. The casualty is unable to walk. The casualty is not breathing. The casualty is unresponsive to any stimuli. The casualty does not have a peripheral pulse. Repositioning their airway did not help breathing. Casualty is still not breathing.",
+        "unstructured": "The casualty has a poor capillary refill time. The casualty does not have a peripheral pulse. The casualty is unresponsive to any stimuli. The casualty is unable to walk. The casualty is not breathing. Repositioning their airway did not help breathing. Casualty is still not breathing.",
         "meta_info": {
           "scene_id": "Casualty_5_at_15.0min"
         },
         "scenario_complete": false
       },
-      "state": "The casualty has a poor capillary refill time. The casualty is unable to walk. The casualty is not breathing. The casualty is unresponsive to any stimuli. The casualty does not have a peripheral pulse. Repositioning their airway did not help breathing. Casualty is still not breathing.",
+      "state": "The casualty has a poor capillary refill time. The casualty does not have a peripheral pulse. The casualty is unresponsive to any stimuli. The casualty is unable to walk. The casualty is not breathing. Repositioning their airway did not help breathing. Casualty is still not breathing.",
       "choices": [
         {
           "action_id": 0,
@@ -586,13 +586,13 @@
     "input": {
       "scenario_id": "30 tagging icl",
       "full_state": {
-        "unstructured": "The casualty is unable to walk. The casualty has a poor capillary refill time. The casualty is breathing normally. The casualty is not alert. They do move in response to your voice. The casualty does not have a peripheral pulse. A thorax hemorrhage was treated and is controlled.",
+        "unstructured": "The casualty has a poor capillary refill time. The casualty does not have a peripheral pulse. The casualty is breathing normally. The casualty is not alert. They do move in response to your voice. The casualty is unable to walk. A thorax hemorrhage was treated and is controlled.",
         "meta_info": {
           "scene_id": "Casualty_30_at_15.0min"
         },
         "scenario_complete": false
       },
-      "state": "The casualty is unable to walk. The casualty has a poor capillary refill time. The casualty is breathing normally. The casualty is not alert. They do move in response to your voice. The casualty does not have a peripheral pulse. A thorax hemorrhage was treated and is controlled.",
+      "state": "The casualty has a poor capillary refill time. The casualty does not have a peripheral pulse. The casualty is breathing normally. The casualty is not alert. They do move in response to your voice. The casualty is unable to walk. A thorax hemorrhage was treated and is controlled.",
       "choices": [
         {
           "action_id": 0,
@@ -639,13 +639,13 @@
     "input": {
       "scenario_id": "32 tagging icl",
       "full_state": {
-        "unstructured": "The casualty is unable to walk. The casualty does not have a peripheral pulse. The casualty is breathing normally. The casualty is unresponsive to any stimuli. The casualty has a poor capillary refill time. A thorax hemorrhage was treated but is not controlled.",
+        "unstructured": "The casualty is breathing normally. The casualty does not have a peripheral pulse. The casualty is unable to walk. The casualty has a poor capillary refill time. The casualty is unresponsive to any stimuli. A thorax hemorrhage was treated but is not controlled.",
         "meta_info": {
           "scene_id": "Casualty_32_at_15.0min"
         },
         "scenario_complete": false
       },
-      "state": "The casualty is unable to walk. The casualty does not have a peripheral pulse. The casualty is breathing normally. The casualty is unresponsive to any stimuli. The casualty has a poor capillary refill time. A thorax hemorrhage was treated but is not controlled.",
+      "state": "The casualty is breathing normally. The casualty does not have a peripheral pulse. The casualty is unable to walk. The casualty has a poor capillary refill time. The casualty is unresponsive to any stimuli. A thorax hemorrhage was treated but is not controlled.",
       "choices": [
         {
           "action_id": 0,
