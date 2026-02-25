@@ -412,20 +412,29 @@ def _enforce_additional_properties_false(schema: dict) -> dict:
     return schema
 
 
-def _extract_response_content(response_data: dict, has_schema: bool) -> Optional[Dict]:
-    """
-    Extract and parse content from a response object.
+def _extract_response_content(response_data: dict, has_schema: bool) -> Dict:
+    """Extract the text payload from a Responses API result dict.
+
+    Searches ``response_data["output"]`` for the first item with
+    ``type == "message"``, then reads its first content block's ``"text"``
+    field. Reasoning output items are ignored.
 
     Args:
-        response_data: The response data dictionary
-        has_schema: Whether structured output was requested
+        response_data: A response body dict as returned by the Responses API
+            (or the ``body`` field of a Batch API result line).
+        has_schema: If True, parses the text as JSON and returns the resulting
+            dict. If False, wraps the raw text in ``{"response": text}``.
 
     Returns:
-        Parsed content dictionary or None
+        Parsed content dict.
+
+    Raises:
+        ValueError: If ``output`` is empty, contains no message item, or the
+            message has no content.
     """
     output = response_data.get('output', [])
     if not output:
-        return None
+        raise ValueError("Response from server was empty. Could not extract response data from an empty message.")
 
     # Find the message output (not the reasoning)
     message_output = None
@@ -434,8 +443,10 @@ def _extract_response_content(response_data: dict, has_schema: bool) -> Optional
             message_output = output_item
             break
 
-    if not message_output or not message_output.get('content'):
-        return None
+    if not message_output:
+        raise ValueError("Response from server contained no message.")
+    if not message_output.get('content'):
+        raise ValueError("Response message from server contained no content.")
 
     # Get the text from the first content item
     first_content = message_output['content'][0]
