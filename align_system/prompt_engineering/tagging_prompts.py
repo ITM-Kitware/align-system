@@ -65,8 +65,8 @@ Your role is to provide a shape representing the patients state \
 based only on the provided description and the following protocol. \
 
 1. Ambulatory Status
-  * If the patient can walk: tag as Line and stop protocol
-  * If the patient cannot walk: proceed to step 2
+  * If the patient can walk: you must tag this patient as Line and stop protocol
+  * If the patient cannot walk: you cannot tag this patient as Line, proceed to step 2
 2. Breathing
   * If not breathing: open or reposition airway
       * Breathing does not resume: tag as Square and stop protocol
