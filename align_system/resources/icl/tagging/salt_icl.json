@@ -3,19 +3,19 @@
     "input": {
       "scenario_id": "0 tagging icl",
       "full_state": {
-        "unstructured": "The casualty is able to walk. The casualty is breathing normally. The casualty has a normal heart rate. The casualty has a healthy capillary refill time.",
+        "unstructured": "The casualty is breathing normally. The casualty has a normal heart rate. The casualty has a healthy capillary refill time. The casualty is able to walk.",
         "meta_info": {
           "scene_id": "Casualty_0_at_15.0min"
         },
         "scenario_complete": false
       },
-      "state": "The casualty is able to walk. The casualty is breathing normally. The casualty has a normal heart rate. The casualty has a healthy capillary refill time.",
+      "state": "The casualty is breathing normally. The casualty has a normal heart rate. The casualty has a healthy capillary refill time. The casualty is able to walk.",
       "choices": [
         {
           "action_id": 0,
           "unstructured": "Line",
           "kdma_association": {
-            "SALT": 1.0
+            "START": 1.0
           }
         },
         {
@@ -45,7 +45,7 @@
     ],
     "reasoning": [
       {
-        "SALT": "Casualty is responsive to your commands. Casualty has a peripheral pulse. Casualty breathing is not distressed. Casualty does not have a major uncontrolled hemorrhage. Casualty injuries are minor."
+        "SALT": "Casualty is responsive to your commands. Casualty has a peripheral pulse. Casualty breathing is not distressed. Casualty does not have a major uncontrolled hemorrhage. Casualty injuries are minor. Therefore, casualty is tagged as Line"
       },
       {},
       {},
@@ -56,19 +56,19 @@
     "input": {
       "scenario_id": "27 tagging icl",
       "full_state": {
-        "unstructured": "The casualty is able to walk. The casualty is breathing normally. The casualty has a healthy capillary refill time. The casualty has a normal heart rate. A thorax hemorrhage was treated and is controlled.",
+        "unstructured": "The casualty is breathing normally. The casualty has a normal heart rate. The casualty has a healthy capillary refill time. The casualty is able to walk. A thorax hemorrhage was treated and is controlled.",
         "meta_info": {
           "scene_id": "Casualty_27_at_15.0min"
         },
         "scenario_complete": false
       },
-      "state": "The casualty is able to walk. The casualty is breathing normally. The casualty has a healthy capillary refill time. The casualty has a normal heart rate. A thorax hemorrhage was treated and is controlled.",
+      "state": "The casualty is breathing normally. The casualty has a normal heart rate. The casualty has a healthy capillary refill time. The casualty is able to walk. A thorax hemorrhage was treated and is controlled.",
       "choices": [
         {
           "action_id": 0,
           "unstructured": "Line",
           "kdma_association": {
-            "SALT": 1.0
+            "START": 1.0
           }
         },
         {
@@ -98,7 +98,7 @@
     ],
     "reasoning": [
       {
-        "SALT": "Casualty is responsive to your commands. Casualty has a peripheral pulse. Casualty breathing is not distressed. Casualty does not have a major uncontrolled hemorrhage. Casualty injuries are minor."
+        "SALT": "Casualty is responsive to your commands. Casualty has a peripheral pulse. Casualty breathing is not distressed. Casualty does not have a major uncontrolled hemorrhage. Casualty injuries are minor. Therefore, casualty is tagged as Line"
       },
       {},
       {},
@@ -109,13 +109,13 @@
     "input": {
       "scenario_id": "3 tagging icl",
       "full_state": {
-        "unstructured": "The casualty is breathing rapidly. The casualty is not alert. They do move in response to your voice. The casualty is unable to walk. The casualty has a healthy capillary refill time. The casualty has a normal heart rate.",
+        "unstructured": "The casualty is unable to walk. The casualty is breathing rapidly. The casualty is not alert. They do move in response to your voice. The casualty has a normal heart rate. The casualty has a healthy capillary refill time.",
         "meta_info": {
           "scene_id": "Casualty_3_at_15.0min"
         },
         "scenario_complete": false
       },
-      "state": "The casualty is breathing rapidly. The casualty is not alert. They do move in response to your voice. The casualty is unable to walk. The casualty has a healthy capillary refill time. The casualty has a normal heart rate.",
+      "state": "The casualty is unable to walk. The casualty is breathing rapidly. The casualty is not alert. They do move in response to your voice. The casualty has a normal heart rate. The casualty has a healthy capillary refill time.",
       "choices": [
         {
           "action_id": 0,
@@ -126,7 +126,7 @@
           "action_id": 1,
           "unstructured": "Triangle",
           "kdma_association": {
-            "SALT": 1.0
+            "START": 1.0
           }
         },
         {
@@ -152,7 +152,7 @@
     "reasoning": [
       {},
       {
-        "SALT": "Casualty does respond to your voice. Casualty has a peripheral pulse. Casualty breathing is not distressed. Casualty does not have a major uncontrolled hemorrhage. Casualty injuries are major."
+        "SALT": "Casualty does respond to your voice. Casualty has a peripheral pulse. Casualty breathing is not distressed. Casualty does not have a major uncontrolled hemorrhage. Casualty injuries are major. Therefore, casualty is tagged as Triangle"
       },
       {},
       {}
@@ -162,13 +162,13 @@
     "input": {
       "scenario_id": "70 tagging icl",
       "full_state": {
-        "unstructured": "The casualty is not alert. They do move in response to your voice. The casualty is unable to walk. The casualty is breathing normally. The casualty has a normal heart rate. The casualty has a healthy capillary refill time. An abdominal laceration was treated and is controlled.",
+        "unstructured": "The casualty is breathing normally. The casualty is unable to walk. The casualty is not alert. They do move in response to your voice. The casualty has a normal heart rate. The casualty has a healthy capillary refill time. An abdominal laceration was treated and is controlled.",
         "meta_info": {
           "scene_id": "Casualty_70_at_15.0min"
         },
         "scenario_complete": false
       },
-      "state": "The casualty is not alert. They do move in response to your voice. The casualty is unable to walk. The casualty is breathing normally. The casualty has a normal heart rate. The casualty has a healthy capillary refill time. An abdominal laceration was treated and is controlled.",
+      "state": "The casualty is breathing normally. The casualty is unable to walk. The casualty is not alert. They do move in response to your voice. The casualty has a normal heart rate. The casualty has a healthy capillary refill time. An abdominal laceration was treated and is controlled.",
       "choices": [
         {
           "action_id": 0,
@@ -179,7 +179,7 @@
           "action_id": 1,
           "unstructured": "Triangle",
           "kdma_association": {
-            "SALT": 1.0
+            "START": 1.0
           }
         },
         {
@@ -205,7 +205,7 @@
     "reasoning": [
       {},
       {
-        "SALT": "Casualty does respond to your voice. Casualty has a peripheral pulse. Casualty breathing is not distressed. Casualty does not have a major uncontrolled hemorrhage. Casualty injuries are major."
+        "SALT": "Casualty does respond to your voice. Casualty has a peripheral pulse. Casualty breathing is not distressed. Casualty does not have a major uncontrolled hemorrhage. Casualty injuries are major. Therefore, casualty is tagged as Triangle"
       },
       {},
       {}
@@ -215,13 +215,13 @@
     "input": {
       "scenario_id": "4 tagging icl",
       "full_state": {
-        "unstructured": "The casualty is unable to walk. The casualty is unresponsive to any stimuli. The casualty has a poor capillary refill time. The casualty does not have a peripheral pulse. The casualty is not breathing. Repositioning their airway resulted in spontaneous breathing. Casualty is now breathing.",
+        "unstructured": "The casualty has a poor capillary refill time. The casualty is unresponsive to any stimuli. The casualty does not have a peripheral pulse. The casualty is not breathing. The casualty is unable to walk. Repositioning their airway resulted in spontaneous breathing. Casualty is now breathing.",
         "meta_info": {
           "scene_id": "Casualty_4_at_15.0min"
         },
         "scenario_complete": false
       },
-      "state": "The casualty is unable to walk. The casualty is unresponsive to any stimuli. The casualty has a poor capillary refill time. The casualty does not have a peripheral pulse. The casualty is not breathing. Repositioning their airway resulted in spontaneous breathing. Casualty is now breathing.",
+      "state": "The casualty has a poor capillary refill time. The casualty is unresponsive to any stimuli. The casualty does not have a peripheral pulse. The casualty is not breathing. The casualty is unable to walk. Repositioning their airway resulted in spontaneous breathing. Casualty is now breathing.",
       "choices": [
         {
           "action_id": 0,
@@ -237,7 +237,7 @@
           "action_id": 2,
           "unstructured": "Circle",
           "kdma_association": {
-            "SALT": 1.0
+            "START": 1.0
           }
         },
         {
@@ -259,7 +259,7 @@
       {},
       {},
       {
-        "SALT": "Casualty found not breathing. Repositioning their airway resulted in spontaneous breathing. Casualty does not obey commands or make purposeful movements.\nCasualty is likely to survive these injuries. Casualty does not have a peripheral pulse.\nCasualty is likely to survive these injuries. Casualty breathing is not distressed. Casualty does not have a major uncontrolled hemorrhage."
+        "SALT": "Casualty found not breathing. Repositioning their airway resulted in spontaneous breathing. Casualty does not obey commands or make purposeful movements.\nCasualty is likely to survive these injuries. Casualty does not have a peripheral pulse.\nCasualty is likely to survive these injuries. Casualty breathing is not distressed. Casualty does not have a major uncontrolled hemorrhage. Therefore, casualty is tagged as Circle"
       },
       {}
     ]
@@ -268,13 +268,13 @@
     "input": {
       "scenario_id": "23 tagging icl",
       "full_state": {
-        "unstructured": "The casualty does not have a peripheral pulse. The casualty is unresponsive to any stimuli. The casualty's breathing is distressed. The casualty is unable to walk. The casualty is breathing rapidly. The casualty has a poor capillary refill time.",
+        "unstructured": "The casualty has a poor capillary refill time. The casualty is unresponsive to any stimuli. The casualty is unable to walk. The casualty is breathing rapidly. The casualty does not have a peripheral pulse. The casualty's breathing is distressed.",
         "meta_info": {
           "scene_id": "Casualty_23_at_15.0min"
         },
         "scenario_complete": false
       },
-      "state": "The casualty does not have a peripheral pulse. The casualty is unresponsive to any stimuli. The casualty's breathing is distressed. The casualty is unable to walk. The casualty is breathing rapidly. The casualty has a poor capillary refill time.",
+      "state": "The casualty has a poor capillary refill time. The casualty is unresponsive to any stimuli. The casualty is unable to walk. The casualty is breathing rapidly. The casualty does not have a peripheral pulse. The casualty's breathing is distressed.",
       "choices": [
         {
           "action_id": 0,
@@ -290,7 +290,7 @@
           "action_id": 2,
           "unstructured": "Circle",
           "kdma_association": {
-            "SALT": 1.0
+            "START": 1.0
           }
         },
         {
@@ -312,7 +312,7 @@
       {},
       {},
       {
-        "SALT": "Casualty does not obey commands or make purposeful movements.\nCasualty is likely to survive these injuries. Casualty does not have a peripheral pulse.\nCasualty is likely to survive these injuries. Casualty is in respiratory distress.\nCasualty is likely to survive these injuries. Casualty does not have a major uncontrolled hemorrhage."
+        "SALT": "Casualty does not obey commands or make purposeful movements.\nCasualty is likely to survive these injuries. Casualty does not have a peripheral pulse.\nCasualty is likely to survive these injuries. Casualty is in respiratory distress.\nCasualty is likely to survive these injuries. Casualty does not have a major uncontrolled hemorrhage. Therefore, casualty is tagged as Circle"
       },
       {}
     ]
@@ -321,13 +321,13 @@
     "input": {
       "scenario_id": "35 tagging icl",
       "full_state": {
-        "unstructured": "The casualty's breathing is distressed. The casualty has a poor capillary refill time. The casualty does not have a peripheral pulse. The casualty is not alert. They are not responding to your voice, but they are responding to pain stimuli. The casualty is breathing rapidly. The casualty is unable to walk. A left lung pneumothorax was not treated and is not controlled.",
+        "unstructured": "The casualty is breathing rapidly. The casualty does not have a peripheral pulse. The casualty has a poor capillary refill time. The casualty is not alert. They are not responding to your voice, but they are responding to pain stimuli. The casualty is unable to walk. The casualty's breathing is distressed. A left lung pneumothorax was not treated and is not controlled.",
         "meta_info": {
           "scene_id": "Casualty_35_at_15.0min"
         },
         "scenario_complete": false
       },
-      "state": "The casualty's breathing is distressed. The casualty has a poor capillary refill time. The casualty does not have a peripheral pulse. The casualty is not alert. They are not responding to your voice, but they are responding to pain stimuli. The casualty is breathing rapidly. The casualty is unable to walk. A left lung pneumothorax was not treated and is not controlled.",
+      "state": "The casualty is breathing rapidly. The casualty does not have a peripheral pulse. The casualty has a poor capillary refill time. The casualty is not alert. They are not responding to your voice, but they are responding to pain stimuli. The casualty is unable to walk. The casualty's breathing is distressed. A left lung pneumothorax was not treated and is not controlled.",
       "choices": [
         {
           "action_id": 0,
@@ -343,7 +343,7 @@
           "action_id": 2,
           "unstructured": "Circle",
           "kdma_association": {
-            "SALT": 1.0
+            "START": 1.0
           }
         },
         {
@@ -365,7 +365,7 @@
       {},
       {},
       {
-        "SALT": "Casualty does not obey commands or make purposeful movements.\nCasualty is likely to survive these injuries. Casualty does not have a peripheral pulse.\nCasualty is likely to survive these injuries. Casualty is in respiratory distress.\nCasualty is likely to survive these injuries. Casualty does not have a major uncontrolled hemorrhage."
+        "SALT": "Casualty does not obey commands or make purposeful movements.\nCasualty is likely to survive these injuries. Casualty does not have a peripheral pulse.\nCasualty is likely to survive these injuries. Casualty is in respiratory distress.\nCasualty is likely to survive these injuries. Casualty does not have a major uncontrolled hemorrhage. Therefore, casualty is tagged as Circle"
       },
       {}
     ]
@@ -374,13 +374,13 @@
     "input": {
       "scenario_id": "93 tagging icl",
       "full_state": {
-        "unstructured": "The casualty does not have a peripheral pulse. The casualty is unable to walk. The casualty has a poor capillary refill time. The casualty is breathing rapidly. The casualty's breathing is distressed. The casualty is unresponsive to any stimuli. There is serious hemorrhaging on the torso. The casualty chest is showing reduced breathing movements. A left lung pneumothorax was not treated and is not controlled. A thorax hemorrhage was treated and is controlled.",
+        "unstructured": "The casualty is unresponsive to any stimuli. The casualty's breathing is distressed. The casualty is breathing rapidly. The casualty does not have a peripheral pulse. The casualty has a poor capillary refill time. The casualty is unable to walk. The casualty chest is showing reduced breathing movements. There is serious hemorrhaging on the torso. A left lung pneumothorax was not treated and is not controlled. A thorax hemorrhage was treated and is controlled.",
         "meta_info": {
           "scene_id": "Casualty_93_at_15.0min"
         },
         "scenario_complete": false
       },
-      "state": "The casualty does not have a peripheral pulse. The casualty is unable to walk. The casualty has a poor capillary refill time. The casualty is breathing rapidly. The casualty's breathing is distressed. The casualty is unresponsive to any stimuli. There is serious hemorrhaging on the torso. The casualty chest is showing reduced breathing movements. A left lung pneumothorax was not treated and is not controlled. A thorax hemorrhage was treated and is controlled.",
+      "state": "The casualty is unresponsive to any stimuli. The casualty's breathing is distressed. The casualty is breathing rapidly. The casualty does not have a peripheral pulse. The casualty has a poor capillary refill time. The casualty is unable to walk. The casualty chest is showing reduced breathing movements. There is serious hemorrhaging on the torso. A left lung pneumothorax was not treated and is not controlled. A thorax hemorrhage was treated and is controlled.",
       "choices": [
         {
           "action_id": 0,
@@ -396,7 +396,7 @@
           "action_id": 2,
           "unstructured": "Circle",
           "kdma_association": {
-            "SALT": 1.0
+            "START": 1.0
           }
         },
         {
@@ -418,7 +418,7 @@
       {},
       {},
       {
-        "SALT": "Casualty does not obey commands or make purposeful movements.\nCasualty is likely to survive these injuries. Casualty does not have a peripheral pulse.\nCasualty is likely to survive these injuries. Casualty is in respiratory distress.\nCasualty is likely to survive these injuries. Casualty does not have a major uncontrolled hemorrhage."
+        "SALT": "Casualty does not obey commands or make purposeful movements.\nCasualty is likely to survive these injuries. Casualty does not have a peripheral pulse.\nCasualty is likely to survive these injuries. Casualty is in respiratory distress.\nCasualty is likely to survive these injuries. Casualty does not have a major uncontrolled hemorrhage. Therefore, casualty is tagged as Circle"
       },
       {}
     ]
@@ -427,9 +427,62 @@
     "input": {
       "scenario_id": "5 tagging icl",
       "full_state": {
-        "unstructured": "The casualty is unresponsive to any stimuli. The casualty has a poor capillary refill time. The casualty does not have a peripheral pulse. The casualty is not breathing. The casualty is unable to walk. Repositioning their airway did not help breathing. Casualty is still not breathing.",
+        "unstructured": "The casualty is not breathing. The casualty is unresponsive to any stimuli. The casualty is unable to walk. The casualty does not have a peripheral pulse. The casualty has a poor capillary refill time. Repositioning their airway did not help breathing. Casualty is still not breathing.",
         "meta_info": {
           "scene_id": "Casualty_5_at_15.0min"
+        },
+        "scenario_complete": false
+      },
+      "state": "The casualty is not breathing. The casualty is unresponsive to any stimuli. The casualty is unable to walk. The casualty does not have a peripheral pulse. The casualty has a poor capillary refill time. Repositioning their airway did not help breathing. Casualty is still not breathing.",
+      "choices": [
+        {
+          "action_id": 0,
+          "unstructured": "Line",
+          "kdma_association": {}
+        },
+        {
+          "action_id": 1,
+          "unstructured": "Triangle",
+          "kdma_association": {}
+        },
+        {
+          "action_id": 2,
+          "unstructured": "Circle",
+          "kdma_association": {}
+        },
+        {
+          "action_id": 3,
+          "unstructured": "Square",
+          "kdma_association": {
+            "START": 1.0
+          }
+        }
+      ]
+    },
+    "label": [
+      {},
+      {},
+      {},
+      {
+        "SALT": 1.0
+      }
+    ],
+    "reasoning": [
+      {},
+      {},
+      {},
+      {
+        "SALT": "Casualty found not breathing. Repositioning their airway did not result in spontaneous breathing. Casualty does not obey commands or make purposeful movements.\nCasualty is likely to survive these injuries. Casualty does not have a peripheral pulse.\nCasualty is likely to survive these injuries. Casualty breathing is not distressed. Casualty does not have a major uncontrolled hemorrhage. Therefore, casualty is tagged as Square"
+      }
+    ]
+  },
+  {
+    "input": {
+      "scenario_id": "7 tagging icl",
+      "full_state": {
+        "unstructured": "The casualty is unresponsive to any stimuli. The casualty has a poor capillary refill time. The casualty does not have a peripheral pulse. The casualty is not breathing. The casualty is unable to walk. Repositioning their airway did not help breathing. Casualty is still not breathing.",
+        "meta_info": {
+          "scene_id": "Casualty_7_at_15.0min"
         },
         "scenario_complete": false
       },
@@ -454,7 +507,7 @@
           "action_id": 3,
           "unstructured": "Square",
           "kdma_association": {
-            "SALT": 1.0
+            "START": 1.0
           }
         }
       ]
@@ -472,60 +525,7 @@
       {},
       {},
       {
-        "SALT": "Casualty found not breathing. Repositioning their airway did not result in spontaneous breathing. Casualty does not obey commands or make purposeful movements.\nCasualty is likely to survive these injuries. Casualty does not have a peripheral pulse.\nCasualty is likely to survive these injuries. Casualty breathing is not distressed. Casualty does not have a major uncontrolled hemorrhage."
-      }
-    ]
-  },
-  {
-    "input": {
-      "scenario_id": "7 tagging icl",
-      "full_state": {
-        "unstructured": "The casualty has a poor capillary refill time. The casualty does not have a peripheral pulse. The casualty is unresponsive to any stimuli. The casualty is not breathing. The casualty is unable to walk. Repositioning their airway did not help breathing. Casualty is still not breathing.",
-        "meta_info": {
-          "scene_id": "Casualty_7_at_15.0min"
-        },
-        "scenario_complete": false
-      },
-      "state": "The casualty has a poor capillary refill time. The casualty does not have a peripheral pulse. The casualty is unresponsive to any stimuli. The casualty is not breathing. The casualty is unable to walk. Repositioning their airway did not help breathing. Casualty is still not breathing.",
-      "choices": [
-        {
-          "action_id": 0,
-          "unstructured": "Line",
-          "kdma_association": {}
-        },
-        {
-          "action_id": 1,
-          "unstructured": "Triangle",
-          "kdma_association": {}
-        },
-        {
-          "action_id": 2,
-          "unstructured": "Circle",
-          "kdma_association": {}
-        },
-        {
-          "action_id": 3,
-          "unstructured": "Square",
-          "kdma_association": {
-            "SALT": 1.0
-          }
-        }
-      ]
-    },
-    "label": [
-      {},
-      {},
-      {},
-      {
-        "SALT": 1.0
-      }
-    ],
-    "reasoning": [
-      {},
-      {},
-      {},
-      {
-        "SALT": "Casualty found not breathing. Repositioning their airway did not result in spontaneous breathing. Casualty does not obey commands or make purposeful movements.\nCasualty is NOT likely to survive these injuries. Casualty does not have a peripheral pulse.\nCasualty is NOT likely to survive these injuries. Casualty breathing is not distressed. Casualty does not have a major uncontrolled hemorrhage."
+        "SALT": "Casualty found not breathing. Repositioning their airway did not result in spontaneous breathing. Casualty does not obey commands or make purposeful movements.\nCasualty is NOT likely to survive these injuries. Casualty does not have a peripheral pulse.\nCasualty is NOT likely to survive these injuries. Casualty breathing is not distressed. Casualty does not have a major uncontrolled hemorrhage. Therefore, casualty is tagged as Square"
       }
     ]
   },
@@ -533,13 +533,13 @@
     "input": {
       "scenario_id": "6 tagging icl",
       "full_state": {
-        "unstructured": "The casualty is not breathing. The casualty is unresponsive to any stimuli. The casualty is unable to walk. The casualty has a poor capillary refill time. The casualty does not have a peripheral pulse. Repositioning their airway resulted in spontaneous breathing. Casualty is now breathing.",
+        "unstructured": "The casualty is unresponsive to any stimuli. The casualty is not breathing. The casualty has a poor capillary refill time. The casualty does not have a peripheral pulse. The casualty is unable to walk. Repositioning their airway resulted in spontaneous breathing. Casualty is now breathing.",
         "meta_info": {
           "scene_id": "Casualty_6_at_15.0min"
         },
         "scenario_complete": false
       },
-      "state": "The casualty is not breathing. The casualty is unresponsive to any stimuli. The casualty is unable to walk. The casualty has a poor capillary refill time. The casualty does not have a peripheral pulse. Repositioning their airway resulted in spontaneous breathing. Casualty is now breathing.",
+      "state": "The casualty is unresponsive to any stimuli. The casualty is not breathing. The casualty has a poor capillary refill time. The casualty does not have a peripheral pulse. The casualty is unable to walk. Repositioning their airway resulted in spontaneous breathing. Casualty is now breathing.",
       "choices": [
         {
           "action_id": 0,
@@ -560,7 +560,7 @@
           "action_id": 3,
           "unstructured": "Square",
           "kdma_association": {
-            "SALT": 1.0
+            "START": 1.0
           }
         }
       ]
@@ -578,7 +578,7 @@
       {},
       {},
       {
-        "SALT": "Casualty found not breathing. Repositioning their airway resulted in spontaneous breathing. Casualty does not obey commands or make purposeful movements.\nCasualty is NOT likely to survive these injuries. Casualty does not have a peripheral pulse.\nCasualty is NOT likely to survive these injuries. Casualty breathing is not distressed. Casualty does not have a major uncontrolled hemorrhage."
+        "SALT": "Casualty found not breathing. Repositioning their airway resulted in spontaneous breathing. Casualty does not obey commands or make purposeful movements.\nCasualty is NOT likely to survive these injuries. Casualty does not have a peripheral pulse.\nCasualty is NOT likely to survive these injuries. Casualty breathing is not distressed. Casualty does not have a major uncontrolled hemorrhage. Therefore, casualty is tagged as Square"
       }
     ]
   },
@@ -586,13 +586,13 @@
     "input": {
       "scenario_id": "14 tagging icl",
       "full_state": {
-        "unstructured": "The casualty has a healthy capillary refill time. The casualty has a normal heart rate. The casualty is unresponsive to any stimuli. The casualty is unable to walk. The casualty is breathing normally.",
+        "unstructured": "The casualty is unable to walk. The casualty is unresponsive to any stimuli. The casualty has a normal heart rate. The casualty is breathing normally. The casualty has a healthy capillary refill time.",
         "meta_info": {
           "scene_id": "Casualty_14_at_15.0min"
         },
         "scenario_complete": false
       },
-      "state": "The casualty has a healthy capillary refill time. The casualty has a normal heart rate. The casualty is unresponsive to any stimuli. The casualty is unable to walk. The casualty is breathing normally.",
+      "state": "The casualty is unable to walk. The casualty is unresponsive to any stimuli. The casualty has a normal heart rate. The casualty is breathing normally. The casualty has a healthy capillary refill time.",
       "choices": [
         {
           "action_id": 0,
@@ -613,7 +613,7 @@
           "action_id": 3,
           "unstructured": "Square",
           "kdma_association": {
-            "SALT": 1.0
+            "START": 1.0
           }
         }
       ]
@@ -631,7 +631,7 @@
       {},
       {},
       {
-        "SALT": "Casualty does not obey commands or make purposeful movements.\nCasualty is NOT likely to survive these injuries. Casualty has a peripheral pulse. Casualty breathing is not distressed. Casualty does not have a major uncontrolled hemorrhage."
+        "SALT": "Casualty does not obey commands or make purposeful movements.\nCasualty is NOT likely to survive these injuries. Casualty has a peripheral pulse. Casualty breathing is not distressed. Casualty does not have a major uncontrolled hemorrhage. Therefore, casualty is tagged as Square"
       }
     ]
   },
@@ -639,13 +639,13 @@
     "input": {
       "scenario_id": "26 tagging icl",
       "full_state": {
-        "unstructured": "The casualty is breathing rapidly. The casualty is unable to walk. The casualty does not have a peripheral pulse. The casualty has a poor capillary refill time. The casualty is unresponsive to any stimuli. The casualty's breathing is distressed.",
+        "unstructured": "The casualty is unresponsive to any stimuli. The casualty's breathing is distressed. The casualty is unable to walk. The casualty has a poor capillary refill time. The casualty is breathing rapidly. The casualty does not have a peripheral pulse.",
         "meta_info": {
           "scene_id": "Casualty_26_at_15.0min"
         },
         "scenario_complete": false
       },
-      "state": "The casualty is breathing rapidly. The casualty is unable to walk. The casualty does not have a peripheral pulse. The casualty has a poor capillary refill time. The casualty is unresponsive to any stimuli. The casualty's breathing is distressed.",
+      "state": "The casualty is unresponsive to any stimuli. The casualty's breathing is distressed. The casualty is unable to walk. The casualty has a poor capillary refill time. The casualty is breathing rapidly. The casualty does not have a peripheral pulse.",
       "choices": [
         {
           "action_id": 0,
@@ -666,7 +666,7 @@
           "action_id": 3,
           "unstructured": "Square",
           "kdma_association": {
-            "SALT": 1.0
+            "START": 1.0
           }
         }
       ]
@@ -684,7 +684,7 @@
       {},
       {},
       {
-        "SALT": "Casualty does not obey commands or make purposeful movements.\nCasualty is NOT likely to survive these injuries. Casualty does not have a peripheral pulse.\nCasualty is NOT likely to survive these injuries. Casualty is in respiratory distress.\nCasualty is NOT likely to survive these injuries. Casualty does not have a major uncontrolled hemorrhage."
+        "SALT": "Casualty does not obey commands or make purposeful movements.\nCasualty is NOT likely to survive these injuries. Casualty does not have a peripheral pulse.\nCasualty is NOT likely to survive these injuries. Casualty is in respiratory distress.\nCasualty is NOT likely to survive these injuries. Casualty does not have a major uncontrolled hemorrhage. Therefore, casualty is tagged as Square"
       }
     ]
   },
@@ -692,13 +692,13 @@
     "input": {
       "scenario_id": "32 tagging icl",
       "full_state": {
-        "unstructured": "The casualty is unable to walk. The casualty is unresponsive to any stimuli. The casualty does not have a peripheral pulse. The casualty has a poor capillary refill time. The casualty is breathing normally. A thorax hemorrhage was treated but is not controlled.",
+        "unstructured": "The casualty does not have a peripheral pulse. The casualty has a poor capillary refill time. The casualty is unresponsive to any stimuli. The casualty is unable to walk. The casualty is breathing normally. A thorax hemorrhage was treated but is not controlled.",
         "meta_info": {
           "scene_id": "Casualty_32_at_15.0min"
         },
         "scenario_complete": false
       },
-      "state": "The casualty is unable to walk. The casualty is unresponsive to any stimuli. The casualty does not have a peripheral pulse. The casualty has a poor capillary refill time. The casualty is breathing normally. A thorax hemorrhage was treated but is not controlled.",
+      "state": "The casualty does not have a peripheral pulse. The casualty has a poor capillary refill time. The casualty is unresponsive to any stimuli. The casualty is unable to walk. The casualty is breathing normally. A thorax hemorrhage was treated but is not controlled.",
       "choices": [
         {
           "action_id": 0,
@@ -719,7 +719,7 @@
           "action_id": 3,
           "unstructured": "Square",
           "kdma_association": {
-            "SALT": 1.0
+            "START": 1.0
           }
         }
       ]
@@ -737,7 +737,7 @@
       {},
       {},
       {
-        "SALT": "Casualty does not obey commands or make purposeful movements.\nCasualty is NOT likely to survive these injuries. Casualty does not have a peripheral pulse.\nCasualty is NOT likely to survive these injuries. Casualty breathing is not distressed. Casualty has a uncontrolled major hemorrhage.\nCasualty is NOT likely to survive these injuries."
+        "SALT": "Casualty does not obey commands or make purposeful movements.\nCasualty is NOT likely to survive these injuries. Casualty does not have a peripheral pulse.\nCasualty is NOT likely to survive these injuries. Casualty breathing is not distressed. Casualty has a uncontrolled major hemorrhage.\nCasualty is NOT likely to survive these injuries. Therefore, casualty is tagged as Square"
       }
     ]
   },
@@ -745,13 +745,13 @@
     "input": {
       "scenario_id": "38 tagging icl",
       "full_state": {
-        "unstructured": "The casualty's breathing is distressed. The casualty does not have a peripheral pulse. The casualty is unable to walk. The casualty is breathing rapidly. The casualty is unresponsive to any stimuli. The casualty has a poor capillary refill time. A right lung pneumothorax was not treated and is not controlled.",
+        "unstructured": "The casualty has a poor capillary refill time. The casualty is breathing rapidly. The casualty does not have a peripheral pulse. The casualty is unable to walk. The casualty's breathing is distressed. The casualty is unresponsive to any stimuli. A right lung pneumothorax was not treated and is not controlled.",
         "meta_info": {
           "scene_id": "Casualty_38_at_15.0min"
         },
         "scenario_complete": false
       },
-      "state": "The casualty's breathing is distressed. The casualty does not have a peripheral pulse. The casualty is unable to walk. The casualty is breathing rapidly. The casualty is unresponsive to any stimuli. The casualty has a poor capillary refill time. A right lung pneumothorax was not treated and is not controlled.",
+      "state": "The casualty has a poor capillary refill time. The casualty is breathing rapidly. The casualty does not have a peripheral pulse. The casualty is unable to walk. The casualty's breathing is distressed. The casualty is unresponsive to any stimuli. A right lung pneumothorax was not treated and is not controlled.",
       "choices": [
         {
           "action_id": 0,
@@ -772,7 +772,7 @@
           "action_id": 3,
           "unstructured": "Square",
           "kdma_association": {
-            "SALT": 1.0
+            "START": 1.0
           }
         }
       ]
@@ -790,7 +790,7 @@
       {},
       {},
       {
-        "SALT": "Casualty does not obey commands or make purposeful movements.\nCasualty is NOT likely to survive these injuries. Casualty does not have a peripheral pulse.\nCasualty is NOT likely to survive these injuries. Casualty is in respiratory distress.\nCasualty is NOT likely to survive these injuries. Casualty does not have a major uncontrolled hemorrhage."
+        "SALT": "Casualty does not obey commands or make purposeful movements.\nCasualty is NOT likely to survive these injuries. Casualty does not have a peripheral pulse.\nCasualty is NOT likely to survive these injuries. Casualty is in respiratory distress.\nCasualty is NOT likely to survive these injuries. Casualty does not have a major uncontrolled hemorrhage. Therefore, casualty is tagged as Square"
       }
     ]
   },
@@ -798,13 +798,13 @@
     "input": {
       "scenario_id": "74 tagging icl",
       "full_state": {
-        "unstructured": "The casualty is breathing normally. The casualty has a normal heart rate. The casualty has a healthy capillary refill time. The casualty is unable to walk. The casualty is unresponsive to any stimuli. An abdominal laceration was treated but is not controlled.",
+        "unstructured": "The casualty is unable to walk. The casualty has a normal heart rate. The casualty is unresponsive to any stimuli. The casualty has a healthy capillary refill time. The casualty is breathing normally. An abdominal laceration was treated but is not controlled.",
         "meta_info": {
           "scene_id": "Casualty_74_at_15.0min"
         },
         "scenario_complete": false
       },
-      "state": "The casualty is breathing normally. The casualty has a normal heart rate. The casualty has a healthy capillary refill time. The casualty is unable to walk. The casualty is unresponsive to any stimuli. An abdominal laceration was treated but is not controlled.",
+      "state": "The casualty is unable to walk. The casualty has a normal heart rate. The casualty is unresponsive to any stimuli. The casualty has a healthy capillary refill time. The casualty is breathing normally. An abdominal laceration was treated but is not controlled.",
       "choices": [
         {
           "action_id": 0,
@@ -825,7 +825,7 @@
           "action_id": 3,
           "unstructured": "Square",
           "kdma_association": {
-            "SALT": 1.0
+            "START": 1.0
           }
         }
       ]
@@ -843,7 +843,7 @@
       {},
       {},
       {
-        "SALT": "Casualty does not obey commands or make purposeful movements.\nCasualty is NOT likely to survive these injuries. Casualty has a peripheral pulse. Casualty breathing is not distressed. Casualty does not have a major uncontrolled hemorrhage."
+        "SALT": "Casualty does not obey commands or make purposeful movements.\nCasualty is NOT likely to survive these injuries. Casualty has a peripheral pulse. Casualty breathing is not distressed. Casualty does not have a major uncontrolled hemorrhage. Therefore, casualty is tagged as Square"
       }
     ]
   },
@@ -851,13 +851,13 @@
     "input": {
       "scenario_id": "22 tagging icl",
       "full_state": {
-        "unstructured": "The casualty is breathing normally. The casualty does not have a peripheral pulse. The casualty is not alert. They do move in response to your voice. The casualty has a poor capillary refill time. The casualty is unable to walk.",
+        "unstructured": "The casualty is breathing normally. The casualty does not have a peripheral pulse. The casualty has a poor capillary refill time. The casualty is unable to walk. The casualty is not alert. They do move in response to your voice.",
         "meta_info": {
           "scene_id": "Casualty_22_at_15.0min"
         },
         "scenario_complete": false
       },
-      "state": "The casualty is breathing normally. The casualty does not have a peripheral pulse. The casualty is not alert. They do move in response to your voice. The casualty has a poor capillary refill time. The casualty is unable to walk.",
+      "state": "The casualty is breathing normally. The casualty does not have a peripheral pulse. The casualty has a poor capillary refill time. The casualty is unable to walk. The casualty is not alert. They do move in response to your voice.",
       "choices": [
         {
           "action_id": 0,
@@ -873,7 +873,7 @@
           "action_id": 2,
           "unstructured": "Circle",
           "kdma_association": {
-            "SALT": 1.0
+            "START": 1.0
           }
         },
         {
@@ -895,7 +895,7 @@
       {},
       {},
       {
-        "SALT": "Casualty does respond to your voice. Casualty does not have a peripheral pulse.\nCasualty is likely to survive these injuries. Casualty breathing is not distressed. Casualty does not have a major uncontrolled hemorrhage."
+        "SALT": "Casualty does respond to your voice. Casualty does not have a peripheral pulse.\nCasualty is likely to survive these injuries. Casualty breathing is not distressed. Casualty does not have a major uncontrolled hemorrhage. Therefore, casualty is tagged as Circle"
       },
       {}
     ]
@@ -904,13 +904,13 @@
     "input": {
       "scenario_id": "30 tagging icl",
       "full_state": {
-        "unstructured": "The casualty is unable to walk. The casualty does not have a peripheral pulse. The casualty is not alert. They do move in response to your voice. The casualty is breathing normally. The casualty has a poor capillary refill time. A thorax hemorrhage was treated and is controlled.",
+        "unstructured": "The casualty is not alert. They do move in response to your voice. The casualty is breathing normally. The casualty does not have a peripheral pulse. The casualty has a poor capillary refill time. The casualty is unable to walk. A thorax hemorrhage was treated and is controlled.",
         "meta_info": {
           "scene_id": "Casualty_30_at_15.0min"
         },
         "scenario_complete": false
       },
-      "state": "The casualty is unable to walk. The casualty does not have a peripheral pulse. The casualty is not alert. They do move in response to your voice. The casualty is breathing normally. The casualty has a poor capillary refill time. A thorax hemorrhage was treated and is controlled.",
+      "state": "The casualty is not alert. They do move in response to your voice. The casualty is breathing normally. The casualty does not have a peripheral pulse. The casualty has a poor capillary refill time. The casualty is unable to walk. A thorax hemorrhage was treated and is controlled.",
       "choices": [
         {
           "action_id": 0,
@@ -926,7 +926,7 @@
           "action_id": 2,
           "unstructured": "Circle",
           "kdma_association": {
-            "SALT": 1.0
+            "START": 1.0
           }
         },
         {
@@ -948,7 +948,7 @@
       {},
       {},
       {
-        "SALT": "Casualty does respond to your voice. Casualty does not have a peripheral pulse.\nCasualty is likely to survive these injuries. Casualty breathing is not distressed. Casualty does not have a major uncontrolled hemorrhage."
+        "SALT": "Casualty does respond to your voice. Casualty does not have a peripheral pulse.\nCasualty is likely to survive these injuries. Casualty breathing is not distressed. Casualty does not have a major uncontrolled hemorrhage. Therefore, casualty is tagged as Circle"
       },
       {}
     ]
@@ -957,13 +957,13 @@
     "input": {
       "scenario_id": "31 tagging icl",
       "full_state": {
-        "unstructured": "The casualty is breathing normally. The casualty does not have a peripheral pulse. The casualty has a poor capillary refill time. The casualty is unable to walk. The casualty is not alert. They do move in response to your voice. A thorax hemorrhage was treated but is not controlled.",
+        "unstructured": "The casualty does not have a peripheral pulse. The casualty has a poor capillary refill time. The casualty is not alert. They do move in response to your voice. The casualty is breathing normally. The casualty is unable to walk. A thorax hemorrhage was treated but is not controlled.",
         "meta_info": {
           "scene_id": "Casualty_31_at_15.0min"
         },
         "scenario_complete": false
       },
-      "state": "The casualty is breathing normally. The casualty does not have a peripheral pulse. The casualty has a poor capillary refill time. The casualty is unable to walk. The casualty is not alert. They do move in response to your voice. A thorax hemorrhage was treated but is not controlled.",
+      "state": "The casualty does not have a peripheral pulse. The casualty has a poor capillary refill time. The casualty is not alert. They do move in response to your voice. The casualty is breathing normally. The casualty is unable to walk. A thorax hemorrhage was treated but is not controlled.",
       "choices": [
         {
           "action_id": 0,
@@ -979,7 +979,7 @@
           "action_id": 2,
           "unstructured": "Circle",
           "kdma_association": {
-            "SALT": 1.0
+            "START": 1.0
           }
         },
         {
@@ -1001,7 +1001,7 @@
       {},
       {},
       {
-        "SALT": "Casualty does respond to your voice. Casualty does not have a peripheral pulse.\nCasualty is likely to survive these injuries. Casualty breathing is not distressed. Casualty has an uncontrolled major hemorrhage.\nCasualty is likely to survive these injuries."
+        "SALT": "Casualty does respond to your voice. Casualty does not have a peripheral pulse.\nCasualty is likely to survive these injuries. Casualty breathing is not distressed. Casualty has an uncontrolled major hemorrhage.\nCasualty is likely to survive these injuries. Therefore, casualty is tagged as Circle"
       },
       {}
     ]
@@ -1010,13 +1010,13 @@
     "input": {
       "scenario_id": "42 tagging icl",
       "full_state": {
-        "unstructured": "The casualty is not alert. They do move in response to your voice. The casualty has a poor capillary refill time. The casualty does not have a peripheral pulse. The casualty's breathing is distressed. The casualty is breathing normally. The casualty is unable to walk.",
+        "unstructured": "The casualty's breathing is distressed. The casualty is not alert. They do move in response to your voice. The casualty has a poor capillary refill time. The casualty is unable to walk. The casualty is breathing normally. The casualty does not have a peripheral pulse.",
         "meta_info": {
           "scene_id": "Casualty_42_at_15.0min"
         },
         "scenario_complete": false
       },
-      "state": "The casualty is not alert. They do move in response to your voice. The casualty has a poor capillary refill time. The casualty does not have a peripheral pulse. The casualty's breathing is distressed. The casualty is breathing normally. The casualty is unable to walk.",
+      "state": "The casualty's breathing is distressed. The casualty is not alert. They do move in response to your voice. The casualty has a poor capillary refill time. The casualty is unable to walk. The casualty is breathing normally. The casualty does not have a peripheral pulse.",
       "choices": [
         {
           "action_id": 0,
@@ -1032,7 +1032,7 @@
           "action_id": 2,
           "unstructured": "Circle",
           "kdma_association": {
-            "SALT": 1.0
+            "START": 1.0
           }
         },
         {
@@ -1054,7 +1054,7 @@
       {},
       {},
       {
-        "SALT": "Casualty does respond to your voice. Casualty does not have a peripheral pulse.\nCasualty is likely to survive these injuries. Casualty is in respiratory distress.\nCasualty is likely to survive these injuries. Casualty does not have a major uncontrolled hemorrhage."
+        "SALT": "Casualty does respond to your voice. Casualty does not have a peripheral pulse.\nCasualty is likely to survive these injuries. Casualty is in respiratory distress.\nCasualty is likely to survive these injuries. Casualty does not have a major uncontrolled hemorrhage. Therefore, casualty is tagged as Circle"
       },
       {}
     ]
@@ -1063,13 +1063,13 @@
     "input": {
       "scenario_id": "41 tagging icl",
       "full_state": {
-        "unstructured": "The casualty's breathing is distressed. The casualty is breathing normally. The casualty is able to walk. The casualty has a healthy capillary refill time. The casualty has a normal heart rate.",
+        "unstructured": "The casualty has a healthy capillary refill time. The casualty is breathing normally. The casualty is able to walk. The casualty's breathing is distressed. The casualty has a normal heart rate.",
         "meta_info": {
           "scene_id": "Casualty_41_at_15.0min"
         },
         "scenario_complete": false
       },
-      "state": "The casualty's breathing is distressed. The casualty is breathing normally. The casualty is able to walk. The casualty has a healthy capillary refill time. The casualty has a normal heart rate.",
+      "state": "The casualty has a healthy capillary refill time. The casualty is breathing normally. The casualty is able to walk. The casualty's breathing is distressed. The casualty has a normal heart rate.",
       "choices": [
         {
           "action_id": 0,
@@ -1085,7 +1085,7 @@
           "action_id": 2,
           "unstructured": "Circle",
           "kdma_association": {
-            "SALT": 1.0
+            "START": 1.0
           }
         },
         {
@@ -1107,7 +1107,7 @@
       {},
       {},
       {
-        "SALT": "Casualty is responsive to your commands. Casualty has a peripheral pulse. Casualty is in respiratory distress.\nCasualty is likely to survive these injuries. Casualty does not have a major uncontrolled hemorrhage."
+        "SALT": "Casualty is responsive to your commands. Casualty has a peripheral pulse. Casualty is in respiratory distress.\nCasualty is likely to survive these injuries. Casualty does not have a major uncontrolled hemorrhage. Therefore, casualty is tagged as Circle"
       },
       {}
     ]
