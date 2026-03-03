@@ -86,7 +86,8 @@ class OutlinesTransformersInferenceEngine(StructuredInferenceEngine):
             device_dtype=torch_dtype,
         )
 
-        # https://github.com/dottxt-ai/outlines/issues/1816
+        # https://github.com/dottxt-ai/outlines/pull/1817
+        # newer verion of outlines fixes this issue, but we are blocked with the vllm dependency
         self.model.tokenizer.is_llama = True
 
     def dialog_to_prompt(self, dialog):
