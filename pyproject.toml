@@ -2,7 +2,7 @@
 name = "align-system"
 version = "0.5.9"
 description = ""
-authors = ["David Joy <10147749+dmjoy@users.noreply.github.com>"]
+authors = [{name = "David Joy", email = "10147749+dmjoy@users.noreply.github.com"}]
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
@@ -20,6 +20,9 @@ dependencies = [
     "ubelt>=1.4.1",
     "vllm>=0.11.0",
 ]
+
+[tool.setuptools.packages.find]
+include = ["align_system*"]
 
 [project.scripts]
 run_align_system = "align_system.cli.run_align_system:main"
