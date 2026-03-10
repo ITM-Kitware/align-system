@@ -22,6 +22,9 @@ dependencies = [
     "vllm>=0.11.0",
 ]
 
+[tool.setuptools.packages.find]
+include = ["align_system*"]
+
 [project.scripts]
 run_align_system = "align_system.cli.run_align_system:main"
 
