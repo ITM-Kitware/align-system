@@ -8,8 +8,7 @@ import jinja2
 import outlines
 import torch
 import transformers
-from outlines.types import Regex
-from outlines_core.json_schema import build_regex_from_schema
+from outlines.types import JsonSchema
 
 from align_system.algorithms.abstracts import StructuredInferenceEngine
 from align_system.utils import logging
@@ -161,13 +160,9 @@ class OutlinesTransformersInferenceEngine(StructuredInferenceEngine):
         return outputs
 
     def run_inference(self, prompts, schema):
-        regex_schema = build_regex_from_schema(schema)
-        regex_schema = regex_schema.replace(
-            "(-)?(0|[1-9][0-9]*)", "(100|[1-9][0-9]|[0-9])"
-        )
-        regex_schema = Regex(regex_schema)
+        json_schema = JsonSchema(schema, whitespace_pattern=r"[ ]?")
 
-        generator = outlines.Generator(self.model, regex_schema)
+        generator = outlines.Generator(self.model, json_schema)
 
         if isinstance(prompts, str):
             output = generator(
