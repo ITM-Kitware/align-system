@@ -8,22 +8,38 @@ import jinja2
 import outlines
 import torch
 import transformers
-from outlines.types import JsonSchema
+from outlines.types import Regex
+from outlines_core.json_schema import build_regex_from_schema
 
 from align_system.algorithms.abstracts import StructuredInferenceEngine
+from align_system.utils import logging
+
+log = logging.getLogger(__name__)
 
 # monkey patch for determinism
 if os.getenv("OUTLINES_DETERMINSTIC_VOCAB", "1") == "1":
+    import re
+
     from outlines.backends.outlines_core import OutlinesCoreBackend
     from outlines_core import Vocabulary
 
     @staticmethod
     def deterministic_create_vocab(vocab, eos_token_id, eos_token, token_to_str):
         formatted_vocab = {}
-        for token, token_id in sorted(vocab.items(), key=lambda x: x[1]):
+        for token, token_id in vocab.items():
+            # tokens of the form "<0x01>" map to the same string as tokens of the form "\x01".
+            # outlines doesn't seem to match numbers correctly to the first form, so skip them.
+            # otherwise they would potentially overwrite with what gets registered in formatted_vocab
+            if re.match(r"^<0x([0-9A-Fa-f]{2})>$", token):
+                continue
+
             token_as_str = token_to_str(token)
-            if token_as_str not in formatted_vocab:
-                formatted_vocab[token_as_str] = [token_id]
+            if token_as_str in formatted_vocab:
+                log.warning(
+                    f"Model vocabulary contains multiple tokens mapping to the same string. String={token_as_str} will be mapped to token={token}. Output may be unpredictable."
+                )
+            formatted_vocab[token_as_str] = [token_id]
+
         formatted_vocab.pop(eos_token)
         return Vocabulary(eos_token_id, formatted_vocab)
 
@@ -145,9 +161,13 @@ class OutlinesTransformersInferenceEngine(StructuredInferenceEngine):
         return outputs
 
     def run_inference(self, prompts, schema):
-        json_schema = JsonSchema(schema, whitespace_pattern=r"[ ]?")
+        regex_schema = build_regex_from_schema(schema)
+        regex_schema = regex_schema.replace(
+            "(-)?(0|[1-9][0-9]*)", "(100|[1-9][0-9]|[0-9])"
+        )
+        regex_schema = Regex(regex_schema)
 
-        generator = outlines.Generator(self.model, json_schema)
+        generator = outlines.Generator(self.model, regex_schema)
 
         if isinstance(prompts, str):
             output = generator(
