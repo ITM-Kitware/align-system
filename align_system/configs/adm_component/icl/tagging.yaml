@@ -14,8 +14,8 @@ icl_generator_partial:
     sort_actions: false
     most_similar_first: false
     datasets:
-      START: align_system/resources/icl/tagging/start_icl.json
-      SALT: align_system/resources/icl/tagging/salt_icl.json
-      BCD_SIEVE: align_system/resources/icl/tagging/bcd_sieve_icl.json
+      START: align_system/resources/icl/tagging/train3.json
+      SALT: align_system/resources/icl/tagging/train3.json
+      BCD_SIEVE: align_system/resources/icl/tagging/train3.json
 
   state_hydration_domain: minimal
