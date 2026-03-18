@@ -6,8 +6,8 @@ defaults:
 adm:
   instance:
     # greedy sampling for deterministic LLM inferences
-    sampler:
-      _target_: outlines.samplers.GreedySampler
+    generation_kwargs:
+      do_sample: false
 
 align_to_target: true
 force_determinism: true

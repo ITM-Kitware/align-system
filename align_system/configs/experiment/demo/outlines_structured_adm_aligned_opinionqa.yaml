@@ -15,8 +15,8 @@ adm:
     #   trust_remote_code: true
     # tokenizer_kwargs:
     #   trust_remote_code: true
-    sampler:
-      _target_: outlines.samplers.GreedySampler
+    generation_kwargs:
+      do_sample: false
     scenario_description_template:
       _target_: align_system.prompt_engineering.outlines_prompts.opinion_qa_scenario_description
     action_selection_prompt_template:

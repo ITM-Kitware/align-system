@@ -13,8 +13,8 @@ adm:
   instance:
     precision: half
     model_name: mistralai/Mistral-7B-Instruct-v0.3
-    sampler:
-      _target_: outlines.samplers.GreedySampler
+    generation_kwargs:
+      do_sample: false
   inference_kwargs:
     distribution_matching: average # no rel
     predict_relevance: false # no rel

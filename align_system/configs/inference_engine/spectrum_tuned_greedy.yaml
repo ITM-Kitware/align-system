@@ -2,5 +2,5 @@ _target_: align_system.algorithms.outlines_inference_engine.SpectrumTunedInferen
 
 model_name: tsor13/spectrum-Llama-3.1-8B-v1
 precision: half
-sampler:
-  _target_: outlines.samplers.GreedySampler
+generation_kwargs:
+  do_sample: false
