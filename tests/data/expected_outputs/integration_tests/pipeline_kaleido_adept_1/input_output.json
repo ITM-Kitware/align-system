@@ -354,7 +354,49 @@
       },
       "true_relevance": {
         "Moral judgement": 1
-      }
+      },
+      "per_step_timing_stats": [
+        {
+          "step": "align_system.algorithms.misc_itm_adm_components.ITMFormatChoicesADMComponent",
+          "step_num": 0,
+          "elapsed_s": 7.125502452254295e-05
+        },
+        {
+          "step": "align_system.algorithms.kaleido_adm_component.KaleidoADMComponent",
+          "step_num": 1,
+          "elapsed_s": 9.307555091101676
+        },
+        {
+          "step": "align_system.algorithms.utility_adm_component.RenameVariablesADMComponent",
+          "step_num": 2,
+          "elapsed_s": 4.340196028351784e-05
+        },
+        {
+          "step": "align_system.algorithms.alignment_adm_component.AlignmentADMComponent",
+          "step_num": 3,
+          "elapsed_s": 0.00020544882863759995
+        },
+        {
+          "step": "align_system.algorithms.misc_itm_adm_components.JustificationFromReasonings",
+          "step_num": 4,
+          "elapsed_s": 2.7651898562908173e-05
+        },
+        {
+          "step": "align_system.algorithms.action_parameter_completion_adm_component.ActionParameterCompletionADMComponent",
+          "step_num": 5,
+          "elapsed_s": 0.00015319092199206352
+        },
+        {
+          "step": "align_system.algorithms.misc_itm_adm_components.EnsureChosenActionADMComponent",
+          "step_num": 6,
+          "elapsed_s": 3.5556964576244354e-05
+        },
+        {
+          "step": "align_system.algorithms.misc_itm_adm_components.PopulateChoiceInfo",
+          "step_num": 7,
+          "elapsed_s": 4.010600969195366e-05
+        }
+      ]
     },
     "output": {
       "choice": 4,
@@ -731,7 +773,49 @@
       },
       "true_relevance": {
         "Moral judgement": 1
-      }
+      },
+      "per_step_timing_stats": [
+        {
+          "step": "align_system.algorithms.misc_itm_adm_components.ITMFormatChoicesADMComponent",
+          "step_num": 0,
+          "elapsed_s": 3.771204501390457e-05
+        },
+        {
+          "step": "align_system.algorithms.kaleido_adm_component.KaleidoADMComponent",
+          "step_num": 1,
+          "elapsed_s": 7.285672323778272
+        },
+        {
+          "step": "align_system.algorithms.utility_adm_component.RenameVariablesADMComponent",
+          "step_num": 2,
+          "elapsed_s": 5.8010220527648926e-05
+        },
+        {
+          "step": "align_system.algorithms.alignment_adm_component.AlignmentADMComponent",
+          "step_num": 3,
+          "elapsed_s": 0.00019686296582221985
+        },
+        {
+          "step": "align_system.algorithms.misc_itm_adm_components.JustificationFromReasonings",
+          "step_num": 4,
+          "elapsed_s": 2.699112519621849e-05
+        },
+        {
+          "step": "align_system.algorithms.action_parameter_completion_adm_component.ActionParameterCompletionADMComponent",
+          "step_num": 5,
+          "elapsed_s": 0.0001493929885327816
+        },
+        {
+          "step": "align_system.algorithms.misc_itm_adm_components.EnsureChosenActionADMComponent",
+          "step_num": 6,
+          "elapsed_s": 3.5486649721860886e-05
+        },
+        {
+          "step": "align_system.algorithms.misc_itm_adm_components.PopulateChoiceInfo",
+          "step_num": 7,
+          "elapsed_s": 3.8393307477235794e-05
+        }
+      ]
     },
     "output": {
       "choice": 4,
@@ -1108,7 +1192,49 @@
       },
       "true_relevance": {
         "Moral judgement": 1
-      }
+      },
+      "per_step_timing_stats": [
+        {
+          "step": "align_system.algorithms.misc_itm_adm_components.ITMFormatChoicesADMComponent",
+          "step_num": 0,
+          "elapsed_s": 4.6679284423589706e-05
+        },
+        {
+          "step": "align_system.algorithms.kaleido_adm_component.KaleidoADMComponent",
+          "step_num": 1,
+          "elapsed_s": 7.0495227966457605
+        },
+        {
+          "step": "align_system.algorithms.utility_adm_component.RenameVariablesADMComponent",
+          "step_num": 2,
+          "elapsed_s": 5.648704245686531e-05
+        },
+        {
+          "step": "align_system.algorithms.alignment_adm_component.AlignmentADMComponent",
+          "step_num": 3,
+          "elapsed_s": 0.00020510796457529068
+        },
+        {
+          "step": "align_system.algorithms.misc_itm_adm_components.JustificationFromReasonings",
+          "step_num": 4,
+          "elapsed_s": 2.742186188697815e-05
+        },
+        {
+          "step": "align_system.algorithms.action_parameter_completion_adm_component.ActionParameterCompletionADMComponent",
+          "step_num": 5,
+          "elapsed_s": 0.00016247807070612907
+        },
+        {
+          "step": "align_system.algorithms.misc_itm_adm_components.EnsureChosenActionADMComponent",
+          "step_num": 6,
+          "elapsed_s": 3.6839861422777176e-05
+        },
+        {
+          "step": "align_system.algorithms.misc_itm_adm_components.PopulateChoiceInfo",
+          "step_num": 7,
+          "elapsed_s": 3.937399014830589e-05
+        }
+      ]
     },
     "output": {
       "choice": 4,
@@ -1485,7 +1611,49 @@
       },
       "true_relevance": {
         "Moral judgement": 1
-      }
+      },
+      "per_step_timing_stats": [
+        {
+          "step": "align_system.algorithms.misc_itm_adm_components.ITMFormatChoicesADMComponent",
+          "step_num": 0,
+          "elapsed_s": 3.872392699122429e-05
+        },
+        {
+          "step": "align_system.algorithms.kaleido_adm_component.KaleidoADMComponent",
+          "step_num": 1,
+          "elapsed_s": 6.985859794076532
+        },
+        {
+          "step": "align_system.algorithms.utility_adm_component.RenameVariablesADMComponent",
+          "step_num": 2,
+          "elapsed_s": 5.837995558977127e-05
+        },
+        {
+          "step": "align_system.algorithms.alignment_adm_component.AlignmentADMComponent",
+          "step_num": 3,
+          "elapsed_s": 0.00020339526236057281
+        },
+        {
+          "step": "align_system.algorithms.misc_itm_adm_components.JustificationFromReasonings",
+          "step_num": 4,
+          "elapsed_s": 2.8094276785850525e-05
+        },
+        {
+          "step": "align_system.algorithms.action_parameter_completion_adm_component.ActionParameterCompletionADMComponent",
+          "step_num": 5,
+          "elapsed_s": 0.00015753787010908127
+        },
+        {
+          "step": "align_system.algorithms.misc_itm_adm_components.EnsureChosenActionADMComponent",
+          "step_num": 6,
+          "elapsed_s": 3.630807623267174e-05
+        },
+        {
+          "step": "align_system.algorithms.misc_itm_adm_components.PopulateChoiceInfo",
+          "step_num": 7,
+          "elapsed_s": 3.99160198867321e-05
+        }
+      ]
     },
     "output": {
       "choice": 4,
