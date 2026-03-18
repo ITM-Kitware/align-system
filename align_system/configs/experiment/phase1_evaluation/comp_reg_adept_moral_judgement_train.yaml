@@ -15,8 +15,8 @@ interface:
 adm:
   instance:
     precision: half
-    sampler:
-      _target_: outlines.samplers.GreedySampler
+    generation_kwargs:
+      do_sample: false
   inference_kwargs:
     kdma_score_examples: true
     num_samples: 1
