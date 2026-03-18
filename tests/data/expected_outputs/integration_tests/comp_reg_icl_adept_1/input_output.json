@@ -379,22 +379,22 @@
           },
           {
             "Treat Patient A": {
-              "reasoning": "Because Patient A acted to intend minor harm and had a somewhat indirect cause of harm, choosing Treat Patient A would score a 10 for the the principle of moral judgment.",
-              "score": 10
-            },
-            "Treat Patient B": {
-              "reasoning": "Because Patient B acted with no intent and did not cause of harm, choosing Treat Patient B would score a 65 for the the principle of moral judgment.",
-              "score": 65
-            }
-          },
-          {
-            "Treat Patient A": {
               "reasoning": "Because Patient A acted to intend major harm and had a direct cause of harm, choosing Treat Patient A would score a 20 for the the principle of moral judgment.",
               "score": 20
             },
             "Treat Patient B": {
               "reasoning": "Because Patient B acted with no intent and did not cause of harm, choosing Treat Patient B would score a 60 for the the principle of moral judgment.",
               "score": 60
+            }
+          },
+          {
+            "Treat Patient A": {
+              "reasoning": "Because Patient A acted to intend minor harm and had a somewhat indirect cause of harm, choosing Treat Patient A would score a 10 for the the principle of moral judgment.",
+              "score": 10
+            },
+            "Treat Patient B": {
+              "reasoning": "Because Patient B acted with no intent and did not cause of harm, choosing Treat Patient B would score a 65 for the the principle of moral judgment.",
+              "score": 65
             }
           },
           {
@@ -420,7 +420,7 @@
         "character_id": null,
         "threat_state": null,
         "parameters": null,
-        "justification": "This response does not provide any information about the decision making behavior of someone with high moral judgment, so it would score a 0. ",
+        "justification": "This response does not provide any information about the decision making behavior of someone with high moral judgment, as it does not specify which patient to treat. ",
         "kdma_association": null
       }
     }
