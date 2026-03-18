@@ -15,6 +15,7 @@ dependencies = [
     "outlines>=1.2.9",
     "rich>=13.6.0",
     "pytest>=9.0.2",
+    "rouge-score>=0.1.2",
     "scikit-learn>=1.7.2",
     "swagger-client",
     "transformers>=5.1.0",
