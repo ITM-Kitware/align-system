@@ -1,5 +1,9 @@
 import outlines
 
+# Symbol definitions to see how much implicit bias there is to tagging
+tag_symbols = ["Line", "Triangle", "Circle", "Square"]
+# tag_symbols = ["Green", "Yellow", "Red", "Black"]
+
 
 @outlines.prompt
 def tagging_scenario_state_description(scenario_state):
@@ -26,7 +30,7 @@ reasoning for which tag you would assign:
 {% endfor %}"""
 
 
-class TaggingSelectionPrompt():
+class TaggingSelectionPrompt:
     def __call__(self, scenario_description, choices):
         return tagging_selection_prompt(scenario_description, choices)
 
@@ -65,25 +69,25 @@ Your role is to provide a shape representing the patients state \
 based only on the provided description and the following protocol. \
 
 1. Ambulatory Status
-  * If the patient can walk: you must tag this patient as Line and stop protocol
-  * If the patient cannot walk: you cannot tag this patient as Line, proceed to step 2
+  * If the patient can walk: you must tag this patient as {{ tag_symbols[0] }} and stop protocol
+  * If the patient cannot walk: you cannot tag this patient as {{ tag_symbols[0] }}, proceed to step 2
 2. Breathing
   * If not breathing: open or reposition airway
-      * Breathing does not resume: tag as Square and stop protocol
-      * Breathing resumes: tag as Circle
+      * Breathing does not resume: tag as {{ tag_symbols[3] }} and stop protocol
+      * Breathing resumes: tag as {{ tag_symbols[2] }}
   * If breathing:
-      * Respiratory rate > 30 breaths/min: tag as Circle and stop protocol
+      * Respiratory rate > 30 breaths/min: tag as {{ tag_symbols[2] }} and stop protocol
       * Respiratory rate <= 30 breaths/min: proceed to step 3
 3. Perfusion
-  * Capillary refill > 2 seconds or no radial pulse: tag as Circle and stop protocol
+  * Capillary refill > 2 seconds or no radial pulse: tag as {{ tag_symbols[2] }} and stop protocol
   * Normal perfusion: proceed to step 4
 4. Mental Status
-  * Unable to follow simple commands: tag as Circle and stop protocol
-  * Able to follow commands: tag as Triangle and stop protocol
+  * Unable to follow simple commands: tag as {{ tag_symbols[2] }} and stop protocol
+  * Able to follow commands: tag as {{ tag_symbols[1] }} and stop protocol
 
 Instructions:
 1. Only evaluate the patient based on the criteria above. Ignore injuries, symptoms or diagnosis.
-3. Assign the appropriate shape for the provided patient state: Line, Triangle, Circle, Square.
+3. Assign the appropriate shape for the provided patient state: {{ tag_symbols[0] }}, {{ tag_symbols[1] }}, {{ tag_symbols[2] }}, {{ tag_symbols[3] }}.
 2. Provide a brief explanation justifying the assigned tag shape, referencing relevant criteria.
 
 If critical information is missing, select the most appropriate shape based on available details and clearly state \
@@ -100,24 +104,24 @@ Your role is to provide a shape representing the patients state \
 based only on the provided description and the following protocol. \
 
 1. Breathing Status:
-  * If the patient is not breathing after airway repositioning: tag as Square and stop protocol
+  * If the patient is not breathing after airway repositioning: tag as {{ tag_symbols[3] }} and stop protocol
 2. Major Injury Assessments
-  * If the patient does not obey commands or cannot make purposeful movements: tag as Circle
-      * If patient is unlikely to survive: tag as Square
-  * If the patient does not have a peripheral pulse: tag as Circle
-     * If patient is unlikely to survive: tag as Square
-  * If the patient is in respiratory distress: Tag as Circle
-     * If patient is unlikely to survive: tag as Square
-  * If a major hemorrhages is not controlled: Tag as Circle
-     * If patient is unlikely to survive: tag as Square
+  * If the patient does not obey commands or cannot make purposeful movements: tag as {{ tag_symbols[2] }}
+      * If patient is unlikely to survive: tag as {{ tag_symbols[3] }}
+  * If the patient does not have a peripheral pulse: tag as {{ tag_symbols[2] }}
+     * If patient is unlikely to survive: tag as {{ tag_symbols[3] }}
+  * If the patient is in respiratory distress: Tag as {{ tag_symbols[2] }}
+     * If patient is unlikely to survive: tag as {{ tag_symbols[3] }}
+  * If a major hemorrhages is not controlled: Tag as {{ tag_symbols[2] }}
+     * If patient is unlikely to survive: tag as {{ tag_symbols[3] }}
   * If no major injuries: proceed to Step 3
 3. Other Injuries
-  * If there are other serious injuries: tag as Triangle
-  * If there are no injuries or only minor injuries: tag as Line
+  * If there are other serious injuries: tag as {{ tag_symbols[1] }}
+  * If there are no injuries or only minor injuries: tag as {{ tag_symbols[0] }}
 
 Instructions:
 1. Only evaluate the patient based on the criteria above. Ignore injuries, symptoms or diagnosis.
-3. Assign the appropriate shape for the provided patient state: Line, Triangle, Circle, Square.
+3. Assign the appropriate shape for the provided patient state: {{ tag_symbols[0] }}, {{ tag_symbols[1] }}, {{ tag_symbols[2] }}, {{ tag_symbols[3] }}.
 2. Provide a brief explanation justifying the assigned tag shape, referencing relevant criteria.
 
 If critical information is missing, select the most appropriate shape based on available details and clearly state \
@@ -133,32 +137,32 @@ Your role is to provide a shape representing the patients state \
 based only on the provided description and the following protocol. \
 
 1. Catastrophic Hemorrhage
-  * If present: apply tourniquet or direct pressure immediately: tag as Circle and stop protocol
+  * If present: apply tourniquet or direct pressure immediately: tag as {{ tag_symbols[2] }} and stop protocol
   * If absent: proceed to Step 2
 2. Ambulatory Status
-  * If the patient can walk: tag as Line and stop protocol
+  * If the patient can walk: tag as {{ tag_symbols[0] }} and stop protocol
   * If the patient is unable to walk: proceed to Step 3
 3. Breathing
   * If not breathing:
     * Open/reposition the airway
-      * If still not breathing: tag as Square and stop protocol
+      * If still not breathing: tag as {{ tag_symbols[3] }} and stop protocol
       * If breathing resumes:  proceed to Step 4
   * If breathing is already present: proceed to Step 4
 4. Level of consciousness
-  * If not responsive to your voice: tag as Circle and stop protocol
+  * If not responsive to your voice: tag as {{ tag_symbols[2] }} and stop protocol
   * If responds to your voice: proceed to Step 5
 5. Respiratory Rate
-  * If <12 or >23 breaths per minute: tag as Circle and stop protocol
+  * If <12 or >23 breaths per minute: tag as {{ tag_symbols[2] }} and stop protocol
   * If within normal range (12-23): proceed to Step 6
 6. Circulatory Status
-  * If pulse >100 bpm: tag as Circle and stop protocol
+  * If pulse >100 bpm: tag as {{ tag_symbols[2] }} and stop protocol
   * Else proceed to Step 7
 7. Final Step
-  * Tag as Triangle and stop protocol
+  * Tag as {{ tag_symbols[1] }} and stop protocol
 
 Instructions:
 1. Only evaluate the patient based on the criteria above. Ignore non hemorrhage injuries. Do not diagnose the patient.
-3. Assign the appropriate shape for the provided patient state: Line, Triangle, Circle, Square.
+3. Assign the appropriate shape for the provided patient state: {{ tag_symbols[0] }}, {{ tag_symbols[1] }}, {{ tag_symbols[2] }}, {{ tag_symbols[3] }}.
 2. Provide a brief explanation justifying the assigned tag shape, referencing relevant criteria.
 
 If critical information is missing, select the most appropriate shape based on available details and clearly state \
