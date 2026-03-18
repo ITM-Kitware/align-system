@@ -1,6 +1,5 @@
 import itertools
 import json
-import os
 from collections.abc import Iterable
 from textwrap import dedent
 
@@ -11,38 +10,6 @@ import transformers
 from outlines.types import JsonSchema
 
 from align_system.algorithms.abstracts import StructuredInferenceEngine
-from align_system.utils import logging
-
-log = logging.getLogger(__name__)
-
-# monkey patch for determinism
-if os.getenv("OUTLINES_DETERMINSTIC_VOCAB", "1") == "1":
-    import re
-
-    from outlines.backends.outlines_core import OutlinesCoreBackend
-    from outlines_core import Vocabulary
-
-    @staticmethod
-    def deterministic_create_vocab(vocab, eos_token_id, eos_token, token_to_str):
-        formatted_vocab = {}
-        for token, token_id in vocab.items():
-            # tokens of the form "<0x01>" map to the same string as tokens of the form "\x01".
-            # outlines doesn't seem to match numbers correctly to the first form, so skip them.
-            # otherwise they would potentially overwrite with what gets registered in formatted_vocab
-            if re.match(r"^<0x([0-9A-Fa-f]{2})>$", token):
-                continue
-
-            token_as_str = token_to_str(token)
-            if token_as_str in formatted_vocab:
-                log.warning(
-                    f"Model vocabulary contains multiple tokens mapping to the same string. String={token_as_str} will be mapped to token={token}. Output may be unpredictable."
-                )
-            formatted_vocab[token_as_str] = [token_id]
-
-        formatted_vocab.pop(eos_token)
-        return Vocabulary(eos_token_id, formatted_vocab)
-
-    OutlinesCoreBackend.create_outlines_core_vocabulary = deterministic_create_vocab
 
 # Sometimes the internal default for outlines/transformers is 20,
 # leading to very short (and often invalid JSON) outputs.  Setting a
@@ -163,7 +130,6 @@ class OutlinesTransformersInferenceEngine(StructuredInferenceEngine):
         json_schema = JsonSchema(schema, whitespace_pattern=r"[ ]?")
 
         generator = outlines.Generator(self.model, json_schema)
-
         if isinstance(prompts, str):
             output = generator(
                 prompts,
