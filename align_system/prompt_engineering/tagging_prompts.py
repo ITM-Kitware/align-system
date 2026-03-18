@@ -1,10 +1,5 @@
 import outlines
 
-# Symbol definitions to see how much implicit bias there is to tagging
-tag_symbols = ["Line", "Triangle", "Circle", "Square"]
-# tag_symbols = ["Green", "Yellow", "Red", "Black"]
-
-
 @outlines.prompt
 def tagging_scenario_state_description(scenario_state):
     """
@@ -30,7 +25,7 @@ reasoning for which tag you would assign:
 {% endfor %}"""
 
 
-class TaggingSelectionPrompt:
+class TaggingSelectionPrompt():
     def __call__(self, scenario_description, choices):
         return tagging_selection_prompt(scenario_description, choices)
 
@@ -62,7 +57,7 @@ class BaselineTaggingSystemPrompt:
 
 
 @outlines.prompt
-def start_tagging_system_prompt():
+def start_tagging_system_prompt(tag_symbols):
     """
 You are working with an Army combat medic to help triage patients. \
 Your role is to provide a shape representing the patients state \
@@ -97,7 +92,7 @@ the uncertainty.
 
 
 @outlines.prompt
-def salt_tagging_system_prompt():
+def salt_tagging_system_prompt(tag_symbols):
     """
 You are working with an Army combat medic to help triage patients. \
 Your role is to provide a shape representing the patients state \
@@ -130,7 +125,7 @@ the uncertainty.
 
 
 @outlines.prompt
-def bcd_tagging_system_prompt():
+def bcd_tagging_system_prompt(tag_symbols):
     """
 You are working with an Army combat medic to help triage patients. \
 Your role is to provide a shape representing the patients state \
@@ -172,11 +167,14 @@ the uncertainty.
 
 class TaggingSystemPrompt:
     def __call__(self, target_kdma, target_value):
+        # Symbol definitions to see how much implicit bias there is to tagging
+        tag_symbols = ["Line", "Triangle", "Circle", "Square"]
+        # tag_symbols = ["Green", "Yellow", "Red", "Black"]
         if target_kdma == "START":
-            return start_tagging_system_prompt()
+            return start_tagging_system_prompt(tag_symbols)
         elif target_kdma == "SALT":
-            return salt_tagging_system_prompt()
+            return salt_tagging_system_prompt(tag_symbols)
         elif target_kdma == "BCD_SIEVE":
-            return bcd_tagging_system_prompt()
+            return bcd_tagging_system_prompt(tag_symbols)
         else:
             raise ValueError(f"Unknown target tagging protocol: {target_kdma}")
