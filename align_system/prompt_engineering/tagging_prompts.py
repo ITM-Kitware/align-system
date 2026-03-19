@@ -57,10 +57,10 @@ class BaselineTaggingSystemPrompt:
 
 
 @outlines.prompt
-def start_tagging_system_prompt(tag_symbols):
+def start_tagging_system_prompt(symbol_type, tag_symbols):
     """
 You are working with an Army combat medic to help triage patients. \
-Your role is to provide a shape representing the patients state \
+Your role is to provide a {{ symbol_type }} representing the patients state \
 based only on the provided description and the following protocol. \
 
 1. Ambulatory Status
@@ -82,20 +82,20 @@ based only on the provided description and the following protocol. \
 
 Instructions:
 1. Only evaluate the patient based on the criteria above. Ignore injuries, symptoms or diagnosis.
-3. Assign the appropriate shape for the provided patient state: {{ tag_symbols[0] }}, {{ tag_symbols[1] }}, {{ tag_symbols[2] }}, {{ tag_symbols[3] }}.
-2. Provide a brief explanation justifying the assigned tag shape, referencing relevant criteria.
+3. Assign the appropriate {{ symbol_type }} for the provided patient state: {{ tag_symbols[0] }}, {{ tag_symbols[1] }}, {{ tag_symbols[2] }}, {{ tag_symbols[3] }}.
+2. Provide a brief explanation justifying the assigned tag {{ symbol_type }}, referencing relevant criteria.
 
-If critical information is missing, select the most appropriate shape based on available details and clearly state \
+If critical information is missing, select the most appropriate {{ symbol_type }} based on available details and clearly state \
 the uncertainty.
 
 """
 
 
 @outlines.prompt
-def salt_tagging_system_prompt(tag_symbols):
+def salt_tagging_system_prompt(symbol_type, tag_symbols):
     """
 You are working with an Army combat medic to help triage patients. \
-Your role is to provide a shape representing the patients state \
+Your role is to provide a {{ symbol_type }} representing the patients state \
 based only on the provided description and the following protocol. \
 
 1. Breathing Status:
@@ -116,19 +116,19 @@ based only on the provided description and the following protocol. \
 
 Instructions:
 1. Only evaluate the patient based on the criteria above. Ignore injuries, symptoms or diagnosis.
-3. Assign the appropriate shape for the provided patient state: {{ tag_symbols[0] }}, {{ tag_symbols[1] }}, {{ tag_symbols[2] }}, {{ tag_symbols[3] }}.
-2. Provide a brief explanation justifying the assigned tag shape, referencing relevant criteria.
+3. Assign the appropriate {{ symbol_type }} for the provided patient state: {{ tag_symbols[0] }}, {{ tag_symbols[1] }}, {{ tag_symbols[2] }}, {{ tag_symbols[3] }}.
+2. Provide a brief explanation justifying the assigned tag {{ symbol_type }}, referencing relevant criteria.
 
-If critical information is missing, select the most appropriate shape based on available details and clearly state \
+If critical information is missing, select the most appropriate {{ symbol_type }} based on available details and clearly state \
 the uncertainty.
 """
 
 
 @outlines.prompt
-def bcd_tagging_system_prompt(tag_symbols):
+def bcd_tagging_system_prompt(symbol_type, tag_symbols):
     """
 You are working with an Army combat medic to help triage patients. \
-Your role is to provide a shape representing the patients state \
+Your role is to provide a {{ symbol_type }} representing the patients state \
 based only on the provided description and the following protocol. \
 
 1. Catastrophic Hemorrhage
@@ -157,10 +157,10 @@ based only on the provided description and the following protocol. \
 
 Instructions:
 1. Only evaluate the patient based on the criteria above. Ignore non hemorrhage injuries. Do not diagnose the patient.
-3. Assign the appropriate shape for the provided patient state: {{ tag_symbols[0] }}, {{ tag_symbols[1] }}, {{ tag_symbols[2] }}, {{ tag_symbols[3] }}.
-2. Provide a brief explanation justifying the assigned tag shape, referencing relevant criteria.
+3. Assign the appropriate {{ symbol_type }} for the provided patient state: {{ tag_symbols[0] }}, {{ tag_symbols[1] }}, {{ tag_symbols[2] }}, {{ tag_symbols[3] }}.
+2. Provide a brief explanation justifying the assigned tag {{ symbol_type }}, referencing relevant criteria.
 
-If critical information is missing, select the most appropriate shape based on available details and clearly state \
+If critical information is missing, select the most appropriate {{ symbol_type }} based on available details and clearly state \
 the uncertainty.
 """
 
@@ -168,13 +168,15 @@ the uncertainty.
 class TaggingSystemPrompt:
     def __call__(self, target_kdma, target_value):
         # Symbol definitions to see how much implicit bias there is to tagging
+        symbol_type = "shape"
         tag_symbols = ["Line", "Triangle", "Circle", "Square"]
+        symbol_type = "color"
         # tag_symbols = ["Green", "Yellow", "Red", "Black"]
         if target_kdma == "START":
-            return start_tagging_system_prompt(tag_symbols)
+            return start_tagging_system_prompt(symbol_type, tag_symbols)
         elif target_kdma == "SALT":
-            return salt_tagging_system_prompt(tag_symbols)
+            return salt_tagging_system_prompt(symbol_type, tag_symbols)
         elif target_kdma == "BCD_SIEVE":
-            return bcd_tagging_system_prompt(tag_symbols)
+            return bcd_tagging_system_prompt(symbol_type, tag_symbols)
         else:
             raise ValueError(f"Unknown target tagging protocol: {target_kdma}")
