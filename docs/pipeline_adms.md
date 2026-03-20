@@ -320,8 +320,8 @@ _target_: align_system.algorithms.outlines_inference_engine.OutlinesTransformers
 
 model_name: mistralai/Mistral-7B-Instruct-v0.3
 precision: half
-sampler:
-  _target_: outlines.samplers.GreedySampler
+generation_kwargs:
+  do_sample: false
 ```
 
 Note that the class here is `OutlinesTransformersInferenceEngine`, and
