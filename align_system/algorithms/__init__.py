@@ -5,6 +5,7 @@ from outlines_core import Vocabulary
 
 # monkey patch to fix https://github.com/dottxt-ai/outlines/pull/1831
 # fix was applied to outlines main, but we will probably be blocked from updating due to vllm dependency
+# assuming this will be in official release >1.1.12
 @staticmethod
 def deterministic_create_vocab(vocab, eos_token_id, eos_token, token_to_str):
     formatted_vocab = {}
@@ -19,7 +20,7 @@ OutlinesCoreBackend.create_outlines_core_vocabulary = deterministic_create_vocab
 
 
 # monkey patch to fix https://github.com/dottxt-ai/outlines/pull/1817
-# newer verion of outlines fixes this issue, but we are blocked with the vllm dependency
+# newer verion of outlines fixes this issue (1.2.10), but we are blocked with the vllm dependency
 def convert_token_to_string(self, token: str) -> str:
     from transformers.file_utils import SPIECE_UNDERLINE
 
