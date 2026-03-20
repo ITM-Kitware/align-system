@@ -21,6 +21,7 @@ class OutlinesTransformersInferenceEngine(StructuredInferenceEngine):
     def __init__(
         self,
         model_name,
+        device="auto",
         precision="full",
         max_generator_tokens=DEFAULT_MAX_GENERATOR_TOKENS,
         inference_batch_size=5,
@@ -60,7 +61,7 @@ class OutlinesTransformersInferenceEngine(StructuredInferenceEngine):
 
         self.model = outlines.from_transformers(
             transformers.AutoModelForCausalLM.from_pretrained(
-                model_name, **self.model_kwargs, device_map="auto"
+                model_name, **self.model_kwargs, device_map=device
             ),
             transformers.AutoTokenizer.from_pretrained(
                 model_name, **self.tokenizer_kwargs
@@ -187,55 +188,37 @@ class OutlinesTransformersInferenceEngine(StructuredInferenceEngine):
                        )""").strip()
 
 
-# class SpectrumTunedInferenceEngine(OutlinesTransformersInferenceEngine):
-#     def __init__(self,
-#                  model_name,
-#                  device='auto',
-#                  precision='full',
-#                  max_generator_tokens=None,
-#                  sampler=MultinomialSampler(),
-#                  inference_batch_size=5,
-#                  model_kwargs={},
-#                  tokenizer_kwargs={}):
-#         super().__init__(model_name,
-#                          device,
-#                          precision,
-#                          max_generator_tokens,
-#                          sampler,
-#                          inference_batch_size,
-#                          model_kwargs,
-#                          tokenizer_kwargs)
+class SpectrumTunedInferenceEngine(OutlinesTransformersInferenceEngine):
+    def dialog_to_prompt(self, dialog):
+        tokenizer = self.model.tokenizer.tokenizer
 
-#     def dialog_to_prompt(self, dialog):
-#         tokenizer = self.model.tokenizer.tokenizer
+        # Use roles spectrum tuned models expect
+        # https://github.com/tsor13/spectrum/blob/main/README.md
+        for element in dialog:
+            if element.role == "system":
+                element.role = "description"
+            elif element.role == "user":
+                element.role = "input"
+            elif element.role == "assistant":
+                element.role = "output"
+            else:
+                raise RuntimeError(f"{element.role} dialog element unrecognized.")
 
-#         # Use roles spectrum tuned models expect
-#         # https://github.com/tsor13/spectrum/blob/main/README.md
-#         for element in dialog:
-#             if element.role == "system":
-#                 element.role = "description"
-#             elif element.role == "user":
-#                 element.role = "input"
-#             elif element.role == "assistant":
-#                 element.role = "output"
-#             else:
-#                 raise RuntimeError(f"{element.role} dialog element unrecognized.")
+        try:
+            encoded_dialog = tokenizer.apply_chat_template(dialog)
+        except jinja2.exceptions.TemplateError:
+            # Assume that the tokenizer chat template doesn't accept
+            # system messages; combine system message first user
+            # message
+            # Ensure each dialog element is a dict
+            system_msg, user_msg, *rest = [dict(d) for d in dialog]
 
-#         try:
-#             encoded_dialog = tokenizer.apply_chat_template(dialog)
-#         except jinja2.exceptions.TemplateError:
-#             # Assume that the tokenizer chat template doesn't accept
-#             # system messages; combine system message first user
-#             # message
-#             # Ensure each dialog element is a dict
-#             system_msg, user_msg, *rest = [dict(d) for d in dialog]
+            assert user_msg['role'] == 'user'
 
-#             assert user_msg['role'] == 'user'
+            updated_content = system_msg['content'] + '\n' + user_msg['content']
 
-#             updated_content = system_msg['content'] + '\n' + user_msg['content']
+            dialog = [{'role': 'user', 'content': updated_content}, *rest]
 
-#             dialog = [{'role': 'user', 'content': updated_content}, *rest]
+            encoded_dialog = tokenizer.apply_chat_template(dialog)
 
-#             encoded_dialog = tokenizer.apply_chat_template(dialog)
-
-#         return tokenizer.decode(encoded_dialog)
+        return tokenizer.decode(encoded_dialog)
