@@ -28,7 +28,7 @@ EXPECTED_OUT_GITIGNORE_CONTENT = '''
 !input_output.json
 !raw_align_system.log'''.lstrip()
 
-LOG_EXEMPTIONS = [r'^Today Date:.*$']
+LOG_EXEMPTIONS = [r'^Today Date:.*$', r'^HTTP Request:.*$', r'"elapsed_s":']
 
 RICH_MARKUP_TAG_RE = r'(\[/?[^\]]+\])'
 
@@ -78,7 +78,7 @@ def markup_diff_lines(diff_lines):
 
 def is_log_line_exempt(line):
     for exemption_re in LOG_EXEMPTIONS:
-        if re.match(exemption_re, line):
+        if re.search(exemption_re, line):
             return True
 
     return False
