@@ -1,9 +1,11 @@
 import json
+import random
+import re
 import time
 import tempfile
 
 from typing import Union, Optional, Literal, List, Dict
-from openai import OpenAI, not_given
+from openai import OpenAI, APIStatusError, not_given
 from textwrap import dedent
 
 from align_system.algorithms.abstracts import StructuredInferenceEngine
@@ -24,6 +26,8 @@ class OpenAIInferenceEngine(StructuredInferenceEngine):
     in which case the "developer" role rename is skipped.
     """
 
+    _RETRYABLE_STATUS_CODES = {408, 425, 429, 500, 501, 502, 503, 504}
+
     def __init__(self,
                  model_name: str,
                  temperature: float,
@@ -33,7 +37,9 @@ class OpenAIInferenceEngine(StructuredInferenceEngine):
                  api_key: Optional[str] = None,
                  _strict_response_validation: bool = False,
                  timeout: Union[float, None, Literal["NOT_GIVEN"]] = "NOT_GIVEN",
-                 use_batch_api: bool = True
+                 use_batch_api: bool = True,
+                 max_retries: int = 5,
+                 retry_base_delay: float = 1.0,
                 ):
         """Initialize the OpenAI inference engine.
 
@@ -63,6 +69,8 @@ class OpenAIInferenceEngine(StructuredInferenceEngine):
 
         self.using_vllm = base_url is not None
         self.use_batch_api = use_batch_api
+        self.max_retries = max_retries
+        self.retry_base_delay = retry_base_delay
 
         self.static_responses_kwargs = {
             "model": model_name,
@@ -132,7 +140,7 @@ class OpenAIInferenceEngine(StructuredInferenceEngine):
         """
         return self._run_inference(prompts, schema)
 
-    def run_inference_unstructured(self, prompts: Union[str, list[str]]) -> Union[Dict, List[Dict]]:
+    def run_inference_unstructured(self, prompts: Union[str, list[str]]) -> Union[str, List[str]]:
         """Run inference without structured output constraints.
 
         Args:
@@ -143,7 +151,7 @@ class OpenAIInferenceEngine(StructuredInferenceEngine):
         """
         return self._run_inference(prompts)
 
-    def _run_inference(self, prompts: Union[str, list[str]], schema: Optional[str] = None) -> Union[Dict, List[Dict]]:
+    def _run_inference(self, prompts: Union[str, list[str]], schema: Optional[str] = None) -> Dict | List[Dict] | str | List[str] :
         """Internal dispatch: deserializes prompts and routes to sync or batch execution.
 
         Uses the Batch API when multiple prompts are provided and
@@ -166,6 +174,34 @@ class OpenAIInferenceEngine(StructuredInferenceEngine):
             return self._create_responses(json_prompts, text_kwargs)
   
 
+    def _retry_api_call(self, func, *args, **kwargs):
+        """Call *func* with retry on 408, 425, 429, and 5xx responses.
+
+        Uses the Retry-After header when present, otherwise exponential
+        backoff with jitter (capped at 60 s).
+        """
+        for attempt in range(self.max_retries + 1):
+            try:
+                return func(*args, **kwargs)
+            except APIStatusError as exc:
+                retryable = exc.status_code in self._RETRYABLE_STATUS_CODES
+                if not retryable or attempt == self.max_retries:
+                    raise
+
+                retry_after = exc.response.headers.get("retry-after")
+                if retry_after is not None:
+                    delay = float(retry_after)
+                else:
+                    delay = min(self.retry_base_delay * (2 ** attempt), 60.0)
+                    delay += random.uniform(0, delay * 0.25)
+
+                log.warning(
+                    f"Retryable API error (HTTP {exc.status_code}), "
+                    f"attempt {attempt + 1}/{self.max_retries}, "
+                    f"retrying in {delay:.1f}s"
+                )
+                time.sleep(delay)
+
     def _create_responses(self, prompts: List[List[Dict]], text_kwargs):
         """Run prompts synchronously via the Responses API.
 
@@ -182,10 +218,25 @@ class OpenAIInferenceEngine(StructuredInferenceEngine):
         """
         results = []
         for p in prompts:
-            response = self.client.responses.create(input=json.dumps(p), **text_kwargs, **self.static_responses_kwargs)
-            # Convert response object to dict for processing
-            response_dict = response.model_dump()
-            parsed_result = _extract_response_content(response_dict, has_schema=bool(text_kwargs))
+            for parse_attempt in range(self.max_retries + 1):
+                response = self._retry_api_call(
+                    self.client.responses.create,
+                    input=json.dumps(p), **text_kwargs, **self.static_responses_kwargs
+                )
+                # Convert response object to dict for processing
+                response_dict = response.model_dump()
+                try:
+                    parsed_result = _extract_response_content(response_dict, has_schema=bool(text_kwargs))
+                    break
+                except (json.JSONDecodeError, ValueError) as e:
+                    if parse_attempt < self.max_retries:
+                        log.warning(
+                            "Failed to parse response (attempt %d/%d): %s. "
+                            "Re-requesting from API.",
+                            parse_attempt + 1, self.max_retries + 1, e
+                        )
+                    else:
+                        raise
             results.append(parsed_result)
         return results
 
@@ -229,13 +280,13 @@ class OpenAIInferenceEngine(StructuredInferenceEngine):
         try:
             # Upload the batch file
             with open(batch_file_path, 'rb') as f:
-                batch_input_file = self.client.files.create(
-                    file=f,
-                    purpose="batch"
+                batch_input_file = self._retry_api_call(
+                    self.client.files.create, file=f, purpose="batch"
                 )
 
             # Create the batch
-            batch = self.client.batches.create(
+            batch = self._retry_api_call(
+                self.client.batches.create,
                 input_file_id=batch_input_file.id,
                 endpoint="/v1/responses",
                 completion_window="24h"
@@ -245,7 +296,7 @@ class OpenAIInferenceEngine(StructuredInferenceEngine):
             log.info(f"Batch {batch.id} created, polling for completion...")
             while batch.status in ["validating", "in_progress", "finalizing"]:
                 time.sleep(5)  # Poll every 5 seconds
-                batch = self.client.batches.retrieve(batch.id)
+                batch = self._retry_api_call(self.client.batches.retrieve, batch.id)
                 log.debug(f"Batch status: {batch.status}")
 
             if batch.status == "completed":
@@ -455,7 +506,36 @@ def _extract_response_content(response_data: dict, has_schema: bool) -> Dict:
     if text_content:
         if has_schema:
             # Parse as JSON for structured outputs
-            return json.loads(text_content)
+            try:
+                return json.loads(text_content)
+            except json.JSONDecodeError as e:
+                log.warning("Initial JSON parse failed at char %d: %s. "
+                            "Attempting repair.", e.pos, e.msg)
+                repaired = _repair_json(text_content)
+                try:
+                    return json.loads(repaired)
+                except json.JSONDecodeError:
+                    log.error("JSON repair failed. Raw text (first 500 chars): %s",
+                              text_content[:500])
+                    raise
         else:
             # Return as plain text for unstructured outputs
             return {"response": text_content}
+
+
+def _repair_json(text: str) -> str:
+    """Attempt to fix common JSON issues produced by LLMs.
+
+    Handles:
+      - Unescaped control characters inside string values
+      - Trailing commas before closing braces/brackets
+    """
+    # Escape unescaped control characters inside strings
+    repaired = re.sub(
+        r'(?<=": ")((?:[^"\\]|\\.)*)(?=")',
+        lambda m: m.group(0).replace('\n', '\\n').replace('\r', '\\r').replace('\t', '\\t'),
+        text
+    )
+    # Remove trailing commas before } or ]
+    repaired = re.sub(r',\s*([}\]])', r'\1', repaired)
+    return repaired

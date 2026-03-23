@@ -204,6 +204,9 @@ dependencies = [
 ]
 
 [package.dev-dependencies]
+anthropic = [
+    { name = "anthropic" },
+]
 openai = [
     { name = "httpx" },
     { name = "openai" },
@@ -229,6 +232,7 @@ requires-dist = [
 ]
 
 [package.metadata.requires-dev]
+anthropic = [{ name = "anthropic", specifier = ">=0.45.0,<1.0.0" }]
 openai = [
     { name = "httpx", specifier = ">=0.28.1,<0.29.0" },
     { name = "openai", specifier = ">=2.15.0,<3.0.0" },
@@ -250,6 +254,25 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/ee/67/531ea369ba64dcff5ec9c3402f9f51bf748cec26dde048a2f973a4eea7f5/annotated_types-0.7.0.tar.gz", hash = "sha256:aff07c09a53a08bc8cfccb9c85b05f1aa9a2a6f23728d790723543408344ce89", size = 16081, upload-time = "2024-05-20T21:33:25.928Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/78/b6/6307fbef88d9b5ee7421e68d78a9f162e0da4900bc5f5793f6d3d0e34fb8/annotated_types-0.7.0-py3-none-any.whl", hash = "sha256:1f02e8b43a8fbbc3f3e0d4f0f4bfc8131bcb4eebe8849b8e5c773f3a1c582a53", size = 13643, upload-time = "2024-05-20T21:33:24.1Z" },
+]
+
+[[package]]
+name = "anthropic"
+version = "0.93.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "anyio" },
+    { name = "distro" },
+    { name = "docstring-parser" },
+    { name = "httpx" },
+    { name = "jiter" },
+    { name = "pydantic" },
+    { name = "sniffio" },
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/c2/70/2429d6f7c2516db99fb342c3ad89575ab3e0cd31d3d2f6cba5fdf5e9c65b/anthropic-0.93.0.tar.gz", hash = "sha256:fea8376f7d5cdf99d5e8e85a48fe7a7bd8ab307cdfee4b1e8283a18b1c0ce1b5", size = 654155, upload-time = "2026-04-09T18:13:53.522Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/c9/7b/5b2c11902707c49c7a99418eb027ed3eb63876193fee5c80b5c878e3a673/anthropic-0.93.0-py3-none-any.whl", hash = "sha256:2c20b2ce6d305564c66a6cbaedddee8efdd3b9753098bf314093fcf4c662d04c", size = 627482, upload-time = "2026-04-09T18:13:51.606Z" },
 ]
 
 [[package]]
@@ -975,6 +998,15 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/8c/8b/57666417c0f90f08bcafa776861060426765fdb422eb10212086fb811d26/dnspython-2.8.0.tar.gz", hash = "sha256:181d3c6996452cb1189c4046c61599b84a5a86e099562ffde77d26984ff26d0f", size = 368251, upload-time = "2025-09-07T18:58:00.022Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/ba/5a/18ad964b0086c6e62e2e7500f7edc89e3faa45033c71c1893d34eed2b2de/dnspython-2.8.0-py3-none-any.whl", hash = "sha256:01d9bbc4a2d76bf0db7c1f729812ded6d912bd318d3b1cf81d30c0f845dbf3af", size = 331094, upload-time = "2025-09-07T18:57:58.071Z" },
+]
+
+[[package]]
+name = "docstring-parser"
+version = "0.17.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/b2/9d/c3b43da9515bd270df0f80548d9944e389870713cc1fe2b8fb35fe2bcefd/docstring_parser-0.17.0.tar.gz", hash = "sha256:583de4a309722b3315439bb31d64ba3eebada841f2e2cee23b99df001434c912", size = 27442, upload-time = "2025-07-21T07:35:01.868Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/55/e2/2537ebcff11c1ee1ff17d8d0b6f4db75873e3b0fb32c2d4a2ee31ecb310a/docstring_parser-0.17.0-py3-none-any.whl", hash = "sha256:cf2569abd23dce8099b300f9b4fa8191e9582dda731fd533daf54c4551658708", size = 36896, upload-time = "2025-07-21T07:35:00.684Z" },
 ]
 
 [[package]]
