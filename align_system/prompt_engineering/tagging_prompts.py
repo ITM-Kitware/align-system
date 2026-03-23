@@ -168,10 +168,14 @@ the uncertainty.
 class TaggingSystemPrompt:
     def __call__(self, target_kdma, target_value):
         # Symbol definitions to see how much implicit bias there is to tagging
-        symbol_type = "shape"
-        tag_symbols = ["Line", "Triangle", "Circle", "Square"]
         symbol_type = "color"
-        # tag_symbols = ["Green", "Yellow", "Red", "Black"]
+        if symbol_type == "shape":
+            tag_symbols = ["Line", "Triangle", "Circle", "Square"]
+        elif symbol_type == "color":
+            tag_symbols = ["Green", "Yellow", "Red", "Black"]
+        else:
+            raise NotImplementedError("Unsupported symbol type")
+
         if target_kdma == "START":
             return start_tagging_system_prompt(symbol_type, tag_symbols)
         elif target_kdma == "SALT":
