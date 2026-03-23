@@ -37,3 +37,6 @@ openai = [
     "openai>=2.15.0,<3.0.0",
     "httpx>=0.28.1,<0.29.0",
 ]
+anthropic = [
+    "anthropic>=0.45.0,<1.0.0",
+]

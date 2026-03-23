@@ -1479,8 +1479,17 @@ class DirectRegressionPersonalSafetyTemplate:
         threat_unstructured = scenario_state['threat_state']['unstructured']
         char_unstructured = character['unstructured']
 
-        if m := re.match(f'{threat_unstructured}(.+){char_unstructured}', full_state_unstructured.replace("\n", " ")):
+        collapsed = full_state_unstructured.replace("\n", " ")
+        m = re.search(
+            re.escape(threat_unstructured.replace("\n", " "))
+            + r'(.+)'
+            + re.escape(char_unstructured.replace("\n", " ")),
+            collapsed,
+        )
+        if m:
             setup = m.group(1).strip()
+        else:
+            setup = collapsed
 
         return f"{setup}\n  - {char_unstructured}"
 
