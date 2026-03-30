@@ -18,18 +18,14 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 * Added direct regression ADM component and pipeline
 * Added DecisionFlow integration with fine-grained value prompts, unstructured objective function parsing, and JSON retry utilities
 * Added ICL similarity score and ICL examples to choice info
-* Added random effects model alignment function and tests
-* Added Spectrum-tuned LLM inference engine and configs
 * Added July 2025 evaluation configs
 * Added Feb 2026 evaluation configs
 * Added caching for ICL step and BertRelevance component
-* Added choice index X ADM
 * Added alignment info (with source) to choice_info output
 * Added per-step timing info for pipeline ADM
 * Added ALIGN App link and updated pipeline ADM documentation
-* Added weighted medical urgency alignment function
 * Added support for raw text system prompts for the pipeline baseline ADM
-* Added option to swap choices for comparative regression
+
  
 ### Changed
 
