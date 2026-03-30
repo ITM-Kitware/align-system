@@ -3,7 +3,7 @@
 This changelog follows the specifications detailed in: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html), although we have not yet reached a `1.0.0` release.
 
-## Unreleased
+## 0.5.10
 
 ### Added
 
@@ -15,6 +15,35 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 * Added inference engine for spectrum tuned LLMs that appropriately reformats chat template roles
 * Added alignment function based on a random-effects model
 * Added "always choose index X" ADM
+* Added direct regression ADM component and pipeline
+* Added DecisionFlow integration with fine-grained value prompts, unstructured objective function parsing, and JSON retry utilities
+* Added ICL similarity score and ICL examples to choice info
+* Added random effects model alignment function and tests
+* Added Spectrum-tuned LLM inference engine and configs
+* Added July 2025 evaluation configs
+* Added Feb 2026 evaluation configs
+* Added caching for ICL step and BertRelevance component
+* Added choice index X ADM
+* Added alignment info (with source) to choice_info output
+* Added per-step timing info for pipeline ADM
+* Added ALIGN App link and updated pipeline ADM documentation
+* Added weighted medical urgency alignment function
+* Added support for raw text system prompts for the pipeline baseline ADM
+* Added option to swap choices for comparative regression
+ 
+### Changed
+
+* Refactored ICL selection strategies to reduce duplication; factored out similarity strategies
+* Factored out scenario driver component and updated configs
+* Updated TA3 client version and ICL databases; copied Phase 1 TA3 models for backward compatibility
+* Removed deprecated `tags` property from Dialog
+* Removed lots of old pre-Hydra/Outlines code
+* Made comparative regression reasoning length configurable
+ 
+### Fixed
+
+* Fixed possible double-reversal bug in incontext settings
+* Removed non-determinism from midpoint alignment functions
 
 ## 0.5.9
 
