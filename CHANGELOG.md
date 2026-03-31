@@ -39,7 +39,6 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
  
 ### Fixed
 
-* Fixed possible double-reversal bug in incontext settings
 * Removed non-determinism from midpoint alignment functions
 
 ## 0.5.9
