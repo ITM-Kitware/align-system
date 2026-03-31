@@ -25,6 +25,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 * Added per-step timing info for pipeline ADM
 * Added ALIGN App link and updated pipeline ADM documentation
 * Added support for raw text system prompts for the pipeline baseline ADM
+* Added tagging ADM configs
 
  
 ### Changed
