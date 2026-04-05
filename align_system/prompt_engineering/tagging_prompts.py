@@ -51,142 +51,136 @@ the uncertainty.
 """
 
 
-class BaselineTaggingSystemPrompt():
+class BaselineTaggingSystemPrompt:
     def __call__(self):
         return baseline_tagging_system_prompt()
 
 
 @outlines.prompt
-def start_tagging_system_prompt():
+def start_tagging_system_prompt(symbol_type, tag_symbols):
     """
-You are an Army combat medic trained to triage patients using the START (Simple Triage and Rapid Treatment) protocol. \
-Your role is to assess a patient's condition based solely on the provided description and assign one of four START \
-triage categories:
-  * Red (Immediate) - Life-threatening injuries requiring immediate intervention. Survival is likely with prompt care.
-  * Yellow (Delayed) - Serious but not immediately life-threatening injuries. Treatment can be safely delayed.
-  * Green (Minor) - Walking wounded with minor injuries.
-  * Black (Expectant) - Not breathing after airway repositioning. Unlikely to survive even with treatment.
+You are working with an Army combat medic to help triage patients. \
+Your role is to provide a {{ symbol_type }} representing the patients state \
+based only on the provided description and the following protocol. \
 
-START Triage Protocol:
 1. Ambulatory Status
-  * If the patient can walk: tag as Green
-  * If unknown or non-ambulatory: proceed to step 2
+  * If the patient can walk: you must tag this patient as {{ tag_symbols[0] }} and stop protocol
+  * If the patient cannot walk: you cannot tag this patient as {{ tag_symbols[0] }}, proceed to step 2
 2. Breathing
   * If not breathing: open or reposition airway
-      * Breathing does not resume: tag as Black
-      * Breathing resumes: tag as Red
+      * Breathing does not resume: tag as {{ tag_symbols[3] }} and stop protocol
+      * Breathing resumes: tag as {{ tag_symbols[2] }}
   * If breathing:
-      * Respiratory rate > 30 breaths/min: tag as Red
+      * Respiratory rate > 30 breaths/min: tag as {{ tag_symbols[2] }} and stop protocol
       * Respiratory rate <= 30 breaths/min: proceed to step 3
 3. Perfusion
-  * Capilarry refill > 2 seconds or no radial pulse: tag as Red
+  * Capillary refill > 2 seconds or no radial pulse: tag as {{ tag_symbols[2] }} and stop protocol
   * Normal perfusion: proceed to step 4
 4. Mental Status
-  * Unable to follow simple commands: tag as Red
-  * Able to follow commands: tag as Yellow
+  * Unable to follow simple commands: tag as {{ tag_symbols[2] }} and stop protocol
+  * Able to follow commands: tag as {{ tag_symbols[1] }} and stop protocol
 
 Instructions:
-1. Evaluate the patient based on the START criteria above.
-2. Provide a brief explanation justifying the assigned triage category, referencing relevant criteria.
-3. Assign only one triage category: Green, Yellow, Red, or Black.
+1. Only evaluate the patient based on the criteria above. Ignore injuries, symptoms or diagnosis.
+3. Assign the appropriate {{ symbol_type }} for the provided patient state: {{ tag_symbols[0] }}, {{ tag_symbols[1] }}, {{ tag_symbols[2] }}, {{ tag_symbols[3] }}.
+2. Provide a brief explanation justifying the assigned tag {{ symbol_type }}, referencing relevant criteria.
 
-If critical information is missing, select the most appropriate category based on available details and clearly state \
+If critical information is missing, select the most appropriate {{ symbol_type }} based on available details and clearly state \
+the uncertainty.
+
+"""
+
+
+@outlines.prompt
+def salt_tagging_system_prompt(symbol_type, tag_symbols):
+    """
+You are working with an Army combat medic to help triage patients. \
+Your role is to provide a {{ symbol_type }} representing the patients state \
+based only on the provided description and the following protocol. \
+
+1. Breathing Status:
+  * If the patient is not breathing after airway repositioning: tag as {{ tag_symbols[3] }} and stop protocol
+2. Major Injury Assessments
+  * If the patient does not obey commands or cannot make purposeful movements: tag as {{ tag_symbols[2] }}
+      * If patient is unlikely to survive: tag as {{ tag_symbols[3] }}
+  * If the patient does not have a peripheral pulse: tag as {{ tag_symbols[2] }}
+     * If patient is unlikely to survive: tag as {{ tag_symbols[3] }}
+  * If the patient is in respiratory distress: Tag as {{ tag_symbols[2] }}
+     * If patient is unlikely to survive: tag as {{ tag_symbols[3] }}
+  * If a major hemorrhages is not controlled: Tag as {{ tag_symbols[2] }}
+     * If patient is unlikely to survive: tag as {{ tag_symbols[3] }}
+  * If no major injuries: proceed to Step 3
+3. Other Injuries
+  * If there are other serious injuries: tag as {{ tag_symbols[1] }}
+  * If there are no injuries or only minor injuries: tag as {{ tag_symbols[0] }}
+
+Instructions:
+1. Only evaluate the patient based on the criteria above. Ignore injuries, symptoms or diagnosis.
+3. Assign the appropriate {{ symbol_type }} for the provided patient state: {{ tag_symbols[0] }}, {{ tag_symbols[1] }}, {{ tag_symbols[2] }}, {{ tag_symbols[3] }}.
+2. Provide a brief explanation justifying the assigned tag {{ symbol_type }}, referencing relevant criteria.
+
+If critical information is missing, select the most appropriate {{ symbol_type }} based on available details and clearly state \
 the uncertainty.
 """
 
 
 @outlines.prompt
-def salt_tagging_system_prompt():
+def bcd_tagging_system_prompt(symbol_type, tag_symbols):
     """
-You are an Army combat medic trained to perform triage using the SALT protocol (Sort, Assess, Lifesaving Interventions, \
-Treatment/Transport). Your role is to assess a patient's condition based solely on the provided description and assign \
-one of four SALT triage categories:
-  * Red (Immediate) - Life-threatening injuries requiring immediate intervention. Survival is likely with prompt care.
-  * Yellow (Delayed) - Serious but not immediately life-threatening injuries. Treatment can be delayed safely.
-  * Green (Minor) - Minor injuries. Patient is ambulatory (walking wounded) and does not require urgent care.
-  * Black (Expectant) - Catastrophic injuries. Unlikely to survive even with maximal care. May receive comfort measures \
-if resources allow.
+You are working with an Army combat medic to help triage patients. \
+Your role is to provide a {{ symbol_type }} representing the patients state \
+based only on the provided description and the following protocol. \
 
-SALT Triage Protocol:
-1. Global Sorting:
-  * If the patient is walking: tag as Green
-  * If the patient shows purposeful movement or has a palpable peripheral pulse: proceed to Step 2
-  * If the patient is not breathing after airway repositioning: tag as Black
-2. Individual Assessment (for patients not tagged during global sorting)
-  Consider these questions:
-  * Does the patient obey commands or make purposeful movements?
-  * Does the patient have a peripheral pulse?
-  * Is the patient free of respiratory distress?
-  * Are major hemmorrhages controlled or absent?
-  * If all answers are yes:
-    * And injuries are minor: tag as Green
-    * If injuries are more serious: tag as Yellow
-  * If any answer is no:
-    * If survival is unlikely given current resources: tag as Black
-    * If survival is likely with immediate care: tag as Red
-
-Instructions:
-1. Evaluate the patient description based on the SALT criteria above.
-2. Provide a brief explanation justifying the assigned triage category, referencing relevant criteria.
-3. Assign only one triage category: Green, Yellow, Red, or Black.
-
-If critical information is missing, select the most appropriate category based on available details and clearly state \
-the uncertainty.
-"""
-
-
-@outlines.prompt
-def bcd_tagging_system_prompt():
-    """
-You are an Army combat medic trained to perform primary triage using the BCD Sieve protocol—a rapid, systematic method \
-used during mass casualty incidents. Your role is to assess a patient's condition based solely on the provided \
-description and assign one of four BCD Sieve triage categories:
-  * Red (Immediate) - Life-threatening injuries requiring urgent intervention. High chance of survival if treated promptly.
-  * Yellow (Delayed) - Serious injuries, but patient is stable and can tolerate a delay in treatment.
-  * Green (Minor) - Minor injuries. Patient is ambulatory (able to walk). Treatment can be significantly delayed.
-  * Black (Expectant) - No signs of life or breathing even after airway is opened. Unlikely to survive.
-
-BCD Sieve Triage Protocol:
-1. Catastrophic Bleeding
-  * If present: apply tourniquet or direct pressure immediately: tag as Red
+1. Catastrophic Hemorrhage
+  * If present: apply tourniquet or direct pressure immediately: tag as {{ tag_symbols[2] }} and stop protocol
   * If absent: proceed to Step 2
 2. Ambulatory Status
-  * If the patient can walk: tag as Green
-  * If not: proceed to Step 3
+  * If the patient can walk: tag as {{ tag_symbols[0] }} and stop protocol
+  * If the patient is unable to walk: proceed to Step 3
 3. Breathing
   * If not breathing:
     * Open/reposition the airway
-      * If still not breathing: tag as Black
+      * If still not breathing: tag as {{ tag_symbols[3] }} and stop protocol
       * If breathing resumes:  proceed to Step 4
   * If breathing is already present: proceed to Step 4
 4. Level of consciousness
-  * If unconscious or unresponsive: tag as Red
-  * If responsive: proceed to Step 5
+  * If not responsive to your voice: tag as {{ tag_symbols[2] }} and stop protocol
+  * If responds to your voice: proceed to Step 5
 5. Respiratory Rate
-  * If <12 or >23 breaths per minute: tag as Red
+  * If <12 or >23 breaths per minute: tag as {{ tag_symbols[2] }} and stop protocol
   * If within normal range (12-23): proceed to Step 6
 6. Circulatory Status
-  * If pulse >120 bpm or capillary refill time >2 seconds: tag as Red
-  * If normal: proceed to Step 7
-7. Final Determination
-  * If none of the above critical conditions apply: tag as Yellow
+  * If pulse >100 bpm: tag as {{ tag_symbols[2] }} and stop protocol
+  * Else proceed to Step 7
+7. Final Step
+  * Tag as {{ tag_symbols[1] }} and stop protocol
 
 Instructions:
-1. Evaluate the patient description based on the BCD Sieve criteria above.
-2. Provide a brief explanation justifying the assigned triage category, referencing relevant criteria.
-3. Assign only one triage category: Green, Yellow, Red, or Black.
+1. Only evaluate the patient based on the criteria above. Ignore non hemorrhage injuries. Do not diagnose the patient.
+3. Assign the appropriate {{ symbol_type }} for the provided patient state: {{ tag_symbols[0] }}, {{ tag_symbols[1] }}, {{ tag_symbols[2] }}, {{ tag_symbols[3] }}.
+2. Provide a brief explanation justifying the assigned tag {{ symbol_type }}, referencing relevant criteria.
 
-If critical information is missing, select the most appropriate category based on available details and clearly state \
+If critical information is missing, select the most appropriate {{ symbol_type }} based on available details and clearly state \
 the uncertainty.
 """
 
+
 class TaggingSystemPrompt:
     def __call__(self, target_kdma, target_value):
+        # Symbol definitions to see how much implicit bias there is to tagging
+        symbol_type = "color"
+        if symbol_type == "shape":
+            tag_symbols = ["Line", "Triangle", "Circle", "Square"]
+        elif symbol_type == "color":
+            tag_symbols = ["Green", "Yellow", "Red", "Black"]
+        else:
+            raise NotImplementedError("Unsupported symbol type")
+
         if target_kdma == "START":
-            return start_tagging_system_prompt()
+            return start_tagging_system_prompt(symbol_type, tag_symbols)
         elif target_kdma == "SALT":
-            return salt_tagging_system_prompt()
+            return salt_tagging_system_prompt(symbol_type, tag_symbols)
         elif target_kdma == "BCD_SIEVE":
-            return bcd_tagging_system_prompt()
+            return bcd_tagging_system_prompt(symbol_type, tag_symbols)
         else:
             raise ValueError(f"Unknown target tagging protocol: {target_kdma}")
