@@ -1,4 +1,5 @@
 import json
+import os
 import random
 import re
 import time
@@ -38,9 +39,9 @@ class OpenAIInferenceEngine(StructuredInferenceEngine):
                  _strict_response_validation: bool = False,
                  timeout: Union[float, None, Literal["NOT_GIVEN"]] = "NOT_GIVEN",
                  use_batch_api: bool = True,
-                 max_retries: int = 5,
-                 retry_base_delay: float = 1.0,
-                ):
+                 batch_poll_interval: int = 60,
+                 max_retries: int = 20,
+                 retry_base_delay: float = 1.0):
         """Initialize the OpenAI inference engine.
 
         Args:
@@ -58,7 +59,19 @@ class OpenAIInferenceEngine(StructuredInferenceEngine):
             timeout: Request timeout in seconds, or None for no timeout.
             use_batch_api: When True (default), use the Batch API for
                 multi-prompt requests.
+            batch_poll_interval: Seconds between batch status polls.
+            max_retries: Maximum number of retry attempts for API calls.
+            retry_base_delay: Base delay in seconds for exponential backoff.
         """
+        self.model_name = model_name
+        self.temperature = temperature
+        self.top_p = top_p
+        self.max_tokens = max_tokens
+        self.use_batch_api = use_batch_api
+        self.batch_poll_interval = batch_poll_interval
+        self.max_retries = max_retries
+        self.retry_base_delay = retry_base_delay
+        self.using_vllm = base_url is not None
 
         self.client = OpenAI(
             api_key=api_key,
@@ -67,45 +80,41 @@ class OpenAIInferenceEngine(StructuredInferenceEngine):
             _strict_response_validation=_strict_response_validation
         )
 
-        self.using_vllm = base_url is not None
-        self.use_batch_api = use_batch_api
-        self.max_retries = max_retries
-        self.retry_base_delay = retry_base_delay
-
-        self.static_responses_kwargs = {
-            "model": model_name,
-            "reasoning": {"effort": "medium",  "summary": "auto"},
-            "max_output_tokens": max_tokens,
-            # Temporarily disabled.
-            # Server is telling me these are not supported, but docs say they are.
-            # "temperature": temperature,
-            # "top_p": top_p,
-            "service_tier":"flex",
-            "store":True
-        }
-
-        self.static_batches_kwargs = {
-            "model": model_name,
-            "reasoning": {"effort": "medium",  "summary": "auto"},
-            "max_output_tokens": max_tokens,
-            # Temporarily disabled.
-            # Server is telling me these are not supported, but docs say they are.
-            # "temperature": temperature,
-            # "top_p": top_p,
-            "store":True
-        }
-
-        self._cache_repr: str = dedent(f"""
+        self._cache_repr = dedent(f"""
                         {self.__class__.__module__}.{self.__class__.__name__}(
                         model_name="{model_name}",
                         temperature="{temperature}",
                         top_p="{top_p}",
                         max_tokens="{max_tokens}",
                         base_url="{base_url}",
-                        api_key="{api_key}",
-                        _strict_response_validation="{_strict_response_validation}",
-                        timeout="{timeout}"
+                        use_batch_api="{use_batch_api}",
+                        batch_poll_interval="{batch_poll_interval}"
                        )""").strip()
+
+    def _build_request_params(self, prompt, text_kwargs, *, include_service_tier=True) -> dict:
+        """Build the kwargs dict for a single responses.create or batch request.
+
+        Args:
+            prompt: The input prompt (serialized string for sync, list for batch).
+            text_kwargs: Dict with ``text`` key for structured output format,
+                or empty dict for unstructured.
+            include_service_tier: Include ``service_tier`` (sync only; the
+                Batch API does not support it).
+        """
+        params = {
+            "model": self.model_name,
+            "reasoning": {"effort": "medium", "summary": "auto"},
+            "max_output_tokens": self.max_tokens,
+            "store": True,
+            "input": prompt,
+            # Temporarily disabled
+            # "temperature": self.temperature,
+            # "top_p": self.top_p,
+            **text_kwargs,
+        }
+        if include_service_tier:
+            params["service_tier"] = "flex"
+        return params
 
     def dialog_to_prompt(self, dialog: list[dict]) -> str:
         """Serialize a dialog into a JSON string for use with ``run_inference``.
@@ -219,9 +228,11 @@ class OpenAIInferenceEngine(StructuredInferenceEngine):
         results = []
         for p in prompts:
             for parse_attempt in range(self.max_retries + 1):
+                params = self._build_request_params(
+                    json.dumps(p), text_kwargs, include_service_tier=True
+                )
                 response = self._retry_api_call(
-                    self.client.responses.create,
-                    input=json.dumps(p), **text_kwargs, **self.static_responses_kwargs
+                    self.client.responses.create, **params
                 )
                 # Convert response object to dict for processing
                 response_dict = response.model_dump()
@@ -255,12 +266,9 @@ class OpenAIInferenceEngine(StructuredInferenceEngine):
         # Prepare batch requests in JSONL format
         batch_requests = []
         for idx, prompt in enumerate(prompts):
-            # Build the request parameters
-            request_params = {
-                **self.static_batches_kwargs,
-                **text_kwarg,
-                "input": prompt
-            }
+            request_params = self._build_request_params(
+                prompt, text_kwarg, include_service_tier=False
+            )
 
             # Create batch request in the format expected by the Batch API
             batch_request = {
@@ -295,9 +303,21 @@ class OpenAIInferenceEngine(StructuredInferenceEngine):
             # Poll for batch completion
             log.info(f"Batch {batch.id} created, polling for completion...")
             while batch.status in ["validating", "in_progress", "finalizing"]:
-                time.sleep(5)  # Poll every 5 seconds
+                time.sleep(self.batch_poll_interval)
                 batch = self._retry_api_call(self.client.batches.retrieve, batch.id)
-                log.debug(f"Batch status: {batch.status}")
+                counts = batch.request_counts
+                log.debug(
+                    f"Batch {batch.id} status: {batch.status}, "
+                    f"completed: {counts.completed}/{counts.total}, "
+                    f"failed: {counts.failed}"
+                )
+
+            counts = batch.request_counts
+            log.info(
+                f"Batch {batch.id} finished with status: {batch.status}. "
+                f"Completed: {counts.completed}, Failed: {counts.failed}, "
+                f"Total: {counts.total}"
+            )
 
             if batch.status == "completed":
                 # Download and parse results
@@ -305,20 +325,18 @@ class OpenAIInferenceEngine(StructuredInferenceEngine):
 
                 # Retry a few times if output_file_id is None (API may need time to populate it)
                 retry_count = 0
-                max_retries = 3
-                while result_file_id is None and retry_count < max_retries:
-                    log.warning(f"Warning: output_file_id is None, retrying ({retry_count + 1}/{max_retries})...")
-                    time.sleep(2)  # Wait 2 seconds
+                max_file_retries = 3
+                while result_file_id is None and retry_count < max_file_retries:
+                    log.warning(f"output_file_id is None, retrying ({retry_count + 1}/{max_file_retries})...")
+                    time.sleep(2)
                     batch = self.client.batches.retrieve(batch.id)
                     result_file_id = batch.output_file_id
                     retry_count += 1
 
-                # If still None after retries, raise error
                 if result_file_id is None:
-                    log.error(f"ERROR: Batch {batch.id} marked as completed but output_file_id is None after {max_retries} retries")
-                    log.error(f"Batch details: {batch}")
+                    log.error(f"Batch {batch.id} completed but output_file_id is None after {max_file_retries} retries")
                     raise RuntimeError(
-                        f"Batch {batch.id} completed but output_file_id was not populated after {max_retries} retries. "
+                        f"Batch {batch.id} completed but output_file_id was not populated after {max_file_retries} retries. "
                         f"Check batch error details: {getattr(batch, 'errors', 'No error info available')}"
                     )
 
@@ -332,20 +350,30 @@ class OpenAIInferenceEngine(StructuredInferenceEngine):
                     custom_id = result['custom_id']
                     idx = int(custom_id.split('-')[1])
 
-                    # Extract the response
-                    if result.get('response'):
-                        response_data = result['response']['body']
-                        # Parse the response similar to sync path
-                        parsed_result = _extract_response_content(
-                            response_data,
-                            has_schema=bool(text_kwarg)
-                        )
-                        results_dict[idx] = parsed_result
+                    response_body = result.get('response', {})
+                    status_code = response_body.get('status_code')
+
+                    if status_code == 200:
+                        response_data = response_body.get('body', {})
+                        try:
+                            parsed_result = _extract_response_content(
+                                response_data,
+                                has_schema=bool(text_kwarg)
+                            )
+                            results_dict[idx] = parsed_result
+                        except (json.JSONDecodeError, ValueError) as e:
+                            log.error(f"Request {custom_id} returned 200 but content extraction failed: {e}")
+                            results_dict[idx] = None
+                    elif result.get('error'):
+                        log.error(f"Request {custom_id} errored: {result['error']}")
+                        results_dict[idx] = None
                     else:
-                        # Handle errors
+                        log.error(
+                            f"Request {custom_id} returned unexpected status "
+                            f"{status_code}: {response_body}"
+                        )
                         results_dict[idx] = None
 
-                # Return results in original order
                 return [results_dict.get(i) for i in range(len(prompts))]
 
             elif batch.status == "failed":
@@ -356,8 +384,6 @@ class OpenAIInferenceEngine(StructuredInferenceEngine):
                 raise RuntimeError(f"Unexpected batch status: {batch.status}")
 
         finally:
-            # Clean up the temporary file
-            import os
             if os.path.exists(batch_file_path):
                 os.remove(batch_file_path)
 
@@ -397,6 +423,7 @@ def _response_format_field(schema: Optional[str]) -> Dict:
         return {}
     else:
         schema_dict = json.loads(schema)
+        _strip_unsupported_keywords(schema_dict)
         _enforce_additional_properties_false(schema_dict)
         text = {
             "format": {
@@ -410,12 +437,7 @@ def _response_format_field(schema: Optional[str]) -> Dict:
 
 
 def _deserialize_prompts(prompts: Union[str, List[str]]) -> List[List[Dict]]:
-    """Normalize prompt input into a uniform list-of-message-lists format.
-
-    Handles three input shapes:
-        1. A single JSON string encoding one developer-user prompt pair. I.e. a DialogElement.
-        2. A list of JSON strings encoding multiple prompt pairs. I.e. A Dialog with a multiple DialogElements.
-        3. A single JSON string wrapped in a length-1 list. I.e. A Dialog with a single DialogElement.
+    """Normalize prompt input into a list of parsed message lists.
 
     Args:
         prompts: Raw prompt(s) as returned by ``dialog_to_prompt``.
@@ -423,24 +445,13 @@ def _deserialize_prompts(prompts: Union[str, List[str]]) -> List[List[Dict]]:
     Returns:
         A list where each element is a deserialized message list
         (list of role/content dicts).
-
-    Raises:
-        AssertionError: If ``prompts`` doesn't match any expected shape.
-        TypeError: If ``prompts`` has an entirely unexpected type.
     """
-    is_single_json_string = isinstance(prompts, str)
-    is_multiple_json_strings = isinstance(prompts, list) and len(prompts) > 1 and all([isinstance(p,str) for p in prompts])
-    is_wrapped_single_json_string = isinstance(prompts, list) and len(prompts) == 1 and isinstance(prompts[0], str)
-
-    assert is_single_json_string or is_multiple_json_strings or is_wrapped_single_json_string
-
-    if is_single_json_string:
-        # Single developer-user prompt-pair; wrap it for uniformity
+    if isinstance(prompts, str):
         return [json.loads(prompts)]
-    elif is_multiple_json_strings or is_wrapped_single_json_string:
+    elif isinstance(prompts, list):
         return [json.loads(p) for p in prompts]
     else:
-        raise TypeError("Argument prompts had an unexpected type")
+        raise TypeError(f"Unexpected prompts type: {type(prompts)}")
 
 
 def _enforce_additional_properties_false(schema: dict) -> dict:
@@ -461,6 +472,31 @@ def _enforce_additional_properties_false(schema: dict) -> dict:
                     if isinstance(item, dict):
                         _enforce_additional_properties_false(item)
     return schema
+
+
+# Keywords that Outlines/local models support but the OpenAI
+# structured output API rejects when strict mode is enabled.
+_UNSUPPORTED_KEYWORDS = {
+    "minimum", "maximum", "exclusiveMinimum", "exclusiveMaximum",
+    "minLength", "maxLength",
+    "pattern",
+    "minItems", "maxItems", "uniqueItems",
+    "multipleOf",
+}
+
+
+def _strip_unsupported_keywords(schema):
+    """Recursively remove JSON Schema validation keywords unsupported by OpenAI."""
+    if isinstance(schema, dict):
+        for keyword in _UNSUPPORTED_KEYWORDS:
+            schema.pop(keyword, None)
+        for value in schema.values():
+            if isinstance(value, dict):
+                _strip_unsupported_keywords(value)
+            elif isinstance(value, list):
+                for item in value:
+                    if isinstance(item, dict):
+                        _strip_unsupported_keywords(item)
 
 
 def _extract_response_content(response_data: dict, has_schema: bool) -> Dict:
