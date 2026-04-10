@@ -92,7 +92,7 @@ class OutlinesTransformersADM(ActionBasedADM):
         self.model = outlines.from_transformers(
             transformers.AutoModelForCausalLM.from_pretrained(model_name, **model_kwargs, device_map=device),
             transformers.AutoTokenizer.from_pretrained(model_name, **kwargs.get('tokenizer_kwargs', {})),
-            device_dtype=torch_dtype)
+            **({'device_dtype': model_kwargs['dtype']} if 'dtype' in model_kwargs else {}))
 
         if generation_kwargs is None:
             generation_kwargs = {'temperature': 0.7}
