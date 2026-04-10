@@ -23,12 +23,6 @@ dependencies = [
     "vllm>=0.11.0",
 ]
 
-[tool.setuptools.packages.find]
-include = ["align_system*"]
-
-[project.scripts]
-run_align_system = "align_system.cli.run_align_system:main"
-
 [tool.uv.sources]
 swagger-client = { git = "https://github.com/NextCenturyCorporation/itm-evaluation-client.git" }
 
@@ -40,3 +34,16 @@ openai = [
 anthropic = [
     "anthropic>=0.45.0,<1.0.0",
 ]
+
+[project.scripts]
+run_align_system = "align_system.cli.run_align_system:main"
+
+[tool.uv]
+find-links = ["https://download.pytorch.org/whl/cu118"]
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
