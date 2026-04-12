@@ -34,6 +34,10 @@ openai = [
 anthropic = [
     "anthropic>=0.45.0,<1.0.0",
 ]
+llama-index-retriever = [
+    "langchain>=0.0.308,<0.1",
+    "llama-index>=0.8.21,<0.9",
+]
 
 [project.scripts]
 run_align_system = "align_system.cli.run_align_system:main"
