@@ -45,9 +45,10 @@ run_align_system = "align_system.cli.run_align_system:main"
 [tool.uv]
 find-links = ["https://download.pytorch.org/whl/cu118"]
 
-[tool.hatch.metadata]
-allow-direct-references = true
-
 [build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
+requires = ["uv_build>=0.7.2,<0.8"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-name = "align_system"
+module-root = ""
