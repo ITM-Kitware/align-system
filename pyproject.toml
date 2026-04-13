@@ -18,10 +18,12 @@ dependencies = [
     "rouge-score>=0.1.2",
     "scikit-learn>=1.7.2",
     "swagger-client==0.5.2",
-    "transformers>=5.1.0",
+    "transformers>=4.56.0,<5", # Pinned to be compatible with vllm 0.19.0
     "ubelt>=1.4.1",
-    "vllm>=0.11.0",
     "setuptools-scm>=8.0,<9",
+    "vllm>=0.19.0",
+    "urllib3>=2.6.3", # Transitive dep pinned for Security
+    "xgrammar>=0.1.32", # Transitive dep pinned for Security
 ]
 
 [tool.uv.sources]
@@ -36,8 +38,8 @@ anthropic = [
     "anthropic>=0.45.0,<1.0.0",
 ]
 llama-index-retriever = [
-    "langchain>=0.0.308,<0.1",
-    "llama-index>=0.8.21,<0.9",
+    "langchain>=0.2.5",
+    "llama-index>=0.13.0",
 ]
 
 [project.scripts]
