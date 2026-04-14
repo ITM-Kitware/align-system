@@ -9,6 +9,7 @@ from omegaconf import DictConfig, OmegaConf
 from timeit import default_timer as timer
 
 from align_system.utils import logging
+from align_system.utils.version import get_version
 from align_system.exceptions import SceneSkipException
 
 log = logging.getLogger(__name__)
@@ -62,6 +63,7 @@ class ITMPhase1Driver:
 
         # Capture inputs and outputs in a similar format to what's used by
         # our internal evaluation framework code
+        align_system_version = get_version()
         inputs_outputs = []
 
         session_alignment_scores = []
@@ -324,7 +326,8 @@ class ITMPhase1Driver:
                 # it a .jsonl file; would need to remove the indent=2)
                 if save_input_output_to_path is not None:
                     with open(save_input_output_to_path, 'w') as f:
-                        json.dump(inputs_outputs, f, indent=2)
+                        json.dump({"version": align_system_version,
+                                   "results": inputs_outputs}, f, indent=2)
 
                 last_state = current_state
                 try:
