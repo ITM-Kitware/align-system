@@ -21,6 +21,7 @@ dependencies = [
     "transformers>=5.1.0",
     "ubelt>=1.4.1",
     "vllm>=0.11.0",
+    "setuptools-scm>=8.0,<9",
 ]
 
 [tool.uv.sources]

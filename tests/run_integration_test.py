@@ -28,7 +28,7 @@ EXPECTED_OUT_GITIGNORE_CONTENT = '''
 !input_output.json
 !raw_align_system.log'''.lstrip()
 
-LOG_EXEMPTIONS = [r'^Today Date:.*$', r'^HTTP Request:.*$', r'"elapsed_s":']
+LOG_EXEMPTIONS = [r'^Today Date:.*$', r'^HTTP Request:.*$', r'"elapsed_s":', r'"version":']
 
 RICH_MARKUP_TAG_RE = r'(\[/?[^\]]+\])'
 
