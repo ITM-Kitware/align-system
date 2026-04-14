@@ -63,8 +63,12 @@ class ITMPhase1Driver:
 
         # Capture inputs and outputs in a similar format to what's used by
         # our internal evaluation framework code
-        align_system_version = get_version()
         inputs_outputs = []
+
+        # Write version sidecar once at the start of the run
+        meta = {"version": get_version()}
+        with open(os.path.join(output_dir, "meta.json"), 'w') as f:
+            json.dump(meta, f, indent=2)
 
         session_alignment_scores = []
 
@@ -326,8 +330,7 @@ class ITMPhase1Driver:
                 # it a .jsonl file; would need to remove the indent=2)
                 if save_input_output_to_path is not None:
                     with open(save_input_output_to_path, 'w') as f:
-                        json.dump({"version": align_system_version,
-                                   "results": inputs_outputs}, f, indent=2)
+                        json.dump(inputs_outputs, f, indent=2)
 
                 last_state = current_state
                 try:
