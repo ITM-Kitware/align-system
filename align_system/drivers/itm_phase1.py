@@ -67,6 +67,9 @@ class ITMPhase1Driver:
 
         # Write version sidecar once at the start of the run
         meta = {"version": get_version()}
+        username = getattr(interface, 'username', None)
+        if username is not None:
+            meta["username"] = username
         with open(os.path.join(output_dir, "meta.json"), 'w') as f:
             json.dump(meta, f, indent=2)
 
