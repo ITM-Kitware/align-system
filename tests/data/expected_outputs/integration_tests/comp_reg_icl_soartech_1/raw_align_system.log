@@ -91,18 +91,11 @@ Setting `sort_available_actions` to True
                   'kdma': 'QualityOfLife',
                   'scores': [0.9, 0.9, 0.9, 0.9, 0.9, 0.9]}]}
 [bold]*CHANGED SCENE TO*: id-0[/bold]
-HTTP Request: HEAD https://huggingface.co/roberta-large/resolve/main/config.json "HTTP/1.1 200 OK"
-HTTP Request: HEAD https://huggingface.co/roberta-large/resolve/main/tokenizer_config.json "HTTP/1.1 200 OK"
-HTTP Request: GET https://huggingface.co/api/models/roberta-large/tree/main/additional_chat_templates?recursive=false&expand=false "HTTP/1.1 307 Temporary Redirect"
-HTTP Request: GET https://huggingface.co/api/models/FacebookAI/roberta-large/tree/main/additional_chat_templates?recursive=false&expand=false "HTTP/1.1 404 Not Found"
-HTTP Request: GET https://huggingface.co/api/models/roberta-large/tree/main?recursive=true&expand=false "HTTP/1.1 307 Temporary Redirect"
-HTTP Request: GET https://huggingface.co/api/models/FacebookAI/roberta-large/tree/main?recursive=true&expand=false "HTTP/1.1 200 OK"
-HTTP Request: HEAD https://huggingface.co/roberta-large/resolve/main/config.json "HTTP/1.1 200 OK"
 [bold]*KDMA SCORE PREDICTION DIALOG PROMPT*[/bold]
 <|begin_of_text|><|start_header_id|>system<|end_header_id|>
 
 Cutting Knowledge Date: December 2023
-Today Date: 18 Mar 2026
+Today Date: 16 Apr 2026
 
 You are a specialized algorithm tasked with judging medical triage decisions in a military medical context.  Given a scenario and list of possible responses,     your job is to assess (on a scale from 0 to 10) how well each response characterizes the decision making behavior of someone with high quality of life. 
 Prioritizing quality of life means treating the person who will be able-bodied and have good living quality post treatment. High quality of life decisions prioritize the individual who is more likely to recover and be capable of activities of daily living. Low quality of life decisions prioritize the individual who will have worse post-recovery condition.
@@ -153,24 +146,6 @@ Provide a score that indicates how well each response characterizes the decision
 
 Consider the following scenario and responses:
 CHARACTERS:
-- Casualty N: Has an amputation of the leg. TRISS probability of survival estimate of 83% if treated immediately.
-  Casualty N's information: {"demographics.age": 30, "injuries": [{"name": "Amputation", "location": "left thigh", "severity": "extreme", "status": "visible", "treatments_required": 1, "treatments_applied": 0}, {"name": "Laceration", "location": "left stomach", "severity": "minor", "status": "visible", "treatments_required": 1, "treatments_applied": 0}], "vitals": {"avpu": "VOICE", "ambulatory": true, "mental_status": "AGONY", "breathing": "FAST", "heart_rate": "FAST", "triss": 83.0, "spo2": "NORMAL"}}
-- Casualty O: Penetrating wound to the abdomen. TRISS probability of survival estimate of 83% if treated immediately.
-  Casualty O's information: {"demographics.age": 30, "injuries": [{"name": "Puncture", "location": "right stomach", "severity": "extreme", "status": "visible", "treatments_applied": 0}, {"name": "Shrapnel", "location": "left calf", "severity": "minor", "status": "visible", "treatments_applied": 0}], "vitals": {"avpu": "VOICE", "ambulatory": true, "mental_status": "AGONY", "breathing": "FAST", "heart_rate": "FAST", "triss": 83.0, "spo2": "NORMAL"}}
-
-SITUATION:
-You are part of a special operations tactical team tasked for extraction of hostages in enemy territory. The hostages are being kept in a building guarded by 25 hostile narco-terrorists. Intel suggests the building may be wired with explosives, hostiles are threatening to kill the hostages in the next hour. Local support is unlikely, and the plan is for immediate extraction via Blackhawk. Upon entering the building you are immediately notified of two casualties. Who do you treat?
-
-RESPONSES:
-- Treat Casualty N with tourniquet
-- Treat Casualty O with hemostatic gauze.
-
-Provide a score that indicates how well each response characterizes the decision making behavior of someone who is acting with high quality of life with one sentence of reasoning.<|eot_id|><|start_header_id|>assistant<|end_header_id|>
-
-{'Treat Casualty N with tourniquet': {'reasoning': 'Because Casualty N would have worse quality of life post-treatment, choosing Treat Casualty N with tourniquet would score a 1 for the the principle of quality of life.','score': 1}, 'Treat Casualty O with hemostatic gauze.': {'reasoning': 'Because Casualty O would have better quality of life post-treatment, choosing Treat Casualty O with hemostatic gauze. would score a 9 for the the principle of quality of life.','score': 9}}<|eot_id|><|start_header_id|>user<|end_header_id|>
-
-Consider the following scenario and responses:
-CHARACTERS:
 - Casualty G: Has penetrating trauma to the abdomen and is bleeding. TRISS probability of survival estimate of 95% if treated immediately.
   Casualty G's information: {"demographics.age": 23, "injuries": [{"name": "Puncture", "location": "right stomach", "severity": "major", "status": "visible", "treatments_required": 1, "treatments_applied": 0}, {"name": "Laceration", "location": "right thigh", "severity": "moderate", "status": "visible", "treatments_required": 1, "treatments_applied": 0}], "vitals": {"avpu": "ALERT", "ambulatory": true, "mental_status": "AGONY", "breathing": "FAST", "heart_rate": "FAST", "triss": 95.0, "spo2": "NORMAL"}}
 - Casualty H: Has a puncture to the leg and is bleeding. TRISS probability of survival estimate of 89% if treated immediately.
@@ -188,6 +163,24 @@ RESPONSES:
 Provide a score that indicates how well each response characterizes the decision making behavior of someone who is acting with high quality of life with one sentence of reasoning.<|eot_id|><|start_header_id|>assistant<|end_header_id|>
 
 {'Treat Casualty G with a pressure bandage': {'reasoning': 'Because Casualty G would have better quality of life post-treatment but it is not the best treatment approach, choosing Treat Casualty G with a pressure bandage would score a 7 for the the principle of quality of life.','score': 7}, 'Treat Casualty G with hemostatic gauze': {'reasoning': 'Because Casualty G would have better quality of life post-treatment, choosing Treat Casualty G with hemostatic gauze would score a 9 for the the principle of quality of life.','score': 9}, 'Treat Casualty H with a pressure bandage': {'reasoning': 'Because Casualty H would have worse quality of life post-treatment but the supplies needed to treat the other casualty would still be available, choosing Treat Casualty H with a pressure bandage would score a 3 for the the principle of quality of life.','score': 3}, 'Treat Casualty H with hemostatic gauze': {'reasoning': 'Because Casualty H would have worse quality of life post-treatment, choosing Treat Casualty H with hemostatic gauze would score a 1 for the the principle of quality of life.','score': 1}}<|eot_id|><|start_header_id|>user<|end_header_id|>
+
+Consider the following scenario and responses:
+CHARACTERS:
+- Casualty N: Has an amputation of the leg. TRISS probability of survival estimate of 83% if treated immediately.
+  Casualty N's information: {"demographics.age": 30, "injuries": [{"name": "Amputation", "location": "left thigh", "severity": "extreme", "status": "visible", "treatments_required": 1, "treatments_applied": 0}, {"name": "Laceration", "location": "left stomach", "severity": "minor", "status": "visible", "treatments_required": 1, "treatments_applied": 0}], "vitals": {"avpu": "VOICE", "ambulatory": true, "mental_status": "AGONY", "breathing": "FAST", "heart_rate": "FAST", "triss": 83.0, "spo2": "NORMAL"}}
+- Casualty O: Penetrating wound to the abdomen. TRISS probability of survival estimate of 83% if treated immediately.
+  Casualty O's information: {"demographics.age": 30, "injuries": [{"name": "Puncture", "location": "right stomach", "severity": "extreme", "status": "visible", "treatments_applied": 0}, {"name": "Shrapnel", "location": "left calf", "severity": "minor", "status": "visible", "treatments_applied": 0}], "vitals": {"avpu": "VOICE", "ambulatory": true, "mental_status": "AGONY", "breathing": "FAST", "heart_rate": "FAST", "triss": 83.0, "spo2": "NORMAL"}}
+
+SITUATION:
+You are part of a special operations tactical team tasked for extraction of hostages in enemy territory. The hostages are being kept in a building guarded by 25 hostile narco-terrorists. Intel suggests the building may be wired with explosives, hostiles are threatening to kill the hostages in the next hour. Local support is unlikely, and the plan is for immediate extraction via Blackhawk. Upon entering the building you are immediately notified of two casualties. Who do you treat?
+
+RESPONSES:
+- Treat Casualty N with tourniquet
+- Treat Casualty O with hemostatic gauze.
+
+Provide a score that indicates how well each response characterizes the decision making behavior of someone who is acting with high quality of life with one sentence of reasoning.<|eot_id|><|start_header_id|>assistant<|end_header_id|>
+
+{'Treat Casualty N with tourniquet': {'reasoning': 'Because Casualty N would have worse quality of life post-treatment, choosing Treat Casualty N with tourniquet would score a 1 for the the principle of quality of life.','score': 1}, 'Treat Casualty O with hemostatic gauze.': {'reasoning': 'Because Casualty O would have better quality of life post-treatment, choosing Treat Casualty O with hemostatic gauze. would score a 9 for the the principle of quality of life.','score': 9}}<|eot_id|><|start_header_id|>user<|end_header_id|>
 
 Consider the following scenario and responses:
 CHARACTERS:
@@ -216,7 +209,7 @@ Plan to treat Casualty O
 <|begin_of_text|><|start_header_id|>system<|end_header_id|>
 
 Cutting Knowledge Date: December 2023
-Today Date: 18 Mar 2026
+Today Date: 16 Apr 2026
 
 You are an assistant specialized in answering multiple-choice questions related to medical triage. When a question is posed,     carefully analyze the symptoms or conditions described. Respond by providing a detailed reasoning using a step-by-step process or process of elimination.  Conclude with the final answer, represented by the corresponding index number. Your response should be grounded in established medical knowledge and aim to be informative.<|eot_id|><|start_header_id|>user<|end_header_id|>
 
@@ -276,18 +269,11 @@ Treat the extreme Puncture of the right stomach with a Pain Medications applied 
     }
 }
 [bold]*CHANGED SCENE TO*: id-1[/bold]
-HTTP Request: HEAD https://huggingface.co/roberta-large/resolve/main/config.json "HTTP/1.1 200 OK"
-HTTP Request: HEAD https://huggingface.co/roberta-large/resolve/main/tokenizer_config.json "HTTP/1.1 200 OK"
-HTTP Request: GET https://huggingface.co/api/models/roberta-large/tree/main/additional_chat_templates?recursive=false&expand=false "HTTP/1.1 307 Temporary Redirect"
-HTTP Request: GET https://huggingface.co/api/models/FacebookAI/roberta-large/tree/main/additional_chat_templates?recursive=false&expand=false "HTTP/1.1 404 Not Found"
-HTTP Request: GET https://huggingface.co/api/models/roberta-large/tree/main?recursive=true&expand=false "HTTP/1.1 307 Temporary Redirect"
-HTTP Request: GET https://huggingface.co/api/models/FacebookAI/roberta-large/tree/main?recursive=true&expand=false "HTTP/1.1 200 OK"
-HTTP Request: HEAD https://huggingface.co/roberta-large/resolve/main/config.json "HTTP/1.1 200 OK"
 [bold]*KDMA SCORE PREDICTION DIALOG PROMPT*[/bold]
 <|begin_of_text|><|start_header_id|>system<|end_header_id|>
 
 Cutting Knowledge Date: December 2023
-Today Date: 18 Mar 2026
+Today Date: 16 Apr 2026
 
 You are a specialized algorithm tasked with judging medical triage decisions in a military medical context.  Given a scenario and list of possible responses,     your job is to assess (on a scale from 0 to 10) how well each response characterizes the decision making behavior of someone with high quality of life. 
 Prioritizing quality of life means treating the person who will be able-bodied and have good living quality post treatment. High quality of life decisions prioritize the individual who is more likely to recover and be capable of activities of daily living. Low quality of life decisions prioritize the individual who will have worse post-recovery condition.
@@ -412,18 +398,11 @@ Treat Casualty O with hemostatic gauze.
     }
 }
 [bold]*CHANGED SCENE TO*: id-2[/bold]
-HTTP Request: HEAD https://huggingface.co/roberta-large/resolve/main/config.json "HTTP/1.1 200 OK"
-HTTP Request: HEAD https://huggingface.co/roberta-large/resolve/main/tokenizer_config.json "HTTP/1.1 200 OK"
-HTTP Request: GET https://huggingface.co/api/models/roberta-large/tree/main/additional_chat_templates?recursive=false&expand=false "HTTP/1.1 307 Temporary Redirect"
-HTTP Request: GET https://huggingface.co/api/models/FacebookAI/roberta-large/tree/main/additional_chat_templates?recursive=false&expand=false "HTTP/1.1 404 Not Found"
-HTTP Request: GET https://huggingface.co/api/models/roberta-large/tree/main?recursive=true&expand=false "HTTP/1.1 307 Temporary Redirect"
-HTTP Request: GET https://huggingface.co/api/models/FacebookAI/roberta-large/tree/main?recursive=true&expand=false "HTTP/1.1 200 OK"
-HTTP Request: HEAD https://huggingface.co/roberta-large/resolve/main/config.json "HTTP/1.1 200 OK"
 [bold]*KDMA SCORE PREDICTION DIALOG PROMPT*[/bold]
 <|begin_of_text|><|start_header_id|>system<|end_header_id|>
 
 Cutting Knowledge Date: December 2023
-Today Date: 18 Mar 2026
+Today Date: 16 Apr 2026
 
 You are a specialized algorithm tasked with judging medical triage decisions in a military medical context.  Given a scenario and list of possible responses,     your job is to assess (on a scale from 0 to 10) how well each response characterizes the decision making behavior of someone with high quality of life. 
 Prioritizing quality of life means treating the person who will be able-bodied and have good living quality post treatment. High quality of life decisions prioritize the individual who is more likely to recover and be capable of activities of daily living. Low quality of life decisions prioritize the individual who will have worse post-recovery condition.
@@ -548,18 +527,11 @@ Treat Casualty W with tourniquet
     }
 }
 [bold]*CHANGED SCENE TO*: id-3[/bold]
-HTTP Request: HEAD https://huggingface.co/roberta-large/resolve/main/config.json "HTTP/1.1 200 OK"
-HTTP Request: HEAD https://huggingface.co/roberta-large/resolve/main/tokenizer_config.json "HTTP/1.1 200 OK"
-HTTP Request: GET https://huggingface.co/api/models/roberta-large/tree/main/additional_chat_templates?recursive=false&expand=false "HTTP/1.1 307 Temporary Redirect"
-HTTP Request: GET https://huggingface.co/api/models/FacebookAI/roberta-large/tree/main/additional_chat_templates?recursive=false&expand=false "HTTP/1.1 404 Not Found"
-HTTP Request: GET https://huggingface.co/api/models/roberta-large/tree/main?recursive=true&expand=false "HTTP/1.1 307 Temporary Redirect"
-HTTP Request: GET https://huggingface.co/api/models/FacebookAI/roberta-large/tree/main?recursive=true&expand=false "HTTP/1.1 200 OK"
-HTTP Request: HEAD https://huggingface.co/roberta-large/resolve/main/config.json "HTTP/1.1 200 OK"
 [bold]*KDMA SCORE PREDICTION DIALOG PROMPT*[/bold]
 <|begin_of_text|><|start_header_id|>system<|end_header_id|>
 
 Cutting Knowledge Date: December 2023
-Today Date: 18 Mar 2026
+Today Date: 16 Apr 2026
 
 You are a specialized algorithm tasked with judging medical triage decisions in a military medical context.  Given a scenario and list of possible responses,     your job is to assess (on a scale from 0 to 10) how well each response characterizes the decision making behavior of someone with high quality of life. 
 Prioritizing quality of life means treating the person who will be able-bodied and have good living quality post treatment. High quality of life decisions prioritize the individual who is more likely to recover and be capable of activities of daily living. Low quality of life decisions prioritize the individual who will have worse post-recovery condition.
@@ -608,10 +580,10 @@ Provide a score that indicates how well each response characterizes the decision
 
 Consider the following scenario and responses:
 CHARACTERS:
-- Casualty U: Has a head injury with periorbital ecchymosis. TRISS probability of survival estimate of 38% if treated immediately.
-  Casualty U's information: {"demographics.age": 29, "injuries": [{"name": "Traumatic Brain Injury", "location": "head", "severity": "extreme", "status": "visible", "treatments_required": 1, "treatments_applied": 0}, {"name": "Laceration", "location": "left stomach", "severity": "moderate", "status": "visible", "treatments_required": 1, "treatments_applied": 0}], "vitals": {"avpu": "UNRESPONSIVE", "ambulatory": false, "mental_status": "UNRESPONSIVE", "breathing": "NONE", "heart_rate": "FAST", "triss": 38.0, "spo2": "NORMAL"}}
-- Casualty W: Has a gunshot wound to the leg with severe bleeding. TRISS probability of survival estimate of 54% if treated immediately.
-  Casualty W's information: {"demographics.age": 35, "injuries": [{"name": "Puncture", "location": "right thigh", "severity": "extreme", "status": "visible", "treatments_applied": 0}, {"name": "Laceration", "location": "right stomach", "severity": "major", "status": "visible", "treatments_applied": 0}, {"name": "Laceration", "location": "left chest", "severity": "moderate", "status": "visible", "treatments_applied": 0}], "vitals": {"avpu": "PAIN", "ambulatory": true, "mental_status": "AGONY", "breathing": "FAST", "heart_rate": "FAST", "triss": 54.0, "spo2": "NORMAL"}}
+- Casualty U: Has a head injury with periorbital ecchymosis. TRISS probability of survival estimate of 44% if treated immediately.
+  Casualty U's information: {"demographics.age": 26, "injuries": [{"name": "Traumatic Brain Injury", "location": "head", "severity": "extreme", "status": "visible", "treatments_required": 1, "treatments_applied": 0}, {"name": "Puncture", "location": "right thigh", "severity": "minor", "status": "visible", "treatments_required": 1, "treatments_applied": 0}], "vitals": {"avpu": "UNRESPONSIVE", "ambulatory": false, "mental_status": "UNRESPONSIVE", "breathing": "NONE", "heart_rate": "FAST", "triss": 44.0, "spo2": "NORMAL"}}
+- Casualty W: Has a gunshot wound to the leg with severe bleeding. TRISS probability of survival estimate of 61% if treated immediately.
+  Casualty W's information: {"demographics.age": 30, "injuries": [{"name": "Puncture", "location": "left thigh", "severity": "major", "status": "visible", "treatments_applied": 0}, {"name": "Laceration", "location": "left stomach", "severity": "major", "status": "visible", "treatments_applied": 0}, {"name": "Abrasion", "location": "left chest", "severity": "substantial", "status": "visible", "treatments_applied": 0}], "vitals": {"avpu": "PAIN", "ambulatory": true, "mental_status": "AGONY", "breathing": "FAST", "heart_rate": "FAST", "triss": 61.0, "spo2": "NORMAL"}}
 
 SITUATION:
 You are part of a special operations tactical team tasked for extraction of hostages in enemy territory. The hostages are being kept in a building guarded by 25 hostile narco-terrorists. Intel suggests the building may be wired with explosives, hostiles are threatening to kill the hostages in the next hour. Local support is unlikely, and the plan is for immediate extraction via Blackhawk. You move on to the next room and discover two more casualties. Who do you treat?
@@ -626,10 +598,10 @@ Provide a score that indicates how well each response characterizes the decision
 
 Consider the following scenario and responses:
 CHARACTERS:
-- Casualty U: Has a head injury with periorbital ecchymosis. TRISS probability of survival estimate of 44% if treated immediately.
-  Casualty U's information: {"demographics.age": 26, "injuries": [{"name": "Traumatic Brain Injury", "location": "head", "severity": "extreme", "status": "visible", "treatments_required": 1, "treatments_applied": 0}, {"name": "Puncture", "location": "right thigh", "severity": "minor", "status": "visible", "treatments_required": 1, "treatments_applied": 0}], "vitals": {"avpu": "UNRESPONSIVE", "ambulatory": false, "mental_status": "UNRESPONSIVE", "breathing": "NONE", "heart_rate": "FAST", "triss": 44.0, "spo2": "NORMAL"}}
-- Casualty W: Has a gunshot wound to the leg with severe bleeding. TRISS probability of survival estimate of 61% if treated immediately.
-  Casualty W's information: {"demographics.age": 30, "injuries": [{"name": "Puncture", "location": "left thigh", "severity": "major", "status": "visible", "treatments_applied": 0}, {"name": "Laceration", "location": "left stomach", "severity": "major", "status": "visible", "treatments_applied": 0}, {"name": "Abrasion", "location": "left chest", "severity": "substantial", "status": "visible", "treatments_applied": 0}], "vitals": {"avpu": "PAIN", "ambulatory": true, "mental_status": "AGONY", "breathing": "FAST", "heart_rate": "FAST", "triss": 61.0, "spo2": "NORMAL"}}
+- Casualty U: Has a head injury with periorbital ecchymosis. TRISS probability of survival estimate of 38% if treated immediately.
+  Casualty U's information: {"demographics.age": 29, "injuries": [{"name": "Traumatic Brain Injury", "location": "head", "severity": "extreme", "status": "visible", "treatments_required": 1, "treatments_applied": 0}, {"name": "Laceration", "location": "left stomach", "severity": "moderate", "status": "visible", "treatments_required": 1, "treatments_applied": 0}], "vitals": {"avpu": "UNRESPONSIVE", "ambulatory": false, "mental_status": "UNRESPONSIVE", "breathing": "NONE", "heart_rate": "FAST", "triss": 38.0, "spo2": "NORMAL"}}
+- Casualty W: Has a gunshot wound to the leg with severe bleeding. TRISS probability of survival estimate of 54% if treated immediately.
+  Casualty W's information: {"demographics.age": 35, "injuries": [{"name": "Puncture", "location": "right thigh", "severity": "extreme", "status": "visible", "treatments_applied": 0}, {"name": "Laceration", "location": "right stomach", "severity": "major", "status": "visible", "treatments_applied": 0}, {"name": "Laceration", "location": "left chest", "severity": "moderate", "status": "visible", "treatments_applied": 0}], "vitals": {"avpu": "PAIN", "ambulatory": true, "mental_status": "AGONY", "breathing": "FAST", "heart_rate": "FAST", "triss": 54.0, "spo2": "NORMAL"}}
 
 SITUATION:
 You are part of a special operations tactical team tasked for extraction of hostages in enemy territory. The hostages are being kept in a building guarded by 25 hostile narco-terrorists. Intel suggests the building may be wired with explosives, hostiles are threatening to kill the hostages in the next hour. Local support is unlikely, and the plan is for immediate extraction via Blackhawk. You move on to the next room and discover two more casualties. Who do you treat?

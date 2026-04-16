@@ -316,16 +316,6 @@
             }
           },
           {
-            "Treat Casualty N with tourniquet": {
-              "reasoning": "Because Casualty N would have worse quality of life post-treatment, choosing Treat Casualty N with tourniquet would score a 1 for the the principle of quality of life.",
-              "score": 1
-            },
-            "Treat Casualty O with hemostatic gauze.": {
-              "reasoning": "Because Casualty O would have better quality of life post-treatment, choosing Treat Casualty O with hemostatic gauze. would score a 9 for the the principle of quality of life.",
-              "score": 9
-            }
-          },
-          {
             "Treat Casualty G with a pressure bandage": {
               "reasoning": "Because Casualty G would have better quality of life post-treatment but it is not the best treatment approach, choosing Treat Casualty G with a pressure bandage would score a 7 for the the principle of quality of life.",
               "score": 7
@@ -341,6 +331,16 @@
             "Treat Casualty H with hemostatic gauze": {
               "reasoning": "Because Casualty H would have worse quality of life post-treatment, choosing Treat Casualty H with hemostatic gauze would score a 1 for the the principle of quality of life.",
               "score": 1
+            }
+          },
+          {
+            "Treat Casualty N with tourniquet": {
+              "reasoning": "Because Casualty N would have worse quality of life post-treatment, choosing Treat Casualty N with tourniquet would score a 1 for the the principle of quality of life.",
+              "score": 1
+            },
+            "Treat Casualty O with hemostatic gauze.": {
+              "reasoning": "Because Casualty O would have better quality of life post-treatment, choosing Treat Casualty O with hemostatic gauze. would score a 9 for the the principle of quality of life.",
+              "score": 9
             }
           }
         ]
