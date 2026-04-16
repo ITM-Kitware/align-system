@@ -320,27 +320,27 @@
       "predicted_kdma_values": {
         "DIRECT MOBILE CHARACTERS": {
           "Moral judgement": [
-            0.40793895721435547
+            0.40793952345848083
           ]
         },
         "SITREP": {
           "Moral judgement": [
-            0.5010588765144348
+            0.5010585784912109
           ]
         },
         "TAG CHARACTER": {
           "Moral judgement": [
-            0.46885624527931213
+            0.46885642409324646
           ]
         },
         "Treat Patient A": {
           "Moral judgement": [
-            0.462055504322052
+            0.46205559372901917
           ]
         },
         "Treat Patient B": {
           "Moral judgement": [
-            0.7109605073928833
+            0.7109600901603699
           ]
         }
       },
@@ -359,42 +359,42 @@
         {
           "step": "align_system.algorithms.misc_itm_adm_components.ITMFormatChoicesADMComponent",
           "step_num": 0,
-          "elapsed_s": 7.125502452254295e-05
+          "elapsed_s": 5.700811743736267e-05
         },
         {
           "step": "align_system.algorithms.kaleido_adm_component.KaleidoADMComponent",
           "step_num": 1,
-          "elapsed_s": 9.307555091101676
+          "elapsed_s": 9.294617868028581
         },
         {
           "step": "align_system.algorithms.utility_adm_component.RenameVariablesADMComponent",
           "step_num": 2,
-          "elapsed_s": 4.340196028351784e-05
+          "elapsed_s": 4.249066114425659e-05
         },
         {
           "step": "align_system.algorithms.alignment_adm_component.AlignmentADMComponent",
           "step_num": 3,
-          "elapsed_s": 0.00020544882863759995
+          "elapsed_s": 0.00020302366465330124
         },
         {
           "step": "align_system.algorithms.misc_itm_adm_components.JustificationFromReasonings",
           "step_num": 4,
-          "elapsed_s": 2.7651898562908173e-05
+          "elapsed_s": 2.338457852602005e-05
         },
         {
           "step": "align_system.algorithms.action_parameter_completion_adm_component.ActionParameterCompletionADMComponent",
           "step_num": 5,
-          "elapsed_s": 0.00015319092199206352
+          "elapsed_s": 0.00013298168778419495
         },
         {
           "step": "align_system.algorithms.misc_itm_adm_components.EnsureChosenActionADMComponent",
           "step_num": 6,
-          "elapsed_s": 3.5556964576244354e-05
+          "elapsed_s": 3.0907802283763885e-05
         },
         {
           "step": "align_system.algorithms.misc_itm_adm_components.PopulateChoiceInfo",
           "step_num": 7,
-          "elapsed_s": 4.010600969195366e-05
+          "elapsed_s": 3.238022327423096e-05
         }
       ]
     },
@@ -739,12 +739,12 @@
       "predicted_kdma_values": {
         "DIRECT MOBILE CHARACTERS": {
           "Moral judgement": [
-            0.4284588694572449
+            0.4284589886665344
           ]
         },
         "SITREP": {
           "Moral judgement": [
-            0.5077906847000122
+            0.5077905654907227
           ]
         },
         "TAG CHARACTER": {
@@ -754,12 +754,12 @@
         },
         "Treat Patient A": {
           "Moral judgement": [
-            0.5194858312606812
+            0.5194854736328125
           ]
         },
         "Treat Patient B": {
           "Moral judgement": [
-            0.6671276092529297
+            0.6671277284622192
           ]
         }
       },
@@ -778,42 +778,42 @@
         {
           "step": "align_system.algorithms.misc_itm_adm_components.ITMFormatChoicesADMComponent",
           "step_num": 0,
-          "elapsed_s": 3.771204501390457e-05
+          "elapsed_s": 3.1400471925735474e-05
         },
         {
           "step": "align_system.algorithms.kaleido_adm_component.KaleidoADMComponent",
           "step_num": 1,
-          "elapsed_s": 7.285672323778272
+          "elapsed_s": 6.997819570824504
         },
         {
           "step": "align_system.algorithms.utility_adm_component.RenameVariablesADMComponent",
           "step_num": 2,
-          "elapsed_s": 5.8010220527648926e-05
+          "elapsed_s": 5.021505057811737e-05
         },
         {
           "step": "align_system.algorithms.alignment_adm_component.AlignmentADMComponent",
           "step_num": 3,
-          "elapsed_s": 0.00019686296582221985
+          "elapsed_s": 0.0002296455204486847
         },
         {
           "step": "align_system.algorithms.misc_itm_adm_components.JustificationFromReasonings",
           "step_num": 4,
-          "elapsed_s": 2.699112519621849e-05
+          "elapsed_s": 3.525707870721817e-05
         },
         {
           "step": "align_system.algorithms.action_parameter_completion_adm_component.ActionParameterCompletionADMComponent",
           "step_num": 5,
-          "elapsed_s": 0.0001493929885327816
+          "elapsed_s": 0.0001621786504983902
         },
         {
           "step": "align_system.algorithms.misc_itm_adm_components.EnsureChosenActionADMComponent",
           "step_num": 6,
-          "elapsed_s": 3.5486649721860886e-05
+          "elapsed_s": 3.325287252664566e-05
         },
         {
           "step": "align_system.algorithms.misc_itm_adm_components.PopulateChoiceInfo",
           "step_num": 7,
-          "elapsed_s": 3.8393307477235794e-05
+          "elapsed_s": 3.915466368198395e-05
         }
       ]
     },
@@ -1158,12 +1158,12 @@
       "predicted_kdma_values": {
         "DIRECT MOBILE CHARACTERS": {
           "Moral judgement": [
-            0.46284645795822144
+            0.46284642815589905
           ]
         },
         "SITREP": {
           "Moral judgement": [
-            0.5442702174186707
+            0.5442702770233154
           ]
         },
         "TAG CHARACTER": {
@@ -1173,12 +1173,12 @@
         },
         "Treat Patient A": {
           "Moral judgement": [
-            0.579971969127655
+            0.5799723863601685
           ]
         },
         "Treat Patient B": {
           "Moral judgement": [
-            0.685766875743866
+            0.6857668161392212
           ]
         }
       },
@@ -1197,42 +1197,42 @@
         {
           "step": "align_system.algorithms.misc_itm_adm_components.ITMFormatChoicesADMComponent",
           "step_num": 0,
-          "elapsed_s": 4.6679284423589706e-05
+          "elapsed_s": 3.173016011714935e-05
         },
         {
           "step": "align_system.algorithms.kaleido_adm_component.KaleidoADMComponent",
           "step_num": 1,
-          "elapsed_s": 7.0495227966457605
+          "elapsed_s": 7.301787311211228
         },
         {
           "step": "align_system.algorithms.utility_adm_component.RenameVariablesADMComponent",
           "step_num": 2,
-          "elapsed_s": 5.648704245686531e-05
+          "elapsed_s": 0.000156366266310215
         },
         {
           "step": "align_system.algorithms.alignment_adm_component.AlignmentADMComponent",
           "step_num": 3,
-          "elapsed_s": 0.00020510796457529068
+          "elapsed_s": 0.00017907936125993729
         },
         {
           "step": "align_system.algorithms.misc_itm_adm_components.JustificationFromReasonings",
           "step_num": 4,
-          "elapsed_s": 2.742186188697815e-05
+          "elapsed_s": 2.263300120830536e-05
         },
         {
           "step": "align_system.algorithms.action_parameter_completion_adm_component.ActionParameterCompletionADMComponent",
           "step_num": 5,
-          "elapsed_s": 0.00016247807070612907
+          "elapsed_s": 0.00011458713561296463
         },
         {
           "step": "align_system.algorithms.misc_itm_adm_components.EnsureChosenActionADMComponent",
           "step_num": 6,
-          "elapsed_s": 3.6839861422777176e-05
+          "elapsed_s": 2.9355287551879883e-05
         },
         {
           "step": "align_system.algorithms.misc_itm_adm_components.PopulateChoiceInfo",
           "step_num": 7,
-          "elapsed_s": 3.937399014830589e-05
+          "elapsed_s": 2.9144808650016785e-05
         }
       ]
     },
@@ -1587,17 +1587,17 @@
         },
         "TAG CHARACTER": {
           "Moral judgement": [
-            0.4740218222141266
+            0.4740216135978699
           ]
         },
         "Treat Patient A": {
           "Moral judgement": [
-            0.4917967915534973
+            0.49179697036743164
           ]
         },
         "Treat Patient B": {
           "Moral judgement": [
-            0.688188374042511
+            0.6881884336471558
           ]
         }
       },
@@ -1616,42 +1616,42 @@
         {
           "step": "align_system.algorithms.misc_itm_adm_components.ITMFormatChoicesADMComponent",
           "step_num": 0,
-          "elapsed_s": 3.872392699122429e-05
+          "elapsed_s": 3.085937350988388e-05
         },
         {
           "step": "align_system.algorithms.kaleido_adm_component.KaleidoADMComponent",
           "step_num": 1,
-          "elapsed_s": 6.985859794076532
+          "elapsed_s": 6.679182027466595
         },
         {
           "step": "align_system.algorithms.utility_adm_component.RenameVariablesADMComponent",
           "step_num": 2,
-          "elapsed_s": 5.837995558977127e-05
+          "elapsed_s": 4.4004060328006744e-05
         },
         {
           "step": "align_system.algorithms.alignment_adm_component.AlignmentADMComponent",
           "step_num": 3,
-          "elapsed_s": 0.00020339526236057281
+          "elapsed_s": 0.00018457043915987015
         },
         {
           "step": "align_system.algorithms.misc_itm_adm_components.JustificationFromReasonings",
           "step_num": 4,
-          "elapsed_s": 2.8094276785850525e-05
+          "elapsed_s": 2.2222287952899933e-05
         },
         {
           "step": "align_system.algorithms.action_parameter_completion_adm_component.ActionParameterCompletionADMComponent",
           "step_num": 5,
-          "elapsed_s": 0.00015753787010908127
+          "elapsed_s": 0.00011949613690376282
         },
         {
           "step": "align_system.algorithms.misc_itm_adm_components.EnsureChosenActionADMComponent",
           "step_num": 6,
-          "elapsed_s": 3.630807623267174e-05
+          "elapsed_s": 2.9296614229679108e-05
         },
         {
           "step": "align_system.algorithms.misc_itm_adm_components.PopulateChoiceInfo",
           "step_num": 7,
-          "elapsed_s": 3.99160198867321e-05
+          "elapsed_s": 2.9806047677993774e-05
         }
       ]
     },
