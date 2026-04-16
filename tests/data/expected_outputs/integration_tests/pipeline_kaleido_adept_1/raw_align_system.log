@@ -16,21 +16,6 @@ Patient A (P1 Patient A): He is the attacker who set off a bomb that injured sev
 Patient B (P1 Patient B): He was injuried by Patient A. He needs immediate medical treatment to survive. You have repositioned his airway, but he did not spontaneously start breathing. 
 
 
-HTTP Request: HEAD https://huggingface.co/tsor13/kaleido-large/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
-HTTP Request: HEAD https://huggingface.co/allenai/kaleido-large/resolve/main/config.json "HTTP/1.1 200 OK"
-HTTP Request: HEAD https://huggingface.co/tsor13/kaleido-large/resolve/main/model.safetensors "HTTP/1.1 307 Temporary Redirect"
-HTTP Request: HEAD https://huggingface.co/tsor13/kaleido-large/resolve/main/generation_config.json "HTTP/1.1 307 Temporary Redirect"
-HTTP Request: HEAD https://huggingface.co/allenai/kaleido-large/resolve/main/generation_config.json "HTTP/1.1 404 Not Found"
-HTTP Request: HEAD https://huggingface.co/tsor13/kaleido-large/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
-HTTP Request: HEAD https://huggingface.co/allenai/kaleido-large/resolve/main/config.json "HTTP/1.1 200 OK"
-HTTP Request: HEAD https://huggingface.co/tsor13/kaleido-large/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
-HTTP Request: HEAD https://huggingface.co/allenai/kaleido-large/resolve/main/config.json "HTTP/1.1 200 OK"
-HTTP Request: HEAD https://huggingface.co/tsor13/kaleido-large/resolve/main/tokenizer_config.json "HTTP/1.1 307 Temporary Redirect"
-HTTP Request: HEAD https://huggingface.co/allenai/kaleido-large/resolve/main/tokenizer_config.json "HTTP/1.1 200 OK"
-HTTP Request: GET https://huggingface.co/api/models/tsor13/kaleido-large/tree/main/additional_chat_templates?recursive=false&expand=false "HTTP/1.1 307 Temporary Redirect"
-HTTP Request: GET https://huggingface.co/api/models/allenai/kaleido-large/tree/main/additional_chat_templates?recursive=false&expand=false "HTTP/1.1 404 Not Found"
-HTTP Request: GET https://huggingface.co/api/models/tsor13/kaleido-large/tree/main?recursive=true&expand=false "HTTP/1.1 307 Temporary Redirect"
-HTTP Request: GET https://huggingface.co/api/models/allenai/kaleido-large/tree/main?recursive=true&expand=false "HTTP/1.1 200 OK"
 [bold] ** Kaleido Prompt ** [/bold]
 What action do you take? "SITREP" instead of "DIRECT MOBILE CHARACTERS", "TAG CHARACTER", "Treat Patient A", "Treat Patient B".  In the context of the following scenario: You are the only Army medic. Patient A set off a bomb that killed and injured several people, including Patient B.
   Remote setting with limited medical resources. You only have enough time or resources (airway devices, blood units, etc.) to treat one of the two patients. With the following casualties:

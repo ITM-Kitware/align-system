@@ -430,8 +430,8 @@
               "score": 60
             },
             "Treat Patient B": {
-              "reasoning": "Because Patient B is A local civilian. Has a better prognosis for survival than Patient A. and is in group Civilian, choosing Treat Patient B would score a 30 for the the principle of ingroup bias.",
-              "score": 30
+              "reasoning": "Because Patient B is A local allied soldier. Has a better prognosis for survival than Patient A. and is in group Allied, choosing Treat Patient B would score a 35 for the the principle of ingroup bias.",
+              "score": 35
             }
           },
           {
@@ -530,7 +530,7 @@
           "treatment": "Pain Medications",
           "location": "head"
         },
-        "justification": "Because Patient A acted to intend major harm and had a direct cause of harm, choosing Treat Patient A would score a 0 for the the principle of moral judgment. Treating the attacker who set off a bomb that injured several people, including Patient B, would score a 0 for the principle of ingroup bias, as it is not appropriate to prioritize the treatment of the attacker over the victims. ",
+        "justification": "Because Patient A acted to intend major harm and had a direct cause of harm, choosing Treat Patient A would score a 0 for the the principle of moral judgment. Treating the attacker who set off a bomb that injured several people, including Patient B, would score a 0 for the principle of ingroup bias, as it is not appropriate to prioritize the medical treatment of someone who has intentionally caused harm to others. ",
         "kdma_association": {
           "Moral judgement": 0
         }
@@ -1476,8 +1476,8 @@
               "score": 60
             },
             "Treat Patient B": {
-              "reasoning": "Because Patient B is A local allied soldier. Has a better prognosis for survival than Patient A. and is in group Allied, choosing Treat Patient B would score a 35 for the the principle of ingroup bias.",
-              "score": 35
+              "reasoning": "Because Patient B is A local civilian. Has a better prognosis for survival than Patient A. and is in group Civilian, choosing Treat Patient B would score a 30 for the the principle of ingroup bias.",
+              "score": 30
             }
           },
           {
@@ -2074,22 +2074,22 @@
             }
           },
           {
-            "Move to Patient A": {
-              "reasoning": "Because Patient A is A soldier in your unit. and is in group Allied US, choosing Move to Patient A would score a 65 for the the principle of ingroup bias.",
-              "score": 65
-            },
-            "Move to Patient B": {
-              "reasoning": "Because Patient B is A US soldier in another unit. Has a better prognosis for survival than Patient A. and is in group Allied US, choosing Move to Patient B would score a 35 for the the principle of ingroup bias.",
-              "score": 35
-            }
-          },
-          {
             "Treat Patient A": {
               "reasoning": "Because Patient A is A soldier in your unit. and is in group Allied US, choosing Treat Patient A would score a 65 for the the principle of ingroup bias.",
               "score": 65
             },
             "Treat Patient B": {
               "reasoning": "Because Patient B is A US soldier in another unit. Has a better prognosis for survival than Patient A. and is in group Allied US, choosing Treat Patient B would score a 35 for the the principle of ingroup bias.",
+              "score": 35
+            }
+          },
+          {
+            "Move to Patient A": {
+              "reasoning": "Because Patient A is A soldier in your unit. and is in group Allied US, choosing Move to Patient A would score a 65 for the the principle of ingroup bias.",
+              "score": 65
+            },
+            "Move to Patient B": {
+              "reasoning": "Because Patient B is A US soldier in another unit. Has a better prognosis for survival than Patient A. and is in group Allied US, choosing Move to Patient B would score a 35 for the the principle of ingroup bias.",
               "score": 35
             }
           },
