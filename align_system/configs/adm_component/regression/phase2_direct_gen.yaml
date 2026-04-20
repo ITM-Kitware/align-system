@@ -21,35 +21,37 @@ per_attribute_templates:
       dataset: /data/shared/samba/phase2_icl/Feb2026-MU-train_20251218.json
       kdma_scale_factor: 100
       template_prompt: |
-        Below is a list of medical descriptions and their associated scores (0-1).
-        Some entries contain irrelevant positional context (e.g. "The casualty is in an exposed location...") — ignore this and focus only on the medical observation embedded in the description.
+        Below is a list of medical descriptions and their associated scores (0-100).
 
         Consolidate into the shortest possible list by:
-        - Stripping all positional/situational context, keeping only the core medical observation
-        - Merging left/right variants into one (e.g. "left arm" + "right arm" → "a limb")
-        - Merging locations with the same score into one entry using "or"
-          (e.g. "abdomen" + "torso" → "abdomen or torso"; "head" + "neck" → "head or neck"; "groin" + "shoulder" → "hip, groin, or shoulder")
-        - Simplifying verbose descriptions to plain clinical shorthand
-          (e.g. "no visible bleeding but are not breathing" → "not breathing";
-                "no visible bleeding but are not breathing after their airway has been repositioned" → "not breathing after airway repositioned";
-                "started showing signs of decompensated shock..." → "signs of decompensated shock";
-                "a compound fracture ... with mild bleeding" → "a compound fracture with mild bleeding";
-                "a broken ... with no bleeding" → "a closed fracture with no bleeding";
-                "a dislocated ... with no bleeding" → "a dislocation with no bleeding")
-        - Averaging scores of merged entries
-        - Ignoring entries with a score of 0
-        - Every entry in the output must be meaningfully distinct
+          1. Extracting relevant medical information. Remove all information pertaining to the individual's characteristics.
+          2. Simplifying verbose descriptions to plain clinical shorthand
+          3. Merging similar entries with identical scores
+
+        Prioritize no repeated information.
+
+        LIST:
 
         {{ dataset }}
+
+        INSTRUCTIONS:
 
         Return the consolidated list.
       prompt_header: |
         Here's a list of injuries and they're associated "medical urgency" scores, where a 100 indicates that immediate medical attention is needed in a triage situation; and a 1 indicates the lowest priority:
       prompt_footer: |
         You'll be given an injury description and asked to assign a "medical urgency" score between 1 to 100 along with a reasoning for your score.  Ignore any details that are not relevant to the injury.  Your response should be formatted as valid JSON.
-      preprocess_fn: 
-        _target_: align_system.algorithms.direct_regression_system_prompt.medical_preprocess
-        _partial_: true
+      preprocess_prompt: |
+        Below is a list of descriptions and their associated scores (0-100).
+        Your job is to filter out only the medical information from each entry, and only return that information.
+        Keep the score unchanged.
+        Discard any entries that contain no medical information at all.
+    
+        LIST:
+        {{ dataset }}
+
+        INSTRUCTIONS:
+        Return the extracted list of medical descriptions.
 
   affiliation:
     missing_character_default_value: 0
@@ -85,9 +87,28 @@ per_attribute_templates:
         Here's a list of casualty descriptions and they're associated "affiliation" scores, where a 100 indicates the closest affiliation to you; and a 0 indicates the least affiliation:
       prompt_footer: |
         You'll be given a casualty description and asked to assign an "affiliation" score between 0 to 100 along with a reasoning for your score.  Ignore any details that are not relevant to the casualty's affiliation.  Your response should be formatted as valid JSON.
-      preprocess_fn: 
-        _target_: align_system.algorithms.direct_regression_system_prompt.affiliation_preprocess
-        _partial_: true
+      preprocess_prompt: |
+        Below is a list of casualty descriptions and their associated scores (0-1).
+        Each entry contains two lines: an injury description followed by an affiliation descriptor.
+
+        For each entry, extract only the affiliation descriptor (the second line) and
+        discard the injury information entirely. Keep the score unchanged.
+
+        Examples:
+        - "massive bleeding from their abdomen\na warfighter in the same military unit as you."
+          → "a warfighter in the same military unit as you"
+        - "a dislocated left shoulder with no bleeding\na POW who just recently surrendered."
+          → "a POW who just recently surrendered"
+        - "severe burns on their left leg, covering 20% of their body\na foreign military ally
+          from a group who has been working together well with your unit."
+          → "a foreign military ally from a group who has been working together well with your unit"
+
+        Remove trailing punctuation from extracted descriptors.
+        Deduplicate identical descriptors, keeping the first occurrence.
+
+        {{ dataset }}
+
+        Return the extracted list.
 
   merit:
     missing_character_default_value: 0
@@ -126,9 +147,6 @@ per_attribute_templates:
         Here's a list of casualty descriptions and they're associated "merit" scores, where a 100 indicates the most merit; and a 0 indicates the least merit:
       prompt_footer: |
         You'll be given a casualty description and asked to assign a "merit" score between 0 to 100 along with a reasoning for your score.  Ignore any details that are not relevant to the casualty's merit.  Your response should be formatted as valid JSON.
-      preprocess_fn: 
-        _target_: align_system.algorithms.direct_regression_system_prompt.merit_preprocess
-        _partial_: true
 
   search:
     missing_character_default_value: 0
@@ -159,9 +177,6 @@ per_attribute_templates:
         Here's a list of situation descriptions and they're associated "search" scores, where a 100 indicates the highest priority to search for more casualties; and a 0 indicates the least priority. Each of these assume you've just finished treating a casualty:
       prompt_footer: |
         You'll be given a description and asked to assign a "search" score between 0 to 100 along with a reasoning for your score.  Ignore any details that are not relevant to the search score.  Your response should be formatted as valid JSON.
-      preprocess_fn: 
-        _target_: align_system.algorithms.direct_regression_system_prompt.search_preprocess
-        _partial_: true
 
   personal_safety:
     missing_character_default_value: 1
@@ -203,6 +218,3 @@ per_attribute_templates:
         Here's a list of situation descriptions along with a set of casualty descriptions and they're associated "personal safety" scores, where a 100 indicates the lowest risk to your personal safety if you were to try and reach the casualty; and a 0 indicates the highest risk.
       prompt_footer: |
         You'll be given a situation description and casualty description and asked to assign a "personal safety" score between 0 to 100 along with a reasoning for your score.  Ignore any details that are not relevant to the personal safety score.  Your response should be formatted as valid JSON.
-      preprocess_fn: 
-        _target_: align_system.algorithms.direct_regression_system_prompt.personal_safety_preprocess
-        _partial_: true
