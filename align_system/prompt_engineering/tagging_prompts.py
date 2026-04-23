@@ -1,6 +1,6 @@
-import outlines
+from align_system.prompt_engineering.compat.outlines.templates import prompt as outlines_prompt
 
-@outlines.prompt
+@outlines_prompt
 def tagging_scenario_state_description(scenario_state):
     """
 PATIENT DESCRIPTION:
@@ -13,7 +13,7 @@ class TaggingScenarioDescription():
         return tagging_scenario_state_description(scenario_state)
 
 
-@outlines.prompt
+@outlines_prompt
 def tagging_selection_prompt(situation, choices):
     """
 {{ situation }}
@@ -30,7 +30,7 @@ class TaggingSelectionPrompt():
         return tagging_selection_prompt(scenario_description, choices)
 
 
-@outlines.prompt
+@outlines_prompt
 def baseline_tagging_system_prompt():
     """
 You are an army combat medic trained to classify patient conditions into four triage categories. Your task is to read \
@@ -56,7 +56,7 @@ class BaselineTaggingSystemPrompt():
         return baseline_tagging_system_prompt()
 
 
-@outlines.prompt
+@outlines_prompt
 def start_tagging_system_prompt():
     """
 You are an Army combat medic trained to triage patients using the START (Simple Triage and Rapid Treatment) protocol. \
@@ -95,7 +95,7 @@ the uncertainty.
 """
 
 
-@outlines.prompt
+@outlines_prompt
 def salt_tagging_system_prompt():
     """
 You are an Army combat medic trained to perform triage using the SALT protocol (Sort, Assess, Lifesaving Interventions, \
@@ -135,7 +135,7 @@ the uncertainty.
 """
 
 
-@outlines.prompt
+@outlines_prompt
 def bcd_tagging_system_prompt():
     """
 You are an Army combat medic trained to perform primary triage using the BCD Sieve protocol—a rapid, systematic method \
@@ -190,3 +190,49 @@ class TaggingSystemPrompt:
             return bcd_tagging_system_prompt()
         else:
             raise ValueError(f"Unknown target tagging protocol: {target_kdma}")
+
+
+class SimpleTaggingSystemPrompt:
+    """
+    Minimal system prompt for RAG-augmented tagging. Instead of embedding a full
+    protocol decision tree, this provides only category definitions and relies on
+    rag_context (retrieved passages) to supply protocol-specific guidance.
+    """
+    def __call__(self, rag_context=None):
+        prompt = (
+            "You are an army combat medic trained to classify patient conditions "
+            "into four triage categories:\n"
+            "  * Red (Immediate) - Life-threatening injuries requiring immediate "
+            "intervention. Patient is likely to survive if treated quickly.\n"
+            "  * Yellow (Delayed) - Serious but not life-threatening injuries. "
+            "Treatment can be delayed without immediate risk.\n"
+            "  * Green (Minor) - Minor injuries.\n"
+            "  * Black (Expectant) - Chances of survival are low, even with treatment.\n\n"
+            "Instructions:\n"
+            "1. Evaluate the patient description.\n"
+            "2. Provide brief reasoning.\n"
+            "3. Assign only one triage category: Green, Yellow, Red, or Black.\n\n"
+            "If critical information is missing, select the most appropriate category "
+            "based on available details and clearly state the uncertainty."
+        )
+        if rag_context:
+            prompt += (
+                "\n\nRelevant protocol reference material:\n"
+                "---\n"
+                f"{rag_context}\n"
+                "---"
+            )
+        return prompt
+
+
+class RAGTaggingScenarioDescription:
+    """
+    Variant of TaggingScenarioDescription that appends retrieved passages to the
+    patient description. Use this to inject RAG context at the user-turn level
+    instead of the system-turn level (for ablation experiments).
+    """
+    def __call__(self, scenario_state, rag_context=None):
+        description = f"PATIENT DESCRIPTION:\n{scenario_state.unstructured.rstrip()}"
+        if rag_context:
+            description += f"\n\nRELEVANT PROTOCOL PASSAGES:\n{rag_context}"
+        return description

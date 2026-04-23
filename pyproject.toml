@@ -41,6 +41,12 @@ llama-index-retriever = [
     "langchain>=0.2.5",
     "llama-index>=0.13.0",
 ]
+rag = [
+    "faiss-cpu>=1.13.2",
+    "langchain-community>=0.4.1",
+    "langchain[huggingface]>=1.2.15",
+    "sentence-transformers>=5.4.1",
+]
 
 [project.scripts]
 run_align_system = "align_system.cli.run_align_system:main"
