@@ -1,0 +1,6 @@
+_target_: align_system.data_models.attribute.Attribute
+
+name: intelligence focus
+kdma: "intelligence"
+description: Intelligence focus means prioritizing the collection and analysis of information about threats, vulnerabilities, and adversaries to inform decisions and improve security defenses.
+factor: 100

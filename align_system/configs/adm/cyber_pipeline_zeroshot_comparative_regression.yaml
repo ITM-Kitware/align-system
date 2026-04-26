@@ -5,14 +5,11 @@ defaults:
   # customization
 
   # Shared variables / components
-  - /attribute@em: empowerment_focus
-  - /attribute@pr: protocol_focus
   - /attribute@av: availability_focus
-  - /attribute@ru: resource_usage_focus
-  - /attribute@pv: prevention_focus
-  - /attribute@cf: confidentiality_focus
-  - /attribute@per: personal_reputation_focus
+  - /attribute@ig: integrity_focus
+  - /attribute@it: intelligence_focus
   - /attribute@or: organization_reputation_focus
+  - /attribute@pr: protocol_focus
   - /attribute@sd: sensitivity_to_doubt
   - /inference_engine@structured_inference_engine: outlines_structured_greedy
   - /template/scenario_description@scenario_description_template: phase2
@@ -29,14 +26,11 @@ defaults:
   - _self_
 
 attribute_definitions:
-  empowerment: ${adm.em}
-  protocol: ${adm.pr}
   availability: ${adm.av}
-  resource_usage: ${adm.ru}
-  prevention: ${adm.pv}
-  confidentiality: ${adm.cf}
-  personal_reputation: ${adm.per}
+  integrity: ${adm.ig}
+  intelligence: ${adm.it}
   organization_reputation: ${adm.or}
+  protocol: ${adm.pr}
   sensitivity_to_doubt: ${adm.sd}
 
 step_definitions:

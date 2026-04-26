@@ -7,3 +7,5 @@ slurm*.out
 
 .vscode/
 
+.vscode/
+slurm*

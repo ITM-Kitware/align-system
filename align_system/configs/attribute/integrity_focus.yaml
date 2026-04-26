@@ -1,0 +1,6 @@
+_target_: align_system.data_models.attribute.Attribute
+
+name: integrity focus
+kdma: "integrity"
+description: Integrigty focus means ensuring data is accurate, complete, and not altered or tampered with by unauthorized users, whether in storage or during transmission.
+factor: 100
