@@ -225,6 +225,39 @@ class SimpleTaggingSystemPrompt:
         return prompt
 
 
+class SimpleTaggingSystemPromptAligned:
+    """
+    RAG-aware system prompt for the aligned (PromptBasedRAGAlignedADMComponent) pipeline.
+    Accepts target_kdma and target_value (required by the aligned component) but ignores
+    them — protocol guidance comes from rag_context instead of hard-coded decision trees.
+    """
+    def __call__(self, target_kdma, target_value, rag_context=None):
+        prompt = (
+            "You are an army combat medic trained to classify patient conditions "
+            "into four triage categories:\n"
+            "  * Red (Immediate) - Life-threatening injuries requiring immediate "
+            "intervention. Patient is likely to survive if treated quickly.\n"
+            "  * Yellow (Delayed) - Serious but not life-threatening injuries. "
+            "Treatment can be delayed without immediate risk.\n"
+            "  * Green (Minor) - Minor injuries.\n"
+            "  * Black (Expectant) - Chances of survival are low, even with treatment.\n\n"
+            "Instructions:\n"
+            "1. Evaluate the patient description.\n"
+            "2. Provide brief reasoning.\n"
+            "3. Assign only one triage category: Green, Yellow, Red, or Black.\n\n"
+            "If critical information is missing, select the most appropriate category "
+            "based on available details and clearly state the uncertainty."
+        )
+        if rag_context:
+            prompt += (
+                "\n\nRelevant protocol reference material:\n"
+                "---\n"
+                f"{rag_context}\n"
+                "---"
+            )
+        return prompt
+
+
 class RAGTaggingScenarioDescription:
     """
     Variant of TaggingScenarioDescription that appends retrieved passages to the
