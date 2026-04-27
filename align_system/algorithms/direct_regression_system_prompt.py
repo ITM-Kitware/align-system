@@ -24,13 +24,13 @@ class GeneratedSystemPromptTemplate:
         self,
         kdma_name,
         dataset,
-        template_prompt,
-        kdma_scale_factor=1.0,
+        extract_prompt,
+        simplify_prompt,
+        chunk_size=32,
+        kdma_scale_factor=100,
+        max_new_tokens=8192,
         prompt_header=None,
         prompt_footer=None,
-        # preprocess_fn=None,
-        chunk_size=32,
-        preprocess_prompt=None,
         enable_caching=True,
     ):
         from align_system.utils.hydrate_state import p2triage_hydrate_scenario_state
@@ -38,91 +38,81 @@ class GeneratedSystemPromptTemplate:
         self.state_hydration_fn = p2triage_hydrate_scenario_state
 
         self.kdma_name = kdma_name
+        self.dataset = self._load_dataset(dataset)
 
-        self.template_prompt = OutlinesTemplate.from_string(template_prompt)
+        self.extract_prompt = extract_prompt
+        self.simplify_prompt = simplify_prompt
 
+        self.chunk_size = chunk_size
         self.kdma_scale_factor = kdma_scale_factor
+        self.max_new_tokens = max_new_tokens
 
         self.prompt_header = prompt_header
         self.prompt_footer = prompt_footer
 
-        # self.preprocess_fn = preprocess_fn
-
-        self.dataset = self._load_dataset(dataset)
-
-        self.chunk_size = chunk_size
-
-        self.system_prompt = None
-        self.preprocess_prompt = (
-            OutlinesTemplate.from_string(preprocess_prompt)
-            if preprocess_prompt is not None
-            else None
-        )
-
         self.enable_caching = enable_caching
 
-    def _extract_dataset(self, model, dataset):
-        if self.preprocess_prompt is None:
-            return dataset
+        self.system_prompt = None
 
+    def _extract(self, dataset, model):
+        """
+        Extract the relevant information from the dataset.
+        """
+
+        extract_prompt = OutlinesTemplate.from_string(self.extract_prompt)
+
+        # Apply `self.extract_prompt` over the dataset in chunks. Accumulate the results.
         generator = outlines.Generator(model, KdmaScoreList)
         extracted = []
         for i in range(0, len(dataset), self.chunk_size):
             chunk = dataset[i : i + self.chunk_size]
             data = self._format_entries(chunk, scale=self.kdma_scale_factor)
-            prompt = self.preprocess_prompt(dataset=data)
-            # print(f'prompt length: {len(prompt)}')
-            result = generator(prompt, max_new_tokens=8192)
+            prompt = extract_prompt(dataset=data)
+            result = generator(prompt, max_new_tokens=self.max_new_tokens)
             parsed = KdmaScoreList.model_validate_json(result).model_dump()["entries"]
-            # print(f"Chunk {i // self.chunk_size}: {len(parsed)} entries extracted")
-            # print(f"Sample: {parsed[:2]}")
             extracted.extend(parsed)
 
-        seen = {}
-        for entry in extracted:
-            if entry["description"] not in seen:
-                seen[entry["description"]] = entry["kdma_value"]
+        log.debug(f"Extracted to {len(extracted)} entries in dataset.")
 
-        return [{"description": k, "kdma_value": v} for k, v in seen.items()]
+        return extracted
 
-    def __call__(self, model):
-        if self.system_prompt is not None:
-            return self.system_prompt
+    def _simplify(self, dataset, model):
+        """
+        Simplify the information from the dataset.
+        """
 
-        if self.enable_caching:
-            cacher = ub.Cacher(
-                "generated_system_prompt_template", self.cache_repr(), verbose=0
-            )
-            log.debug(f"cacher.fpath={cacher.fpath}")
-
-            dataset = cacher.tryload()
-
-            if dataset is not None:
-                log.info("Cache hit for `generated_system_prompt_template`")
-            else:
-                log.info("Cache miss for `generated_system_prompt_template` ..")
-                dataset = self._extract_dataset(model, self.dataset)
-                cacher.save(dataset)
-        else:
-            dataset = self._extract_dataset(model, self.dataset)
+        simplify_prompt = OutlinesTemplate.from_string(self.simplify_prompt)
 
         generator = outlines.Generator(model, KdmaScoreList)
 
-        accumulated = []
-        for i in range(0, len(dataset), self.chunk_size):
-            chunk_data = self._format_entries(dataset[i : i + self.chunk_size], scale=1)
-            # data = chunk_data
-            data = "\n".join([self._format_entries(accumulated, scale=1), chunk_data])
-            prompt = self.template_prompt(dataset=data)
-            # print(f'prompt length: {len(prompt)}')
-            result = generator(prompt, max_new_tokens=8192 * 2)
-            # print(f'result length: {len(result)}')
-            accumulated = KdmaScoreList.model_validate_json(result).model_dump()[
-                "entries"
-            ]
-            # print(f"accumulated length {len(accumulated)}")
-            # if len(accumulated) > 40:
-            #     breakpoint()
+        data = self._format_entries(dataset, scale=1)
+        prompt = simplify_prompt(dataset=data)
+        result = generator(prompt, max_new_tokens=self.max_new_tokens)
+        entries = KdmaScoreList.model_validate_json(result).model_dump()["entries"]
+
+        log.debug(f"Simplified to {len(entries)} entries in dataset.")
+
+        return entries
+
+    @staticmethod
+    def _deduplicate(dataset):
+        """
+        Simple deduplication of entries.
+        """
+
+        seen = {}
+        for entry in dataset:
+            if entry["description"] not in seen:
+                seen[entry["description"]] = entry["kdma_value"]
+
+        log.debug(f"Deduplicated to {len(seen)} entries in dataset.")
+
+        return [{"description": k, "kdma_value": v} for k, v in seen.items()]
+
+    def _build_prompt(self, dataset):
+        """
+        Build the system_prompt from dataset.
+        """
 
         parts = [self.prompt_header] if self.prompt_header else []
 
@@ -130,12 +120,60 @@ class GeneratedSystemPromptTemplate:
             "\n".join(
                 [
                     f"{x['description']} would score {int(x['kdma_value'])}"
-                    for x in accumulated
+                    for x in dataset
                 ]
             )
         ]
         parts += [self.prompt_footer] if self.prompt_footer else []
-        self.system_prompt = "\n".join(parts)
+        system_prompt = "\n".join(parts)
+
+        return system_prompt
+
+    def __call__(self, model):
+        if self.system_prompt is not None:
+            return self.system_prompt
+
+        # Extract
+        extract_cacher = ub.Cacher(
+            "generated_system_prompt_template_extract",
+            depends=self._cache_repr(self.dataset, self.extract_prompt),
+            enabled=self.enable_caching,
+        )
+        extract_dataset = extract_cacher.tryload()
+        if extract_dataset is None:
+            if self.enable_caching:
+                log.info("Cache miss for `generated_system_prompt_template_extract` ..")
+
+            dataset = self._deduplicate(self.dataset)
+            extract_dataset = self._extract(dataset, model)
+            extract_cacher.save(extract_dataset)
+        else:
+            log.info("Cache hit for `generated_system_prompt_template_extract` ..")
+        log.debug(f"Extract Dataset: {extract_dataset}")
+
+        # Simplify
+        simplify_cacher = ub.Cacher(
+            "generated_system_prompt_template_extract_simplify",
+            depends=self._cache_repr(extract_dataset, self.simplify_prompt),
+            enabled=self.enable_caching,
+        )
+        simplify_dataset = simplify_cacher.tryload()
+        if simplify_dataset is None:
+            if self.enable_caching:
+                log.info(
+                    "Cache miss for `generated_system_prompt_template_extract_simplify` .."
+                )
+
+            dataset = self._deduplicate(extract_dataset)
+            simplify_dataset = self._simplify(dataset, model)
+            simplify_cacher.save(simplify_dataset)
+        else:
+            log.info(
+                "Cache hit for `generated_system_prompt_template_extract_simplify` .."
+            )
+        log.debug(f"Simplify Dataset: {simplify_dataset}")
+
+        self.system_prompt = self._build_prompt(simplify_dataset)
 
         return self.system_prompt
 
@@ -144,9 +182,9 @@ class GeneratedSystemPromptTemplate:
         if len(entries) == 0:
             return ""
 
-        return "\n RAW DESCRIPTION: ".join(
+        return "\n".join(
             [
-                f"{x['description'].replace(chr(10), ', ')} SCORE: {int(x['kdma_value'] * scale)}"
+                f"RAW DESCRIPTION: {x['description'].replace(chr(10), ', ')} SCORE: {int(round(x['kdma_value'] * scale))}"
                 for x in entries
             ]
         )
@@ -158,52 +196,27 @@ class GeneratedSystemPromptTemplate:
             dataset = json.load(f)
 
         results = []
-        seen = set()
         for icl_sample in dataset:
-            state, actions = self.state_hydration_fn(icl_sample["input"])
+            state, _ = self.state_hydration_fn(icl_sample["input"])
             for character in state.characters:
                 kdma_value = getattr(character, key)
                 if kdma_value == 0:
                     continue
 
                 unstructured = character.unstructured
-                # do some deduplication, if we expect different scores for the same description this may need to be changed
-                if unstructured not in seen:
-                    results.append(
-                        {
-                            "description": unstructured,
-                            "kdma_value": kdma_value,
-                        }
-                    )
-                    seen.add(unstructured)
+                results.append(
+                    {
+                        "description": unstructured,
+                        "kdma_value": kdma_value,
+                    }
+                )
+
+        log.debug(f"Loaded {len(results)} entries in dataset.")
 
         return results
 
-    # TODO
-    def cache_repr(self):
-        return None
-
-
-def medical_preprocess(unstructured: str) -> str:
-    return unstructured.split("\n")[0].strip()
-
-
-def affiliation_preprocess(unstructured: str) -> str:
-    return unstructured.split("\n")[-1].strip()
-
-
-def merit_preprocess(unstructured: str) -> str:
-    return unstructured.split("\n")[-1].strip()
-
-
-def search_preprocess(unstructured: str) -> str:
-    return unstructured.strip()
-
-
-def personal_safety_preprocess(unstructured: str, situation: str = "") -> str:
-    if situation:
-        return f"{situation}\n{unstructured.strip()}"
-    return unstructured.strip()
+    def _cache_repr(self, dataset, prompt):
+        return f"{ub.hash_data(dataset)}-{self.kdma_name}-{self.chunk_size}-{self.kdma_scale_factor}-{self.max_new_tokens}-{ub.hash_data(prompt)}"
 
 
 """
