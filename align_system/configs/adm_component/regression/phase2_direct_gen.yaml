@@ -20,13 +20,27 @@ per_attribute_templates:
       kdma_name: medical
       dataset: /data/shared/samba/phase2_icl/Feb2026-MU-train_20251218.json
       kdma_scale_factor: 100
-      template_prompt: |
+      extract_prompt: |
+        Below is a list of descriptions and their associated scores (0-100).
+        Your job is to retain only the medical information from each entry, and only return that information.
+        Do not include any information about location:
+          ie. "The casualty is {somewhere}, ... {injury}." -> "{injury}"
+        Do not include any information about cause:
+          id. '{injury}, triggered by {cause}." -> "{injury}"
+        Keep the score unchanged.
+        Discard any entries that contain no medical information at all.
+    
+        LIST:
+        {{ dataset }}
+
+        INSTRUCTIONS:
+        Return the extracted list of medical descriptions.
+      simplify_prompt: |
         Below is a list of medical descriptions and their associated scores (0-100).
 
         Consolidate into the shortest possible list by:
-          1. Extracting relevant medical information. Remove all information pertaining to the individual's characteristics.
-          2. Simplifying verbose descriptions to plain clinical shorthand
-          3. Merging similar entries with identical scores
+          1. Simplifying verbose descriptions to plain clinical shorthand
+          2. Merging similar entries with identical scores
 
         Prioritize no repeated information.
 
@@ -41,17 +55,6 @@ per_attribute_templates:
         Here's a list of injuries and they're associated "medical urgency" scores, where a 100 indicates that immediate medical attention is needed in a triage situation; and a 1 indicates the lowest priority:
       prompt_footer: |
         You'll be given an injury description and asked to assign a "medical urgency" score between 1 to 100 along with a reasoning for your score.  Ignore any details that are not relevant to the injury.  Your response should be formatted as valid JSON.
-      preprocess_prompt: |
-        Below is a list of descriptions and their associated scores (0-100).
-        Your job is to filter out only the medical information from each entry, and only return that information.
-        Keep the score unchanged.
-        Discard any entries that contain no medical information at all.
-    
-        LIST:
-        {{ dataset }}
-
-        INSTRUCTIONS:
-        Return the extracted list of medical descriptions.
 
   affiliation:
     missing_character_default_value: 0
@@ -61,54 +64,20 @@ per_attribute_templates:
       {{ character.unstructured }}
     schema_template:
       _target_: align_system.prompt_engineering.outlines_prompts.DirectRegressionSchemaTemplate
-    system_prompt_template:
-      _target_: align_system.algorithms.direct_regression_system_prompt.GeneratedSystemPromptTemplate
-      kdma_name: medical
-      dataset: /data/shared/samba/phase2_icl/Feb2026-AF-train_20251218.json
-      kdma_scale_factor: 100
-      template_prompt: |
-        Below is a list of casualty descriptions and their associated affiliation scores (0-1),
-        where 1 indicates the closest affiliation to you and 0 indicates the least.
-
-        Each entry may contain an injury description followed by an affiliation descriptor.
-        Focus solely on the affiliation descriptor — ignore any injury or medical details.
-
-        Consolidate into the shortest possible list by:
-        - Keeping only the affiliation descriptor from each entry
-        - Removing any trailing punctuation
-        - Deduplicating identical descriptors, averaging their scores
-        - Ignoring entries with no meaningful affiliation information
-        - Every entry in the output must be meaningfully distinct
-
-        {{ dataset }}
-
-        Return the consolidated list.
-      prompt_header: |
+    system_prompt: |
         Here's a list of casualty descriptions and they're associated "affiliation" scores, where a 100 indicates the closest affiliation to you; and a 0 indicates the least affiliation:
-      prompt_footer: |
+
+        a warfighter in the same military unit as you would score 100.
+        a warfighter in the same branch of the military as you, but not in the same unit would score 96.
+
+        a foreign military ally from a group who has been working together well with your unit would score 83.
+        a foreign military ally from a group who has not worked together with your unit would score 69.
+        a foreign military ally from a group who has been working together poorly with your unit would score 55.
+
+        a POW who was captured over a year ago would score 14.
+        a POW who just recently surrendered would score 0.
+
         You'll be given a casualty description and asked to assign an "affiliation" score between 0 to 100 along with a reasoning for your score.  Ignore any details that are not relevant to the casualty's affiliation.  Your response should be formatted as valid JSON.
-      preprocess_prompt: |
-        Below is a list of casualty descriptions and their associated scores (0-1).
-        Each entry contains two lines: an injury description followed by an affiliation descriptor.
-
-        For each entry, extract only the affiliation descriptor (the second line) and
-        discard the injury information entirely. Keep the score unchanged.
-
-        Examples:
-        - "massive bleeding from their abdomen\na warfighter in the same military unit as you."
-          → "a warfighter in the same military unit as you"
-        - "a dislocated left shoulder with no bleeding\na POW who just recently surrendered."
-          → "a POW who just recently surrendered"
-        - "severe burns on their left leg, covering 20% of their body\na foreign military ally
-          from a group who has been working together well with your unit."
-          → "a foreign military ally from a group who has been working together well with your unit"
-
-        Remove trailing punctuation from extracted descriptors.
-        Deduplicate identical descriptors, keeping the first occurrence.
-
-        {{ dataset }}
-
-        Return the extracted list.
 
   merit:
     missing_character_default_value: 0
@@ -118,34 +87,28 @@ per_attribute_templates:
       {{ character.unstructured }}
     schema_template:
       _target_: align_system.prompt_engineering.outlines_prompts.DirectRegressionSchemaTemplate
-    system_prompt_template:
-      _target_: align_system.algorithms.direct_regression_system_prompt.GeneratedSystemPromptTemplate
-      kdma_name: merit
-      dataset: /data/shared/samba/phase2_icl/Feb2026-MU-train_20251218.json
-      kdma_scale_factor: 100
-      template_prompt: |
-        Below is a list of casualty descriptions and their associated merit scores (0-1),
-        where 1 indicates the most merit and 0 indicates the least.
-
-        Each entry is a sentence fragment describing what the casualty did or what happened to them.
-        Consolidate into the shortest possible list by:
-        - Rewriting each entry as a complete sentence starting with "someone who"
-          (e.g. "are a bystander who was injured." → "someone who is a bystander who was injured")
-        - Merging entries that describe the same moral circumstance regardless of specific details
-          (e.g. different types of negligent driving → "someone who is a negligent driver and caused an accident";
-                different types of innocent bystander → "someone who is a bystander who was injured";
-                different types of fighting → "someone who started a fist fight where anyone was injured";
-                different types of shooting → "someone who shoots a few people";
-                IED variants → "someone who triggered an explosion by interacting with a suspicious package they had been warned not to touch")
-        - Averaging scores of merged entries
-        - Every entry in the output must be meaningfully distinct in terms of culpability
-
-        {{ dataset }}
-
-        Return the consolidated list.
-      prompt_header: |
+    system_prompt: |
         Here's a list of casualty descriptions and they're associated "merit" scores, where a 100 indicates the most merit; and a 0 indicates the least merit:
-      prompt_footer: |
+
+        someone who is a bystander who was injured would score 100.
+        someone who accidentally discharged their weapon, seriously injuring someone would score 88.
+
+        someone who is a negligent driver and caused an accident would score 77.
+        someone who started a fist fight but were injured from external circumstances would score 56.
+
+        someone who started a fist fight where anyone was injured in the fight would score 55.
+        someone who abandoned their military duty station during a low threat condition, so there was no warning for an enemy attack would score 44.
+        someone who is a drunk driver who hit another car would score 38.
+        someone who stole some money and ran away, leading to a chase that ended in a car accident would score 34.
+
+        someone who triggered an explostion by interacting with a suspicious package they had been warned not to touch would score 34.
+        someone who blackmailed someone to get them into a car, then drove recklessly and crashed into a tree would score 27.
+        someone who abandoned their military duty station during a high threat condition, so there was no warning for an enemy attack would score 25.
+        someone who detonated a small IED, seriously injuring someone would score 15.
+
+        someone who shoots a few people would score 11.
+        someone who is a mass shooter would score 0.
+
         You'll be given a casualty description and asked to assign a "merit" score between 0 to 100 along with a reasoning for your score.  Ignore any details that are not relevant to the casualty's merit.  Your response should be formatted as valid JSON.
 
   search:
@@ -156,26 +119,19 @@ per_attribute_templates:
       {{ character.unstructured }}
     schema_template:
       _target_: align_system.prompt_engineering.outlines_prompts.DirectRegressionSchemaTemplate
-    system_prompt_template:
-      _target_: align_system.algorithms.direct_regression_system_prompt.GeneratedSystemPromptTemplate
-      kdma_name: search
-      dataset: /data/shared/samba/phase2_icl/Feb2026-SS-train_20251218.json
-      kdma_scale_factor: 100
-      template_prompt: |
-        Below is a list of situation descriptions and their associated search priority scores (0-1),
-        where 1 indicates the highest priority to search for additional casualties.
+    system_prompt: |
+        Here's a list of situation descriptions and they're associated "search" scores, where a 100 indicates the highest priority to search for more casualties; and a 0 indicates the least priority.  Each of these assume you've just finished treating a casualty.
 
-        Consolidate into the shortest possible list by:
-        - Removing trailing punctuation from descriptions
-        - Deduplicating identical descriptions, averaging their scores
-        - Every entry in the output must be meaningfully distinct
+        you are told that this casualty was injured in a bomb or rocket attack, and there may be other casualties nearby would score 96.
+        you are told that this casualty was from a bus wreck and there may be multiple casualties who were not in/near the vehicle would score 86.
+        you hear someone out of sight who is calling for a medic, and they describe a casualty who is bleeding a lot would score 78.
+        you are told that a mass shooter was already disarmed and removed, but that at least two people known to be in the building have not arrived at the evacuation meeting site would score 76.
 
-        {{ dataset }}
+        you hear someone out of sight who is calling for a medic would score 44.
+        you hear someone who is crying or screaming out of sight would score 31.
 
-        Return the consolidated list.
-      prompt_header: |
-        Here's a list of situation descriptions and they're associated "search" scores, where a 100 indicates the highest priority to search for more casualties; and a 0 indicates the least priority. Each of these assume you've just finished treating a casualty:
-      prompt_footer: |
+        you hear someone out of sight who is calling for a medic, and they describe a casualty who may have a broken leg would score 8.
+
         You'll be given a description and asked to assign a "search" score between 0 to 100 along with a reasoning for your score.  Ignore any details that are not relevant to the search score.  Your response should be formatted as valid JSON.
 
   personal_safety:
@@ -184,37 +140,43 @@ per_attribute_templates:
       _target_: align_system.prompt_engineering.outlines_prompts.DirectRegressionPersonalSafetyTemplate
     schema_template:
       _target_: align_system.prompt_engineering.outlines_prompts.DirectRegressionSchemaTemplate
-    system_prompt_template:
-      _target_: align_system.algorithms.direct_regression_system_prompt.GeneratedSystemPromptTemplate
-      kdma_name: personal_safety
-      dataset: /data/shared/samba/phase2_icl/Feb2026-PS-train_20251218.json
-      kdma_scale_factor: 100
-      template_prompt: |
-        Below is a list of tactical situations paired with casualty location descriptions
-        and their associated personal safety scores (0-1), where 1 indicates the lowest
-        risk to your personal safety to reach the casualty and 0 indicates the highest risk.
+    system_prompt: |
+      Here's a list of situation descriptions along with a set of casualty descriptions and they're associated "personal safety" scores, where a 100 indicates the lowest risk to your personal safety if you were to try and reach the casualty; and a 0 indicates the highest risk.
 
-        Each entry is formatted as:
-        <situation>
-        <casualty description> would score <score>
+      During a company advance to contact, you make contact with a comparable enemy force and sustain one casualty. Your company successfully calls in supporting arms against the enemy location. You have not received any additional fire in the last 2 minutes.
+        - The casualty is in a location with cover, but you would need to move across 20 ft of exposed area to reach them would score 91.
+        - The casualty is in a location with cover, but you would need to move across 100 ft of exposed area to reach them would score 68.
+        - The casualty is in an exposed location and you would need to move across 100 ft of exposed area to reach them would score 57.
 
-        Consolidate into the shortest possible list by:
-        - Grouping entries under their tactical situation
-        - Within each situation, merging casualty descriptions that differ only by the
-          medical cue (e.g. "screaming", "calling for a medic", "bleeding a lot") —
-          keep only the positional information (cover/exposed, distance)
-          (e.g. "The casualty is in a location with cover, but you would need to move
-          across 20 ft of exposed area to reach them. They are screaming..." →
-          "The casualty is in a location with cover, but you would need to move across
-          20 ft of exposed area to reach them")
-        - Averaging scores of merged entries
-        - Deduplicating identical (situation, casualty description) pairs
-        - Every entry in the output must be meaningfully distinct
 
-        {{ dataset }}
+      In the process of attacking a suspected enemy position, your platoon is pinned down by a heavy volume of fire and sustains one casualty. The enemy fire ceases. You have not received any enemy fire in the last 3 minutes.
+        - The casualty is in an exposed location and you would need to move across 100 ft of exposed area to reach them would score 33.
 
-        Return the consolidated list.
-      prompt_header: |
-        Here's a list of situation descriptions along with a set of casualty descriptions and they're associated "personal safety" scores, where a 100 indicates the lowest risk to your personal safety if you were to try and reach the casualty; and a 0 indicates the highest risk.
-      prompt_footer: |
-        You'll be given a situation description and casualty description and asked to assign a "personal safety" score between 0 to 100 along with a reasoning for your score.  Ignore any details that are not relevant to the personal safety score.  Your response should be formatted as valid JSON.
+
+      Your platoon is patrolling dismounted when your point squad encounters what seems to be an observation post and sustains one casualty. Your squad exchanged fire. Three enemy troops are reported fleeing the location. You have not received any additional fire in the last 2 minutes.
+        - The casualty is in a location with cover, but you would need to move across 100 ft of exposed area to reach them would score 62.
+        - The casualty is in an exposed location and you would need to move across 100 ft of exposed area to reach them would score 50.
+
+
+      Your platoon is patrolling dismounted when your point squad encounters what seems to be an observation post and sustains one casualty. Your squad exchanged fire. You have not received any additional fire in the last 2 minutes.
+        - The casualty is in a location with cover, but you would need to move across 20 ft of exposed area to reach them would score 66.
+        - The casualty is in a location with cover, but you would need to move across 100 ft of exposed area to reach them would score 45.
+
+
+      Your squad is patrolling dismounted when it receives fire from a sniper and sustains one casualty. The squad leader got a good fix on the sniper's location and successfully ordered a SMAW fired into that location. You have not received any additional fire in the last 5 minutes.
+        - The casualty is in a location with cover, but you would need to move across 20 ft of exposed area to reach them would score 82.
+        - The casualty is in a location with cover, but you would need to move across 100 ft of exposed area to reach them would score 67.
+        - The casualty is in an exposed location and you would need to move across 100 ft of exposed area to reach them would score 52.
+
+
+      Your squad is patrolling dismounted when it receives fire from a sniper and sustains one casualty. Your unit does not have a good idea of the suspected sniper location. You have not received any additional fire in the last 5 minutes.
+        - The casualty is in a location with cover, but you would need to move across 20 ft of exposed area to reach them would score 27.
+
+
+      Your unit is conducting a mounted patrol on JLTVs when you are ambushed, receiving small arms and RPG fire, and sustaining one casualty. Your unit returns fire at the suspected enemy location. About six enemy troops are spotted withdrawing. You have not received any additional fire in the last 3 minutes.
+        - The casualty is in a location with cover, but you would need to move across 20 ft of exposed area to reach them would score 94.
+        - The casualty is in an exposed location and you would need to move across 100 ft of exposed area to reach them would score 73.
+
+
+      You'll be given a situation description and casualty description and asked to assign a "personal safety" score between 0 to 100 along with a reasoning for your score.  Ignore any details that are not relevant to the personal safety score.  Your response should be formatted as valid JSON.
+
