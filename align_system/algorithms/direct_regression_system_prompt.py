@@ -217,13 +217,3 @@ class GeneratedSystemPromptTemplate:
 
     def _cache_repr(self, dataset, prompt):
         return f"{ub.hash_data(dataset)}-{self.kdma_name}-{self.chunk_size}-{self.kdma_scale_factor}-{self.max_new_tokens}-{ub.hash_data(prompt)}"
-
-
-"""
-datasets:
-    medical: /data/shared/samba/phase2_icl/Feb2026-MU-train_20251218.json
-    affiliation: /data/shared/samba/phase2_icl/Feb2026-AF-train_20251218.json
-    merit: /data/shared/samba/phase2_icl/Feb2026-MF-train_20251218.json
-    personal_safety: /data/shared/samba/phase2_icl/Feb2026-PS-train_20251218.json
-    search: /data/shared/samba/phase2_icl/Feb2026-SS-train_20251218.json
-"""
