@@ -1,0 +1,9 @@
+_target_: align_system.algorithms.rag_retreiver_adm_components.LangChainRAGIndexerADMComponent
+
+docs_files: ???   # required — must be overridden in the adm pipeline config or experiment config
+
+embedding_model_name: "sentence-transformers/all-MiniLM-L6-v2"
+chunk_size: 1000
+chunk_overlap: 200
+add_start_index: true
+k: 5
