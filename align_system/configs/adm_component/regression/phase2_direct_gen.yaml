@@ -15,7 +15,7 @@ per_attribute_templates:
     schema_template:
       _target_: align_system.prompt_engineering.outlines_prompts.DirectRegressionSchemaTemplate
       min_value: 1
-    system_prompt_template:
+    system_prompt:
       _target_: align_system.algorithms.direct_regression_system_prompt.GeneratedSystemPromptTemplate
       kdma_name: medical
       dataset: /data/shared/samba/phase2_icl/Feb2026-MU-train_20251218.json
@@ -26,7 +26,7 @@ per_attribute_templates:
         Do not include any information about location:
           ie. "The casualty is {somewhere}, ... {injury}." -> "{injury}"
         Do not include any information about cause:
-          id. '{injury}, triggered by {cause}." -> "{injury}"
+          id. "{injury}, triggered by {cause}." -> "{injury}"
         Keep the score unchanged.
         Discard any entries that contain no medical information at all.
     
