@@ -141,19 +141,16 @@ class DirectRegressionADMComponent(ADMComponent):
                     raise RuntimeError(f"Couldn't find character ({action['character_id']}) referenced by action")
 
                 dialog = []
-                system_prompt_template = self.per_attribute_templates[attribute].get('system_prompt_template')
-                if system_prompt_template is not None:
-                    if callable(system_prompt_template):
-                        system_prompt = call_with_coerced_args(
-                            system_prompt_template,
-                            {'model':self.structured_inference_engine.model}
-                        )
-                    elif isinstance(system_prompt_template, str):
-                        system_prompt = system_prompt_template
-                    else:
-                        raise RuntimeError("system_prompt_template is of an unexpected type")
+                system_prompt = self.per_attribute_templates[attribute]['system_prompt']
+                if callable(system_prompt):
+                    system_prompt = call_with_coerced_args(
+                        system_prompt,
+                        {'model':self.structured_inference_engine.model}
+                    )
+                elif not isinstance(system_prompt, str):
+                    raise RuntimeError("system_prompt is of an unexpected type")
 
-                    dialog.insert(0, DialogElement(role='system', content=system_prompt))
+                dialog.insert(0, DialogElement(role='system', content=system_prompt))
 
                 prompt_template = self.per_attribute_templates[attribute]['prompt_template']
                 if callable(prompt_template):
