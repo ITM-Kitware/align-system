@@ -24,6 +24,7 @@ dependencies = [
     "vllm>=0.19.0",
     "urllib3>=2.6.3", # Transitive dep pinned for Security
     "xgrammar>=0.1.32", # Transitive dep pinned for Security
+    "hydra-submitit-launcher>=1.2.0",
 ]
 
 [tool.uv.sources]

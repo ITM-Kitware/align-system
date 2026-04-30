@@ -1,0 +1,40 @@
+name: tagging_sweep_icl_no_rag_no_prompt
+
+defaults:
+  - /attribute@start: start
+  - /attribute@salt: salt
+  - /attribute@bcd: bcd
+  - /inference_engine@structured_inference_engine: outlines_structured_multinomial
+  - /template/scenario_description@scenario_description_template: tagging
+  - /template/prompt@prompt_template: tagging
+  - /adm_component/icl@step_definitions.icl: tagging
+  - /adm_component/misc@step_definitions.format_choices: itm_format_choices
+  - /adm_component/direct@step_definitions.direct_step: tagging_aligned
+  - /adm_component/misc@step_definitions.ensure_chosen_action: ensure_chosen_action
+  - /adm_component/misc@step_definitions.populate_choice_info: populate_choice_info
+  - _self_
+
+attribute_definitions:
+  START: ${adm.start}
+  SALT: ${adm.salt}
+  BCD_SIEVE: ${adm.bcd}
+
+step_definitions:
+  icl:
+    scenario_description_template: ${ref:adm.scenario_description_template}
+    attributes: ${adm.attribute_definitions}
+    prompt_template: ${ref:adm.prompt_template}
+    icl_generator_partial:
+      scenario_description_template: ${ref:adm.scenario_description_template}
+  direct_step:
+    system_prompt_template: null
+
+instance:
+  _target_: align_system.algorithms.pipeline_adm.PipelineADM
+
+  steps:
+    - ${ref:adm.step_definitions.format_choices}
+    - ${ref:adm.step_definitions.icl}
+    - ${ref:adm.step_definitions.direct_step}
+    - ${ref:adm.step_definitions.ensure_chosen_action}
+    - ${ref:adm.step_definitions.populate_choice_info}

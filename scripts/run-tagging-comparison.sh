@@ -14,37 +14,37 @@ DATE_NOW=$(date +"%Y-%m-%d__%H-%M-%S")
 
 # BASELINE Experiments
 
-EXPERIMENTS=(
-    "tagging/tagging_baseline"
-    "tagging/tagging_rag_baseline"
-)
+# EXPERIMENTS=(
+#     "tagging/tagging_baseline"
+#     "tagging/tagging_rag_baseline"
+# )
 
-for exp in "${EXPERIMENTS[@]}"; do
-    exp_name=$(basename "$exp")
-    out_dir="${OUTPUT_BASEDIR}/${exp_name}/${DATE_NOW}"
-    echo "========================================"
-    echo "Running: ${exp}"
-    echo "Output:  ${out_dir}"
-    echo "========================================"
+# for exp in "${EXPERIMENTS[@]}"; do
+#     exp_name=$(basename "$exp")
+#     out_dir="${OUTPUT_BASEDIR}/${exp_name}/${DATE_NOW}"
+#     echo "========================================"
+#     echo "Running: ${exp}"
+#     echo "Output:  ${out_dir}"
+#     echo "========================================"
 
-    uv run run_align_system \
-        +experiment="${exp}" \
-        hydra.run.dir="${out_dir}"
+#     uv run run_align_system \
+#         +experiment="${exp}" \
+#         hydra.run.dir="${out_dir}"
 
-    echo "Done: ${exp_name}"
-    echo
-done
+#     echo "Done: ${exp_name}"
+#     echo
+# done
 
 # ALIGNEMENT Experiments
 EXPERIMENTS=(
-    "tagging/tagging_fewshot_aligned"
+    # "tagging/tagging_fewshot_aligned"
     "tagging/tagging_fewshot_aligned_rag"
 )
 
 ALIGNMENT_TARGET=(
-    "tagging/bcd"
+    # "tagging/bcd"
     "tagging/start"
-    "tagging/salt"
+    # "tagging/salt"
 )
 
 INTERFACE=(
