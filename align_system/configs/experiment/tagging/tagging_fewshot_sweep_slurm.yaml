@@ -1,0 +1,50 @@
+# @package _global_
+#
+# Multirun sweep over 8 combinations of:
+#   ICL    (yes / no)
+#   prompt (hardcoded START protocol in system prompt  /  none)
+#   RAG    (yes / no)
+#
+# Each combination is submitted as a separate SLURM job via hydra-submitit-launcher.
+#
+# Required override at runtime:
+#   +alignment_target=tagging/start   (or tagging/bcd / tagging/salt)
+#
+# Run with:
+#   uv run run_align_system --multirun \
+#       +experiment=tagging/tagging_fewshot_sweep_slurm \
+#       +alignment_target=tagging/start
+
+defaults:
+  - override /adm: tagging_sweep_no_icl_no_rag_no_prompt  # overridden by sweeper below
+  - override /inference_engine@adm.structured_inference_engine: outlines_structured_greedy
+  - override /hydra/launcher: submitit_slurm
+  - _self_
+
+hydra:
+  mode: MULTIRUN
+  sweeper:
+    params:
+      adm: >-
+        tagging_sweep_no_icl_no_rag_no_prompt,
+        tagging_sweep_no_icl_no_rag_with_prompt,
+        tagging_sweep_icl_no_rag_no_prompt,
+        tagging_sweep_icl_no_rag_with_prompt,
+        tagging_sweep_no_icl_rag_no_prompt,
+        tagging_sweep_no_icl_rag_with_prompt,
+        tagging_sweep_icl_rag_no_prompt,
+        tagging_sweep_icl_rag_with_prompt
+
+interface:
+  input_output_filepath: '/data/shared/tagging/eval3.json'
+  state_hydration_domain: "minimal"
+
+driver:
+  apply_action_filtering: false
+
+torch_random_seed: 0
+torch_use_deterministic_algorithms: true
+random_seed: 0
+numpy_random_seed: 0
+
+align_to_target: true
