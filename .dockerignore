@@ -1,0 +1,28 @@
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+dist/
+*.egg-info/
+
+# experiment outputs
+output/
+multirun/
+tagging_comparison_results/
+tagging-output/
+start-protocol-tagging-exp/
+
+# model / HuggingFace caches
+*.safetensors
+*.bin
+*.gguf
+.cache/
+
+# dev tooling
+.git/
+.github/
+docs/
+tests/
+*.slurm
+*.sh
+justfile
