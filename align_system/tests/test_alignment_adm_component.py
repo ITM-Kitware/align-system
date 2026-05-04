@@ -5,7 +5,9 @@ from contextlib import nullcontext as does_not_raise
 from align_system.algorithms.alignment_adm_component import (
     MedicalUrgencyAlignmentADMComponent,
     MedicalUrgencyAlignmentWeightedADMComponent,
-    RandomEffectsModelAlignmentADMComponent)
+    RandomEffectsModelAlignmentADMComponent,
+    MultinomialRandomEffectsModelAlignmentADMComponent,
+)
 
 @pytest.mark.parametrize(
     ("alignment_fn_class"),
@@ -902,9 +904,9 @@ class TestRandomEffectsModelAlignmentADMComponent:
                     "Treat Patient A": {"medical": 0.947157191, "merit": 0.0},
                     "Treat Patient B": {"medical": 0.012495865, "merit": 1.0},
                     # Medical delta = 0.947157191-0.012495865 = 0.934661326
-                    # Z-scaled medical delta = (0.934661326 - 0.433409) / 0.308294 = 1.62589063037
+                    # Z-scaled medical delta = (0.934661326 - 0.428961) / 0.301250 = 1.67867328133
                     # Attribute score = 0.0
-                    # Z-scaled attribute = (0.0 - 0.357632) / 0.27947 = -1.27967939314
+                    # Z-scaled attribute = (0.0 - 0.337618) / 0.272520 = -1.23887421107
                 },
                 None,
                 {
@@ -919,8 +921,8 @@ class TestRandomEffectsModelAlignmentADMComponent:
                             ]
                         },
                     ],
-                    # Y_ij = 0.5 + 0.85*1.62589063037-0.3*-1.27967939314 = 2.26591085376
-                    # P_choose_a = e^2.26591085376/(1+e^2.26591085376) = 0.90601416437
+                    # Y_ij = 0.5 + 0.85*1.67867328133-0.3*-1.23887421107 = 2.29853455245
+                    # P_choose_a = e^2.29853455245/(1+e^2.29853455245) = 0.90875559851
                 },
                 "Treat Patient A",
                 does_not_raise(),
@@ -931,9 +933,9 @@ class TestRandomEffectsModelAlignmentADMComponent:
                     "Treat Patient A": {"medical": 0.947157191, "merit": 0.0, "affiliation": 0.5},
                     "Treat Patient B": {"medical": 0.012495865, "merit": 1.0, "affiliation": 0.25},
                     # Medical delta = 0.947157191-0.012495865 = 0.934661326
-                    # Z-scaled medical delta = (0.934661326 - 0.433409) / 0.308294 = 1.62589063037
+                    # Z-scaled medical delta = (0.934661326 - 0.428961) / 0.301250 = 1.67867328133
                     # Attribute score = 0.0
-                    # Z-scaled attribute = (0.0 - 0.357632) / 0.27947 = -1.27967939314
+                    # Z-scaled attribute = (0.0 - 0.337618) / 0.272520 = -1.23887421107
                 },
                 {
                     "merit": 1.0,
@@ -960,8 +962,8 @@ class TestRandomEffectsModelAlignmentADMComponent:
                             ]
                         }
                     ],
-                    # Y_ij = 0.5 + 0.85*1.62589063037-0.3*-1.27967939314 = 2.26591085376
-                    # P_choose_a = e^2.26591085376/(1+e^2.26591085376) = 0.90601416437
+                    # Y_ij = 0.5 + 0.85*1.67867328133-0.3*-1.23887421107= 2.29853455245
+                    # P_choose_a = e^2.29853455245/(1+e^2.29853455245) = 0.90875559851
                 },
                 "Treat Patient A",
                 does_not_raise(),
@@ -1072,11 +1074,11 @@ class TestRandomEffectsModelAlignmentADMComponent:
             (
                 "merit", 0.5, 0.85, -0.3,
                 0.934661326, 0.0,
-                # Z-scaled medical delta = (0.934661326 - 0.433409) / 0.308294 = 1.62589063037
-                # Z-scaled attribute = (0.0 - 0.357632) / 0.27947 = -1.27967939314
-                # Y_ij = 0.5 + 0.85*1.62589063037-0.3*-1.27967939314 = 2.26591085376
-                # P_choose_a = e^2.26591085376/(1+e^2.26591085376) = 0.90601416437
-                0.90601416437
+                # Z-scaled medical delta = (0.934661326 - 0.428961) / 0.301250 = 1.67867328133
+                # Z-scaled attribute = (0.0 - 0.337618) / 0.272520 = -1.23887421107
+                # Y_ij = 0.5 + 0.85*1.67867328133-0.3*-1.23887421107 = 2.29853455245
+                # P_choose_a = e^2.29853455245/(1+e^2.29853455245) = 0.90601416437
+                0.90875559851
             ),
             (
                 "affiliation", 2.1875, 2.36875, 0.015625,
