@@ -1,3 +1,4 @@
+import numpy as np
 import pytest
 import unittest.mock as mock
 from contextlib import nullcontext as does_not_raise
@@ -5,7 +6,9 @@ from contextlib import nullcontext as does_not_raise
 from align_system.algorithms.alignment_adm_component import (
     MedicalUrgencyAlignmentADMComponent,
     MedicalUrgencyAlignmentWeightedADMComponent,
-    RandomEffectsModelAlignmentADMComponent)
+    RandomEffectsModelAlignmentADMComponent,
+    MultinomialRandomEffectsModelAlignmentADMComponent,
+)
 
 @pytest.mark.parametrize(
     ("alignment_fn_class"),
@@ -902,9 +905,9 @@ class TestRandomEffectsModelAlignmentADMComponent:
                     "Treat Patient A": {"medical": 0.947157191, "merit": 0.0},
                     "Treat Patient B": {"medical": 0.012495865, "merit": 1.0},
                     # Medical delta = 0.947157191-0.012495865 = 0.934661326
-                    # Z-scaled medical delta = (0.934661326 - 0.433409) / 0.308294 = 1.62589063037
+                    # Z-scaled medical delta = (0.934661326 - 0.428961) / 0.301250 = 1.67867328133
                     # Attribute score = 0.0
-                    # Z-scaled attribute = (0.0 - 0.357632) / 0.27947 = -1.27967939314
+                    # Z-scaled attribute = (0.0 - 0.337618) / 0.272520 = -1.23887421107
                 },
                 None,
                 {
@@ -919,8 +922,8 @@ class TestRandomEffectsModelAlignmentADMComponent:
                             ]
                         },
                     ],
-                    # Y_ij = 0.5 + 0.85*1.62589063037-0.3*-1.27967939314 = 2.26591085376
-                    # P_choose_a = e^2.26591085376/(1+e^2.26591085376) = 0.90601416437
+                    # Y_ij = 0.5 + 0.85*1.67867328133-0.3*-1.23887421107 = 2.29853455245
+                    # P_choose_a = e^2.29853455245/(1+e^2.29853455245) = 0.90875559851
                 },
                 "Treat Patient A",
                 does_not_raise(),
@@ -931,9 +934,9 @@ class TestRandomEffectsModelAlignmentADMComponent:
                     "Treat Patient A": {"medical": 0.947157191, "merit": 0.0, "affiliation": 0.5},
                     "Treat Patient B": {"medical": 0.012495865, "merit": 1.0, "affiliation": 0.25},
                     # Medical delta = 0.947157191-0.012495865 = 0.934661326
-                    # Z-scaled medical delta = (0.934661326 - 0.433409) / 0.308294 = 1.62589063037
+                    # Z-scaled medical delta = (0.934661326 - 0.428961) / 0.301250 = 1.67867328133
                     # Attribute score = 0.0
-                    # Z-scaled attribute = (0.0 - 0.357632) / 0.27947 = -1.27967939314
+                    # Z-scaled attribute = (0.0 - 0.337618) / 0.272520 = -1.23887421107
                 },
                 {
                     "merit": 1.0,
@@ -960,8 +963,8 @@ class TestRandomEffectsModelAlignmentADMComponent:
                             ]
                         }
                     ],
-                    # Y_ij = 0.5 + 0.85*1.62589063037-0.3*-1.27967939314 = 2.26591085376
-                    # P_choose_a = e^2.26591085376/(1+e^2.26591085376) = 0.90601416437
+                    # Y_ij = 0.5 + 0.85*1.67867328133-0.3*-1.23887421107= 2.29853455245
+                    # P_choose_a = e^2.29853455245/(1+e^2.29853455245) = 0.90875559851
                 },
                 "Treat Patient A",
                 does_not_raise(),
@@ -1072,11 +1075,11 @@ class TestRandomEffectsModelAlignmentADMComponent:
             (
                 "merit", 0.5, 0.85, -0.3,
                 0.934661326, 0.0,
-                # Z-scaled medical delta = (0.934661326 - 0.433409) / 0.308294 = 1.62589063037
-                # Z-scaled attribute = (0.0 - 0.357632) / 0.27947 = -1.27967939314
-                # Y_ij = 0.5 + 0.85*1.62589063037-0.3*-1.27967939314 = 2.26591085376
-                # P_choose_a = e^2.26591085376/(1+e^2.26591085376) = 0.90601416437
-                0.90601416437
+                # Z-scaled medical delta = (0.934661326 - 0.428961) / 0.301250 = 1.67867328133
+                # Z-scaled attribute = (0.0 - 0.337618) / 0.272520 = -1.23887421107
+                # Y_ij = 0.5 + 0.85*1.67867328133-0.3*-1.23887421107 = 2.29853455245
+                # P_choose_a = e^2.29853455245/(1+e^2.29853455245) = 0.90601416437
+                0.90875559851
             ),
             (
                 "affiliation", 2.1875, 2.36875, 0.015625,
@@ -1116,3 +1119,388 @@ class TestRandomEffectsModelAlignmentADMComponent:
             alignment_fn._compute_p_choose_a(kdma, intercept, medical_weight, attr_weight, raw_medical_delta, raw_attr_score) ==
             pytest.approx(exp_value)
         )
+
+
+class TestMultinomialRandomEffectsModelAlignmentADMComponent:
+    attribute_definitions = {
+        "KDMA_A": {
+            "name": "Merit Focus",
+            "kdma": "merit",
+            "description": "Test merit focus KDMA",
+        },
+        "KDMA_B": {
+            "name": "Affiliation Focus",
+            "kdma": "affiliation",
+            "description": "Test affiliation focus KDMA",
+        },
+        "KDMA_C": {
+            "name": "Personal Safety",
+            "kdma": "personal_safety",
+            "description": "Test personal safety KDMA",
+        },
+        "KDMA_D": {
+            "name": "Search vs Stay",
+            "kdma": "search",
+            "description": "Test search vs stay KDMA",
+        },
+    }
+
+    @pytest.mark.parametrize(
+        ("attribute_prediction_scores", "attribute_relevance", "alignment_target", "exp_choice", "exp_raises"),
+        [
+            # No alignment target
+            (
+                {
+                    "Choice 0": {"medical": 0.1, "KDMA_A": 0.1, "KDMA_B": 0.8},
+                    "Choice 1": {"medical": 0.6, "KDMA_A": 0.3, "KDMA_B": 0.5},
+                },
+                None,
+                None,
+                None,  # Raise expected so doesn't matter
+                pytest.raises(RuntimeError, match=r"Assumption violated: `alignment_target` was None"),
+            ),
+            # No medical predictions
+            (
+                {
+                    "Choice 0": {"KDMA_A": 0.1, "KDMA_B": 0.8},
+                    "Choice 1": {"KDMA_A": 0.3, "KDMA_B": 0.5},
+                },
+                None,
+                {
+                    "kdma_values":
+                    [
+                        {
+                            "kdma": "KDMA_A",
+                            "value": None,
+                            "parameters": [
+                                {"name": "intercept", "value": 0.75},
+                                {"name": "medical_weight", "value": 0.5},
+                                {"name": "attr_weight", "value": -0.25},
+                            ]
+                        },
+                    ],
+                },
+                None,  # Raise expected so doesn't matter
+                pytest.raises(RuntimeError, match=r"Medical Urgency predictions required"),
+            ),
+            # Target missing parameters
+            (
+                {
+                    "Choice 0": {"medical": 0.9, "KDMA_A": 0.1},
+                    "Choice 1": {"medical": 0.4, "KDMA_A": 0.9},
+                },
+                None,
+                {
+                    "kdma_values": [{"kdma": "KDMA_A", "value": 0.7}],
+                },
+                None,  # Raise expected so doesn't matter
+                pytest.raises(RuntimeError, match=r"This alignment function requires an intercept, medical weight, and attr weight"),
+            ),
+            # Target missing intercept
+            (
+                {
+                    "Choice 0": {"medical": 0.9, "KDMA_A": 0.1},
+                    "Choice 1": {"medical": 0.4, "KDMA_A": 0.9},
+                },
+                None,
+                {
+                    "kdma_values": [
+                        {
+                            "kdma": "KDMA_A",
+                            "value": None,
+                            "parameters": [
+                                {"name": "medical_weight", "value": 0.5},
+                                {"name": "attr_weight", "value": -0.25},
+                            ]
+                        }
+                    ],
+                },
+                None,  # Raise expected so doesn't matter
+                pytest.raises(RuntimeError, match=r"This alignment function requires an intercept, medical weight, and attr weight"),
+            ),
+            # Target missing medical weight
+            (
+                {
+                    "Choice 0": {"medical": 0.9, "KDMA_A": 0.1},
+                    "Choice 1": {"medical": 0.4, "KDMA_A": 0.9},
+                },
+                None,
+                {
+                    "kdma_values": [
+                        {
+                            "kdma": "KDMA_A",
+                            "value": None,
+                            "parameters": [
+                                {"name": "intercept", "value": 0.75},
+                                {"name": "attr_weight", "value": -0.25},
+                            ]
+                        }
+                    ],
+                },
+                None,  # Raise expected so doesn't matter
+                pytest.raises(RuntimeError, match=r"This alignment function requires an intercept, medical weight, and attr weight"),
+            ),
+            # Target missing attr_weight
+            (
+                {
+                    "Choice 0": {"medical": 0.9, "KDMA_A": 0.1},
+                    "Choice 1": {"medical": 0.4, "KDMA_A": 0.9},
+                },
+                None,
+                {
+                    "kdma_values": [
+                        {
+                            "kdma": "KDMA_A",
+                            "value": None,
+                            "parameters": [
+                                {"name": "intercept", "value": 0.75},
+                                {"name": "medical_weight", "value": 0.5},
+                            ]
+                        }
+                    ],
+                },
+                None,  # Raise expected so doesn't matter
+                pytest.raises(RuntimeError, match=r"This alignment function requires an intercept, medical weight, and attr weight"),
+            ),
+            # Multiple KDMAs relevant
+            (
+                {
+                    "Choice 0": {"medical": 0.9, "KDMA_A": 0.1},
+                    "Choice 1": {"medical": 0.4, "KDMA_A": 0.9},
+                },
+                None,
+                {
+                    "kdma_values": [
+                        {
+                            "kdma": "KDMA_A",
+                            "value": None,
+                            "parameters": [
+                                {"name": "intercept", "value": 0.75},
+                                {"name": "medical_weight", "value": 0.5},
+                                {"name": "attr_weight", "value": -0.25},
+                            ]
+                        },
+                        {
+                            "kdma": "KDMA_B",
+                            "value": None,
+                            "parameters": [
+                                {"name": "intercept", "value": 0.75},
+                                {"name": "medical_weight", "value": 0.5},
+                                {"name": "attr_weight", "value": -0.25},
+                            ]
+                        }
+                    ],
+                },
+                None,  # Raise expected so doesn't matter
+                pytest.raises(RuntimeError, match=r"This alignment function can only be used when 1 attribute is relevant"),
+            ),
+            # Worked example with ADEPT
+            (
+                {
+                    "Treat Patient A": {"medical": 0.947157191, "merit": 0.0},
+                    "Treat Patient B": {"medical": 0.012495865, "merit": 1.0},
+                    # Medical delta = 0.947157191-0.012495865 = 0.934661326
+                    # Z-scaled medical delta = (0.934661326 - 0.428961) / 0.301250 = 1.67867328133
+                    # Attribute score = 0.0
+                    # Z-scaled attribute = (0.0 - 0.337618) / 0.272520 = -1.23887421107
+                },
+                None,
+                {
+                    "kdma_values": [
+                        {
+                            "kdma": "KDMA_A",
+                            "value": None,
+                            "parameters": [
+                                {"name": "intercept", "value": 0.5},
+                                {"name": "medical_weight", "value": 0.85},
+                                {"name": "attr_weight", "value": -0.3},
+                            ]
+                        },
+                    ],
+                    # Y_ij = 0.5 + 0.85*1.67867328133-0.3*-1.23887421107 = 2.29853455245
+                    # P_choose_a = e^2.29853455245/(1+e^2.29853455245) = 0.90875559851
+                },
+                "Treat Patient A",
+                does_not_raise(),
+            ),
+            # Multi-KDMA, should fallback to merit
+            (
+                {
+                    "Treat Patient A": {"medical": 0.947157191, "merit": 0.0, "affiliation": 0.5},
+                    "Treat Patient B": {"medical": 0.012495865, "merit": 1.0, "affiliation": 0.25},
+                    # Medical delta = 0.947157191-0.012495865 = 0.934661326
+                    # Z-scaled medical delta = (0.934661326 - 0.428961) / 0.301250 = 1.67867328133
+                    # Attribute score = 0.0
+                    # Z-scaled attribute = (0.0 - 0.337618) / 0.272520 = -1.23887421107
+                },
+                {
+                    "merit": 1.0,
+                    "affiliation": 0.0
+                },
+                {
+                    "kdma_values": [
+                        {
+                            "kdma": "KDMA_A",
+                            "value": None,
+                            "parameters": [
+                                {"name": "intercept", "value": 0.5},
+                                {"name": "medical_weight", "value": 0.85},
+                                {"name": "attr_weight", "value": -0.3},
+                            ]
+                        },
+                        {
+                            "kdma": "KDMA_B",
+                            "value": None,
+                            "parameters": [
+                                {"name": "intercept", "value": 0.75},
+                                {"name": "medical_weight", "value": 0.5},
+                                {"name": "attr_weight", "value": -0.25},
+                            ]
+                        }
+                    ],
+                    # Y_ij = 0.5 + 0.85*1.67867328133-0.3*-1.23887421107 = 2.29853455245
+                    # P_choose_a = e^2.29853455245/(1+e^2.29853455245) = 0.90875559851
+                },
+                "Treat Patient A",
+                does_not_raise(),
+            ),
+            # <2 choices
+            (
+                {
+                    "Choice 0": {"medical": 0.1, "KDMA_B": 0.8},
+                },
+                None,
+                {
+                   "kdma_values":
+                    [
+                        {
+                            "kdma": "KDMA_A",
+                            "value": None,
+                            "parameters": [
+                                {"name": "intercept", "value": 0.75},
+                                {"name": "medical_weight", "value": 0.5},
+                                {"name": "attr_weight", "value": -0.25},
+                            ]
+                        },
+                    ],
+                },
+                "Choice 0",
+                does_not_raise(),
+            ),
+            # >2 choices
+            (
+                {
+                    "Choice 0": {"medical": 0.1, "merit": 0.2},
+                    "Choice 1": {"medical": 0.2, "merit": 0.1},
+                    "Choice 2": {"medical": 0.9, "merit": 0.9},
+                },
+                None,
+                {
+                    "kdma_values":
+                    [
+                        {
+                            "kdma": "KDMA_A",
+                            "value": None,
+                            "parameters": [
+                                {"name": "intercept", "value": 0.75},
+                                {"name": "medical_weight", "value": 0.5},
+                                {"name": "attr_weight", "value": -0.25},
+                            ]
+                        },
+                    ],
+                },
+                "Choice 2",  # Choice 2 wins for both medical and attribute
+                does_not_raise(),
+            ),
+        ],
+        ids=[
+            "no target", "no medical preds", "target missing parameters", "missing intercept", "missing medical weight",
+            "missing attr weight", "multiple relevant KDMAs", "worked example", "multi-kdma", "<2 choices", ">2 choices",
+        ],
+    )
+    def test_run(self, attribute_prediction_scores, attribute_relevance, alignment_target, exp_choice, exp_raises):
+        alignment_fn = MultinomialRandomEffectsModelAlignmentADMComponent(
+            TestMultinomialRandomEffectsModelAlignmentADMComponent.attribute_definitions
+        )
+
+        with exp_raises:
+            # Only checking selected choice as best sample index not yet implemented
+            assert alignment_fn.run(attribute_prediction_scores, alignment_target, attribute_relevance)[0] == exp_choice
+
+    @pytest.mark.parametrize(
+        ("p_matrix", "exp_value"),
+        [
+            (
+                np.array([[1, 0.25, 0.6], [0.75, 1, 0.8], [0.4, 0.2, 1]]),
+                np.array([[0, -1.09861228867, 0.4054651081], [1.09861228867, 0, 1.38629436112], [-0.4054651081, -1.38629436112, 0]])
+            ),
+            (
+                np.array([[1, 0.55, 0.36], [0.45, 1, 0.24], [0.64, 0.76, 1]]),
+                np.array([[0, 0.20067069546, -0.5753641449], [-0.20067069546, 0, -1.15267950994], [0.5753641449, 1.15267950994, 0]])
+            ),
+            (
+                np.array([[1, 0.6, 0.6], [0.4, 1, 0.6], [0.4, 0.4, 1]]),
+                np.array([[0, 0.4054651081, 0.4054651081], [-0.4054651081, 0, 0.4054651081], [-0.4054651081, -0.4054651081, 0]])
+            ),
+            (
+                np.array([[1, 0.6, 0.6, 0.5], [0.4, 1, 0.6, 0.5], [0.4, 0.4, 1, 0.5], [0.5, 0.5, 0.5, 1]]),
+                np.array([[0, 0.4054651081, 0.4054651081, 0], [-0.4054651081, 0, 0.4054651081, 0], [-0.4054651081, -0.4054651081, 0, 0], [0, 0, 0, 0]])
+            )
+        ],
+    )
+    def test_log_odds(self, p_matrix, exp_value):
+        alignment_fn = MultinomialRandomEffectsModelAlignmentADMComponent(
+            TestMultinomialRandomEffectsModelAlignmentADMComponent.attribute_definitions
+        )
+
+        assert np.allclose(alignment_fn._log_odds(p_matrix), exp_value)
+
+
+    @pytest.mark.parametrize(
+        ("scores", "exp_value"),
+        [
+            (
+                np.array([0.6, -0.3, 0.4]),
+                np.array([0.44937752864, 0.18270326891, 0.36791920244])
+            ),
+            (
+                np.array([0.6, -0.3, 0.4, -0.8]),
+                np.array([0.40454753882, 0.16447675521, 0.33121551111, 0.09976019484])
+            ),
+            (
+                np.array([-0.69314718057, 2.48490664979, -1.79175946922]),
+                np.array([0.03947368421, 0.94736842105, 0.01315789473])
+            ),
+            (
+                np.array([-0.37469344944, -1.3533502054, 1.72804365484]),
+                np.array([0.10455474162, 0.03929330002, 0.85615195834])
+            ),
+        ],
+    )
+    def test_softmax(self, scores, exp_value):
+        alignment_fn = MultinomialRandomEffectsModelAlignmentADMComponent(
+            TestMultinomialRandomEffectsModelAlignmentADMComponent.attribute_definitions
+        )
+
+        assert np.allclose(alignment_fn._stable_softmax(scores), exp_value)
+        assert np.isclose(1, np.sum(exp_value))
+
+    @pytest.mark.parametrize(
+        ("p_matrix", "exp_value"),
+        [
+            (
+                np.array([[1, 0.25, 0.6], [0.75, 1, 0.8], [0.4, 0.2, 1]]),
+                np.array([0.03947368421, 0.94736842105, 0.01315789473])
+            ),
+            (
+                np.array([[1, 0.55, 0.36], [0.45, 1, 0.24], [0.64, 0.76, 1]]),
+                np.array([0.10455474162, 0.03929330002, 0.85615195834])
+            )
+        ],
+    )
+    def test_composite_probs(self, p_matrix, exp_value):
+        alignment_fn = MultinomialRandomEffectsModelAlignmentADMComponent(
+            TestMultinomialRandomEffectsModelAlignmentADMComponent.attribute_definitions
+        )
+
+        assert np.allclose(alignment_fn._composite_probs(p_matrix), exp_value)

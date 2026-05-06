@@ -1,4 +1,5 @@
 import math
+import numpy as np
 
 from align_system.utils import call_with_coerced_args, logging
 from align_system.algorithms.abstracts import ADMComponent
@@ -355,21 +356,14 @@ class RandomEffectsModelAlignmentADMComponent(ADMComponent):
         y_ij = intercept + medical_weight*medical_delta + attr_weight*attr_score
         return math.exp(y_ij) / (1 + math.exp(y_ij))
 
-    def run(
+    def _preproccess_predictions(
         self,
         attribute_prediction_scores,
         alignment_target,
         attribute_relevance=None,
     ):
         """
-        Align using ADEPT's random effects model theory
-
-        attribute_prediction_scores: dict[str, dict[str, float | list[float]]]
-            Dictionary of choices mapped to KMDA value predictions, including medical
-            urgency prediction
-        alignment_target: alignment target info
-        attribute_relevance: dict[str, float | list[float]]
-            Dictionary of probe level KDMA relevance predictions
+        Preprocess run input arguments for future usage, while also completing some input validation.
         """
         if alignment_target is None:
             raise RuntimeError(
@@ -382,8 +376,6 @@ class RandomEffectsModelAlignmentADMComponent(ADMComponent):
         target_kdmas = [dict(t) for t in target_kdmas]
 
         choices = list(attribute_prediction_scores.keys())
-        if len(choices) != 2:
-            raise NotImplementedError("This alignment function has not yet been implemented for !=2 choices")
 
         # Compute averages of predicted values
         predictions = []
@@ -410,7 +402,30 @@ class RandomEffectsModelAlignmentADMComponent(ADMComponent):
         if len(relevant_kdmas) != 1:
             raise RuntimeError("This alignment function can only be used when 1 attribute is relevant")
 
-        # Guaranteed to only have 2 choices at this point due to earlier checks
+        return target_kdmas, choices, predictions, probe_relevance, relevant_kdmas
+
+    def run(
+        self,
+        attribute_prediction_scores,
+        alignment_target,
+        attribute_relevance=None,
+    ):
+        """
+        Align using ADEPT's random effects model theory
+
+        attribute_prediction_scores: dict[str, dict[str, float | list[float]]]
+            Dictionary of choices mapped to KMDA value predictions, including medical
+            urgency prediction
+        alignment_target: alignment target info
+        attribute_relevance: dict[str, float | list[float]]
+            Dictionary of probe level KDMA relevance predictions
+        """
+        target_kdmas, choices, predictions, probe_relevance, relevant_kdmas = self._preproccess_predictions(attribute_prediction_scores, alignment_target, attribute_relevance)
+
+        # This alignment function only works for binary (2-choice probes)
+        if len(choices) != 2:
+            raise NotImplementedError("This alignment function has not yet been implemented for !=2 choices")
+
         opt_a, opt_b = predictions
 
         for target_kdma in target_kdmas:
@@ -456,3 +471,110 @@ class RandomEffectsModelAlignmentADMComponent(ADMComponent):
                 return (opt_a["choice"], best_sample_idx, alignment_info)
             else:
                 return (opt_b["choice"], best_sample_idx, alignment_info)
+
+
+class MultinomialRandomEffectsModelAlignmentADMComponent(RandomEffectsModelAlignmentADMComponent):
+    def __init__(
+        self,
+        attributes=None
+    ):
+        super().__init__(attributes)
+
+    def _log_odds(self, p, eps=1e-12):
+        p = np.clip(p, eps, 1-eps)  # avoid division by 0 or log(0)
+        log_odds = np.log(p / (1 - p))
+        np.fill_diagonal(log_odds, 0)  # explicitly set diagonal to 0 so that it doesn't affect later computations
+        return log_odds
+
+    def _stable_softmax(self, scores):
+        e_scores = np.exp(scores - np.max(scores))  # Subtracting the max for numerical stability
+        return e_scores / e_scores.sum(axis=0)
+
+    def _composite_probs(self, p_matrix):
+        """Combines sub-problem probabities into per-choice composite probabilities"""
+        log_odds = self._log_odds(p_matrix)
+        scores = np.sum(log_odds, axis=1)
+        return self._stable_softmax(scores)
+
+    def run(
+        self,
+        attribute_prediction_scores,
+        alignment_target,
+        attribute_relevance=None,
+    ):
+        """
+        Align using a multinomial expansion of ADEPT's random effects model theory
+
+        attribute_prediction_scores: dict[str, dict[str, float | list[float]]]
+            Dictionary of choices mapped to KMDA value predictions, including medical
+            urgency prediction
+        alignment_target: alignment target info
+        attribute_relevance: dict[str, float | list[float]]
+            Dictionary of probe level KDMA relevance predictions
+        """
+        target_kdmas, choices, predictions, probe_relevance, relevant_kdmas = self._preproccess_predictions(attribute_prediction_scores, alignment_target, attribute_relevance)
+
+        # Only one option, decision always has to be the same
+        if len(choices) == 1:
+            return (
+                predictions[0]["choice"],
+                0,  # TODO: best sample index
+                {
+                    "source": type(self).__name__,
+                    "p_choices": np.ones((1,)),
+                },
+            )
+
+        # We iterate to find the relevant KDMA, this isn't multi-kdma yet (raised in preprocess)
+        for target_kdma in target_kdmas:
+            kdma = target_kdma["kdma"]
+            if kdma != relevant_kdmas[0]:
+                continue
+
+            intercept = None
+            medical_weight = None
+            attr_weight = None
+            if target_kdma["parameters"] is not None:
+                for param in target_kdma["parameters"]:
+                    if param["name"] == "intercept":
+                        intercept = param["value"]
+                    if param["name"] == "medical_weight":
+                        medical_weight = param["value"]
+                    if param["name"] == "attr_weight":
+                        attr_weight = param["value"]
+            if intercept is None or medical_weight is None or attr_weight is None:
+                raise RuntimeError("This alignment function requires an intercept, medical weight, and attr weight")
+
+            # Loop over options pairwise
+            p_matrix = np.ones((len(choices), len(choices)))
+            for choice_idx_a, opt_a in enumerate(predictions[:-1]):
+                for choice_idx_b, opt_b in enumerate(predictions[choice_idx_a+1:]):
+                    raw_medical_delta = opt_a[med_urg_str] - opt_b[med_urg_str]
+
+                    # Choices should be sorted by descending medical need due to model assumptions
+                    flip_order = False
+                    if raw_medical_delta < 0:
+                        flip_order = True
+                        raw_medical_delta *= -1
+                    primary, secondary = (opt_a, opt_b) if not flip_order else (opt_b, opt_a)
+                    raw_attr_score = secondary[kdma] if kdma == "search" else primary[kdma]
+
+                    p_choose_primary = self._compute_p_choose_a(
+                        kdma, intercept, medical_weight, attr_weight, raw_medical_delta, raw_attr_score)
+
+                    p_matrix[choice_idx_a][choice_idx_b] = p_choose_primary if not flip_order else 1 - p_choose_primary
+                    p_matrix[choice_idx_b][choice_idx_a] = 1 - p_choose_primary if not flip_order else p_choose_primary
+
+            p_choices = self._composite_probs(p_matrix)
+
+            # TODO: Figure out what it means to be the best prediction for this alignment function
+            best_sample_idx = 0
+
+            alignment_info = {
+                "source": type(self).__name__,
+                "p_choices": p_choices,
+            }
+
+            max_idx = np.argmax(p_choices)
+
+            return (predictions[max_idx]["choice"], best_sample_idx, alignment_info)
