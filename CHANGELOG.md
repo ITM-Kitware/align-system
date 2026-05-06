@@ -8,6 +8,8 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ### Added
 
 * Added `MultinomialRandomEffectsModelAlignmentADMComponent` for binomial/trinomial alignment based on ADEPT's latest guidance
+* Added `TournamentRandomEffectsModelAlignmentADMComponent`, a tournament-style version of the random effects alignment function
+  (note this is still not multi-kdma)
 
 ### Fixed
 
