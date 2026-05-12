@@ -1,0 +1,7 @@
+_target_: align_system.algorithms.mcts_candidate_adm_component.MCTSCandidateGeneratorADMComponent
+
+model: gpt-oss:20b
+temperature: 0.7
+num_ctx: 8192
+num_candidates: 3
+rollout_horizon: 3

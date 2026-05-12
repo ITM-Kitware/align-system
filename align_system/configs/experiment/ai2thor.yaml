@@ -1,0 +1,15 @@
+# @package _global_
+defaults:
+  - override /interface: ai2thor
+  - override /adm: mcts_ai2thor
+  - override /driver: ai2thor
+
+save_input_output: true
+save_timing: true
+save_log: true
+save_raw_log: false
+save_scoring_output: false
+save_alignment_targets: false
+
+align_to_target: false
+loglevel: INFO

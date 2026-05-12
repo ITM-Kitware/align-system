@@ -1,0 +1,4 @@
+_target_: align_system.prompt_engineering.outlines_prompts.ComparativeRegressionSchema
+
+factor_lookup:
+  task progress: 100
