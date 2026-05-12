@@ -381,22 +381,15 @@ class RandomEffectsModelAlignmentADMComponent(ADMComponent):
             self.attributes)
         target_kdmas = [dict(t) for t in target_kdmas]
 
-        choices = list(attribute_prediction_scores.keys())
-        if len(choices) != 2:
-            raise NotImplementedError("This alignment function has not yet been implemented for !=2 choices")
-
-        # Compute averages of predicted values
+        # Compute averages of predicted values for each choice
         predictions = []
         for choice, all_kdma_predictions in attribute_prediction_scores.items():
             pred_dict = {"choice": choice}
 
-            # Get medical urgency
             if med_urg_str not in all_kdma_predictions:
                 raise RuntimeError("Medical Urgency predictions required for this alignment function")
 
-            # Get KDMA predictions relevant to target
             pred_dict.update(_get_avg_pred(all_kdma_predictions, target_kdmas))
-
             predictions.append(pred_dict)
 
         # Get relevance predictions relevant to target
@@ -410,17 +403,15 @@ class RandomEffectsModelAlignmentADMComponent(ADMComponent):
         if len(relevant_kdmas) != 1:
             raise RuntimeError("This alignment function can only be used when 1 attribute is relevant")
 
-        # Guaranteed to only have 2 choices at this point due to earlier checks
-        opt_a, opt_b = predictions
+        kdma = relevant_kdmas[0]
 
+        # Extract model parameters for the relevant KDMA
+        intercept = None
+        medical_weight = None
+        attr_weight = None
         for target_kdma in target_kdmas:
-            kdma = target_kdma["kdma"]
-            if kdma != relevant_kdmas[0]:
+            if target_kdma["kdma"] != kdma:
                 continue
-
-            intercept = None
-            medical_weight = None
-            attr_weight = None
             if target_kdma["parameters"] is not None:
                 for param in target_kdma["parameters"]:
                     if param["name"] == "intercept":
@@ -429,30 +420,48 @@ class RandomEffectsModelAlignmentADMComponent(ADMComponent):
                         medical_weight = param["value"]
                     if param["name"] == "attr_weight":
                         attr_weight = param["value"]
-            if intercept is None or medical_weight is None or attr_weight is None:
-                raise RuntimeError("This alignment function requires an intercept, medical weight, and attr weight")
+            break
 
+        if intercept is None or medical_weight is None or attr_weight is None:
+            raise RuntimeError("This alignment function requires an intercept, medical weight, and attr weight")
+
+        best_sample_idx = 0
+
+        if len(predictions) == 2:
+            opt_a, opt_b = predictions
             # PS medical for B should always be 0
             # TODO: Should we explicitly only use opt_a for PS?
             raw_medical_delta = opt_a[med_urg_str] - opt_b[med_urg_str]
-
-            if kdma == "search":
-                raw_attr_score = opt_b[kdma]
-            else:
-                raw_attr_score = opt_a[kdma]
+            raw_attr_score = opt_b[kdma] if kdma == "search" else opt_a[kdma]
 
             p_choose_a = self._compute_p_choose_a(
                 kdma, intercept, medical_weight, attr_weight, raw_medical_delta, raw_attr_score)
-
-            # TODO: Figure out what it means to be the best prediction for this alignment function
-            best_sample_idx = 0
 
             alignment_info = {
                 "source": type(self).__name__,
                 "p_choose_a": p_choose_a,
             }
+            chosen = opt_a["choice"] if p_choose_a >= 0.5 else opt_b["choice"]
+            return (chosen, best_sample_idx, alignment_info)
 
-            if p_choose_a >= 0.5:
-                return (opt_a["choice"], best_sample_idx, alignment_info)
-            else:
-                return (opt_b["choice"], best_sample_idx, alignment_info)
+        # Round-robin for N > 2: score each choice as sum of p(win) against all others
+        round_robin_scores = {pred["choice"]: 0.0 for pred in predictions}
+        for i, pred_a in enumerate(predictions):
+            for j, pred_b in enumerate(predictions):
+                if i >= j:
+                    continue
+                raw_medical_delta = pred_a[med_urg_str] - pred_b[med_urg_str]
+                raw_attr_score = pred_b[kdma] if kdma == "search" else pred_a[kdma]
+                p_a_wins = self._compute_p_choose_a(
+                    kdma, intercept, medical_weight, attr_weight, raw_medical_delta, raw_attr_score)
+                round_robin_scores[pred_a["choice"]] += p_a_wins
+                round_robin_scores[pred_b["choice"]] += (1.0 - p_a_wins)
+
+        best_choice = max(round_robin_scores, key=round_robin_scores.__getitem__)
+        log.info(f"[RandomEffects round-robin] scores: {round_robin_scores}")
+
+        alignment_info = {
+            "source": type(self).__name__,
+            "round_robin_scores": round_robin_scores,
+        }
+        return (best_choice, best_sample_idx, alignment_info)

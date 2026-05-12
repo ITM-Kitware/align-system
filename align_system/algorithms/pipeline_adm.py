@@ -11,6 +11,11 @@ class PipelineADM(ActionBasedADM):
     def __init__(self, steps: list[ADMComponent]):
         self.steps = steps
 
+    def reset_history(self) -> None:
+        for step in self.steps:
+            if hasattr(step, "reset_history"):
+                step.reset_history()
+
     def choose_action(self,
                       scenario_state,
                       available_actions,
@@ -74,4 +79,11 @@ class PipelineADM(ActionBasedADM):
         working_output.setdefault('choice_info', {})['per_step_timing_stats'] =\
             per_step_timing_stats
 
-        return working_output['chosen_action'], working_output
+        # Let stateful steps (e.g. MCTSCandidateGeneratorADMComponent) record
+        # the chosen action so they can avoid repeating it next call.
+        chosen_action = working_output.get('chosen_action')
+        for step in self.steps:
+            if hasattr(step, 'update_history'):
+                step.update_history(chosen_action)
+
+        return chosen_action, working_output
