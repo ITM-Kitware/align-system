@@ -1,16 +1,16 @@
 _target_: align_system.data_models.attribute.Attribute
 
-name: task progress
+name: task_progress
 kdma: "task_progress"
 description: >
   Task progress measures how much this action advances the agent toward
-  completing the current goal. An action that directly achieves the goal
+  completing the current goal: Picking up the Red Fruit. An action that directly achieves the goal
   or moves the agent significantly closer to it scores high. An action
   that is irrelevant, redundant, or moves away from the goal scores low.
 factor: 100
 score_examples: >
-  Picking up the target object scores {{kdma_scale_factor}}.
-  Moving directly toward a visible target scores 80.
-  Rotating to search for an unseen object scores 50.
+  Picking up the Red Fruit scores {{kdma_scale_factor}}.
+  Moving directly toward a visible Red Fruit scores 80.
+  Rotating to search for an unseen Red Fruit scores 50.
   Repeating a recently failed action scores 10.
-  Moving away from the target scores 0.
+  Moving away from the Red Fruit scores 0.

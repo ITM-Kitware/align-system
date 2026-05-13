@@ -128,6 +128,7 @@ class MCTSCandidateGeneratorADMComponent(ADMComponent):
                     unstructured=label,
                     args=mcts_action.args or {},
                     justification=rationale,
+                    plan=list(cand.actions),
                 )
             )
 

@@ -7,6 +7,7 @@ from timeit import default_timer as timer
 import hydra
 from omegaconf import DictConfig, OmegaConf
 
+from align_system.interfaces.ai2thor_interface import AI2ThorAction
 from align_system.utils import logging
 
 log = logging.getLogger(__name__)
@@ -77,25 +78,39 @@ class AI2ThorDriver:
                 else:
                     action_to_take, choice_info = choose_result, {}
 
-                log.info(f"[t={step}] action: {action_to_take.action_id}")
+                plan = getattr(action_to_take, "plan", None) or [None]
 
-                inputs_outputs.append({
-                    "scenario_id": scenario.id(),
-                    "step": step,
-                    "state": current_state.unstructured,
-                    "action": action_to_take.to_dict(),
-                })
+                for plan_idx, plan_action in enumerate(plan):
+                    if plan_action is None:
+                        # No plan attached; execute the top-level action directly
+                        exec_action = action_to_take
+                    else:
+                        exec_action = AI2ThorAction(
+                            action_id=plan_action.tool_name,
+                            unstructured=action_to_take.unstructured,
+                            args=plan_action.args or {},
+                        )
 
-                if save_input_output_to_path is not None:
-                    with open(save_input_output_to_path, "w") as f:
-                        json.dump(inputs_outputs, f, indent=2)
+                    log.info(f"[t={step}] action: {exec_action.action_id}")
 
-                current_state = scenario.take_action(action_to_take)
-                step += 1
+                    inputs_outputs.append({
+                        "scenario_id": scenario.id(),
+                        "step": step,
+                        "state": current_state.unstructured,
+                        "action": exec_action.to_dict(),
+                    })
 
-                if current_state.scenario_complete:
-                    log.info(f"[bold]Task complete after {step} steps.[/bold]",
-                             extra={"markup": True})
+                    if save_input_output_to_path is not None:
+                        with open(save_input_output_to_path, "w") as f:
+                            json.dump(inputs_outputs, f, indent=2)
+
+                    current_state = scenario.take_action(exec_action)
+                    step += 1
+
+                    if current_state.scenario_complete:
+                        log.info(f"[bold]Task complete after {step} steps.[/bold]",
+                                 extra={"markup": True})
+                        break
 
             if step >= self.max_steps and not current_state.scenario_complete:
                 log.warning(f"Reached max_steps ({self.max_steps}) without completing task.")

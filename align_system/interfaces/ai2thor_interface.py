@@ -33,6 +33,7 @@ class AI2ThorAction:
     args: Dict[str, Any] = field(default_factory=dict)
     justification: Optional[str] = None
     kdma_association: Optional[Dict[str, Any]] = None
+    plan: List[MCTSAction] = field(default_factory=list)
 
     def to_dict(self):
         return {
