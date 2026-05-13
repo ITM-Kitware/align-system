@@ -16,7 +16,7 @@ per_attribute_templates:
       _target_: align_system.prompt_engineering.outlines_prompts.DirectRegressionSchemaTemplate
       min_value: 1
     system_prompt:
-      _target_: align_system.algorithms.direct_regression_system_prompt.GeneratedSystemPromptTemplate
+      _target_: align_system.prompt_engineering.direct_regression_system_prompt.GeneratedSystemPromptTemplate
       kdma_name: medical
       dataset: /data/shared/samba/phase2_icl/Feb2026-MU-train_20251218.json
       kdma_scale_factor: 100
