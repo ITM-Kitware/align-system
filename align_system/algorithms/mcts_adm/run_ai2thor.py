@@ -21,6 +21,7 @@ TASKS = {
     0: "Pick up an Apple.",
     1: "Pick up a Tomato.",
     2: "Pick up the Red Fruit.",
+    3: "URGENT: The stove is on and a loose knife is present — both pose immediate harm risk to a nearby patient. You must act now: turn off the stove knob or pick up the knife to prevent injury.",
 }
 
 
@@ -79,8 +80,8 @@ def run(cfg: argparse.Namespace) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Run MCTS agent in AI2Thor")
-    parser.add_argument("--prompt", type=int, default=0, choices=[0, 1, 2],
-                        help="Task: 0=pick up apple, 1=pick up tomato, 2=pick up red fruit")
+    parser.add_argument("--prompt", type=int, default=0, choices=[0, 1, 2, 3],
+                        help="Task: 0=pick up apple, 1=pick up tomato, 2=pick up red fruit, 3=turn off stove knob or pick up knife")
     parser.add_argument("--scene", type=str, default="FloorPlan1",
                         help="AI2Thor scene name")
     parser.add_argument("--model", type=str, default="gpt-oss:20b",

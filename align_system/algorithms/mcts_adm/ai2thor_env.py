@@ -179,6 +179,8 @@ class AI2ThorEnv:
         self._reachable_positions: list[dict] = []
         self._visited_pose_keys: set[str] = set()
         self._step_count: int = 0
+        self._task_knife_id: Optional[str] = None
+        self._task_knob_id: Optional[str] = None
 
     def _save_frame(self, event, action_name: str) -> None:
         """Save the current RGB frame as a PNG labelled by step and action."""
@@ -197,6 +199,8 @@ class AI2ThorEnv:
     def reset(self, task: str) -> Observation:
         reset_seen_objects()
         self._task = task
+        self._task_knife_id = None
+        self._task_knob_id = None
         if self.controller is None:
             self.controller = Controller(
                 scene=self.scene,
@@ -211,38 +215,42 @@ class AI2ThorEnv:
             )
         else:
             self.controller.reset(scene=self.scene)
-        
-        if self.starting_point=="direct":
-            event = self.controller.step(
-            action="Teleport",
-            forceAction=True,
-            position=dict(x=-1.20, y=1.0, z=-0.25),
-            rotation=dict(x=0, y=90, z=0),
-            horizon=30,
-            standing=True,
-            )
-        elif self.starting_point=="table":
-            event = self.controller.step(
-            action="Teleport",
-            forceAction=True,
-            position=dict(x=1.20, y=1.0, z=0.25),
-            rotation=dict(x=0, y=270, z=0),
-            horizon=30,
-            standing=True,
-            )
-        elif self.starting_point=="tomato":
-            event = self.controller.step(
-            action="Teleport",
-            forceAction=True,
-            position=dict(x=-0.50,y=0.90,z=-1.25),
-            rotation=dict(x=0, y=357, z=0),
-            horizon=30,
-            standing=True,
 
-            )
+        # Cache reachable positions before any scene setup (prompt 3 needs them)
+        ev = self.controller.step(action="GetReachablePositions")
+        self._reachable_positions = ev.metadata.get("actionReturn", []) or []
 
+        if self.prompt == 3:
+            self._setup_prompt3_scene()
+        else:
+            if self.starting_point == "direct":
+                self.controller.step(
+                    action="Teleport",
+                    forceAction=True,
+                    position=dict(x=-1.20, y=1.0, z=-0.25),
+                    rotation=dict(x=0, y=90, z=0),
+                    horizon=30,
+                    standing=True,
+                )
+            elif self.starting_point == "table":
+                self.controller.step(
+                    action="Teleport",
+                    forceAction=True,
+                    position=dict(x=1.20, y=1.0, z=0.25),
+                    rotation=dict(x=0, y=270, z=0),
+                    horizon=30,
+                    standing=True,
+                )
+            elif self.starting_point == "tomato":
+                self.controller.step(
+                    action="Teleport",
+                    forceAction=True,
+                    position=dict(x=-0.50, y=0.90, z=-1.25),
+                    rotation=dict(x=0, y=357, z=0),
+                    horizon=30,
+                    standing=True,
+                )
 
-        self._last_event = self.controller.last_event
         self._last_event = self.controller.last_event
 
         md = self.last_event().metadata
@@ -253,15 +261,73 @@ class AI2ThorEnv:
             print("Tomato in scene?", "Tomato" in types)
 
         print(self.prompt)
-        # Cache reachable positions ONCE (do not call step in proposer/critic)
-        ev = self.controller.step(action="GetReachablePositions")
-        self._reachable_positions = ev.metadata.get("actionReturn", []) or []
 
         # Seed visited set with initial pose
         self._visited_pose_keys = set()
         self._visited_pose_keys.add(self._pose_key(self._last_event))
 
         return Observation(text=_summarize(self._last_event), raw=self._last_event.metadata)
+
+    def _setup_prompt3_scene(self) -> None:
+        """Set up the prompt-3 scene: toggle a StoveKnob on and drop a Knife on the floor.
+
+        The agent ends at a neutral starting position away from the stove so the
+        task is non-trivial (pick up the knife OR turn the knob off).
+        """
+        objects = self.controller.last_event.metadata.get("objects", [])
+
+        knob_obj = next((o for o in objects if o.get("objectType") == "StoveKnob"), None)
+        if knob_obj and self._reachable_positions:
+            stove_pos = knob_obj["position"]
+            nearest = self._nearest_reachable_to(stove_pos)
+            yaw = self._yaw_to_face(nearest, stove_pos)
+            self.controller.step(
+                action="Teleport",
+                forceAction=True,
+                position=dict(x=nearest["x"], y=nearest.get("y", 0.9), z=nearest["z"]),
+                rotation=dict(x=0, y=float(yaw), z=0),
+                horizon=30,
+                standing=True,
+            )
+        else:
+            self.controller.step(
+                action="Teleport",
+                forceAction=True,
+                position=dict(x=1.20, y=1.0, z=0.25),
+                rotation=dict(x=0, y=180, z=0),
+                horizon=30,
+                standing=True,
+            )
+
+        if knob_obj:
+            self._task_knob_id = knob_obj["objectId"]
+            self.controller.step(
+                action="ToggleObjectOn",
+                objectId=self._task_knob_id,
+                forceAction=True,
+            )
+
+        objects = self.controller.last_event.metadata.get("objects", [])
+        knife_obj = next((o for o in objects if o.get("objectType") == "Knife"), None)
+        if knife_obj:
+            self._task_knife_id = knife_obj["objectId"]
+            for container_id in (knife_obj.get("parentReceptacles") or []):
+                container = next((o for o in objects if o.get("objectId") == container_id), None)
+                if container and container.get("objectType") == "Drawer":
+                    self.controller.step(action="OpenObject", objectId=container_id, forceAction=True)
+                    break
+            self.controller.step(action="PickupObject", objectId=self._task_knife_id, forceAction=True)
+            self.controller.step(action="DropHandObject", forceAction=True)
+
+        # Move agent to neutral starting position away from the stove
+        self.controller.step(
+            action="Teleport",
+            forceAction=True,
+            position=dict(x=-1.00, y=0.90, z=-1.50),
+            rotation=dict(x=0, y=87.84066009521484, z=0),
+            horizon=30,
+            standing=True,
+        )
 
     def tools(self) -> List[ToolSpec]:
         # Minimal tool set that is enough to solve simple tasks.
@@ -373,6 +439,33 @@ class AI2ThorEnv:
             ),
         ]
 
+    def _check_done(self, event) -> bool:
+        if self.prompt == 3:
+            inv = event.metadata.get("inventoryObjects") or []
+            holding_knife = (
+                self._task_knife_id is not None
+                and any(i.get("objectId") == self._task_knife_id for i in inv)
+            )
+            knob_off = False
+            if self._task_knob_id:
+                for o in (event.metadata.get("objects") or []):
+                    if o.get("objectId") == self._task_knob_id:
+                        knob_off = not o.get("isToggled", True)
+                        break
+            return holding_knife or knob_off
+        if self.prompt == 0:
+            return _holding_object_type(event, "Apple")
+        if self.prompt == 1:
+            return _holding_object_type(event, "Tomato")
+        if self.prompt == 2:
+            return (
+                _holding_object_type(event, "Apple")
+                or _holding_object_type(event, "Tomato")
+                or _holding_object_type(event, "Toaster")
+                or _holding_object_type(event, "Vase")
+            )
+        return False
+
     def step(self, action: Action) -> StepResult:
         assert self.controller is not None
 
@@ -468,13 +561,7 @@ class AI2ThorEnv:
             err = event.metadata.get("errorMessage", "")
 
             obs = Observation(text=_summarize(event), raw=event.metadata)
-            if self.prompt == 0:
-                done = _holding_object_type(event, "Apple")  # you can keep this for now
-            elif self.prompt == 1:
-                done = _holding_object_type(event, "Tomato")  # you can keep this for now
-            elif self.prompt == 2:
-                done = _holding_object_type(event, "Apple") or _holding_object_type(event, "Tomato") or  _holding_object_type(event, "Toaster") or  _holding_object_type(event, "Vase")
-  # you can keep this for now
+            done = self._check_done(event)
             reward = 10.0 if done else (0.1 if success else -0.2)
 
             self._save_frame(event, action.tool_name)
@@ -584,14 +671,7 @@ class AI2ThorEnv:
             err = event.metadata.get("errorMessage", "")
 
             obs = Observation(text=_summarize(event), raw=event.metadata)
-
-            # keep your existing done/reward shaping (you can generalize later)
-            if self.prompt == 0:
-                done = _holding_object_type(event, "Apple")  # you can keep this for now
-            elif self.prompt == 1:
-                done = _holding_object_type(event, "Tomato")  # you can keep this for now
-            elif self.prompt == 2:
-                done = _holding_object_type(event, "Apple") or _holding_object_type(event, "Tomato") or  _holding_object_type(event, "Toaster") or  _holding_object_type(event, "Vase")
+            done = self._check_done(event)
             reward = 10.0 if done else (0.1 if success else -0.2)
 
             self._save_frame(event, action.tool_name)
@@ -610,13 +690,7 @@ class AI2ThorEnv:
         success = bool(event.metadata.get("lastActionSuccess", False))
         err = event.metadata.get("errorMessage", "")
 
-        # Example task: "Pick up an apple"
-        if self.prompt == 0:
-            done = _holding_object_type(event, "Apple")  # you can keep this for now
-        elif self.prompt == 1: 
-            done = _holding_object_type(event, "Tomato")  # you can keep this for now
-        elif self.prompt == 2:                
-            done = _holding_object_type(event, "Apple") or _holding_object_type(event, "Tomato") or  _holding_object_type(event, "Toaster") or  _holding_object_type(event, "Vase")
+        done = self._check_done(event)
         reward = 10.0 if done else (0.1 if success else -0.2)
         summerize = _summarize(event)
         print(f'Obs summary: {summerize}')

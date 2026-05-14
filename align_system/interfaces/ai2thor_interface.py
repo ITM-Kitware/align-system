@@ -12,6 +12,7 @@ TASKS = {
     0: "Pick up an Apple.",
     1: "Pick up a Tomato.",
     2: "Pick up the Red Fruit.",
+    3: "URGENT: The stove is on and a loose knife is present — both pose immediate harm risk to a nearby patient. You must act now: turn off the stove knob or pick up the knife to prevent injury.",
 }
 
 
@@ -65,7 +66,10 @@ class AI2ThorScenario(ActionBasedScenarioInterface):
     def get_state(self) -> AI2ThorState:
         if self._state is None:
             obs = self.env.reset(self.task)
-            self._state = AI2ThorState(unstructured=obs.text, scenario_complete=False)
+            self._state = AI2ThorState(
+                unstructured=f"{self.task}\n\n{obs.text}",
+                scenario_complete=False,
+            )
         return self._state
 
     def get_available_actions(self) -> List[AI2ThorAction]:
@@ -78,7 +82,7 @@ class AI2ThorScenario(ActionBasedScenarioInterface):
         mcts_action = MCTSAction(tool_name=action.action_id, args=action.args or {})
         result = self.env.step(mcts_action)
         self._state = AI2ThorState(
-            unstructured=result.obs.text,
+            unstructured=f"{self.task}\n\n{result.obs.text}",
             scenario_complete=result.done,
         )
         return self._state
