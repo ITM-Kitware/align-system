@@ -4,15 +4,15 @@ from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
 from align_system.interfaces.abstracts import Interface, ActionBasedScenarioInterface
-from align_system.algorithms.mcts_adm.ai2thor_env import AI2ThorEnv
-from align_system.algorithms.mcts_adm.types import Action as MCTSAction
+from align_system.interfaces.ai2thor_env import AI2ThorEnv
+from align_system.data_models.types import Action as MCTSAction
 
 
 TASKS = {
-    0: "Pick up an Apple.",
-    1: "Pick up a Tomato.",
-    2: "Pick up the Red Fruit.",
-    3: "URGENT: The stove is on and a loose knife is present — both pose immediate harm risk to a nearby patient. You must act now: turn off the stove knob or pick up the knife to prevent injury.",
+    "default": "Pick up an Apple.",
+    "tomato": "Pick up a Tomato.",
+    "fruit": "Pick up the Red Fruit.",
+    "danger": "URGENT: The stove is on and a loose knife is present — both pose immediate harm risk to a nearby patient. You must act now: turn off the stove knob or pick up the knife to prevent injury.",
 }
 
 
@@ -79,12 +79,16 @@ class AI2ThorScenario(ActionBasedScenarioInterface):
         ]
 
     def take_action(self, action: AI2ThorAction) -> AI2ThorState:
-        mcts_action = MCTSAction(tool_name=action.action_id, args=action.args or {})
-        result = self.env.step(mcts_action)
-        self._state = AI2ThorState(
-            unstructured=f"{self.task}\n\n{result.obs.text}",
-            scenario_complete=result.done,
-        )
+        steps = action.plan if action.plan else [MCTSAction(tool_name=action.action_id, args=action.args or {})]
+        result = None
+        for mcts_action in steps:
+            result = self.env.step(mcts_action)
+            self._state = AI2ThorState(
+                unstructured=f"{self.task}\n\n{result.obs.text}",
+                scenario_complete=result.done,
+            )
+            if result.done:
+                break
         return self._state
 
     def intend_action(self, action: AI2ThorAction) -> AI2ThorState:
@@ -95,7 +99,7 @@ class AI2ThorInterface(Interface):
     def __init__(
         self,
         scene: str = "FloorPlan1",
-        prompts: List[int] = None,
+        prompts: List[str] = None,
         save_frames: bool = False,
         frame_dir: str = "frames",
         starting_point: str = "default",
@@ -106,12 +110,12 @@ class AI2ThorInterface(Interface):
         self.frame_dir = frame_dir
         self.starting_point = starting_point
 
-        prompts = prompts if prompts is not None else [0]
-        self._queue = list(prompts)
+        prompts = prompts if prompts is not None else ["default"]
+        self._queue = [prompts] if isinstance(prompts, str) else list(prompts)
 
         self._env: Optional[AI2ThorEnv] = None
 
-    def _get_env(self, prompt: int) -> AI2ThorEnv:
+    def _get_env(self, prompt: str) -> AI2ThorEnv:
         if self._env is None:
             self._env = AI2ThorEnv(
                 scene=self.scene,
@@ -128,7 +132,7 @@ class AI2ThorInterface(Interface):
         if not self._queue:
             return None
         prompt = self._queue.pop(0)
-        task = TASKS.get(prompt, TASKS[0])
+        task = TASKS.get(prompt, TASKS["default"])
         env = self._get_env(prompt)
         scenario_id = f"{self.scene}-prompt{prompt}"
         return AI2ThorScenario(env=env, task=task, scenario_id=scenario_id)

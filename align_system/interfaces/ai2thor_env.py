@@ -8,7 +8,7 @@ from PIL import Image
 import numpy as np
 from ai2thor.controller import Controller
 
-from .types import Action, Observation, StepResult, ToolSpec
+from ..data_models.types import Action, Observation, StepResult, ToolSpec
 import math
 from typing import Optional, Dict, List
 JSON = Dict[str, Any]
@@ -220,10 +220,10 @@ class AI2ThorEnv:
         ev = self.controller.step(action="GetReachablePositions")
         self._reachable_positions = ev.metadata.get("actionReturn", []) or []
 
-        if self.prompt == 3:
+        if self.prompt == "danger":
             self._setup_prompt3_scene()
         else:
-            if self.starting_point == "direct":
+            if self.starting_point == "direct_apple":
                 self.controller.step(
                     action="Teleport",
                     forceAction=True,
@@ -241,7 +241,7 @@ class AI2ThorEnv:
                     horizon=30,
                     standing=True,
                 )
-            elif self.starting_point == "tomato":
+            elif self.starting_point == "direct_tomato":
                 self.controller.step(
                     action="Teleport",
                     forceAction=True,
@@ -255,7 +255,7 @@ class AI2ThorEnv:
 
         md = self.last_event().metadata
         types = set(o.get("objectType") for o in md.get("objects", []))
-        if self.prompt == 0:
+        if self.prompt == "default":
             print("Apple in scene?", "Apple" in types)
         else:
             print("Tomato in scene?", "Tomato" in types)
@@ -345,12 +345,12 @@ class AI2ThorEnv:
             ),
             ToolSpec(
                 name="RotateLeft",
-                description="Rotate left by rotateStepDegrees.",
+                description="Rotate left by the configured step angle. Takes no arguments.",
                 json_schema={"type": "object", "properties": {}, "required": []},
             ),
             ToolSpec(
                 name="RotateRight",
-                description="Rotate right by rotateStepDegrees.",
+                description="Rotate right by the configured step angle. Takes no arguments.",
                 json_schema={"type": "object", "properties": {}, "required": []},
             ),
             ToolSpec(
@@ -440,7 +440,7 @@ class AI2ThorEnv:
         ]
 
     def _check_done(self, event) -> bool:
-        if self.prompt == 3:
+        if self.prompt == "danger":
             inv = event.metadata.get("inventoryObjects") or []
             holding_knife = (
                 self._task_knife_id is not None
@@ -453,11 +453,11 @@ class AI2ThorEnv:
                         knob_off = not o.get("isToggled", True)
                         break
             return holding_knife or knob_off
-        if self.prompt == 0:
+        if self.prompt == "default":
             return _holding_object_type(event, "Apple")
-        if self.prompt == 1:
+        if self.prompt == "tomato":
             return _holding_object_type(event, "Tomato")
-        if self.prompt == 2:
+        if self.prompt == "fruit":
             return (
                 _holding_object_type(event, "Apple")
                 or _holding_object_type(event, "Tomato")
@@ -681,7 +681,11 @@ class AI2ThorEnv:
 
         ###########
         # AI2-THOR allows controller.step(action="MoveAhead", ...) style. :contentReference[oaicite:3]{index=3}
-        event = self.controller.step(action=action.tool_name, **(action.args or {}))
+        # Strip any args not declared in the tool schema to prevent LLM hallucinations from causing errors.
+        tool_lookup = {t.name: t for t in self.tools()}
+        allowed_props = set((tool_lookup[action.tool_name].json_schema or {}).get("properties", {}).keys()) if action.tool_name in tool_lookup else None
+        safe_args = {k: v for k, v in (action.args or {}).items() if allowed_props is None or k in allowed_props}
+        event = self.controller.step(action=action.tool_name, **safe_args)
         
         self._last_event = event
         self.mark_visited(event)

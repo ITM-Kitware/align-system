@@ -30,6 +30,8 @@ attribute_definitions:
   personal_safety: ${adm.ps}
 
 step_definitions:
+  mcts_candidates:
+    structured_inference_engine: ${ref:adm.structured_inference_engine}
   comparative_regression:
     scenario_description_template: ${ref:adm.scenario_description_template}
     prompt_template: ${ref:adm.prompt_template}

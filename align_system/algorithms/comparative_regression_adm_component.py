@@ -176,7 +176,7 @@ class ComparativeRegressionADMComponent(ADMComponent):
             log.info(dialog_prompt)
 
             responses = self.structured_inference_engine.run_inference(
-                    [dialog_prompt] * self.num_samples, score_schema)
+                    [dialog_prompt] * self.num_samples, score_schema, temperature=0.0)
 
             for i, response in enumerate(responses):
                 log.info("[bold]*KDMA SCORE PREDICTION RESPONSE ({}, sample #{})*[/bold]".format(

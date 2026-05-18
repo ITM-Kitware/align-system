@@ -5,10 +5,34 @@ import json
 import ollama
 
 from align_system.algorithms.abstracts import StructuredInferenceEngine
-from align_system.algorithms.mcts_adm.llm_ollama import _extract_json_object, _repair_json
+# from align_system.algorithms.mcts_adm.llm_ollama import _extract_json_object, _repair_json
 from align_system.utils import logging
 
 log = logging.getLogger(__name__)
+
+def _extract_json_object(s: str) -> str:
+    s = s.strip()
+    if s.startswith("```"):
+        parts = s.split("```")
+        if len(parts) >= 3:
+            s = parts[1].strip()
+    i = s.find("{")
+    j = s.rfind("}")
+    if i == -1 or j == -1 or j <= i:
+        raise ValueError("No JSON object found")
+    return s[i : j + 1]
+
+
+def _repair_json(model: str, bad_text: str, schema_hint: str, num_ctx: int) -> JSON:
+    prompt = (
+        "You output invalid JSON. Fix it.\n"
+        "Return ONLY valid JSON, no prose.\n"
+        f"Schema hint:\n{schema_hint}\n\n"
+        f"Bad output:\n{bad_text}\n"
+    )
+    resp = ollama.generate(model=model, prompt=prompt, options={"temperature": 0.0, "num_ctx": num_ctx})
+    return _loads_json(resp["response"])
+
 
 
 class OllamaInferenceEngine(StructuredInferenceEngine):
@@ -57,7 +81,7 @@ class OllamaInferenceEngine(StructuredInferenceEngine):
         parts.extend(turn_parts)
         return "\n\n".join(parts)
 
-    def run_inference(self, prompts, schema: str) -> list[dict]:
+    def run_inference(self, prompts, schema: str, temperature: float = None) -> list[dict]:
         """
         Run inference for each prompt string and return parsed JSON dicts.
 
@@ -69,6 +93,7 @@ class OllamaInferenceEngine(StructuredInferenceEngine):
             "\n\nRespond with ONLY valid JSON that matches this schema "
             "(no prose, no markdown fences):\n" + schema
         )
+        effective_temperature = self.temperature if temperature is None else temperature
 
         results = []
         for prompt in prompts:
@@ -76,7 +101,7 @@ class OllamaInferenceEngine(StructuredInferenceEngine):
             resp = ollama.generate(
                 model=self.model,
                 prompt=full_prompt,
-                options={"temperature": self.temperature, "num_ctx": self.num_ctx},
+                options={"temperature": effective_temperature, "num_ctx": self.num_ctx},
             )
             text = resp["response"]
             log.debug(f"[OllamaInferenceEngine] raw response:\n{text}")
