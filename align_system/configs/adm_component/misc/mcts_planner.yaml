@@ -1,0 +1,8 @@
+_target_: align_system.algorithms.mcts_component.MCTSPlannerADMComponent
+
+expansions: 5
+proposals_per_expand: 4
+rollout_horizon: 4
+uct_c: 1.4
+proposer_temperature: 0.7
+critic_temperature: 0.2

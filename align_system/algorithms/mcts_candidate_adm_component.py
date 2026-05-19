@@ -11,7 +11,7 @@ from align_system.data_models.dialog import DialogElement
 log = logging.getLogger(__name__)
 
 
-class MCTSCandidateGeneratorADMComponent(ADMComponent):
+class ChoiceGeneratorAgent(ADMComponent):
     """
     Pipeline step that narrows the full AI2Thor tool set down to a
     small number of semantically motivated candidates before handing

@@ -22,6 +22,9 @@ def _extract_json_object(s: str) -> str:
         raise ValueError("No JSON object found")
     return s[i : j + 1]
 
+def _loads_json(s: str) -> JSON:
+    return json.loads(_extract_json_object(s))
+
 
 def _repair_json(model: str, bad_text: str, schema_hint: str, num_ctx: int) -> JSON:
     prompt = (

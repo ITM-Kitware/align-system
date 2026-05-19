@@ -1,0 +1,23 @@
+name: pipeline_mcts_planner_ai2thor
+
+defaults:
+  # Inference engine (shared by planner proposer + critic)
+  - /inference_engine@structured_inference_engine: ollama_greedy
+  # Pipeline steps
+  - /adm_component/misc@step_definitions.mcts_planner: mcts_planner
+  - /adm_component/misc@step_definitions.format_choices: itm_format_choices
+  - /adm_component/misc@step_definitions.ensure_chosen_action: ensure_chosen_action
+  - /adm_component/misc@step_definitions.populate_choice_info: populate_choice_info
+  - _self_
+
+step_definitions:
+  mcts_planner:
+    structured_inference_engine: ${ref:adm.structured_inference_engine}
+
+instance:
+  _target_: align_system.algorithms.pipeline_adm.PipelineADM
+  steps:
+    - ${ref:adm.step_definitions.mcts_planner}
+    - ${ref:adm.step_definitions.format_choices}
+    - ${ref:adm.step_definitions.ensure_chosen_action}
+    - ${ref:adm.step_definitions.populate_choice_info}
