@@ -14,4 +14,3 @@ loglevel: INFO
 
 interface:
   save_frames: true
-  frame_dir: frames

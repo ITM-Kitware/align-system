@@ -1,8 +1,18 @@
 name: pipeline_mcts_planner_ai2thor
 
 defaults:
+  # Phase 2 attributes (same set as pipeline_comp_reg_ai2thor)
+  - /attribute@mu: medical_urgency
+  - /attribute@af: affiliation_focus
+  - /attribute@mf: merit_focus
+  - /attribute@ss: search_or_stay
+  - /attribute@ps: personal_safety
   # Inference engine (shared by planner proposer + critic)
   - /inference_engine@structured_inference_engine: ollama_greedy
+  # Prompt templates for regression critic
+  - /template/scenario_description@scenario_description_template: phase2
+  - /template/prompt@prompt_template: phase2_comparative_regression
+  - /template/output_schema@comparative_regression_choice_schema: phase2_comparative_regression_choice
   # Pipeline steps
   - /adm_component/misc@step_definitions.mcts_planner: mcts_planner
   - /adm_component/misc@step_definitions.format_choices: itm_format_choices
@@ -10,9 +20,27 @@ defaults:
   - /adm_component/misc@step_definitions.populate_choice_info: populate_choice_info
   - _self_
 
+attribute_definitions:
+  medical: ${adm.mu}
+  affiliation: ${adm.af}
+  merit: ${adm.mf}
+  search: ${adm.ss}
+  personal_safety: ${adm.ps}
+
 step_definitions:
   mcts_planner:
     structured_inference_engine: ${ref:adm.structured_inference_engine}
+    regression_component:
+      _target_: align_system.algorithms.comparative_regression_adm_component.ComparativeRegressionADMComponent
+      structured_inference_engine: ${ref:adm.structured_inference_engine}
+      scenario_description_template: ${ref:adm.scenario_description_template}
+      prompt_template: ${ref:adm.prompt_template}
+      score_schema_template: ${adm.comparative_regression_choice_schema}
+      system_prompt_template:
+        _target_: align_system.prompt_engineering.outlines_prompts.ComparativeRegressionSystemPrompt
+      attributes: ${ref:adm.attribute_definitions}
+      target_attribute_names_override: ['medical', '*']
+      num_samples: 1
 
 instance:
   _target_: align_system.algorithms.pipeline_adm.PipelineADM

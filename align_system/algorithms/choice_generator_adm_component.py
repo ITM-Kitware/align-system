@@ -31,9 +31,6 @@ class ChoiceGeneratorAgent(ADMComponent):
     def __init__(
         self,
         structured_inference_engine,
-        model: str = "gpt-oss:20b",
-        temperature: float = 0.7,
-        num_ctx: int = 8192,
         num_candidates: int = 3,
         rollout_horizon: int = 3,
         inference_temperature: Optional[float] = None,
@@ -162,13 +159,23 @@ class ChoiceGeneratorAgent(ADMComponent):
             if not cand_actions:
                 continue
             mcts_action = cand_actions[0]
-            tool_name = mcts_action.get("tool_name", "") if isinstance(mcts_action, dict) else mcts_action.tool_name
+            if isinstance(mcts_action, dict):
+                tool_name = mcts_action.get("tool_name", "")
+            elif isinstance(mcts_action, str):
+                tool_name = mcts_action
+            else:
+                tool_name = mcts_action.tool_name
 
             if tool_name not in tool_map:
                 log.warning(f"[MCTSCandidateGenerator] unknown tool '{tool_name}', skipping")
                 continue
 
-            args = mcts_action.get("args") or {} if isinstance(mcts_action, dict) else mcts_action.args or {}
+            if isinstance(mcts_action, dict):
+                args = mcts_action.get("args") or {}
+            elif isinstance(mcts_action, str):
+                args = {}
+            else:
+                args = mcts_action.args or {}
 
             dedup_key = (tool_name, frozenset((k, str(v)) for k, v in args.items()))
             if dedup_key in seen:
@@ -177,13 +184,14 @@ class ChoiceGeneratorAgent(ADMComponent):
 
             rationale = (cand.get("rationale", "") if isinstance(cand, dict) else cand.rationale).strip()
 
-            plan = [
-                MCTSAction(
-                    tool_name=a.get("tool_name", "") if isinstance(a, dict) else a.tool_name,
-                    args=a.get("args") or {} if isinstance(a, dict) else a.args or {},
-                )
-                for a in cand_actions
-            ]
+            plan = []
+            for a in cand_actions:
+                if isinstance(a, dict):
+                    plan.append(MCTSAction(tool_name=a.get("tool_name", ""), args=a.get("args") or {}))
+                elif isinstance(a, str):
+                    plan.append(MCTSAction(tool_name=a, args={}))
+                else:
+                    plan.append(MCTSAction(tool_name=a.tool_name, args=a.args or {}))
             action_sequence = " -> ".join(a.tool_name for a in plan)
             label = f"{action_sequence}: {rationale[:80]}" if rationale else action_sequence
             candidate_actions.append(

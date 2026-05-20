@@ -79,11 +79,11 @@ class PipelineADM(ActionBasedADM):
         working_output.setdefault('choice_info', {})['per_step_timing_stats'] =\
             per_step_timing_stats
 
-        # Let stateful steps (e.g. ChoiceGeneratorAgent) record
-        # the chosen action so they can avoid repeating it next call.
         chosen_action = working_output.get('chosen_action')
+        return chosen_action, working_output
+
+    def update_history(self, chosen_action) -> None:
+        """Propagate history update to all stateful pipeline steps."""
         for step in self.steps:
             if hasattr(step, 'update_history'):
                 step.update_history(chosen_action)
-
-        return chosen_action, working_output

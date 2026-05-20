@@ -6,3 +6,5 @@ rollout_horizon: 4
 uct_c: 1.4
 proposer_temperature: 0.7
 critic_temperature: 0.2
+attributes: ${ref:adm.attribute_definitions}
+target_kdma_names_override: ['medical', '*']

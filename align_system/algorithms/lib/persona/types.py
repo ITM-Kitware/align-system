@@ -8,6 +8,8 @@ JSON = Dict[str, Any]
 class PlanCandidate:
     actions: List[Action]
     rationale: str = ""
+    score: Optional[float] = None
+    critic_reason: str = ""
 
 
 @dataclass(frozen=True)
