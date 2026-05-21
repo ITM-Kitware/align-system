@@ -1,4 +1,4 @@
-from collections.abc import Iterable
+from collections.abc import Iterable, deque
 from timeit import default_timer as timer
 
 from align_system.algorithms.abstracts import ActionBasedADM, ADMComponent
@@ -8,8 +8,9 @@ log = logging.getLogger(__name__)
 
 
 class PipelineADM(ActionBasedADM):
-    def __init__(self, steps: list[ADMComponent]):
+    def __init__(self, steps: list[ADMComponent], history_window=None):
         self.steps = steps
+        self.history = deque(maxlen=history_window)
 
     def choose_action(self,
                       scenario_state,
@@ -21,6 +22,7 @@ class PipelineADM(ActionBasedADM):
                           'actions': available_actions,
                           'alignment_target': alignment_target,
                           **kwargs}
+        
 
         per_step_timing_stats = []
 
@@ -28,8 +30,9 @@ class PipelineADM(ActionBasedADM):
             step_returns = step.run_returns()
 
             start_time = timer()
-            # Run the step
-            run_output = call_with_coerced_args(step.run, working_output)
+            # Run the step, temporarily adding historical working outputs to working_output
+            working_output_with_history = {**{"history": list(self.history)}, **working_output}
+            run_output = call_with_coerced_args(step.run, working_output_with_history)
             end_time = timer()
 
             per_step_timing_stats.append(
@@ -73,5 +76,10 @@ class PipelineADM(ActionBasedADM):
 
         working_output.setdefault('choice_info', {})['per_step_timing_stats'] =\
             per_step_timing_stats
-
+        self.history.append(working_output)
         return working_output['chosen_action'], working_output
+
+    def reset_history(self):
+        self.history.clear()
+        for step in self.steps:
+            step.reset_history()

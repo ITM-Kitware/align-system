@@ -96,9 +96,8 @@ class ITMPhase1Driver:
             log.info(f'[bold]*Scenario ID*[/bold]: {scenario.id()}')
 
             # Reset any decision or chat history for a new scenario
-            if hasattr(adm, 'reset_history'):
-                log.info("[bold]*Resetting choice history*[/bold]")
-                adm.reset_history()
+            log.info("[bold]*Resetting choice history*[/bold]")
+            adm.reset_history()
 
             if 'alignment_target' in cfg:
                 alignment_target = cfg.alignment_target
