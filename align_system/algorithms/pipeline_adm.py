@@ -82,4 +82,5 @@ class PipelineADM(ActionBasedADM):
     def reset_history(self):
         self.history.clear()
         for step in self.steps:
-            step.reset_history()
+            if hasattr(step, 'reset_history'):
+                step.reset_history()
