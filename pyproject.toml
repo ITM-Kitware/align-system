@@ -17,7 +17,7 @@ dependencies = [
     "pytest>=9.0.2",
     "rouge-score>=0.1.2",
     "scikit-learn>=1.7.2",
-    "swagger-client==0.5.2",
+    "swagger-client==0.5.3",
     "transformers>=4.56.0,<5", # Pinned to be compatible with vllm 0.19.0
     "ubelt>=1.4.1",
     "setuptools-scm>=8.0,<9",
