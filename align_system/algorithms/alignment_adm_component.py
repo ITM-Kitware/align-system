@@ -1,4 +1,5 @@
 import math
+import numpy as np
 
 from align_system.utils import call_with_coerced_args, logging
 from align_system.algorithms.abstracts import ADMComponent
@@ -6,6 +7,7 @@ from align_system.utils.alignment_utils import alignment_target_to_attribute_tar
 
 log = logging.getLogger(__name__)
 med_urg_str = "medical"
+attr_str = "attribute"
 
 
 class AlignmentADMComponent(ADMComponent):
@@ -330,26 +332,26 @@ class RandomEffectsModelAlignmentADMComponent(ADMComponent):
         # MF updated 2026-01-21
         scaling = {
             "affiliation": {
-                "medical": [0.403801, 0.297245],
-                "attribute": [0.405073, 0.298288],
+                med_urg_str: [0.403801, 0.297245],
+                attr_str: [0.405073, 0.298288],
             },
             "merit": {
-                "medical": [0.428961, 0.301250],
-                "attribute": [0.337618, 0.272520],
+                med_urg_str: [0.428961, 0.301250],
+                attr_str: [0.337618, 0.272520],
             },
             "personal_safety": {
-                "medical": [0.456221, 0.246484],
-                "attribute": [0.554813, 0.303567],
+                med_urg_str: [0.456221, 0.246484],
+                attr_str: [0.554813, 0.303567],
             },
             "search": {
-                "medical": [0.525886, 0.357475],
-                "attribute": [0.571051, 0.219335],
+                med_urg_str: [0.525886, 0.357475],
+                attr_str: [0.571051, 0.219335],
             },
         }
 
         # Apply z-scaling
-        medical_delta = (raw_medical_delta - scaling[kdma]["medical"][0]) / scaling[kdma]["medical"][1]
-        attr_score = (raw_attr_score - scaling[kdma]["attribute"][0]) / scaling[kdma]["attribute"][1]
+        medical_delta = (raw_medical_delta - scaling[kdma][med_urg_str][0]) / scaling[kdma][med_urg_str][1]
+        attr_score = (raw_attr_score - scaling[kdma][attr_str][0]) / scaling[kdma][attr_str][1]
 
         # Compute p_choose_a
         y_ij = intercept + medical_weight*medical_delta + attr_weight*attr_score
@@ -456,3 +458,174 @@ class RandomEffectsModelAlignmentADMComponent(ADMComponent):
                 return (opt_a["choice"], best_sample_idx, alignment_info)
             else:
                 return (opt_b["choice"], best_sample_idx, alignment_info)
+
+
+class MultinomialRandomEffectsModelAlignmentADMComponent(ADMComponent):
+    def __init__(
+        self,
+        attributes=None
+    ):
+        if attributes is None:
+            attributes = {}
+        self.attributes = attributes
+
+    def run_returns(self):
+        return ('chosen_choice', 'best_sample_idx', 'alignment_info')
+
+    def _stable_softmax(self, scores):
+        """Numerically stable softmax computation to convert logits into probabilities."""
+        e_scores = np.exp(scores - np.max(scores))  # Subtracting the max for numerical stability
+        return e_scores / e_scores.sum(axis=0)
+
+    def _get_scaling(self, opts):
+        """Returns the z-scaling values provided by ADEPT based on number of options."""
+        # Provided by ADEPT 2026-05-20
+        if len(opts) == 2:
+            return {
+                "affiliation": {
+                    med_urg_str: [0.589, 0.330],
+                    attr_str: [0.703, 0.365],
+                },
+                "merit": {
+                    med_urg_str: [0.576, 0.339],
+                    attr_str: [0.671, 0.381],
+                },
+                "personal_safety": {
+                    med_urg_str: [0.228, 0.287],
+                    attr_str: [0.777, 0.309],
+                },
+                "search": {
+                    med_urg_str: [0.263, 0.365],
+                    attr_str: [0.286, 0.325],
+                },
+            }
+        else:  # Based on earlier checks this is really just len==3
+            return {
+                "affiliation": {
+                    med_urg_str: [0.710999, 0.2679443],
+                    attr_str: [0.6889549, 0.3622916],
+                },
+                "personal_safety": {
+                    med_urg_str: [0.2345793, 0.233811],
+                    attr_str: [0.6911494, 0.3110608],
+                },
+            }
+
+    def _compute_probabilities(self, opts, kdma, intercept, medical_weight, attr_weight):
+        """Compute the probability for choosing each option, using the last option as a reference."""
+        if len(opts) == 1:
+            return [1.0]
+
+        scaling = self._get_scaling(opts)
+        if kdma not in scaling:
+            raise RuntimeError(f"No z-scaling values provided for {kdma}")
+        scaling = scaling[kdma]
+
+        def _apply_z_scaling(key, raw_value):
+            return (raw_value - scaling[key][0]) / scaling[key][1]
+
+        ref_opt = opts[-1]
+        ref_medical = _apply_z_scaling(med_urg_str, ref_opt[med_urg_str])
+        ref_attr = _apply_z_scaling(attr_str, ref_opt[kdma])
+
+        y_ij = []
+        for opt in opts[:-1]:
+            opt_medical = _apply_z_scaling(med_urg_str, opt[med_urg_str])
+            opt_attr = _apply_z_scaling(attr_str, opt[kdma])
+
+            medical_delta = opt_medical - ref_medical
+            attr_delta = opt_attr - ref_attr
+
+            y_ij.append(intercept + medical_weight*medical_delta + attr_weight*attr_delta)
+        y_ij.append(0)  # reference option y_ij is 0 by problem construction
+
+        probs = self._stable_softmax(np.array(y_ij))
+        return probs.tolist()
+
+    def run(
+        self,
+        attribute_prediction_scores,
+        alignment_target,
+        attribute_relevance=None,
+    ):
+        """
+        Align using ADEPT's random effects model theory for up to 3 choices
+
+        attribute_prediction_scores: dict[str, dict[str, float | list[float]]]
+            Dictionary of choices mapped to KMDA value predictions, including medical
+            urgency prediction
+        alignment_target: alignment target info
+        attribute_relevance: dict[str, float | list[float]]
+            Dictionary of probe level KDMA relevance predictions
+        """
+        if alignment_target is None:
+            raise RuntimeError(
+                "Assumption violated: `alignment_target` was None"
+            )
+
+        target_kdmas = alignment_target_to_attribute_targets(
+            alignment_target,
+            self.attributes)
+        target_kdmas = [dict(t) for t in target_kdmas]
+
+        choices = list(attribute_prediction_scores.keys())
+        if len(choices) > 3:
+            raise NotImplementedError("This alignment function has not yet been implemented for >3 choices")
+
+        # Compute averages of predicted values
+        predictions = []
+        for choice, all_kdma_predictions in attribute_prediction_scores.items():
+            pred_dict = {"choice": choice}
+
+            # Get medical urgency
+            if med_urg_str not in all_kdma_predictions:
+                raise RuntimeError("Medical Urgency predictions required for this alignment function")
+
+            # Get KDMA predictions relevant to target
+            pred_dict.update(_get_avg_pred(all_kdma_predictions, target_kdmas))
+
+            predictions.append(pred_dict)
+
+        # Get relevance predictions relevant to target
+        if attribute_relevance is not None:
+            probe_relevance = _get_avg_pred(attribute_relevance, target_kdmas)
+        else:
+            probe_relevance = {target_kdma["kdma"]: 1.0 for target_kdma in target_kdmas}
+
+        # If more than 1 attribute is relevant, don't know what to do
+        relevant_kdmas = [kdma for kdma, relevance in probe_relevance.items() if relevance > 0]
+        if len(relevant_kdmas) != 1:
+            raise RuntimeError("This alignment function can only be used when 1 attribute is relevant")
+
+        for target_kdma in target_kdmas:
+            kdma = target_kdma["kdma"]
+            if kdma != relevant_kdmas[0]:
+                continue
+
+            intercept = None
+            medical_weight = None
+            attr_weight = None
+            if target_kdma["parameters"] is not None:
+                for param in target_kdma["parameters"]:
+                    if param["name"] == "intercept":
+                        intercept = param["value"]
+                    if param["name"] == "medical_weight":
+                        medical_weight = param["value"]
+                    if param["name"] == "attr_weight":
+                        attr_weight = param["value"]
+            if intercept is None or medical_weight is None or attr_weight is None:
+                raise RuntimeError("This alignment function requires an intercept, medical weight, and attr weight")
+
+            probs = self._compute_probabilities(predictions, kdma, intercept, medical_weight, attr_weight)
+
+            # TODO: Figure out what it means to be the best prediction for this alignment function
+            best_sample_idx = 0
+
+            alignment_info = {
+                "source": type(self).__name__,
+                "p_choices": probs,
+            }
+
+            selected_choice_idx = np.argmax(probs)
+
+            return predictions[selected_choice_idx]["choice"], best_sample_idx, alignment_info

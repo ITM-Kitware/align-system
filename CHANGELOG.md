@@ -5,6 +5,10 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## Unreleased
 
+### Added
+
+* Added `MultinomialRandomEffectsModelAlignmentADMComponent` for binomial/trinomial alignment based on ADEPT's latest guidance
+
 ### Fixed
 
 * Fixed outdated `RandomEffectsModelAlignmentADMComponent` unit tests from previously changed z-scale values (from 2026-01-21)
