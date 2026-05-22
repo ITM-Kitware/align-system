@@ -1,3 +1,4 @@
+import numpy as np
 import pytest
 import unittest.mock as mock
 from contextlib import nullcontext as does_not_raise
@@ -5,7 +6,8 @@ from contextlib import nullcontext as does_not_raise
 from align_system.algorithms.alignment_adm_component import (
     MedicalUrgencyAlignmentADMComponent,
     MedicalUrgencyAlignmentWeightedADMComponent,
-    RandomEffectsModelAlignmentADMComponent)
+    RandomEffectsModelAlignmentADMComponent,
+    MultinomialRandomEffectsModelAlignmentADMComponent)
 
 @pytest.mark.parametrize(
     ("alignment_fn_class"),
@@ -1116,3 +1118,542 @@ class TestRandomEffectsModelAlignmentADMComponent:
             alignment_fn._compute_p_choose_a(kdma, intercept, medical_weight, attr_weight, raw_medical_delta, raw_attr_score) ==
             pytest.approx(exp_value)
         )
+
+
+class TestMultinomialRandomEffectsModelAlignmentADMComponent:
+    attribute_definitions = {
+        "KDMA_A": {
+            "name": "Merit Focus",
+            "kdma": "merit",
+            "description": "Test merit focus KDMA",
+        },
+        "KDMA_B": {
+            "name": "Affiliation Focus",
+            "kdma": "affiliation",
+            "description": "Test affiliation focus KDMA",
+        },
+        "KDMA_C": {
+            "name": "Personal Safety",
+            "kdma": "personal_safety",
+            "description": "Test personal safety KDMA",
+        },
+        "KDMA_D": {
+            "name": "Search vs Stay",
+            "kdma": "search",
+            "description": "Test search vs stay KDMA",
+        },
+    }
+
+    @pytest.mark.parametrize(
+        ("attribute_prediction_scores", "attribute_relevance", "alignment_target", "exp_choice", "exp_raises"),
+        [
+            # No alignment target
+            (
+                {
+                    "Choice 0": {"medical": 0.1, "KDMA_A": 0.1, "KDMA_B": 0.8},
+                    "Choice 1": {"medical": 0.6, "KDMA_A": 0.3, "KDMA_B": 0.5},
+                },
+                None,
+                None,
+                None,  # Raise expected so doesn't matter
+                pytest.raises(RuntimeError, match=r"Assumption violated: `alignment_target` was None"),
+            ),
+            # No medical predictions
+            (
+                {
+                    "Choice 0": {"KDMA_A": 0.1, "KDMA_B": 0.8},
+                    "Choice 1": {"KDMA_A": 0.3, "KDMA_B": 0.5},
+                },
+                None,
+                {
+                    "kdma_values":
+                    [
+                        {
+                            "kdma": "KDMA_A",
+                            "value": None,
+                            "parameters": [
+                                {"name": "intercept", "value": 0.75},
+                                {"name": "medical_weight", "value": 0.5},
+                                {"name": "attr_weight", "value": -0.25},
+                            ]
+                        },
+                    ],
+                },
+                None,  # Raise expected so doesn't matter
+                pytest.raises(RuntimeError, match=r"Medical Urgency predictions required"),
+            ),
+            # >3 choices
+            (
+                {
+                    "Choice 0": {"medical": 0.9, "KDMA_A": 0.1},
+                    "Choice 1": {"medical": 0.2, "KDMA_A": 0.3},
+                    "Choice 2": {"medical": 0.6, "KDMA_A": 0.4},
+                    "Choice 3": {"medical": 0.4, "KDMA_A": 0.6},
+                },
+                None,
+                {
+                    "kdma_values":
+                    [
+                        {
+                            "kdma": "KDMA_A",
+                            "value": None,
+                            "parameters": [
+                                {"name": "intercept", "value": 0.75},
+                                {"name": "medical_weight", "value": 0.5},
+                                {"name": "attr_weight", "value": -0.25},
+                            ]
+                        },
+                    ],
+                },
+                None,  # Raise expected so doesn't matter
+                pytest.raises(NotImplementedError, match=r"This alignment function has not yet been"),
+            ),
+            # Target missing parameters
+            (
+                {
+                    "Choice 0": {"medical": 0.9, "KDMA_A": 0.1},
+                    "Choice 1": {"medical": 0.4, "KDMA_A": 0.9},
+                },
+                None,
+                {
+                    "kdma_values": [{"kdma": "KDMA_A", "value": 0.7}],
+                },
+                None,  # Raise expected so doesn't matter
+                pytest.raises(RuntimeError, match=r"This alignment function requires an intercept, medical weight, and attr weight"),
+            ),
+            # Target missing intercept
+            (
+                {
+                    "Choice 0": {"medical": 0.9, "KDMA_A": 0.1},
+                    "Choice 1": {"medical": 0.4, "KDMA_A": 0.9},
+                },
+                None,
+                {
+                    "kdma_values": [
+                        {
+                            "kdma": "KDMA_A",
+                            "value": None,
+                            "parameters": [
+                                {"name": "medical_weight", "value": 0.5},
+                                {"name": "attr_weight", "value": -0.25},
+                            ]
+                        }
+                    ],
+                },
+                None,  # Raise expected so doesn't matter
+                pytest.raises(RuntimeError, match=r"This alignment function requires an intercept, medical weight, and attr weight"),
+            ),
+            # Target missing medical weight
+            (
+                {
+                    "Choice 0": {"medical": 0.9, "KDMA_A": 0.1},
+                    "Choice 1": {"medical": 0.4, "KDMA_A": 0.9},
+                },
+                None,
+                {
+                    "kdma_values": [
+                        {
+                            "kdma": "KDMA_A",
+                            "value": None,
+                            "parameters": [
+                                {"name": "intercept", "value": 0.75},
+                                {"name": "attr_weight", "value": -0.25},
+                            ]
+                        }
+                    ],
+                },
+                None,  # Raise expected so doesn't matter
+                pytest.raises(RuntimeError, match=r"This alignment function requires an intercept, medical weight, and attr weight"),
+            ),
+            # Target missing attr_weight
+            (
+                {
+                    "Choice 0": {"medical": 0.9, "KDMA_A": 0.1},
+                    "Choice 1": {"medical": 0.4, "KDMA_A": 0.9},
+                },
+                None,
+                {
+                    "kdma_values": [
+                        {
+                            "kdma": "KDMA_A",
+                            "value": None,
+                            "parameters": [
+                                {"name": "intercept", "value": 0.75},
+                                {"name": "medical_weight", "value": 0.5},
+                            ]
+                        }
+                    ],
+                },
+                None,  # Raise expected so doesn't matter
+                pytest.raises(RuntimeError, match=r"This alignment function requires an intercept, medical weight, and attr weight"),
+            ),
+            # Multiple KDMAs relevant
+            (
+                {
+                    "Choice 0": {"medical": 0.9, "KDMA_A": 0.1},
+                    "Choice 1": {"medical": 0.4, "KDMA_A": 0.9},
+                },
+                None,
+                {
+                    "kdma_values": [
+                        {
+                            "kdma": "KDMA_A",
+                            "value": None,
+                            "parameters": [
+                                {"name": "intercept", "value": 0.75},
+                                {"name": "medical_weight", "value": 0.5},
+                                {"name": "attr_weight", "value": -0.25},
+                            ]
+                        },
+                        {
+                            "kdma": "KDMA_B",
+                            "value": None,
+                            "parameters": [
+                                {"name": "intercept", "value": 0.75},
+                                {"name": "medical_weight", "value": 0.5},
+                                {"name": "attr_weight", "value": -0.25},
+                            ]
+                        }
+                    ],
+                },
+                None,  # Raise expected so doesn't matter
+                pytest.raises(RuntimeError, match=r"This alignment function can only be used when 1 attribute is relevant"),
+            ),
+            # KDMA not in z-scaling
+            (
+                {
+                    "Treat Patient A": {"medical": 0.998, "merit": 0.0},
+                    "Treat Patient B": {"medical": 0.947, "merit": 0.143},
+                    "Treat Patient C": {"medical": 0.597, "merit": 1.0},
+                },
+                None,
+                {
+                    "kdma_values": [
+                        {
+                            "kdma": "KDMA_A",
+                            "value": None,
+                            "parameters": [
+                                {"name": "intercept", "value": 0.-75},
+                                {"name": "medical_weight", "value": 3.6},
+                                {"name": "attr_weight", "value": 0.26},
+                            ]
+                        },
+                    ],
+                },
+                None,  # Raise expected so doesn't matter
+                pytest.raises(RuntimeError, match=r"No z-scaling values provided for"),
+            ),
+            # Worked example with ADEPT
+            (
+                {
+                    "Treat Patient A": {"medical": 0.998, "affiliation": 0.0},
+                    "Treat Patient B": {"medical": 0.947, "affiliation": 0.143},
+                    "Treat Patient C": {"medical": 0.597, "affiliation": 1.0},
+                    # A_medical = (0.998 – 0.710999)/0.2679443 = 1.07112187122, A_AF = (0 - 0.6889549)/0.3622916 = -1.90165849829
+                    # B_medical = (0.947 – 0.710999)/0.2679443 = 0.88078380469, A_AF = (0.143 - 0.6889549)/0.3622916 = -1.50694882244
+                    # C_medical = (0.597 – 0.710999)/0.2679443 = -0.42545782836, A_AF = (1 - 0.6889549)/0.3622916 = 0.85854902515
+                },
+                None,
+                {
+                    "kdma_values": [
+                        {
+                            "kdma": "KDMA_B",
+                            "value": None,
+                            "parameters": [
+                                {"name": "intercept", "value": -0.75},
+                                {"name": "medical_weight", "value": 3.6},
+                                {"name": "attr_weight", "value": 0.26},
+                            ]
+                        },
+                    ],
+                    # Y_a = -0.75 + 3.6*(1.07112187122--0.42545782836) + 0.26*(-1.90165849829-0.85854902515)=3.92003296239
+                    # Y_b = -0.75 + 3.6*(0.88078380469--0.42545782836) + 0.26*(-1.50694882244-0.85854902515)=3.33744043861
+                    # Y_c = 0
+                },
+                "Treat Patient A",
+                does_not_raise(),
+            ),
+            # Multi-KDMA, should fallback to affiliation
+            (
+                {
+                    "Treat Patient A": {"medical": 0.998, "affiliation": 0.0, "merit": 0.9},
+                    "Treat Patient B": {"medical": 0.947, "affiliation": 0.143, "merit": 0.4},
+                    "Treat Patient C": {"medical": 0.597, "affiliation": 1.0, "merit": 0.1},
+                    # A_medical = (0.998 – 0.710999)/0.2679443 = 1.07112187122, A_AF = (0 - 0.6889549)/0.3622916 = -1.90165849829
+                    # B_medical = (0.947 – 0.710999)/0.2679443 = 0.88078380469, A_AF = (0.143 - 0.6889549)/0.3622916 = -1.50694882244
+                    # C_medical = (0.597 – 0.710999)/0.2679443 = -0.42545782836, A_AF = (1 - 0.6889549)/0.3622916 = 0.85854902515
+                },
+                {
+                    "merit": 0.0,
+                    "affiliation": 1.0
+                },
+                {
+                    "kdma_values": [
+                        {
+                            "kdma": "KDMA_A",
+                            "value": None,
+                            "parameters": [
+                                {"name": "intercept", "value": 0.5},
+                                {"name": "medical_weight", "value": 0.85},
+                                {"name": "attr_weight", "value": -0.3},
+                            ]
+                        },
+                        {
+                            "kdma": "KDMA_B",
+                            "value": None,
+                            "parameters": [
+                                {"name": "intercept", "value": -0.75},
+                                {"name": "medical_weight", "value": 3.6},
+                                {"name": "attr_weight", "value": 0.26},
+                            ]
+                        }
+                    ],
+                    # Y_a = -0.75 + 3.6*(1.07112187122--0.42545782836) + 0.26*(-1.90165849829-0.85854902515)=3.92003296239
+                    # Y_b = -0.75 + 3.6*(0.88078380469--0.42545782836) + 0.26*(-1.50694882244-0.85854902515)=3.33744043861
+                    # Y_c = 0
+                },
+                "Treat Patient A",
+                does_not_raise(),
+            ),
+            # <2 choices
+            (
+                {
+                    "Choice 0": {"medical": 0.1, "affiliation": 0.8},
+                },
+                None,
+                {
+                   "kdma_values":
+                    [
+                        {
+                            "kdma": "KDMA_B",
+                            "value": None,
+                            "parameters": [
+                                {"name": "intercept", "value": 0.75},
+                                {"name": "medical_weight", "value": 0.5},
+                                {"name": "attr_weight", "value": -0.25},
+                            ]
+                        },
+                    ],
+                },
+                "Choice 0",
+                does_not_raise(),
+            ),
+        ],
+        ids=[
+            "no target", "no medical preds", ">3 choices", "target missing parameters", "missing intercept", "missing medical weight",
+            "missing attr weight", "multiple relevant KDMAs", "missing z-scale", "worked example", "multi-kdma", "<2 choices"
+        ],
+    )
+    def test_run(self, attribute_prediction_scores, attribute_relevance, alignment_target, exp_choice, exp_raises):
+        alignment_fn = MultinomialRandomEffectsModelAlignmentADMComponent(
+            TestMultinomialRandomEffectsModelAlignmentADMComponent.attribute_definitions
+        )
+
+        with exp_raises:
+            # Only checking selected choice as best sample index not yet implemented
+            assert alignment_fn.run(attribute_prediction_scores, alignment_target, attribute_relevance)[0] == exp_choice
+
+    @pytest.mark.parametrize(
+        ("p_choices", "attribute_prediction_scores", "alignment_target", "exp_choice"),
+        [
+            # P > 0.5
+            (
+                [0.75, 0.25],
+                {  # Predictions don't matter because we are mocking compute_probabilities
+                    "Choice 0": {"medical": 0.9, "merit": 0.1},
+                    "Choice 1": {"medical": 0.4, "merit": 0.9},
+                },
+                {
+                    "kdma_values": [  # Target doesn't matter because we are mocking compute_probabilities
+                        {
+                            "kdma": "KDMA_A",
+                            "value": None,
+                            "parameters": [
+                                {"name": "intercept", "value": 0.75},
+                                {"name": "medical_weight", "value": 0.5},
+                                {"name": "attr_weight", "value": -0.25},
+                            ]
+                        },
+                    ],
+                },
+                "Choice 0",
+            ),
+            # P == 0.5
+            (
+                [0.5, 0.5],
+                {  # Predictions don't matter because we are mocking compute_probabilities
+                    "Choice 0": {"medical": 0.9, "merit": 0.1},
+                    "Choice 1": {"medical": 0.4, "merit": 0.9},
+                },
+                {
+                    "kdma_values": [  # Target doesn't matter because we are mocking compute_probabilities
+                        {
+                            "kdma": "KDMA_A",
+                            "value": None,
+                            "parameters": [
+                                {"name": "intercept", "value": 0.75},
+                                {"name": "medical_weight", "value": 0.5},
+                                {"name": "attr_weight", "value": -0.25},
+                            ]
+                        },
+                    ],
+                },
+                "Choice 0",
+            ),
+            # P < 0.5
+            (
+                [0.25, 0.75],
+                {  # Predictions don't matter because we are mocking compute_probabilities
+                    "Choice 0": {"medical": 0.9, "merit": 0.1},
+                    "Choice 1": {"medical": 0.4, "merit": 0.9},
+                },
+                {
+                    "kdma_values": [  # Target doesn't matter because we are mocking compute_probabilities
+                        {
+                            "kdma": "KDMA_A",
+                            "value": None,
+                            "parameters": [
+                                {"name": "intercept", "value": 0.75},
+                                {"name": "medical_weight", "value": 0.5},
+                                {"name": "attr_weight", "value": -0.25},
+                            ]
+                        },
+                    ],
+                },
+                "Choice 1",
+            ),
+            # 1 clear winner >0.5
+            (
+                [0.2, 0.1, 0.7],
+                {  # Predictions don't matter because we are mocking compute_probabilities
+                    "Choice 0": {"medical": 0.9, "merit": 0.1},
+                    "Choice 1": {"medical": 0.4, "merit": 0.7},
+                    "Choice 2": {"medical": 0.1, "merit": 0.9},
+                },
+                {
+                    "kdma_values": [  # Target doesn't matter because we are mocking compute_probabilities
+                        {
+                            "kdma": "KDMA_A",
+                            "value": None,
+                            "parameters": [
+                                {"name": "intercept", "value": 0.75},
+                                {"name": "medical_weight", "value": 0.5},
+                                {"name": "attr_weight", "value": -0.25},
+                            ]
+                        },
+                    ],
+                },
+                "Choice 2",
+            ),
+            # All probabilities <0.5
+            (
+                [0.4, 0.25, 0.35],
+                {  # Predictions don't matter because we are mocking compute_probabilities
+                    "Choice 0": {"medical": 0.9, "merit": 0.1},
+                    "Choice 1": {"medical": 0.4, "merit": 0.7},
+                    "Choice 2": {"medical": 0.1, "merit": 0.9},
+                },
+                {
+                    "kdma_values": [  # Target doesn't matter because we are mocking compute_probabilities
+                        {
+                            "kdma": "KDMA_A",
+                            "value": None,
+                            "parameters": [
+                                {"name": "intercept", "value": 0.75},
+                                {"name": "medical_weight", "value": 0.5},
+                                {"name": "attr_weight", "value": -0.25},
+                            ]
+                        },
+                    ],
+                },
+                "Choice 0",
+            ),
+            # Tie, return first max idx
+            (
+                [0.2, 0.4, 0.4],
+                {  # Predictions don't matter because we are mocking compute_probabilities
+                    "Choice 0": {"medical": 0.9, "merit": 0.1},
+                    "Choice 1": {"medical": 0.4, "merit": 0.7},
+                    "Choice 2": {"medical": 0.1, "merit": 0.9},
+                },
+                {
+                    "kdma_values": [  # Target doesn't matter because we are mocking compute_probabilities
+                        {
+                            "kdma": "KDMA_A",
+                            "value": None,
+                            "parameters": [
+                                {"name": "intercept", "value": 0.75},
+                                {"name": "medical_weight", "value": 0.5},
+                                {"name": "attr_weight", "value": -0.25},
+                            ]
+                        },
+                    ],
+                },
+                "Choice 1",
+            ),
+        ]
+    )
+    @mock.patch.object(MultinomialRandomEffectsModelAlignmentADMComponent, "_compute_probabilities")
+    def test_choice_selection(
+        self, mock_compute_probabilities, p_choices, attribute_prediction_scores, alignment_target, exp_choice
+    ):
+        mock_compute_probabilities.return_value = p_choices
+
+        alignment_fn = MultinomialRandomEffectsModelAlignmentADMComponent(
+            TestMultinomialRandomEffectsModelAlignmentADMComponent.attribute_definitions
+        )
+
+        # Only checking selected choice as best sample index not yet implemented
+        assert alignment_fn.run(attribute_prediction_scores, alignment_target)[0] == exp_choice
+
+    @pytest.mark.parametrize(
+        ("kdma", "intercept", "medical_weight", "attr_weight", "attribute_prediction_scores", "exp_value"),
+        [
+            # Worked example with ADEPT
+            (
+                "affiliation", -0.75, 3.6, 0.26,
+                [
+                    {"choice": "Treat Patient A", "medical": 0.998, "affiliation": 0.0},
+                    {"choice": "Treat Patient B", "medical": 0.947, "affiliation": 0.143},
+                    {"choice": "Treat Patient C", "medical": 0.597, "affiliation": 1.0},
+                    # A_medical = (0.998 – 0.710999)/0.2679443 = 1.07112187122, A_AF = (0 - 0.6889549)/0.3622916 = -1.90165849829
+                    # B_medical = (0.947 – 0.710999)/0.2679443 = 0.88078380469, A_AF = (0.143 - 0.6889549)/0.3622916 = -1.50694882244
+                    # C_medical = (0.597 – 0.710999)/0.2679443 = -0.42545782836, A_AF = (1 - 0.6889549)/0.3622916 = 0.85854902515
+                ],
+                # Y_a = -0.75 + 3.6*(1.07112187122--0.42545782836) + 0.26*(-1.90165849829-0.85854902515)=3.92003296239
+                # Y_b = -0.75 + 3.6*(0.88078380469--0.42545782836) + 0.26*(-1.50694882244-0.85854902515)=3.33744043861
+                # Y_c = 0
+                [0.6335974672, 0.35383167979, 0.012570853],
+            ),
+            (
+                "affiliation", -0.75, 3.6, 0.26,
+                [
+                    {"choice": "Treat Patient A", "medical": 0.998, "affiliation": 0.0},
+                    {"choice": "Treat Patient B", "medical": 0.597, "affiliation": 1.0},
+                    # A_medical = (0.998 – 0.589)/0.330 = 1.23939393939, A_AF = (0 - 0.703)/0.365 = -1.92602739726
+                    # B_medical = (0.597 – 0.589)/0.330 = 0.02424242424, A_AF = (1 - 0.703)/0.365 = 0.81369863013
+                ],
+                # Y_a = -0.75 + 3.6*(1.23939393939-0.02424242424) + 0.26*(-1.92602739726-0.81369863013)=2.91221668742
+                # Y_b = 0
+                [0.94844705779, 0.0515529422],
+            ),
+            (
+                "affiliation", -0.75, 3.6, 0.26,
+                [
+                    {"choice": "Treat Patient A", "medical": 0.998, "affiliation": 0.0},
+                ],
+                # Y_a = 0
+                [1.0],
+            )
+        ]
+    )
+    def test_compute_probabilities(self, kdma, intercept, medical_weight, attr_weight, attribute_prediction_scores, exp_value):
+        alignment_fn = MultinomialRandomEffectsModelAlignmentADMComponent(
+            TestMultinomialRandomEffectsModelAlignmentADMComponent.attribute_definitions
+        )
+
+        assert (
+            alignment_fn._compute_probabilities(attribute_prediction_scores, kdma, intercept, medical_weight, attr_weight) ==
+            pytest.approx(exp_value)
+        )
+        assert np.isclose(1, np.sum(exp_value))
