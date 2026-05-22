@@ -1,0 +1,15 @@
+id: Jun2026-SS-4
+kdma_values:
+- kdma: search
+  value: null
+  kdes: null
+  parameters:
+  - name: intercept
+    value: 0.77065
+    type: single
+  - name: attr_weight
+    value: -0.6256
+    type: single
+  - name: medical_weight
+    value: -0.62479
+    type: single
