@@ -1,0 +1,28 @@
+id: Jun2026-AF6-SS2
+kdma_values:
+- kdma: affiliation
+  value: null
+  kdes: null
+  parameters:
+  - name: intercept
+    value: -0.53888
+    type: single
+  - name: attr_weight
+    value: -0.08168
+    type: single
+  - name: medical_weight
+    value: 1.72503
+    type: single
+- kdma: search
+  value: null
+  kdes: null
+  parameters:
+  - name: intercept
+    value: -0.29224
+    type: single
+  - name: attr_weight
+    value: -0.45512
+    type: single
+  - name: medical_weight
+    value: -1.92092
+    type: single
