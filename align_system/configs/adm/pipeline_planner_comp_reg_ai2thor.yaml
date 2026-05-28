@@ -1,0 +1,39 @@
+name: pipeline_planner_comp_reg_ai2thor
+
+defaults:
+  - /attribute@tp: task_progress
+  # Inference engine (shared by proposer and comparative regression)
+  - /inference_engine@structured_inference_engine: ollama_greedy
+  # Templates
+  - /template/scenario_description@scenario_description_template: phase2
+  - /template/prompt@prompt_template: phase2_comparative_regression
+  - /template/output_schema@comparative_regression_choice_schema: ai2thor_comparative_regression_choice
+  # Pipeline steps
+  - /adm_component/misc@step_definitions.proposer: proposer_candidate_generator
+  - /adm_component/misc@step_definitions.format_choices: itm_format_choices
+  - /adm_component/regression@step_definitions.comparative_regression: ai2thor_comparative_zeroshot
+  - /adm_component/alignment@step_definitions.scalar_alignment: argmax
+  - /adm_component/misc@step_definitions.ensure_chosen_action: ensure_chosen_action
+  - /adm_component/misc@step_definitions.populate_choice_info: populate_choice_info
+  - _self_
+
+attribute_definitions:
+  task_progress: ${adm.tp}
+
+step_definitions:
+  proposer:
+    structured_inference_engine: ${ref:adm.structured_inference_engine}
+  comparative_regression:
+    scenario_description_template: ${ref:adm.scenario_description_template}
+    prompt_template: ${ref:adm.prompt_template}
+    score_schema_template: ${adm.comparative_regression_choice_schema}
+
+instance:
+  _target_: align_system.algorithms.pipeline_adm.PipelineADM
+  steps:
+    - ${ref:adm.step_definitions.proposer}
+    - ${ref:adm.step_definitions.format_choices}
+    - ${ref:adm.step_definitions.comparative_regression}
+    - ${ref:adm.step_definitions.scalar_alignment}
+    - ${ref:adm.step_definitions.ensure_chosen_action}
+    - ${ref:adm.step_definitions.populate_choice_info}

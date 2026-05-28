@@ -1,0 +1,4 @@
+_target_: align_system.drivers.ai2thor_driver.AI2ThorDriver
+
+max_steps: 40
+verbose: true

@@ -15,8 +15,8 @@ class EnsureChosenActionADMComponent(ADMComponent):
         return ('chosen_action')
 
     def run(self,
-            choices,
             actions,
+            choices=None,
             chosen_choice=None,
             chosen_action=None,
             justification=None):
@@ -76,8 +76,8 @@ class PopulateChoiceInfo(ADMComponent):
         return 'choice_info'
 
     def run(self,
-            choices,
             actions,
+            choices=None,
             alignment_target=None,
             attribute_prediction_scores=None,
             attribute_relevance=None,
@@ -105,7 +105,7 @@ class PopulateChoiceInfo(ADMComponent):
 
         true_kdma_values = {}
         true_relevance = {}
-        for choice, action in zip(choices, actions):
+        for choice, action in zip(choices or [], actions):
             if action.kdma_association is not None:
                 true_kdma_values[choice] = action.kdma_association
                 for kdma in target_kdmas:
