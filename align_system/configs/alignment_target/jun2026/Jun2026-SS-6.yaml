@@ -5,11 +5,11 @@ kdma_values:
   kdes: null
   parameters:
   - name: intercept
-    value: 1.833539
+    value: 1.0
     type: single
   - name: attr_weight
-    value: -0.79608
+    value: -0.8
     type: single
   - name: medical_weight
-    value: -1.36544
+    value: -1.0
     type: single

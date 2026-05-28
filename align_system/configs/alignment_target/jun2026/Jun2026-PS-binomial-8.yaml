@@ -1,0 +1,15 @@
+id: Jun2026-PS-binomial-8
+kdma_values:
+- kdma: personal_safety
+  value: null
+  kdes: null
+  parameters:
+  - name: intercept
+    value: 1.2
+    type: single
+  - name: attr_weight
+    value: 0.8
+    type: single
+  - name: medical_weight
+    value: 0.8
+    type: single

@@ -1,0 +1,15 @@
+id: Jun2026-AF-trinomial-7
+kdma_values:
+- kdma: affiliation
+  value: null
+  kdes: null
+  parameters:
+  - name: intercept
+    value: -0.3
+    type: single
+  - name: attr_weight
+    value: 1.4
+    type: single
+  - name: medical_weight
+    value: 0.5
+    type: single

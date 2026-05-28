@@ -1,0 +1,15 @@
+id: Jun2026-AF-binomial-5
+kdma_values:
+- kdma: affiliation
+  value: null
+  kdes: null
+  parameters:
+  - name: intercept
+    value: -0.5
+    type: single
+  - name: attr_weight
+    value: 0.7
+    type: single
+  - name: medical_weight
+    value: 0.4
+    type: single
