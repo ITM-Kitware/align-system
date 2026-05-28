@@ -75,3 +75,15 @@ class PipelineADM(ActionBasedADM):
             per_step_timing_stats
 
         return working_output['chosen_action'], working_output
+
+    def reset_history(self) -> None:
+        """Delegate to any pipeline step that maintains its own history."""
+        for step in self.steps:
+            if hasattr(step, 'reset_history'):
+                step.reset_history()
+
+    def update_history(self, chosen_action) -> None:
+        """Delegate to any pipeline step that maintains its own history."""
+        for step in self.steps:
+            if hasattr(step, 'update_history'):
+                step.update_history(chosen_action)

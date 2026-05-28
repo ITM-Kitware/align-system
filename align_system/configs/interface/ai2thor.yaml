@@ -1,0 +1,7 @@
+_target_: align_system.interfaces.ai2thor_interface.AI2ThorInterface
+
+scene: FloorPlan1
+prompts: [fruit]
+save_frames: false
+frame_dir: frames
+starting_point: direct_apple

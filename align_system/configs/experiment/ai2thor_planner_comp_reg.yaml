@@ -1,0 +1,16 @@
+# @package _global_
+defaults:
+  - override /interface: ai2thor
+  - override /adm: pipeline_planner_comp_reg_ai2thor
+  - override /driver: ai2thor
+
+save_input_output: true
+save_timing: true
+save_log: true
+save_raw_log: false
+
+align_to_target: false
+loglevel: INFO
+
+interface:
+  save_frames: true

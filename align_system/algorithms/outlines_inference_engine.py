@@ -73,6 +73,11 @@ class OutlinesTransformersInferenceEngine(StructuredInferenceEngine):
         # newer verion of outlines fixes this issue, but we are blocked with the vllm dependency
         self.model.tokenizer.is_llama = True
 
+        # If generation_kwargs includes temperature, enable sampling in the model's
+        # generation_config so transformers doesn't warn that temperature is invalid.
+        if self.generation_kwargs.get("temperature", 0.0) > 0:
+            self.model.model.generation_config.do_sample = True
+
     def dialog_to_prompt(self, dialog):
         tokenizer = self.model.tokenizer.tokenizer
 
@@ -127,40 +132,96 @@ class OutlinesTransformersInferenceEngine(StructuredInferenceEngine):
             outputs.extend(output)
         return outputs
 
-    def run_inference(self, prompts, schema):
-        json_schema = JsonSchema(schema, whitespace_pattern=r"[ ]?")
+    def _parse_json(self, text: str) -> dict:
+        text = text.strip()
+        if text.startswith("```"):
+            parts = text.split("```")
+            if len(parts) >= 3:
+                text = parts[1].strip()
+        i = text.find("{")
+        j = text.rfind("}")
+        if i != -1 and j > i:
+            text = text[i:j + 1]
+        return json.loads(text)
 
-        generator = outlines.Generator(self.model, json_schema)
+    def _prompt_based_inference(self, prompts, schema) -> list[dict]:
+        """Fallback: append schema as a prompt hint and parse free-text output."""
+        schema_instruction = (
+            "\n\nRespond with ONLY valid JSON matching this example "
+            "(no prose, no markdown fences):\n" + schema
+        )
+        if isinstance(prompts, str):
+            prompts = [prompts]
+        generator = outlines.Generator(self.model)
+        results = []
+        for prompt in prompts:
+            raw = generator(
+                prompt + schema_instruction,
+                max_new_tokens=self.max_generator_tokens,
+                **self.generation_kwargs,
+            )
+            try:
+                results.append(self._parse_json(raw))
+            except Exception:
+                results.append({})
+        return results
+
+    def run_inference(self, prompts, schema, temperature: float = None):
+        json_schema = JsonSchema(schema, whitespace_pattern=r"[ ]?")
+        try:
+            generator = outlines.Generator(self.model, json_schema)
+        except (ValueError, Exception):
+            # schema is a JSON example/template rather than a proper JSON
+            # Schema — fall back to prompt-based generation + parsing
+            return self._prompt_based_inference(prompts, schema)
+
+        gen_kwargs = dict(self.generation_kwargs)
+        if temperature is not None:
+            gen_kwargs["temperature"] = temperature
+            gen_kwargs["do_sample"] = True
+
         if isinstance(prompts, str):
             output = generator(
                 prompts,
                 max_new_tokens=self.max_generator_tokens,
-                **self.generation_kwargs,
+                **gen_kwargs,
             )
-            return json.loads(output)
+            try:
+                return json.loads(output)
+            except json.JSONDecodeError as e:
+                raise RuntimeError(
+                    f"Failed to parse structured generation output as JSON "
+                    f"(output may be truncated; consider increasing "
+                    f"max_generator_tokens above {self.max_generator_tokens}). "
+                    f"Raw output: {output!r}. Original error: {e}"
+                ) from e
         elif isinstance(prompts, Iterable):
             output = self.run_in_batches(
                 generator.batch,
                 prompts,
                 self.inference_batch_size,
                 self.max_generator_tokens,
-                **self.generation_kwargs,
+                **gen_kwargs,
             )
-            return [json.loads(r) for r in output]
+            try:
+                return [json.loads(r) for r in output]
+            except json.JSONDecodeError as e:
+                raise RuntimeError(
+                    f"Failed to parse structured generation output as JSON "
+                    f"(output may be truncated; consider increasing "
+                    f"max_generator_tokens above {self.max_generator_tokens}). "
+                    f"Raw output: {output!r}. Original error: {e}"
+                ) from e
         else:
             raise TypeError(
                 "Don't know how to run inference on provided `prompts` object"
             )
 
     def run_inference_unstructured(self, prompts):
-        generator = outlines.generate.regex(
-            self.model,
-            r".*",  # "allow anything" regex
-            **self.generation_kwargs,
-        )
+        generator = outlines.Generator(self.model)
 
         if isinstance(prompts, str):
-            return generator(prompts, self.max_generator_tokens)
+            return generator(prompts, max_new_tokens=self.max_generator_tokens, **self.generation_kwargs)
         elif isinstance(prompts, Iterable):
             return self.run_in_batches(
                 generator, prompts, self.inference_batch_size, self.max_generator_tokens

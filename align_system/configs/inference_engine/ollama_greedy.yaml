@@ -1,0 +1,6 @@
+_target_: align_system.algorithms.ollama_inference_engine.OllamaInferenceEngine
+
+model: gpt-oss:20b
+temperature: 0.0
+num_ctx: 8192
+json_repair_attempts: 2
