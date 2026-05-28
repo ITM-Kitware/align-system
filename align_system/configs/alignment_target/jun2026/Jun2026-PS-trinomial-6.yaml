@@ -1,0 +1,15 @@
+id: Jun2026-PS-trinomial-6
+kdma_values:
+- kdma: personal_safety
+  value: null
+  kdes: null
+  parameters:
+  - name: intercept
+    value: 0.9
+    type: single
+  - name: attr_weight
+    value: 1.2
+    type: single
+  - name: medical_weight
+    value: 1.1
+    type: single
