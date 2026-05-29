@@ -8,8 +8,8 @@ kdma_values:
     value: -1.6
     type: single
   - name: attr_weight
-    value: 1.4
+    value: 1.5
     type: single
   - name: medical_weight
-    value: 1.5
+    value: 1.4
     type: single
