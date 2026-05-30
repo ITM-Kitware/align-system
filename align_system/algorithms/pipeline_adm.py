@@ -1,4 +1,5 @@
-from collections.abc import Iterable, deque
+from collections import deque
+from collections.abc import Iterable
 from timeit import default_timer as timer
 
 from align_system.algorithms.abstracts import ActionBasedADM, ADMComponent
@@ -27,6 +28,7 @@ class PipelineADM(ActionBasedADM):
         per_step_timing_stats = []
 
         for i, step in enumerate(self.steps):
+            # import web_pdb; web_pdb.set_trace()
             step_returns = step.run_returns()
 
             start_time = timer()
