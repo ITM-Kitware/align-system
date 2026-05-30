@@ -1,0 +1,18 @@
+# @package _global_
+defaults:
+  - override /adm: open_world_dialog
+  - override /driver: itm_phase2_openworld
+  - override /interface: input_output_file
+
+interface:
+  input_output_filepath: scripts/statefulness_poc/custom_input_output.json
+  state_hydration_domain: open_world
+
+align_to_target: false
+
+adm:
+  step_definitions:
+    dialog_builder:
+      system_prompt_template: null
+      output_schema_template:
+        _target_: align_system.prompt_engineering.outlines_prompts.StructuredOutputChoiceSelectionSchema

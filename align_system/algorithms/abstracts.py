@@ -13,6 +13,8 @@ class ActionBasedADM(ABC):
                       **kwargs) -> Union[Action, tuple[Action, dict]]:
         pass
 
+    def reset_history(self):
+        pass
 
 class StructuredInferenceEngine(ABC):
     @abstractmethod
@@ -37,4 +39,7 @@ class ADMComponent(ABC):
         This method should return string identifiers for each of the
         returns expect from the `run` method
         '''
+        pass
+
+    def reset_history(self):
         pass

@@ -293,7 +293,25 @@ def action_selection_prompt(situation, choices):
     - {{ choice }}
     {% endfor %}
     """
+@compat_outlines_prompt
+def action_selection_prompt_open_world(situation, choices, actions):
+    """
+    {{ situation }}
 
+    Previously you took the following actions in this order, do not repeat actions:
+    {% for action in actions %}
+    - {{ action }}
+    {% endfor %}
+
+    Note: If you have provided a treatment action for a certain patient, consider that patient to be \
+    stabilized and you can choose to move on to other patients.
+
+    Given the following possible actions as well as your previous actions, please provide a detailed \
+    reasoning for what action you would take:
+    {% for choice in choices %}
+    - {{ choice }}
+    {% endfor %}
+    """
 
 @compat_outlines_prompt
 def detailed_unstructured_generic_action_text(action, character_id_to_name):
@@ -1144,14 +1162,40 @@ class DefaultITMScenarioDescription():
 
 
 class DefaultITMPrompt():
-    def __call__(self, scenario_description, choices):
-        return action_selection_prompt(scenario_description, choices)
+    def __call__(self, scenario_description, choices, actions=None):
+        if actions is None:
+            return action_selection_prompt(scenario_description, choices)
+        else:
+            return action_selection_prompt_open_world(scenario_description, choices, actions)
 
 
 class DefaultChoiceSelectionSchema():
     def __call__(self, choices, reasoning_max_length=512):
-        return action_choice_json_schema(
+        return  (
             json.dumps(choices), reasoning_max_length)
+
+
+class StructuredOutputChoiceSelectionSchema():
+    """JSON Schema for structured-output inference engines (e.g. Claude).
+
+    Returns a JSON Schema string (not an outlines-style tuple) describing an
+    object with an `action_choice` enum and a `detailed_reasoning` string.
+    """
+    def __call__(self, choices):
+        schema = {
+            "type": "object",
+            "properties": {
+                "action_choice": {
+                    "type": "string",
+                    "enum": choices,
+                },
+                "detailed_reasoning": {
+                    "type": "string",
+                },
+            },
+            "required": ["action_choice", "detailed_reasoning"],
+        }
+        return json.dumps(schema)
 
 
 class DefaultITMBaselineSystemPrompt():

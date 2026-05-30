@@ -1,0 +1,31 @@
+name: open_world_dialog
+
+defaults:
+  # - /inference_engine@structured_inference_engine: claude_haiku
+  # - /inference_engine@structured_inference_engine: outlines_structured_greedy
+  - /inference_engine@structured_inference_engine: outlines_structured_multinomial
+  - /adm_component/misc@step_definitions.format_choices: itm_format_choices
+  - /adm_component/history@step_definitions.dialog_builder: dialog_builder
+  - /adm_component/misc@step_definitions.ensure_chosen_action: ensure_chosen_action
+  - /adm_component/misc@step_definitions.populate_choice_info: populate_choice_info
+  - _self_
+
+
+
+
+# structured_inference_engine:
+#   model_name: deepseek-ai/DeepSeek-R1-Distill-Qwen-7B
+# structured_inference_engine:
+#   _target_: align_system.algorithms.outlines_inference_engine.SpectrumTunedInferenceEngine
+#   model_name: tsor13/spectrum-Qwen3-14B-v1
+structured_inference_engine:
+  _target_: align_system.algorithms.outlines_inference_engine.SpectrumTunedInferenceEngine
+  model_name: tsor13/spectrum-Llama-3.1-8B-v1
+
+instance:
+  _target_: align_system.algorithms.pipeline_adm.PipelineADM
+  steps:
+    - ${ref:adm.step_definitions.format_choices}
+    - ${ref:adm.step_definitions.dialog_builder}
+    - ${ref:adm.step_definitions.ensure_chosen_action}
+    - ${ref:adm.step_definitions.populate_choice_info}
