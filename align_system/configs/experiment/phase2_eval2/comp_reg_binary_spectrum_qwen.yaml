@@ -23,11 +23,11 @@ adm:
           number: 20
           leave_one_out_strategy: 'scenario_description' # LOO - Remove for eval
           datasets:
-            medical: /data/shared/samba/phase2_icl/Jun2026-MU-train_20260522.json
-            affiliation: /data/shared/samba/phase2_icl/Jun2026-AF-train_20260522.json
-            merit: /data/shared/samba/phase2_icl/Jun2026-MF-train_20260522.json
-            personal_safety: /data/shared/samba/phase2_icl/Jun2026-PS-train_20260522.json
-            search: /data/shared/samba/phase2_icl/Jun2026-SS-train_20260522.json
+            medical: /data/shared/samba/phase2_icl/Jun2026-MU-train_20260529.json
+            affiliation: /data/shared/samba/phase2_icl/Jun2026-AF-train_20260529.json
+            merit: /data/shared/samba/phase2_icl/Jun2026-MF-train_20260529.json
+            personal_safety: /data/shared/samba/phase2_icl/Jun2026-PS-train_20260529.json
+            search: /data/shared/samba/phase2_icl/Jun2026-SS-train_20260529.json
 
     comparative_regression:
       enable_caching: true
