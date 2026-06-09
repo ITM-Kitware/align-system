@@ -572,7 +572,7 @@ class MultinomialRandomEffectsModelAlignmentADMComponent(RandomEffectsModelAlign
 
             alignment_info = {
                 "source": type(self).__name__,
-                "p_choices": p_choices,
+                "p_choices": p_choices.tolist(),
             }
 
             max_idx = np.argmax(p_choices)

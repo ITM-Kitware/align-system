@@ -1216,6 +1216,22 @@ class Phase2ScenarioDescription():
 
 
 @compat_outlines_prompt
+def phase2_scenario_state_description_w_casualty_info(scenario_state):
+    """
+    {{ scenario_state.unstructured.rstrip() }}
+
+    Casualties:
+    {% for c in scenario_state.characters %}
+    - {{ c.name }}: {{ c.unstructured }}
+    {% endfor %}
+    """
+
+class Phase2ScenarioDescriptionWCasualtyInfo():
+    def __call__(self, scenario_state):
+        return phase2_scenario_state_description_w_casualty_info(scenario_state)
+
+
+@compat_outlines_prompt
 def phase2_baseline_prompt(scenario_description, choices):
     """
     Scenario:

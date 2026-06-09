@@ -1,0 +1,37 @@
+# @package _global_
+defaults:
+  - override /adm: phase2_pipeline_fewshot_comparative_regression_bert_relevance
+  - override /interface: ta3
+  - override /adm_component/alignment@adm.step_definitions.scalar_alignment: multinomial_random_effects_tuple
+  - override /template/scenario_description@adm.scenario_description_template: phase2_w_casualty_info
+  - override /driver: itm_phase2_ow
+
+interface:
+  api_endpoint: 'http://127.0.0.1:8081'
+  session_type: eval
+  training_session: null
+  username: "testrun-ALIGN-ADM-Ph2-ComparativeRegression-BertRelevance-Mistral-7B-Instruct-v0.3"
+  domain: "p2triage"
+
+adm:
+  step_definitions:
+    regression_icl:
+      icl_generator_partial:
+        incontext_settings:
+          number: 20
+          datasets:
+            medical: /data/shared/samba/phase2_icl/Feb2026-MU-train_20251218.json
+            affiliation: /data/shared/samba/phase2_icl/Feb2026-AF-train_20251218.json
+            merit: /data/shared/samba/phase2_icl/Feb2026-MF-train_20251218.json
+            personal_safety: /data/shared/samba/phase2_icl/Feb2026-PS-train_20251218.json
+            search: /data/shared/samba/phase2_icl/Feb2026-SS-train_20251218.json
+      enable_caching: true
+    comparative_regression:
+      enable_caching: true
+
+driver:
+  expand_actions: true
+  apply_action_filtering: true
+  
+force_determinism: true
+align_to_target: true
