@@ -67,6 +67,9 @@ class RandomParameterCompletionADMComponent(ADMComponent):
 
         # Action requires an aid ID
         elif chosen_action.action_type == ActionTypeEnum.MOVE_TO_EVAC:
+            if chosen_action.parameters is None:
+                chosen_action.parameters = {}
+
             if "aid_id" not in chosen_action.parameters:
                 chosen_action.parameters["aid_id"] = random.choice([
                     aid.id
@@ -74,6 +77,44 @@ class RandomParameterCompletionADMComponent(ADMComponent):
                 ])
 
         # Required since Dry Run Evaluation
+        chosen_action.justification = "Random choice"
+
+        return chosen_action
+
+
+class OWRandomParameterCompletionADMComponent(ADMComponent):
+    def run_returns(self):
+        return 'chosen_action'
+
+    def run(self,
+            scenario_state,
+            choices,
+            actions,
+            chosen_choice,
+            chosen_action=None):
+        if chosen_action is None:
+            chosen_choice_idx = choices.index(chosen_choice)
+            chosen_action = actions[chosen_choice_idx]
+
+        # Action requires a character ID
+        if chosen_action.action_type in {'TREAT_PATIENT',
+                                         ActionTypeEnum.MOVE_TO_EVAC,
+                                         ActionTypeEnum.TAG_CHARACTER}:
+            if chosen_action.character_id is None:
+                chosen_action.character_id = random.choice([
+                    c.id
+                    for c in scenario_state.characters
+                    if hasattr(c, "unseen") and not c.unseen
+                ])
+
+        if chosen_action.action_type == ActionTypeEnum.TAG_CHARACTER:
+            if chosen_action.parameters is None:
+                chosen_action.parameters = {}
+
+            if 'category' not in chosen_action.parameters:
+                chosen_action.parameters['category'] = random.choice(
+                    get_swagger_class_enum_values(CharacterTagEnum))
+
         chosen_action.justification = "Random choice"
 
         return chosen_action
