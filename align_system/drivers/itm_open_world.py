@@ -10,31 +10,57 @@ from omegaconf import DictConfig, OmegaConf
 from swagger_client.models import ActionTypeEnum
 from timeit import default_timer as timer
 
+from align_system.utils import get_swagger_class_enum_values
 from align_system.utils import logging
 from align_system.utils.version import get_version
 from align_system.exceptions import SceneSkipException
+from align_system.data_models.compat.ta3_ph1_client_models import (
+    CharacterTagEnum)
+
 
 log = logging.getLogger(__name__)
 JSON_HIGHLIGHTER = JSONHighlighter()
 
+DEFAULT_TAGS = get_swagger_class_enum_values(CharacterTagEnum)
 
 class ITMOpenWorldDriver:
     def __init__(self,
                 apply_action_filtering=True,
+                expand_actions=False,
                 sort_available_actions=False):
         self.apply_action_filtering = apply_action_filtering
+        self.expand_actions = expand_actions
         self.sort_available_actions = sort_available_actions
 
-    def _expand_action_by_character(self, action, characters, restricted_character_ids):
+    def _expand_action_by_character(self, action, characters):
         expanded_actions = []
 
         for character in characters:
-            if character.id in restricted_character_ids:
-                continue
-
             new_action = deepcopy(action)
             new_action.character_id = character.id
             new_action.unstructured = re.sub(r"(a )?Patient", character.name, action.unstructured)
+
+            expanded_actions.append(new_action)
+
+        return expanded_actions
+
+    def _expand_action_by_tag(self, action, possible_tags=DEFAULT_TAGS):
+        assert action.action_type == ActionTypeEnum.TAG_CHARACTER
+
+        expanded_actions = []
+
+        for tag in possible_tags:
+            new_action = deepcopy(action)
+            if new_action.parameters is None:
+                new_action.parameters = {}
+
+            new_action.parameters['category'] = tag
+            if re.match(r'^[aeiou]', tag, re.I):
+                prefix = "an"
+            else:
+                prefix = "a"
+
+            new_action.unstructured = re.sub(r"a triage tag", f"{prefix} {tag} triage tag", action.unstructured)
 
             expanded_actions.append(new_action)
 
@@ -148,8 +174,8 @@ class ITMOpenWorldDriver:
 
             last_scene_id = None
 
-            treated_patients = []
-            evac_patients = []
+            treated_patients = set()
+            evac_patients = set()
 
             while not scenario_complete:
                 current_scene_id = current_state.meta_info.scene_id
@@ -170,47 +196,80 @@ class ITMOpenWorldDriver:
                 log.debug(json.dumps([a.to_dict() if hasattr(a, "to_dict") else a._asdict() for a in available_actions], indent=4),
                           extra={"highlighter": JSON_HIGHLIGHTER})
 
+                if not self.expand_actions:
+                    available_actions_expanded = available_actions
+                if self.expand_actions:
+                    available_actions_expanded = []
+                    for idx, a in enumerate(available_actions):
+                        if a.action_type == ActionTypeEnum.TAG_CHARACTER:
+                            # Expanding twice here, once for
+                            # characters, and again for possible tags
+                            for char_expanded_action in self._expand_action_by_character(
+                                    action=a,
+                                    characters=current_state.characters):
+                                available_actions_expanded.extend(self._expand_action_by_tag(
+                                    action=char_expanded_action))
+
+                        elif a.action_type == ActionTypeEnum.TREAT_PATIENT:
+                            available_actions_expanded.extend(self._expand_action_by_character(
+                                action=a,
+                                characters=current_state.characters
+                            ))
+
+
+                        elif a.action_type == ActionTypeEnum.MOVE_TO_EVAC:
+                            available_actions_expanded.extend(self._expand_action_by_character(
+                                action=a,
+                                characters=current_state.characters
+                            ))
+
+                        else:
+                            available_actions_expanded.append(a)
+
+                    log.debug("[bold]*AVAILABLE ACTIONS EXPANDED*[/bold]",
+                              extra={"markup": True})
+                    log.debug(json.dumps([a.to_dict() if hasattr(a, "to_dict") else a._asdict() for a in available_actions_expanded], indent=4),
+                              extra={"highlighter": JSON_HIGHLIGHTER})
+
+
                 if not self.apply_action_filtering:
-                    available_actions_filtered = available_actions
+                    available_actions_filtered = available_actions_expanded
                 else:
                     available_actions_filtered = []
                     end_scene_idx = None
-                    for idx, a in enumerate(available_actions):
+
+                    untagged_characters = {c.id for c in current_state.characters
+                                           if c.tag is None and not c.unseen}
+                    # HACK: Current TA3 server doesn't track what
+                    # patients have been treated or evac'd (via
+                    # c.unseen, or any other means); need to track it
+                    # manually
+                    # treatable_patients = {c.id for c in current_state.characters if not c.unseen}
+                    # evacable_patients = {c.id for c in current_state.characters if not c.unseen}
+                    treatable_patients = {c.id for c in current_state.characters if c.id not in treated_patients}
+                    evacable_patients = {c.id for c in current_state.characters if c.id not in evac_patients}
+
+                    for idx, a in enumerate(available_actions_expanded):
                         if a.action_type == ActionTypeEnum.END_SCENE:
                             # We want to restrict end scene until all characters have been treated
                             end_scene_idx = idx
                             continue
 
-                        if a.action_type == ActionTypeEnum.TAG_CHARACTER:
+                        elif a.action_type == ActionTypeEnum.TAG_CHARACTER:
                             # Don't let ADM choose to tag a character unless there are
                             # still untagged characters
-                            untagged_characters = [c for c in current_state.characters
-                                                if c.tag is None and not c.unseen]
+                            if a.character_id not in untagged_characters:
+                                continue
 
-                            available_actions_filtered.extend(self._expand_action_by_character(
-                                action=a,
-                                characters=untagged_characters,
-                                restricted_character_ids=[],
-                            ))
+                        elif a.action_type == ActionTypeEnum.TREAT_PATIENT:
+                            if a.character_id not in treatable_patients:
+                                continue
 
-                        if a.action_type == ActionTypeEnum.TREAT_PATIENT:
-                            treatable_patients = [c for c in current_state.characters if not c.unseen]
+                        elif a.action_type == ActionTypeEnum.MOVE_TO_EVAC:
+                            if a.character_id not in evacable_patients:
+                                continue
 
-                            available_actions_filtered.extend(self._expand_action_by_character(
-                                action=a,
-                                characters=treatable_patients,
-                                restricted_character_ids=treated_patients,
-                            ))
-
-
-                        if a.action_type == ActionTypeEnum.MOVE_TO_EVAC:
-                            evacable_patients = [c for c in current_state.characters if not c.unseen]
-
-                            available_actions_filtered.extend(self._expand_action_by_character(
-                                action=a,
-                                characters=evacable_patients,
-                                restricted_character_ids=evac_patients,
-                            ))
+                        available_actions_filtered.append(a)
 
                 if len(available_actions_filtered) == 0:
                     if end_scene_idx is not None:  # All patients have been tagged and treated
@@ -219,10 +278,6 @@ class ITMOpenWorldDriver:
                         action_to_take.justification = "All patients have been tagged and treated"
                     else:
                         raise RuntimeError("No available actions from filtered list!")
-                elif len(available_actions_filtered) == 1:
-                    log.info("** Choosing only available (filtered) action")
-                    action_to_take = available_actions_filtered[0]
-                    action_to_take.justification = "Only available (filtered) action"
                 else:
                     start_choose_action = timer()
 
@@ -314,10 +369,10 @@ class ITMOpenWorldDriver:
 
                 # If we treated a patient, record that treatment so we can ensure we treat everyone
                 if action_to_take.action_type == ActionTypeEnum.TREAT_PATIENT:
-                    treated_patients.append(action_to_take.character_id)
+                    treated_patients.add(action_to_take.character_id)
                 # If we evaced a patient, record that so we don't try to evac them again
                 if action_to_take.action_type == ActionTypeEnum.MOVE_TO_EVAC:
-                    evac_patients.append(action_to_take.character_id)
+                    evac_patients.add(action_to_take.character_id)
 
                 scenario_complete = current_state.scenario_complete
 
