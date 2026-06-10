@@ -6,6 +6,8 @@ inference_kwargs:
   incontext:
     number: 5
     method: prompt_bert_similarity
+    bert_scorer_device: auto
+    cache_bert_scorer: true
     leave_one_out_strategy: null
     normalization: globalnorm
     datasets:
