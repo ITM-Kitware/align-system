@@ -8,7 +8,7 @@ interface:
   api_endpoint: "https://darpaitm.caci.com"
   session_type: eval
   training_session: null
-  username: "ALIGN-ADM-Ph2-DirectRegression-BertRelevance-DeepSeek-R1-Distill-Llama-8B"
+  username: "ALIGN-ADM-Ph2-DirectRegression-BertRelevance-Mistral-7B-Instruct-v0.3"
   domain: "p2triage"
 
 adm:
