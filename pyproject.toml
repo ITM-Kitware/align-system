@@ -40,7 +40,7 @@ run_align_system = 'align_system.cli.run_align_system:main'
 
 
 [tool.poetry.group.cage.dependencies]
-cyborg = {path = "../cage-challenge-1/CybORG", develop = true}
+cyborg = {path = "../cage-challenge-2/CybORG", develop = true}
 
 [build-system]
 requires = ["poetry-core"]
