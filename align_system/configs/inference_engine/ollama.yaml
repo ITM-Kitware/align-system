@@ -1,0 +1,12 @@
+_target_: align_system.algorithms.ollama_inference_engine.OllamaInferenceEngine
+
+model_name: gemma4:latest
+host: http://localhost:11434
+temperature: 0.0
+top_p: 1.0
+max_tokens: 8192
+max_retries: 3
+# num_ctx controls the KV cache size. The native Ollama client (unlike the
+# OpenAI-compatible endpoint) actually applies this per-request, so set it
+# large enough for fewshot prompts. Override per-experiment as needed.
+num_ctx: 16384
