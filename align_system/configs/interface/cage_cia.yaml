@@ -1,2 +1,2 @@
-_target_: align_system.interfaces.cia_cage_service.CAGEActionBasedServiceInterface
+_target_: align_system.interfaces.cia_cage2_service.CAGEActionBasedServiceInterface
 

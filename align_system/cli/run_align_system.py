@@ -13,9 +13,31 @@ from timeit import default_timer as timer
 
 from align_system.utils import logging
 from align_system.utils.hydra_utils import initialize_with_custom_references
-
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
 log = logging.getLogger(__name__)
 JSON_HIGHLIGHTER = JSONHighlighter()
+
+
+def plot_mean_with_smoothing(ax, runs, color, label, window=5, no_bounds=False):
+    runs = np.array(runs)
+    mean = runs.mean(axis=0)
+    # Compute SEM from raw runs
+    std = runs.std(axis=0, ddof=1)  # sample std
+    std = std / np.sqrt(runs.shape[0]) 
+    
+    x = np.arange(len(mean))
+    
+    mean_smooth = pd.Series(mean).rolling(window, min_periods=1).mean()
+    
+    if no_bounds:
+        lower = mean_smooth - std
+    else:
+        lower = np.maximum(mean_smooth - std, 0)  # std from raw runs
+    upper = mean_smooth + std
+    ax.plot(x, mean_smooth, color=color)
+    ax.fill_between(x, lower, upper, color=color, alpha=0.2)
 
 
 @hydra.main(version_base=None,
@@ -149,7 +171,10 @@ def main(cfg: DictConfig) -> None:
             "max_time_s": max(times_s) if n_times else 0.,
             "raw_times_s": times_s
         }
+    
+    fig, axs = plt.subplots(1, 4, figsize=(15, 4))
 
+    rewards, confidentiality, integrity, availability = [], [], [], []
 
     # Loop through available scenarios
     while scenario := interface.start_scenario():
@@ -198,7 +223,9 @@ def main(cfg: DictConfig) -> None:
         sce_times_s = []
 
         last_scene_id = None
+        sum_rewards = 0
 
+        ep_rewards, ep_confidentiality, ep_integrity, ep_availability = [], [], [], []
         while not scenario_complete:
             current_scene_id = current_state.meta_info.scene_id
             if last_scene_id != current_scene_id:
@@ -392,6 +419,15 @@ def main(cfg: DictConfig) -> None:
                 log.info(action_to_take)
                 raise e
 
+            sum_rewards += scenario.reward
+            log.info("*Reward*: {}".format(scenario.reward))
+            log.info("*CIA Scores*: {}".format(scenario.cia_scores))
+
+            ep_rewards.append(scenario.reward)
+            ep_confidentiality.append(scenario.cia_scores[0])
+            ep_integrity.append(scenario.cia_scores[1])
+            ep_availability.append(scenario.cia_scores[2])
+
             # Check that the scenario state has really changed
             # Want to restrict actions that have already been taken that
             # didn't change the state
@@ -431,6 +467,13 @@ def main(cfg: DictConfig) -> None:
                     with open(final_scenario_state_output_path, "w") as f:
                         print(current_state.unstructured, file=f)
 
+        log.info("*Sum of rewards in episode*: {}".format(sum_rewards))
+
+        rewards.append(np.array(ep_rewards))
+        confidentiality.append(np.array(ep_confidentiality))
+        integrity.append(np.array(ep_integrity))
+        availability.append(np.array(ep_availability))
+
         if save_timing_to_path is not None:
             action_times["scenarios"].append(_compute_time_stats(sce_times_s))
 
@@ -457,6 +500,27 @@ def main(cfg: DictConfig) -> None:
                          extra={"markup": True})
                 log.info(json.dumps(session_alignment_dict, indent=4),
                          extra={"highlighter": JSON_HIGHLIGHTER})
+
+
+    plot_mean_with_smoothing(axs[0], confidentiality, "purple", "Confidentiality")
+    plot_mean_with_smoothing(axs[1], integrity, "purple", "Integrity")
+    plot_mean_with_smoothing(axs[2], availability, "purple", "Availability")
+    # plot_mean_with_smoothing(axs[3], resiliences, "blue", "Resilience")
+    plot_mean_with_smoothing(axs[3], rewards, "green", "Reward", no_bounds=True)
+
+    axs[0].set_title("Confidentiality Drop")
+    axs[0].invert_yaxis()
+    axs[1].set_title("Integrity Drop")
+    axs[1].invert_yaxis()
+    axs[2].set_title("Availability Drop")
+    axs[2].invert_yaxis()
+    # axs[3].set_title("Resilience Drop")
+    # axs[3].invert_yaxis()
+    axs[3].set_title("CAGE Reward")
+    fig.text(0.5, 0.04, "Game Step", ha="center")
+    fig.text(0.04, 0.5, "Score", va="center", rotation="vertical")
+    plt.tight_layout(rect=[0.05, 0.05, 1, 1])
+    plt.savefig(os.path.join(output_dir, "Metrics.png"))
 
     if save_timing_to_path is not None:
         all_times = []

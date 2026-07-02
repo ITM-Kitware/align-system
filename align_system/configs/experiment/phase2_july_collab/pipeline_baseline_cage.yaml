@@ -6,6 +6,8 @@ defaults:
 
 
 adm:
+  structured_inference_engine:
+    model_name: fdtn-ai/Foundation-Sec-8B-Instruct
   step_definitions:
     format_choices:
       _target_: align_system.algorithms.misc_itm_adm_components.CAGEITMFormatChoicesADMComponent
@@ -35,5 +37,5 @@ apply_action_filtering: false
 save_scoring_output: true
 
 force_determinism: true
-align_to_target: true
+align_to_target: false
 sort_available_actions: false
