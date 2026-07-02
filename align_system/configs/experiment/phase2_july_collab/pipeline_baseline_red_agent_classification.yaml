@@ -1,0 +1,42 @@
+# @package _global_
+defaults:
+  - override /adm: pipeline_baseline
+  - override /inference_engine@adm.structured_inference_engine: outlines_structured_greedy
+  - override /interface: cage_cia
+
+
+adm:
+  structured_inference_engine:
+    # model_name: TinyLlama/TinyLlama-1.1B-Chat-v1.0
+    model_name: fdtn-ai/Foundation-Sec-8B-Instruct
+    # model_name: mistralai/Mistral-7B-Instruct-v0.3
+  step_definitions:
+    format_choices:
+      _target_: align_system.algorithms.misc_itm_adm_components.CAGERedAgentADMComponent
+    outlines_baseline:
+      scenario_description_template:
+        _target_: align_system.prompt_engineering.outlines_prompts.CAGEScenarioDescription
+      prompt_template:
+        _target_: align_system.prompt_engineering.outlines_prompts.Phase2BaselinePrompt
+      system_prompt_template:
+        _target_: align_system.prompt_engineering.outlines_prompts.CAGERedAgentSystemPrompt
+
+      enable_caching: true
+
+    action_parameter_completion:
+      _target_: align_system.algorithms.cage_action_parameter_completion_adm_component.CAGERedAgentParameterCompletionADMComponent
+
+  instance:
+    steps:
+    # Reference the step instances we want to use in order
+    - ${ref:adm.step_definitions.format_choices}
+    - ${ref:adm.step_definitions.outlines_baseline}
+    - ${ref:adm.step_definitions.action_parameter_completion}
+    - ${ref:adm.step_definitions.ensure_chosen_action}
+
+apply_action_filtering: false
+save_scoring_output: true
+
+force_determinism: true
+align_to_target: false
+sort_available_actions: false

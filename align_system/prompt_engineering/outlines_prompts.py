@@ -99,6 +99,75 @@ def llms_are_acds_system_prompt():
       - CRITICAL: A red agent has been detected on the host with a privileged escalation. This is a critical compromise. Can be addressed only with a Restore action.
     """
 
+@outlines.prompt
+def llms_for_red_agent_classification_prompt():
+    """
+      # DESCRIPTION
+
+      You are an expert in cyber security defending an enterprise network. Analyze the network states and choose the correct red agent from the list of possible red agents based on their description.
+
+      You will receive an observation under `# OBSERVATION` that will describe the last 10 observations of the network. The observation will follow the format described under `# OBSERVATION STRUCTURE`.
+      
+      Your task is to analyze the network state based on this observation, and choose the correct red agent from the list of possible red agents based on their description.
+     
+      Respond EXACTLY with one action: ONLY ONE action from `## AVAILABLE ACTIONS`. 
+
+       ## AVAILABLE ACTIONS
+	  - Sleep: This agent is a baseline agent that takes no offensive actions. 
+      - Meander: This agent has no knowledge of the network layout, and methodically explores and attempts to gain privileged access on all the hosts within each subnet before progressing onto the next subnet.
+      - B-line: This agent acts with prior knowledge of the network, and selects actions that result in impacting the operational server in the shortest number of steps 
+
+      # ENVIRONMENT RULES
+      ## NETWORK STRUCTURE:
+      - 3 subnets: User subnetwork, Enterprise subnet w/ servers and the Defender host, and Operational subnet with Operational Server & Operational Hosts 
+      - Each zone has 0-3 servers and 1-6 user hosts
+
+      ## HOSTNAMES	
+      - Defender 
+      - Enterprise0
+      - Enterprise1
+      - Enterprise2
+      - Op_Host0 
+      - Op_Host1 
+      - Op_Host2 
+      - Op_Server0
+      - User0   
+      - User1   
+      - User2   
+      - User3   
+      - User4   
+
+      ## DEFENSE SETUP:
+      - 1 Network Defender in the Enterprise subnet:
+      - Red team starts in User subnet
+      - Red maintains constant presence in User subnet
+	  - Maintaining Operational Server in healthy state is KEY to the system owners
+
+
+      ## REWARD STRUCTURE:
+      - Penalties for:
+        * Green (user) agent work failures
+        * Invalid service connections
+        * Host unavailability (restore action)
+        * Red team impacts
+	  - Penalties higher for Enterprise and Operational Servers vs Hosts
+
+      
+      # OBSERVATION STRUCTURE
+      ```
+      Suspicious Activity Detected: # Suspicious activity detected in your network
+      <activity1>      # Hostname and activity detected   
+      <activity2>      # Hostname and activity detected   
+      ```
+      
+      `Suspicious Activity Detected` will be `None` if no suspicious activity is detected.
+      If there is suspicious activity, the activity per host will contain one or more of the following:
+      - WARNING: A suspicious connection has been detected. Means that a red agent has attempted to connect to a host or a deployed decoy.
+      - ALERT: A red agent has been detected on the host. This is a user-level compromise. Can be addressed with a Remove or Restore action.
+      - CRITICAL: A red agent has been detected on the host with a privileged escalation. This is a critical compromise. Can be addressed only with a Restore action.
+    """
+
+
 
 @outlines.prompt
 def cage_system_prompt():
@@ -1297,9 +1366,14 @@ class DefaultITMBaselineSystemPrompt():
 class CAGESystemPrompt():
     def __call__(self):
         return cage_system_prompt()
+    
 class CAGEACDSystemPrompt():
     def __call__(self):
         return llms_are_acds_system_prompt()
+    
+class CAGERedAgentSystemPrompt():
+    def __call__(self):
+        return llms_for_red_agent_classification_prompt()
 
 class PromptBasedBinaryITMSystemPrompt():
     def __call__(self, target_kdma, target_value):
@@ -1354,6 +1428,7 @@ def cage_scenario_state_description(scenario_state):
 class CAGEScenarioDescription():
     def __call__(self, scenario_state):
         return cage_scenario_state_description(scenario_state)
+    
 
 @outlines.prompt
 def phase2_scenario_state_description(scenario_state):
