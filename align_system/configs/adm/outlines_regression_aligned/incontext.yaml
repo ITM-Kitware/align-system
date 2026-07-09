@@ -6,8 +6,6 @@ inference_kwargs:
   incontext:
     number: 5
     method: bert_similarity
-    bert_scorer_device: auto
-    cache_bert_scorer: true
     datasets:
       MoralDesert: /data/shared/samba/integrated_results_metrics_eval/captured_dataset_for_chris/baseline_adept_high-1715105775-input-output.json
       maximization: /data/shared/samba/integrated_results_metrics_eval/captured_dataset_for_chris/baseline_soartech_high-1716581856-input-output.json
