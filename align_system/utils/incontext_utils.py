@@ -25,38 +25,7 @@ from align_system.prompt_engineering.outlines_prompts import (
 )
 
 
-_bert_scorer = None
-_bert_scorer_device = None
-
-
-def get_bert_scorer(device="auto", cache_scorer=True):
-    """Build (or fetch the cached) BERTScorer instance.
-
-    Args:
-        device: Device to run the scorer on ('cpu', 'cuda', etc.).
-                'auto' (or None) selects 'cuda' when available, else 'cpu'
-        cache_scorer: If True, reuse a single scorer instance across calls
-                      to avoid reloading the model
-
-    Returns:
-        BERTScorer instance on the requested device
-    """
-    global _bert_scorer, _bert_scorer_device
-
-    if device is None or device == "auto":
-        device = "cuda" if torch.cuda.is_available() else "cpu"
-
-    if not cache_scorer:
-        return BERTScorer(lang="en", device=device)
-
-    if _bert_scorer is None or _bert_scorer_device != device:
-        _bert_scorer = BERTScorer(lang="en", device=device)
-        _bert_scorer_device = device
-
-    return _bert_scorer
-
-
-def bert_similarity_selection(candidates, texts_to_compare, reference_text, n_examples, score_adjustments=None, least_similar_examples=False, bert_scorer_device="auto", cache_bert_scorer=True):
+def bert_similarity_selection(candidates, texts_to_compare, reference_text, n_examples, score_adjustments=None, least_similar_examples=False, scorer=None):
     """Common BERT similarity selection logic for all strategies.
 
     Args:
@@ -67,13 +36,13 @@ def bert_similarity_selection(candidates, texts_to_compare, reference_text, n_ex
         score_adjustments: Optional list of score adjustments (same length as candidates)
         least_similar_examples: If True, selects least similar examples to approximate domain shift
                                between train and eval on train data only
-        bert_scorer_device: Device to run the BERT scorer on ('auto', 'cpu', 'cuda', etc.)
-        cache_bert_scorer: If True, reuse a single BERTScorer instance across calls
+        scorer: BERTScorer instance to use; if None, a default one is created
 
     Returns:
         List of selected candidates with 'similarity_score' field added
     """
-    scorer = get_bert_scorer(device=bert_scorer_device, cache_scorer=cache_bert_scorer)
+    if scorer is None:
+        scorer = BERTScorer(lang="en")
     _, _, scores = scorer.score([reference_text] * len(texts_to_compare), texts_to_compare)
 
     if score_adjustments is not None:
@@ -106,7 +75,7 @@ def select_random_strategy(possible_examples, n_examples, **kwargs):
     return selected_with_scores
 
 
-def select_scenario_bert_similarity_strategy(possible_examples, n_examples, scenario_to_match, least_similar_examples=False, bert_scorer_device="auto", cache_bert_scorer=True, **kwargs):
+def select_scenario_bert_similarity_strategy(possible_examples, n_examples, scenario_to_match, least_similar_examples=False, scorer=None, **kwargs):
     """Scenario-based BERT similarity selection strategy"""
     final_candidates = list({ex['scenario_description']: ex for ex in possible_examples}.values())
     possible_scenarios = [icl_sample["scenario_description"] for icl_sample in final_candidates]
@@ -117,12 +86,11 @@ def select_scenario_bert_similarity_strategy(possible_examples, n_examples, scen
         scenario_to_match,
         n_examples,
         least_similar_examples=least_similar_examples,
-        bert_scorer_device=bert_scorer_device,
-        cache_bert_scorer=cache_bert_scorer
+        scorer=scorer
     )
 
 
-def select_prompt_bert_similarity_strategy(possible_examples, n_examples, prompt_to_match, least_similar_examples=False, bert_scorer_device="auto", cache_bert_scorer=True, **kwargs):
+def select_prompt_bert_similarity_strategy(possible_examples, n_examples, prompt_to_match, least_similar_examples=False, scorer=None, **kwargs):
     """Prompt-based BERT similarity selection strategy"""
     final_candidates = list({ex['prompt']: ex for ex in possible_examples}.values())
     possible_prompts = [icl_sample["prompt"] for icl_sample in final_candidates]
@@ -133,12 +101,11 @@ def select_prompt_bert_similarity_strategy(possible_examples, n_examples, prompt
         prompt_to_match,
         n_examples,
         least_similar_examples=least_similar_examples,
-        bert_scorer_device=bert_scorer_device,
-        cache_bert_scorer=cache_bert_scorer
+        scorer=scorer
     )
 
 
-def select_matching_actions_strategy(possible_examples, n_examples, prompt_to_match, actions, least_similar_examples=False, bert_scorer_device="auto", cache_bert_scorer=True, **kwargs):
+def select_matching_actions_strategy(possible_examples, n_examples, prompt_to_match, actions, least_similar_examples=False, scorer=None, **kwargs):
     """Action-matching with BERT similarity selection strategy"""
     action_types = set([action.action_type for action in actions])
     possible_prompts = [icl_sample["prompt"] for icl_sample in possible_examples]
@@ -158,12 +125,11 @@ def select_matching_actions_strategy(possible_examples, n_examples, prompt_to_ma
         n_examples,
         score_adjustments,
         least_similar_examples=least_similar_examples,
-        bert_scorer_device=bert_scorer_device,
-        cache_bert_scorer=cache_bert_scorer
+        scorer=scorer
     )
 
 
-def select_matching_characters_strategy(possible_examples, n_examples, prompt_to_match, actions, least_similar_examples=False, bert_scorer_device="auto", cache_bert_scorer=True, **kwargs):
+def select_matching_characters_strategy(possible_examples, n_examples, prompt_to_match, actions, least_similar_examples=False, scorer=None, **kwargs):
     """Character-matching with BERT similarity selection strategy"""
     action_chars = set([action.character_id for action in actions])
     possible_prompts = [icl_sample["prompt"] for icl_sample in possible_examples]
@@ -183,8 +149,7 @@ def select_matching_characters_strategy(possible_examples, n_examples, prompt_to
         n_examples,
         score_adjustments,
         least_similar_examples=least_similar_examples,
-        bert_scorer_device=bert_scorer_device,
-        cache_bert_scorer=cache_bert_scorer
+        scorer=scorer
     )
 
 
@@ -208,8 +173,13 @@ class IncontextExampleGenerator(object, metaclass=ABCMeta):
         target_kdmas,
         state_hydration_domain=None,
         scenario_description_template=None,
+        scorer=None,
     ):
         self.incontext_settings = incontext_settings
+        # Default device for BERTScorer is 'cuda' if available, else 'cpu'
+        if scorer is None and incontext_settings.get("method") != "random":
+            scorer = BERTScorer(lang="en")
+        self.scorer = scorer
         self.target_kdmas = []
         for target_kdma in target_kdmas:
             if not isinstance(target_kdma, dict):
@@ -503,8 +473,7 @@ class IncontextExampleGenerator(object, metaclass=ABCMeta):
             prompt_to_match=prompt_to_match,
             actions=actions,
             least_similar_examples=least_similar_examples,
-            bert_scorer_device=self.incontext_settings.get("bert_scorer_device", "auto"),
-            cache_bert_scorer=self.incontext_settings.get("cache_bert_scorer", True)
+            scorer=self.scorer
         )
 
         if self.incontext_settings.get("most_similar_first", True):
