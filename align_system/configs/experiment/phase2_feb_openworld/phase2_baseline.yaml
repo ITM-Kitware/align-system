@@ -16,7 +16,7 @@ adm:
   step_definitions:
     outlines_baseline:
       scenario_description_template:
-        _target_: align_system.prompt_engineering.outlines_prompts.Phase2ScenarioDescription
+        _target_: align_system.prompt_engineering.outlines_prompts.Phase2ScenarioDescriptionWCasualtyInfo
       prompt_template:
         _target_: align_system.prompt_engineering.outlines_prompts.Phase2BaselinePrompt
 
