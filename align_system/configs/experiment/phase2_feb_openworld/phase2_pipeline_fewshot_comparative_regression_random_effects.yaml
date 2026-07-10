@@ -21,6 +21,7 @@ adm:
   step_definitions:
     regression_icl:
       icl_generator_partial:
+        _target_: align_system.utils.incontext_utils.Phase2ComparativeRegressionIncontextExampleGeneratorOWConversion
         incontext_settings:
           number: 20
           datasets:
