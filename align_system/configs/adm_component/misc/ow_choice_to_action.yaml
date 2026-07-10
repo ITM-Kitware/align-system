@@ -1,0 +1,14 @@
+_target_: align_system.algorithms.open_world_components.OWChoiceToActionADMComponent
+
+structured_inference_engine: ${ref:adm.structured_inference_engine}
+
+scenario_description_template:
+  _target_: align_system.prompt_engineering.outlines_prompts.Phase2ScenarioDescriptionWCasualtyInfo
+prompt_template:
+  _target_: align_system.prompt_engineering.outlines_prompts.DefaultITMPrompt
+output_schema_template:
+  _target_: align_system.prompt_engineering.outlines_prompts.DefaultChoiceSelectionSchema
+system_prompt_template:
+  _target_: align_system.prompt_engineering.outlines_prompts.DefaultITMBaselineSystemPrompt
+
+num_samples: 1

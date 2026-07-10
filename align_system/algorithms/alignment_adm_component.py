@@ -496,6 +496,9 @@ class MultinomialRandomEffectsModelAlignmentADMComponent(RandomEffectsModelAlign
         scores = np.sum(log_odds, axis=1)
         return self._stable_softmax(scores)
 
+    def run_returns(self):
+        return ('chosen_choice', 'best_sample_idx', 'p_choices', 'alignment_info')
+
     def run(
         self,
         attribute_prediction_scores,
@@ -516,12 +519,14 @@ class MultinomialRandomEffectsModelAlignmentADMComponent(RandomEffectsModelAlign
 
         # Only one option, decision always has to be the same
         if len(choices) == 1:
+            p_choices = np.ones((1,)).tolist()
             return (
                 predictions[0]["choice"],
                 0,  # TODO: best sample index
+                p_choices,
                 {
                     "source": type(self).__name__,
-                    "p_choices": np.ones((1,)),
+                    "p_choices": p_choices,
                 },
             )
 
@@ -570,11 +575,14 @@ class MultinomialRandomEffectsModelAlignmentADMComponent(RandomEffectsModelAlign
             # TODO: Figure out what it means to be the best prediction for this alignment function
             best_sample_idx = 0
 
+            max_idx = np.argmax(p_choices)
+            p_choices = p_choices.tolist()
+
             alignment_info = {
                 "source": type(self).__name__,
-                "p_choices": p_choices.tolist(),
+                "p_choices": p_choices,
             }
 
-            max_idx = np.argmax(p_choices)
 
-            return (predictions[max_idx]["choice"], best_sample_idx, alignment_info)
+
+            return (predictions[max_idx]["choice"], best_sample_idx, p_choices, alignment_info)

@@ -27,9 +27,11 @@ class ITMOpenWorldDriver:
     def __init__(self,
                 apply_action_filtering=True,
                 expand_actions=False,
+                expand_tagging=False,
                 sort_available_actions=False):
         self.apply_action_filtering = apply_action_filtering
         self.expand_actions = expand_actions
+        self.expand_tagging = expand_tagging
         self.sort_available_actions = sort_available_actions
 
     def _expand_action_by_character(self, action, characters):
@@ -65,7 +67,6 @@ class ITMOpenWorldDriver:
             expanded_actions.append(new_action)
 
         return expanded_actions
-
 
     def drive(self, cfg):
         interface = cfg.interface
@@ -202,13 +203,18 @@ class ITMOpenWorldDriver:
                     available_actions_expanded = []
                     for idx, a in enumerate(available_actions):
                         if a.action_type == ActionTypeEnum.TAG_CHARACTER:
-                            # Expanding twice here, once for
-                            # characters, and again for possible tags
-                            for char_expanded_action in self._expand_action_by_character(
+                            tagging_by_character = self._expand_action_by_character(
                                     action=a,
-                                    characters=current_state.characters):
-                                available_actions_expanded.extend(self._expand_action_by_tag(
-                                    action=char_expanded_action))
+                                    characters=current_state.characters
+                            )
+                            if self.expand_tagging:
+                                # Expanding twice here, once for
+                                # characters, and again for possible tags
+                                for char_expanded_action in tagging_by_character:
+                                    available_actions_expanded.extend(self._expand_action_by_tag(
+                                        action=char_expanded_action))
+                            else:
+                                available_actions_expanded.extend(tagging_by_character)
 
                         elif a.action_type == ActionTypeEnum.TREAT_PATIENT:
                             available_actions_expanded.extend(self._expand_action_by_character(
@@ -231,48 +237,64 @@ class ITMOpenWorldDriver:
                     log.debug(json.dumps([a.to_dict() if hasattr(a, "to_dict") else a._asdict() for a in available_actions_expanded], indent=4),
                               extra={"highlighter": JSON_HIGHLIGHTER})
 
-
                 if not self.apply_action_filtering:
                     available_actions_filtered = available_actions_expanded
                 else:
                     available_actions_filtered = []
-                    end_scene_idx = None
-
-                    untagged_characters = {c.id for c in current_state.characters
-                                           if c.tag is None and not c.unseen}
-                    # HACK: Current TA3 server doesn't track what
-                    # patients have been treated or evac'd (via
-                    # c.unseen, or any other means); need to track it
-                    # manually
-                    # treatable_patients = {c.id for c in current_state.characters if not c.unseen}
-                    # evacable_patients = {c.id for c in current_state.characters if not c.unseen}
-                    treatable_patients = {c.id for c in current_state.characters if c.id not in treated_patients}
-                    evacable_patients = {c.id for c in current_state.characters if c.id not in evac_patients}
-
-                    for idx, a in enumerate(available_actions_expanded):
+                    for a in available_actions_expanded:
                         if a.action_type == ActionTypeEnum.END_SCENE:
                             # We want to restrict end scene until all characters have been treated
-                            end_scene_idx = idx
                             continue
 
                         elif a.action_type == ActionTypeEnum.TAG_CHARACTER:
-                            # Don't let ADM choose to tag a character unless there are
-                            # still untagged characters
-                            if a.character_id not in untagged_characters:
+                            untagged_characters = {
+                                c.id for c in current_state.characters
+                                if c.tag is None and not c.unseen
+                            }
+                            if len(untagged_characters) == 0:  # No more patients to tag
+                                continue
+                            if a.character_id is not None and a.character_id not in untagged_characters:
                                 continue
 
+                        # HACK: Current TA3 server doesn't track what patients have been
+                        # treated or evac'd (via c.unseen, or any other means); need to
+                        # track it manually
                         elif a.action_type == ActionTypeEnum.TREAT_PATIENT:
-                            if a.character_id not in treatable_patients:
+                            treatable_patients = {
+                                c.id for c in current_state.characters
+                                if c.id not in treated_patients
+                            }
+                            if len(treatable_patients) == 0:  # No more patients to treat
+                                continue
+                            if a.character_id is not None and a.character_id not in treatable_patients:
                                 continue
 
                         elif a.action_type == ActionTypeEnum.MOVE_TO_EVAC:
-                            if a.character_id not in evacable_patients:
+                            evacable_patients = {
+                                c.id for c in current_state.characters
+                                if c.id not in evac_patients
+                            }
+                            if len(evacable_patients) == 0:  # No more patients to evac
+                                continue
+                            if a.character_id is not None and a.character_id not in evacable_patients:
                                 continue
 
                         available_actions_filtered.append(a)
 
+                    log.debug("[bold]*AVAILABLE ACTIONS FILTERED*[/bold]",
+                              extra={"markup": True})
+                    log.debug(json.dumps([a.to_dict() if hasattr(a, "to_dict") else a._asdict() for a in available_actions_filtered], indent=4),
+                              extra={"highlighter": JSON_HIGHLIGHTER})
+
                 if len(available_actions_filtered) == 0:
-                    if end_scene_idx is not None:  # All patients have been tagged and treated
+                    end_scene_idx = None
+                    # Expanded actions because END_SCENE is explicitly excluded from the filtered actions
+                    for idx, a in enumerate(available_actions_expanded):
+                        if a.action_type == ActionTypeEnum.END_SCENE:
+                            end_scene_idx = idx
+                            break
+
+                    if end_scene_idx is not None:
                         log.info("** All patients have been tagged and treated, ending scene")
                         action_to_take = available_actions[end_scene_idx]
                         action_to_take.justification = "All patients have been tagged and treated"
@@ -348,6 +370,7 @@ class ITMOpenWorldDriver:
                                        'choice_info': choice_info,
                                        'output': {'choice': action_choice_idx,
                                                   'action': action_to_take.to_dict() if hasattr(action_to_take, "to_dict") else action_to_take._asdict()}})
+
                 # Save input_output after each action (gets overwritten
                 # each time) so that we don't lose everything if the run
                 # crashes or is interrupted.  Could treat this as we do
