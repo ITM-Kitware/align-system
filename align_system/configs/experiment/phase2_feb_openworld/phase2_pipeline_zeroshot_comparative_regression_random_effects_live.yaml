@@ -2,23 +2,26 @@
 defaults:
   - /adm_component/misc@adm.step_definitions.action_parameter_completion: ow_action_parameter_completion
   - /adm_component/misc@adm.step_definitions.tagging_adjustment: ow_tagging_adjustment
-  - override /adm: phase2_pipeline_direct_regression
+  - override /adm: phase2_pipeline_zeroshot_comparative_regression
   - override /interface: ta3
   - override /adm_component/misc@adm.step_definitions.format_choices: ow_format_choices
   - override /adm_component/alignment@adm.step_definitions.scalar_alignment: tournament_random_effects_tuple
   - override /adm_component/misc@adm.step_definitions.ensure_chosen_action: ow_choice_to_action
+  - override /template/scenario_description@adm.scenario_description_template: phase2
   - override /driver: itm_phase2_ow
 
+
 interface:
-  api_endpoint: 'http://127.0.0.1:8081'
+  api_endpoint: "https://darpaitm.caci.com"
   session_type: eval
   training_session: null
-  username: "testrun-ALIGN-ADM-Ph2-DirectRegression-Mistral-7B-Instruct-v0.3"
+  username: "ALIGN-ADM-Ph2-ComparativeRegression-Zeroshot-Mistral-7B-Instruct-v0.3"
   domain: "p2triage"
 
 adm:
   step_definitions:
-    direct_regression:
+      step_definitions:
+    comparative_regression:
       enable_caching: true
     ensure_chosen_action:
       enable_caching: true
@@ -27,7 +30,7 @@ adm:
     steps:
     # Reference the step instances we want to use in order
     - ${ref:adm.step_definitions.format_choices}
-    - ${ref:adm.step_definitions.direct_regression}
+    - ${ref:adm.step_definitions.comparative_regression}
     #- ${ref:adm.step_definitions.regression_rule_based_correction}
     - ${ref:adm.step_definitions.scalar_alignment}
     - ${ref:adm.step_definitions.justification_from_reasonings}
