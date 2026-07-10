@@ -5,6 +5,7 @@ from swagger_client.models import ActionTypeEnum, CharacterTagEnum
 
 from align_system.algorithms.abstracts import ADMComponent
 from align_system.algorithms.outlines_baseline_adm_component import OutlinesBaselineADMComponent
+from align_system.algorithms.alignment_adm_component import MedicalOnlyAlignmentADMComponent
 from align_system.data_models.dialog import DialogElement
 from align_system.prompt_engineering.outlines_prompts import character_choice_json_schema, tag_choice_json_schema
 from align_system.prompt_engineering.ow_prompts import FollowupClarifyCharacterPrompt, FollowupClarifyTagPrompt
@@ -134,11 +135,17 @@ class OWActionParameterCompletionADMComponent(ADMComponent):
                 )
 
                 dialog_prompt = self.structured_inference_engine.dialog_to_prompt(dialog)
+                log.info("[bold]*CHARACTER FOLLOWUP PROMPT*[/bold]", extra={"markup": True})
+                log.info(dialog_prompt)
+
                 character_names = [c.name for c in scenario_state.characters]
                 selected_character = self.structured_inference_engine.run_inference(
                     dialog_prompt,
                     character_choice_json_schema(json.dumps(character_names)),
                 )
+                log.info("[bold]*CHARACTER FOLLOWUP RESPONSE*[/bold]", extra={"markup": True})
+                log.info(selected_character, extra={"highlighter": JSON_HIGHLIGHTER})
+
                 selected_character_idx = character_names.index(selected_character['character_choice'])
 
                 chosen_action.character_id = scenario_state.characters[selected_character_idx].id
@@ -172,11 +179,16 @@ class OWActionParameterCompletionADMComponent(ADMComponent):
                 )
 
                 dialog_prompt = self.structured_inference_engine.dialog_to_prompt(dialog)
+                log.info("[bold]*TAGGING FOLLOWUP PROMPT*[/bold]", extra={"markup": True})
+                log.info(dialog_prompt)
+
                 valid_tags = get_swagger_class_enum_values(CharacterTagEnum)
                 selected_tag = self.structured_inference_engine.run_inference(
                     dialog_prompt,
                     tag_choice_json_schema(json.dumps(valid_tags))
                 )
+                log.info("[bold]*TAGGING FOLLOWUP RESPONSE*[/bold]", extra={"markup": True})
+                log.info(selected_tag, extra={"highlighter": JSON_HIGHLIGHTER})
 
                 chosen_action.parameters['category'] = selected_tag["triage_tag"]
 
@@ -191,21 +203,83 @@ class OWActionParameterCompletionADMComponent(ADMComponent):
         return chosen_action, action_parameter_completion_dialog
 
 
-class OWTaggingAdjustmentADMComponent(ADMComponent):
+class OWTaggingAdjustmentADMComponent(MedicalOnlyAlignmentADMComponent):
+    def __init__(self, increase_priority_threshold=0.55, decrease_priority_threshold=0.80):
+        self.increase_priority_threshold = increase_priority_threshold
+        self.decrease_priority_threshold = decrease_priority_threshold
     def run_returns(self):
         return ('chosen_action')
 
     def run(
         self,
         scenario_state,
-        chosen_action,
         choices,
-        choice_to_action_mapping,
+        chosen_choice,
+        chosen_action,
         attribute_prediction_scores,
         p_choices,
     ):
         if chosen_action.action_type == ActionTypeEnum.TAG_CHARACTER:
-            # TODO: Affect tagging behavior
-            pass
+            tag_order = [
+                CharacterTagEnum.IMMEDIATE,
+                CharacterTagEnum.DELAYED,
+                CharacterTagEnum.MINIMAL,
+                CharacterTagEnum.EXPECTANT,
+            ]
+
+            # Original assigned tag
+            assigned_tag_idx = tag_order.index(chosen_action.parameters['category'])
+
+            # Identify which index corresponds to this action
+            choice_idx = choices.index(chosen_choice)
+
+            def _get_sorted_ranking(ratings, descending=True):
+                indexed_ratings = list(enumerate(ratings))
+                indexed_ratings.sort(key=lambda x: x[1], reverse=descending)
+                for i, (original_index, rating) in enumerate(indexed_ratings):
+                    if original_index == choice_idx:
+                        return i  # new ranking
+
+            # Get ranking based on alignment
+            aligned_ranking = _get_sorted_ranking(p_choices, descending=True)
+
+            # Get medical only ranking
+            _, _, med_urg_info = super().run(attribute_prediction_scores)
+            med_urg_choices = [med_urg_info[choice] for choice in choices]
+            medical_ranking = _get_sorted_ranking(med_urg_choices, descending=True)
+
+            # How much did alignment diverge from the medical ranking
+            ranking_delta = medical_ranking - aligned_ranking
+            percent_change = ranking_delta / len(choices)
+
+            # What tags have been given out already
+            tag_counts = defaultdict(int)
+            for c in scenario_state.characters:
+                if c.tag is not None:
+                    tag_counts[c.tag] += 1
+            lowest_priority_given_idx = None
+            for i in range(len(tag_order)-2, -1, -1):  # Don't consider black tags, order is slightly weird
+                if tag_counts[tag_order[i]] > 0:
+                    lowest_priority_given_idx = i
+                    break
+
+            adjusted_tag_idx = assigned_tag_idx
+            if percent_change > self.increase_priority_threshold:
+                adjusted_tag_idx = max(0, adjusted_tag_idx - 1)
+            if percent_change < -self.decrease_priority_threshold:
+                adjusted_tag_idx = min(len(tag_order)-1, adjusted_tag_idx + 1)
+            # Have already given out lower priority tags, heuristic only works when omniscient
+            if lowest_priority_given_idx is not None and lowest_priority_given_idx > assigned_tag_idx:
+                adjusted_tag_idx = lowest_priority_given_idx
+
+            chosen_action.parameters['category'] = tag_order[adjusted_tag_idx]
+            # TODO: Update justification?
+
+            if assigned_tag_idx != adjusted_tag_idx:
+                log.info("[bold]*TAG ADJUSTMENT*[/bold]", extra={"markup": True})
+                log.info(
+                    "Original: {}, Adjusted: {}".format(tag_order[assigned_tag_idx], tag_order[adjusted_tag_idx]),
+                    extra={"highlighter": JSON_HIGHLIGHTER}
+                )
 
         return chosen_action

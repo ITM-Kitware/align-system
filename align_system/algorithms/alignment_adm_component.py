@@ -57,7 +57,7 @@ class AlignmentADMComponent(ADMComponent):
 
 class MedicalOnlyAlignmentADMComponent(ADMComponent):
     def run_returns(self):
-        return ('chosen_choice', 'best_sample_idx')
+        return ('chosen_choice', 'best_sample_idx', 'medical_urgency_info')
 
     def run(
         self,
@@ -110,7 +110,11 @@ class MedicalOnlyAlignmentADMComponent(ADMComponent):
 
             return best_idx
 
-        return (selected_choice, _get_best_sample_idx(max_urg, attribute_prediction_scores[selected_choice]))
+        return (
+            selected_choice,
+            _get_best_sample_idx(max_urg, attribute_prediction_scores[selected_choice]),
+            med_urg,
+        )
 
 
 def _handle_single_value(predictions):

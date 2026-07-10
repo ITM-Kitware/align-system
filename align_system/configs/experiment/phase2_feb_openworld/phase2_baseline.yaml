@@ -33,6 +33,7 @@ adm:
 
 driver:
   expand_actions: true
+  expand_tagging: true
   apply_action_filtering: true
 
 force_determinism: true
