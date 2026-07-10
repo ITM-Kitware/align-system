@@ -15,12 +15,14 @@ interface:
   api_endpoint: 'http://127.0.0.1:8081'
   session_type: eval
   training_session: null
-  username: "testrun-ALIGN-ADM-Ph2-ComparativeRegression-BertRelevance-Mistral-7B-Instruct-v0.3"
+  username: "testrun-ALIGN-ADM-Ph2-ComparativeRegression-Zeroshot-Mistral-7B-Instruct-v0.3"
   domain: "p2triage"
 
 adm:
   step_definitions:
     comparative_regression:
+      enable_caching: true
+    ensure_chosen_action:
       enable_caching: true
 
   instance:
