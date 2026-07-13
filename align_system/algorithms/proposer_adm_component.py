@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 from typing import List, Optional
-from align_system.utils import logging
+
 from align_system.algorithms.abstracts import ADMComponent
-#from align_system.algorithms.planner_adm.llm_ollama import OllamaAI2ThorProposer, OllamaConfig
-from align_system.data_models.types import Action as PlannerAction, ToolSpec
-from align_system.interfaces.ai2thor_interface import AI2ThorAction
-from align_system.utils import logging
+from align_system.data_models.ai2thor import Action as PlannerAction, ToolSpec
 from align_system.data_models.dialog import DialogElement
+from align_system.interfaces.ai2thor_interface import AI2ThorAction
+from align_system.utils import call_with_coerced_args, logging
+
 log = logging.getLogger(__name__)
 
 
@@ -31,16 +31,21 @@ class ProposerGeneratorAgent(ADMComponent):
     def __init__(
         self,
         structured_inference_engine,
+        prompt_template,
+        schema_template,
+        system_prompt_template=None,
         num_candidates: int = 3,
         rollout_horizon: int = 3,
         inference_temperature: Optional[float] = None,
     ):
         self.structured_inference_engine = structured_inference_engine
+        self.prompt_template = prompt_template
+        self.schema_template = schema_template
+        self.system_prompt_template = system_prompt_template
         self.num_candidates = num_candidates
         self.rollout_horizon = rollout_horizon
         self.inference_temperature = inference_temperature
         self._history: List[PlannerAction] = []
-        self._pending_tool: Optional[str] = None
 
     # ------------------------------------------------------------------
     # History management (called by PipelineADM)
@@ -48,7 +53,6 @@ class ProposerGeneratorAgent(ADMComponent):
 
     def reset_history(self) -> None:
         self._history = []
-        self._pending_tool = None
 
     def update_history(self, chosen_action) -> None:
         """Record the action chosen by downstream alignment so the next
@@ -86,60 +90,35 @@ class ProposerGeneratorAgent(ADMComponent):
             for a in actions
         ]
 
-        # candidates = self.proposer.propose(
-        #     task=scenario_state.unstructured,
-        #     obs=obs,
-        #     tools=tools,
-        #     action_history=self._history,
-        #     k=self.num_candidates,
-        #     diversity_hint="Vary tool choice; include at least one exploration move.",
-        # )
-
-        tool_lines = "\n".join(f"- {t.name}: {t.description}" for t in tools)
-        history_lines = (
-            "\n".join(f"- {a.tool_name}({a.args})" for a in self._history)
-            if self._history else "None"
-        )
-        predict_proposer_prompt = (
-            f"Task: {scenario_state.unstructured}\n\n"
-            f"Available tools:\n{tool_lines}\n\n"
-            f"Action history:\n{history_lines}\n\n"
-            f"Generate {self.num_candidates} diverse candidate plans."
-        )
-
-        score_schema = (
-            '{"candidates":[{"actions":[{"tool_name":"MoveAhead","args":{"moveMagnitude":0.25}}],'
-            '"rationale":"..."}]}'
-        )
-
-        prompt_system = ("You are an embodied planning model.\n"
-            "Return ONLY valid JSON. No extra text.\n"
-            f"Generate {self.num_candidates} semi-diverse candidate plans.\n")        
-        prompt = (
-            f"You are an embodied planning model.\n"
-            "Return ONLY valid JSON. No extra text.\n"
-            f"Generate {self.num_candidates} diverse candidate plans.\n"
-            f"- Each plan is 1 to {self.rollout_horizon} actions.\n"
-            f"- Use ONLY the tool names provided.\n"
-            f"- Args MUST satisfy each tool schema.\n"
-            f"- IMPORTANT objectId rule: For tools requiring objectId (TeleportNearObject, PickupObject, "
-            f"OpenObject, CloseObject, ToggleObjectOn/Off), you MUST copy the exact full objectId string "
-            "from the observation's visible lines (the value after 'id='). "
-            "Never use object type names like 'Apple' as objectId. Full objectIds contain '|' characters.\n"
-            "- Avoid repeating the same last action unless clearly helpful.\n"
-        )
-
+        template_args = {
+            "scenario_state": scenario_state,
+            "tools": tools,
+            "action_history": self._history,
+            "num_candidates": self.num_candidates,
+            "rollout_horizon": self.rollout_horizon,
+        }
 
         dialog = []
-        dialog.insert(0,DialogElement(content=prompt_system, role="system"))
-        dialog.append(DialogElement(content=prompt, role="user"))
-        dialog.append(DialogElement(content=predict_proposer_prompt, role="user"))
+        if self.system_prompt_template is not None:
+            system_prompt = call_with_coerced_args(
+                self.system_prompt_template, template_args)
+            dialog.append(DialogElement(role="system", content=system_prompt))
+
+        propose_prompt = call_with_coerced_args(
+            self.prompt_template, template_args)
+        dialog.append(DialogElement(role="user", content=propose_prompt))
+
+        candidates_schema = call_with_coerced_args(
+            self.schema_template, template_args)
+
         dialog_prompt = self.structured_inference_engine.dialog_to_prompt(dialog)
         log.info("[bold]*PROMPT FOR PROPOSER*[/bold]",
-                    extra={"markup": True})
+                 extra={"markup": True})
         log.info(dialog_prompt)
         response = self.structured_inference_engine.run_inference(
-            [dialog_prompt], score_schema, temperature=0.7)[0]
+            [dialog_prompt],
+            candidates_schema,
+            temperature=self.inference_temperature)[0]
         candidates = response.get("candidates", []) if isinstance(response, dict) else []
 
         log.info(f"[PlannerCandidateGenerator] proposed {len(candidates)} candidates")
@@ -151,47 +130,33 @@ class ProposerGeneratorAgent(ADMComponent):
             cand_actions = cand.get("actions", []) if isinstance(cand, dict) else []
             if not cand_actions:
                 continue
-            planner_action = cand_actions[0]
-            if isinstance(planner_action, dict):
-                tool_name = planner_action.get("tool_name", "")
-            elif isinstance(planner_action, str):
-                tool_name = planner_action
-            else:
-                tool_name = planner_action.tool_name
 
-            if tool_name not in tool_map:
-                log.warning(f"[PlannerCandidateGenerator] unknown tool '{tool_name}', skipping")
+            plan = [
+                PlannerAction(tool_name=a.get("tool_name", ""), args=a.get("args") or {})
+                for a in cand_actions
+            ]
+            first_action = plan[0]
+
+            if first_action.tool_name not in tool_map:
+                log.warning(f"[PlannerCandidateGenerator] unknown tool "
+                            f"'{first_action.tool_name}', skipping")
                 continue
 
-            if isinstance(planner_action, dict):
-                args = planner_action.get("args") or {}
-            elif isinstance(planner_action, str):
-                args = {}
-            else:
-                args = planner_action.args or {}
-
-            dedup_key = (tool_name, frozenset((k, str(v)) for k, v in args.items()))
+            dedup_key = (first_action.tool_name,
+                         frozenset((k, str(v)) for k, v in first_action.args.items()))
             if dedup_key in seen:
                 continue
             seen.add(dedup_key)
 
-            rationale = (cand.get("rationale", "") if isinstance(cand, dict) else cand.rationale).strip()
+            rationale = (cand.get("rationale") or "").strip()
 
-            plan = []
-            for a in cand_actions:
-                if isinstance(a, dict):
-                    plan.append(PlannerAction(tool_name=a.get("tool_name", ""), args=a.get("args") or {}))
-                elif isinstance(a, str):
-                    plan.append(PlannerAction(tool_name=a, args={}))
-                else:
-                    plan.append(PlannerAction(tool_name=a.tool_name, args=a.args or {}))
             action_sequence = " -> ".join(a.tool_name for a in plan)
             label = f"{action_sequence}: {rationale[:80]}" if rationale else action_sequence
             candidate_actions.append(
                 AI2ThorAction(
-                    action_id=tool_name,
+                    action_id=first_action.tool_name,
                     unstructured=label,
-                    args=args,
+                    args=first_action.args,
                     justification=rationale,
                     plan=plan,
                 )

@@ -5,46 +5,19 @@ import json
 import ollama
 
 from align_system.algorithms.abstracts import StructuredInferenceEngine
-# from align_system.algorithms.planner_adm.llm_ollama import _extract_json_object, _repair_json
 from align_system.utils import logging
 
 log = logging.getLogger(__name__)
-
-def _extract_json_object(s: str) -> str:
-    s = s.strip()
-    if s.startswith("```"):
-        parts = s.split("```")
-        if len(parts) >= 3:
-            s = parts[1].strip()
-    i = s.find("{")
-    j = s.rfind("}")
-    if i == -1 or j == -1 or j <= i:
-        raise ValueError("No JSON object found")
-    return s[i : j + 1]
-
-def _loads_json(s: str) -> JSON:
-    return json.loads(_extract_json_object(s))
-
-
-def _repair_json(model: str, bad_text: str, schema_hint: str, num_ctx: int) -> JSON:
-    prompt = (
-        "You output invalid JSON. Fix it.\n"
-        "Return ONLY valid JSON, no prose.\n"
-        f"Schema hint:\n{schema_hint}\n\n"
-        f"Bad output:\n{bad_text}\n"
-    )
-    resp = ollama.generate(model=model, prompt=prompt, options={"temperature": 0.0, "num_ctx": num_ctx})
-    return _loads_json(resp["response"])
-
 
 
 class OllamaInferenceEngine(StructuredInferenceEngine):
     """
     StructuredInferenceEngine backed by a local Ollama model.
 
-    Unlike the Outlines engine, output is not grammar-constrained — the
-    schema is appended to the prompt as an instruction and the response
-    is parsed as JSON with a repair fallback.
+    Uses Ollama's native structured output support
+    (https://ollama.com/blog/structured-outputs): the JSON schema is
+    passed as the `format` parameter so the server constrains the
+    output to match the schema.
     """
 
     def __init__(
@@ -52,12 +25,10 @@ class OllamaInferenceEngine(StructuredInferenceEngine):
         model: str = "gpt-oss:20b",
         temperature: float = 0.0,
         num_ctx: int = 8192,
-        json_repair_attempts: int = 2,
     ):
         self.model = model
         self.temperature = temperature
         self.num_ctx = num_ctx
-        self.json_repair_attempts = json_repair_attempts
 
     def dialog_to_prompt(self, dialog) -> str:
         """
@@ -84,49 +55,33 @@ class OllamaInferenceEngine(StructuredInferenceEngine):
         parts.extend(turn_parts)
         return "\n\n".join(parts)
 
-    def run_inference(self, prompts, schema: str, temperature: float = None) -> list[dict]:
+    def run_inference(self, prompts, schema: str, temperature: float = None):
         """
         Run inference for each prompt string and return parsed JSON dicts.
 
-        `schema` is a JSON Schema string appended to each prompt as an
-        instruction. Malformed responses trigger up to
-        `json_repair_attempts` self-repair calls.
+        `schema` is a JSON Schema string passed to Ollama's `format`
+        parameter for server-side constrained generation.
         """
-        schema_instruction = (
-            "\n\nRespond with ONLY valid JSON that matches this schema "
-            "(no prose, no markdown fences):\n" + schema
-        )
+        format_schema = json.loads(schema)
         effective_temperature = self.temperature if temperature is None else temperature
+
+        if single_prompt := isinstance(prompts, str):
+            prompts = [prompts]
 
         results = []
         for prompt in prompts:
-            full_prompt = prompt + schema_instruction
             resp = ollama.generate(
                 model=self.model,
-                prompt=full_prompt,
+                prompt=prompt,
+                format=format_schema,
                 options={"temperature": effective_temperature, "num_ctx": self.num_ctx},
             )
             text = resp["response"]
             log.debug(f"[OllamaInferenceEngine] raw response:\n{text}")
 
-            data = None
-            try:
-                data = json.loads(_extract_json_object(text))
-            except Exception:
-                for _ in range(self.json_repair_attempts):
-                    try:
-                        data = _repair_json(self.model, text, schema, self.num_ctx)
-                        break
-                    except Exception:
-                        data = None
+            results.append(json.loads(text))
 
-            if data is None:
-                log.warning("[OllamaInferenceEngine] JSON parse failed; returning empty dict")
-                data = {}
-
-            results.append(data)
-
-        return results
+        return results[0] if single_prompt else results
 
     def cache_repr(self) -> str:
         return (

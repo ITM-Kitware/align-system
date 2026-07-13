@@ -8,7 +8,7 @@ import hydra
 from omegaconf import DictConfig, OmegaConf
 
 from align_system.interfaces.ai2thor_interface import AI2ThorAction
-from align_system.data_models.types import Action as PlannerAction
+from align_system.data_models.ai2thor import Action as PlannerAction
 from align_system.utils import logging
 
 log = logging.getLogger(__name__)

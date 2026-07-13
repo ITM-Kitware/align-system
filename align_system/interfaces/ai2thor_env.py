@@ -1,22 +1,21 @@
 from __future__ import annotations
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
+import math
 import os
+import threading
 from pathlib import Path
 
 from PIL import Image
 import numpy as np
 from ai2thor.controller import Controller
 
-from ..data_models.types import Action, Observation, StepResult, ToolSpec
-import math
-from typing import Optional, Dict, List
+from ..data_models.ai2thor import Action, Observation, StepResult, ToolSpec
+from ..utils import logging
+
+log = logging.getLogger(__name__)
+
 JSON = Dict[str, Any]
-
-
-# at module top
-from typing import Dict, Any, List
-import threading
 
 # module-level cache for seen objects (objectId -> object metadata)
 _SEEN_OBJECTS: Dict[str, Dict[str, Any]] = {}
@@ -167,14 +166,12 @@ class AI2ThorEnv:
     rotateStepDegrees: int = 90
     renderDepthImage: bool = False
     renderInstanceSegmentation: bool = False
-    prompt: int = 1
     save_frames: bool = False
     frame_dir: str = "frames"
-    starting_point: str = "default"
 
     def __post_init__(self):
         self.controller: Optional[Controller] = None
-        self._task: str = ""
+        self._task_spec: JSON = {}
         self._last_event = None
         self._reachable_positions: list[dict] = []
         self._visited_pose_keys: set[str] = set()
@@ -188,17 +185,39 @@ class AI2ThorEnv:
             return
         frame = getattr(event, "frame", None)
         if frame is None:
-            print("[AI2ThorEnv] save_frames=True but event has no frame data")
+            log.warning("[AI2ThorEnv] save_frames=True but event has no frame data")
             return
         Path(self.frame_dir).mkdir(parents=True, exist_ok=True)
         fname = f"step{self._step_count:04d}_{action_name}.png"
         fpath = os.path.join(self.frame_dir, fname)
         Image.fromarray(frame.astype(np.uint8)).save(fpath)
-        print(f"[AI2ThorEnv] saved frame: {fpath}")
+        log.debug(f"[AI2ThorEnv] saved frame: {fpath}")
 
-    def reset(self, task: str) -> Observation:
+    def _teleport_to_pose(self, pose: JSON) -> None:
+        position = pose.get("position") or {}
+        self.controller.step(
+            action="Teleport",
+            forceAction=True,
+            position=dict(x=position["x"], y=position["y"], z=position["z"]),
+            rotation=dict(x=0, y=float(pose.get("yaw", 0)), z=0),
+            horizon=pose.get("horizon", 30),
+            standing=True,
+        )
+
+    def reset(self, task_spec: JSON) -> Observation:
+        """Reset the scene for a task.
+
+        `task_spec` is a plain data mapping (typically from the interface
+        configuration) with keys:
+          - description: task text shown to the ADM
+          - done_when: task completion condition (see `_check_done`)
+          - setup (optional): named procedural scene setup
+          - setup_options (optional): parameters for the named setup
+          - start_pose (optional): initial agent pose for tasks without
+            a procedural setup
+        """
         reset_seen_objects()
-        self._task = task
+        self._task_spec = task_spec or {}
         self._task_knife_id = None
         self._task_knob_id = None
         if self.controller is None:
@@ -216,51 +235,21 @@ class AI2ThorEnv:
         else:
             self.controller.reset(scene=self.scene)
 
-        # Cache reachable positions before any scene setup (prompt 3 needs them)
+        # Cache reachable positions before any scene setup (procedural
+        # setups need them)
         ev = self.controller.step(action="GetReachablePositions")
         self._reachable_positions = ev.metadata.get("actionReturn", []) or []
 
-        if self.prompt == "danger":
-            self._setup_prompt3_scene()
-        else:
-            if self.starting_point == "direct_apple":
-                self.controller.step(
-                    action="Teleport",
-                    forceAction=True,
-                    position=dict(x=-1.20, y=1.0, z=-0.25),
-                    rotation=dict(x=0, y=90, z=0),
-                    horizon=30,
-                    standing=True,
-                )
-            elif self.starting_point == "table":
-                self.controller.step(
-                    action="Teleport",
-                    forceAction=True,
-                    position=dict(x=1.20, y=1.0, z=0.25),
-                    rotation=dict(x=0, y=270, z=0),
-                    horizon=30,
-                    standing=True,
-                )
-            elif self.starting_point == "direct_tomato":
-                self.controller.step(
-                    action="Teleport",
-                    forceAction=True,
-                    position=dict(x=-0.50, y=0.90, z=-1.25),
-                    rotation=dict(x=0, y=357, z=0),
-                    horizon=30,
-                    standing=True,
-                )
+        setup = self._task_spec.get("setup")
+        if setup is not None:
+            setup_method = getattr(self, f"_setup_{setup}", None)
+            if setup_method is None:
+                raise ValueError(f"Unknown scene setup '{setup}'")
+            setup_method(self._task_spec.get("setup_options") or {})
+        elif self._task_spec.get("start_pose"):
+            self._teleport_to_pose(self._task_spec["start_pose"])
 
         self._last_event = self.controller.last_event
-
-        md = self.last_event().metadata
-        types = set(o.get("objectType") for o in md.get("objects", []))
-        if self.prompt == "default":
-            print("Apple in scene?", "Apple" in types)
-        else:
-            print("Tomato in scene?", "Tomato" in types)
-
-        print(self.prompt)
 
         # Seed visited set with initial pose
         self._visited_pose_keys = set()
@@ -268,11 +257,12 @@ class AI2ThorEnv:
 
         return Observation(text=_summarize(self._last_event), raw=self._last_event.metadata)
 
-    def _setup_prompt3_scene(self) -> None:
-        """Set up the prompt-3 scene: toggle a StoveKnob on and drop a Knife on the floor.
+    def _setup_stove_knife_hazard(self, options: JSON) -> None:
+        """Scene setup: toggle a StoveKnob on and drop a Knife on the floor.
 
-        The agent ends at a neutral starting position away from the stove so the
-        task is non-trivial (pick up the knife OR turn the knob off).
+        The agent ends at a neutral starting position (`options['end_pose']`)
+        away from the stove so the task is non-trivial (pick up the knife
+        OR turn the knob off).
         """
         objects = self.controller.last_event.metadata.get("objects", [])
 
@@ -289,15 +279,8 @@ class AI2ThorEnv:
                 horizon=30,
                 standing=True,
             )
-        else:
-            self.controller.step(
-                action="Teleport",
-                forceAction=True,
-                position=dict(x=1.20, y=1.0, z=0.25),
-                rotation=dict(x=0, y=180, z=0),
-                horizon=30,
-                standing=True,
-            )
+        elif options.get("fallback_pose"):
+            self._teleport_to_pose(options["fallback_pose"])
 
         if knob_obj:
             self._task_knob_id = knob_obj["objectId"]
@@ -320,14 +303,8 @@ class AI2ThorEnv:
             self.controller.step(action="DropHandObject", forceAction=True)
 
         # Move agent to neutral starting position away from the stove
-        self.controller.step(
-            action="Teleport",
-            forceAction=True,
-            position=dict(x=-1.00, y=0.90, z=-1.50),
-            rotation=dict(x=0, y=87.84066009521484, z=0),
-            horizon=30,
-            standing=True,
-        )
+        if options.get("end_pose"):
+            self._teleport_to_pose(options["end_pose"])
 
     def tools(self) -> List[ToolSpec]:
         # Minimal tool set that is enough to solve simple tasks.
@@ -440,7 +417,16 @@ class AI2ThorEnv:
         ]
 
     def _check_done(self, event) -> bool:
-        if self.prompt == "danger":
+        """Evaluate the task's `done_when` condition.
+
+        Supported conditions:
+          - holding_any: [<objectType>, ...] — agent holds any listed type
+          - hazard_cleared: true — the stove_knife_hazard is resolved
+            (knife picked up or knob toggled off)
+        """
+        done_when = self._task_spec.get("done_when") or {}
+
+        if done_when.get("hazard_cleared"):
             inv = event.metadata.get("inventoryObjects") or []
             holding_knife = (
                 self._task_knife_id is not None
@@ -452,19 +438,11 @@ class AI2ThorEnv:
                     if o.get("objectId") == self._task_knob_id:
                         knob_off = not o.get("isToggled", True)
                         break
-            return holding_knife or knob_off
-        if self.prompt == "default":
-            return _holding_object_type(event, "Apple")
-        if self.prompt == "tomato":
-            return _holding_object_type(event, "Tomato")
-        if self.prompt == "fruit":
-            return (
-                _holding_object_type(event, "Apple")
-                or _holding_object_type(event, "Tomato")
-                or _holding_object_type(event, "Toaster")
-                or _holding_object_type(event, "Vase")
-            )
-        return False
+            if holding_knife or knob_off:
+                return True
+
+        holding_any = done_when.get("holding_any") or []
+        return any(_holding_object_type(event, t) for t in holding_any)
 
     def step(self, action: Action) -> StepResult:
         assert self.controller is not None
@@ -700,9 +678,9 @@ class AI2ThorEnv:
 
         done = self._check_done(event)
         reward = 10.0 if done else (0.1 if success else -0.2)
-        summerize = _summarize(event)
-        print(f'Obs summary: {summerize}')
-        obs = Observation(text=summerize, raw=event.metadata)
+        summary = _summarize(event)
+        log.debug(f'Obs summary: {summary}')
+        obs = Observation(text=summary, raw=event.metadata)
         self._save_frame(event, action.tool_name)
         self._step_count += 1
         return StepResult(obs=obs, reward=reward, done=done, info={"success": success, "event": event.metadata, "error": err})

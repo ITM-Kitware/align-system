@@ -1,5 +1,13 @@
 _target_: align_system.algorithms.proposer_adm_component.ProposerGeneratorAgent
 
+system_prompt_template:
+  _target_: align_system.prompt_engineering.ai2thor_prompts.AI2ThorProposerSystemPrompt
+prompt_template:
+  _target_: align_system.prompt_engineering.ai2thor_prompts.AI2ThorProposerPrompt
+schema_template:
+  _target_: align_system.prompt_engineering.ai2thor_prompts.AI2ThorProposerSchema
+  rationale_max_length: 512
+
 num_candidates: 3
 rollout_horizon: 3
 inference_temperature: 0.7

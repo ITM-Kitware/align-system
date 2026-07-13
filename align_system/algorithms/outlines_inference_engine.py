@@ -132,48 +132,9 @@ class OutlinesTransformersInferenceEngine(StructuredInferenceEngine):
             outputs.extend(output)
         return outputs
 
-    def _parse_json(self, text: str) -> dict:
-        text = text.strip()
-        if text.startswith("```"):
-            parts = text.split("```")
-            if len(parts) >= 3:
-                text = parts[1].strip()
-        i = text.find("{")
-        j = text.rfind("}")
-        if i != -1 and j > i:
-            text = text[i:j + 1]
-        return json.loads(text)
-
-    def _prompt_based_inference(self, prompts, schema) -> list[dict]:
-        """Fallback: append schema as a prompt hint and parse free-text output."""
-        schema_instruction = (
-            "\n\nRespond with ONLY valid JSON matching this example "
-            "(no prose, no markdown fences):\n" + schema
-        )
-        if isinstance(prompts, str):
-            prompts = [prompts]
-        generator = outlines.Generator(self.model)
-        results = []
-        for prompt in prompts:
-            raw = generator(
-                prompt + schema_instruction,
-                max_new_tokens=self.max_generator_tokens,
-                **self.generation_kwargs,
-            )
-            try:
-                results.append(self._parse_json(raw))
-            except Exception:
-                results.append({})
-        return results
-
     def run_inference(self, prompts, schema, temperature: float = None):
         json_schema = JsonSchema(schema, whitespace_pattern=r"[ ]?")
-        try:
-            generator = outlines.Generator(self.model, json_schema)
-        except (ValueError, Exception):
-            # schema is a JSON example/template rather than a proper JSON
-            # Schema — fall back to prompt-based generation + parsing
-            return self._prompt_based_inference(prompts, schema)
+        generator = outlines.Generator(self.model, json_schema)
 
         gen_kwargs = dict(self.generation_kwargs)
         if temperature is not None:
