@@ -43,3 +43,4 @@ driver:
 
 force_determinism: true
 align_to_target: true
+save_last_unstructured_state_per_scenario: true
