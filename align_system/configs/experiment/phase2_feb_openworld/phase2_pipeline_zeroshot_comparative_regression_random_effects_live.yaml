@@ -20,7 +20,6 @@ interface:
 
 adm:
   step_definitions:
-      step_definitions:
     comparative_regression:
       enable_caching: true
     ensure_chosen_action:
@@ -46,3 +45,4 @@ driver:
 
 force_determinism: true
 align_to_target: true
+save_last_unstructured_state_per_scenario: true
