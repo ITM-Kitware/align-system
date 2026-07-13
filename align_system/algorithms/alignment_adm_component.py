@@ -7,6 +7,7 @@ from align_system.utils.alignment_utils import alignment_target_to_attribute_tar
 
 log = logging.getLogger(__name__)
 med_urg_str = "medical"
+attr_str = "attribute"
 
 
 class AlignmentADMComponent(ADMComponent):
@@ -503,6 +504,49 @@ class MultinomialRandomEffectsModelAlignmentADMComponent(RandomEffectsModelAlign
     def run_returns(self):
         return ('chosen_choice', 'best_sample_idx', 'p_choices', 'alignment_info')
 
+    def _compute_p_choose_a(
+        self, kdma, intercept, medical_weight, attr_weight, opt_a, opt_b,
+    ):
+        # Provided by ADEPT 2025-12-12
+        # MF updated 2026-01-21
+        scaling = {
+                "affiliation": {
+                    med_urg_str: [0.589, 0.330],
+                    attr_str: [0.703, 0.365],
+                },
+                "merit": {
+                    med_urg_str: [0.576, 0.339],
+                    attr_str: [0.671, 0.381],
+                },
+                "personal_safety": {
+                    med_urg_str: [0.228, 0.287],
+                    attr_str: [0.777, 0.309],
+                },
+                "search": {
+                    med_urg_str: [0.263, 0.365],
+                    attr_str: [0.286, 0.325],
+                },
+            }
+        if kdma not in scaling:
+            raise RuntimeError(f"No z-scaling values provided for {kdma}")
+        scaling = scaling[kdma]
+
+        def _apply_z_scaling(key, raw_value):
+            return (raw_value - scaling[key][0]) / scaling[key][1]
+
+        # Apply z-scaling
+        a_med = _apply_z_scaling(med_urg_str, opt_a[med_urg_str])
+        a_attr = _apply_z_scaling(attr_str, opt_a[kdma])
+        b_med = _apply_z_scaling(med_urg_str, opt_b[med_urg_str])
+        b_attr = _apply_z_scaling(attr_str, opt_b[kdma])
+
+        medical_delta = a_med - b_med
+        attr_score = a_attr - b_attr
+
+        # Compute p_choose_a
+        y_ij = intercept + medical_weight*medical_delta + attr_weight*attr_score
+        return math.exp(y_ij) / (1 + math.exp(y_ij))
+
     def run(
         self,
         attribute_prediction_scores,
@@ -566,10 +610,9 @@ class MultinomialRandomEffectsModelAlignmentADMComponent(RandomEffectsModelAlign
                         flip_order = True
                         raw_medical_delta *= -1
                     primary, secondary = (opt_a, opt_b) if not flip_order else (opt_b, opt_a)
-                    raw_attr_score = secondary[kdma] if kdma == "search" else primary[kdma]
 
                     p_choose_primary = self._compute_p_choose_a(
-                        kdma, intercept, medical_weight, attr_weight, raw_medical_delta, raw_attr_score)
+                        kdma, intercept, medical_weight, attr_weight, primary, secondary)
 
                     p_matrix[choice_idx_a][choice_idx_b] = p_choose_primary if not flip_order else 1 - p_choose_primary
                     p_matrix[choice_idx_b][choice_idx_a] = 1 - p_choose_primary if not flip_order else p_choose_primary

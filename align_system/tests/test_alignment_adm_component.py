@@ -1299,10 +1299,14 @@ class TestMultinomialRandomEffectsModelAlignmentADMComponent:
                 {
                     "Treat Patient A": {"medical": 0.947157191, "merit": 0.0},
                     "Treat Patient B": {"medical": 0.012495865, "merit": 1.0},
-                    # Medical delta = 0.947157191-0.012495865 = 0.934661326
-                    # Z-scaled medical delta = (0.934661326 - 0.428961) / 0.301250 = 1.67867328133
-                    # Attribute score = 0.0
-                    # Z-scaled attribute = (0.0 - 0.337618) / 0.272520 = -1.23887421107
+                    # Z-scale Patient A:
+                    #   med: (0.947157191 - 0.576) /  0.339 = 1.0948589705
+                    #   attr: (0.0 - 0.671) / 0.381 = -1.76115485564
+                    # Z-scale Patient B:
+                    #   med: (0.012495865 - 0.576) /  0.339 = -1.66225408555
+                    #   attr: (1.0 - 0.671) / 0.381 = 0.86351706036
+                    # Medical delta = 1.0948589705 - -1.66225408555 = 2.75711305605
+                    # Attr delta = -1.76115485564 - 0.86351706036 = -2.624671916
                 },
                 None,
                 {
@@ -1317,8 +1321,8 @@ class TestMultinomialRandomEffectsModelAlignmentADMComponent:
                             ]
                         },
                     ],
-                    # Y_ij = 0.5 + 0.85*1.67867328133-0.3*-1.23887421107 = 2.29853455245
-                    # P_choose_a = e^2.29853455245/(1+e^2.29853455245) = 0.90875559851
+                    # Y_ij = 0.5 + 0.85*2.75711305605-0.3*-2.624671916 = 3.63094767244
+                    # P_choose_a = e^3.63094767244/(1+e^3.63094767244) = 0.97419259797
                 },
                 "Treat Patient A",
                 does_not_raise(),
@@ -1328,10 +1332,14 @@ class TestMultinomialRandomEffectsModelAlignmentADMComponent:
                 {
                     "Treat Patient A": {"medical": 0.947157191, "merit": 0.0, "affiliation": 0.5},
                     "Treat Patient B": {"medical": 0.012495865, "merit": 1.0, "affiliation": 0.25},
-                    # Medical delta = 0.947157191-0.012495865 = 0.934661326
-                    # Z-scaled medical delta = (0.934661326 - 0.428961) / 0.301250 = 1.67867328133
-                    # Attribute score = 0.0
-                    # Z-scaled attribute = (0.0 - 0.337618) / 0.272520 = -1.23887421107
+                    # Z-scale Patient A:
+                    #   med: (0.947157191 - 0.576) /  0.339 = 1.0948589705
+                    #   attr: (0.0 - 0.671) / 0.381 = -1.76115485564
+                    # Z-scale Patient B:
+                    #   med: (0.012495865 - 0.576) /  0.339 = -1.66225408555
+                    #   attr: (1.0 - 0.671) / 0.381 = 0.86351706036
+                    # Medical delta = 1.0948589705 - -1.66225408555 = 2.75711305605
+                    # Attr delta = -1.76115485564 - 0.86351706036 = -2.624671916
                 },
                 {
                     "merit": 1.0,
@@ -1358,8 +1366,8 @@ class TestMultinomialRandomEffectsModelAlignmentADMComponent:
                             ]
                         }
                     ],
-                    # Y_ij = 0.5 + 0.85*1.67867328133-0.3*-1.23887421107 = 2.29853455245
-                    # P_choose_a = e^2.29853455245/(1+e^2.29853455245) = 0.90875559851
+                    # Y_ij = 0.5 + 0.85*2.75711305605-0.3*-2.624671916 = 3.63094767244
+                    # P_choose_a = e^3.63094767244/(1+e^3.63094767244) = 0.97419259797
                 },
                 "Treat Patient A",
                 does_not_raise(),
