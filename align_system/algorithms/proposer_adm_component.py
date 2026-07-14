@@ -22,10 +22,12 @@ class ProposerGeneratorAgent(ADMComponent):
     is embedded in the action's `unstructured` field so that
     comparative regression sees it as part of the choice description.
 
-    Action history is maintained across `run()` calls within a scenario
-    and cleared by `reset_history()`.  After comparative regression
-    picks a winner, `update_history()` should be called so future
-    proposals avoid repeating the same action.
+    Action history is provided by `PipelineADM` via the injected
+    `history` argument: a list of prior working_output dicts, each
+    annotated (by the driver, via `PipelineADM.update_history()`) with
+    an `executed_action` recording what actually ran in the
+    environment.  Entries without an `executed_action` (e.g. actions
+    that had no environment effect) are ignored.
     """
 
     def __init__(
@@ -45,47 +47,42 @@ class ProposerGeneratorAgent(ADMComponent):
         self.num_candidates = num_candidates
         self.rollout_horizon = rollout_horizon
         self.inference_temperature = inference_temperature
-        self._history: List[PlannerAction] = []
 
-    # ------------------------------------------------------------------
-    # History management (called by PipelineADM)
-    # ------------------------------------------------------------------
-
-    def reset_history(self) -> None:
-        self._history = []
-
-    def update_history(self, chosen_action) -> None:
-        """Record the action chosen by downstream alignment so the next
-        proposal round knows what was already tried."""
-        if chosen_action is None:
-            return
-        plan = getattr(chosen_action, "plan", None)
-        if plan:
-            self._history.extend(plan)
-        else:
-            tool_name = (
-                chosen_action.action_id
-                if hasattr(chosen_action, "action_id")
-                else str(chosen_action)
-            )
-            args = getattr(chosen_action, "args", {}) or {}
-            self._history.append(PlannerAction(tool_name=tool_name, args=args))
-
-    # ------------------------------------------------------------------
-    # ADMComponent interface
-    # ------------------------------------------------------------------
+    @staticmethod
+    def _action_history_from_pipeline_history(history) -> List[PlannerAction]:
+        """Flatten the pipeline's working_output history into the list of
+        `PlannerAction`s that were actually executed in the environment."""
+        action_history: List[PlannerAction] = []
+        for entry in history or []:
+            executed = entry.get("executed_action")
+            if executed is None:
+                continue
+            plan = getattr(executed, "plan", None)
+            if plan:
+                action_history.extend(plan)
+            else:
+                tool_name = (
+                    executed.action_id
+                    if hasattr(executed, "action_id")
+                    else str(executed)
+                )
+                args = getattr(executed, "args", {}) or {}
+                action_history.append(PlannerAction(tool_name=tool_name, args=args))
+        return action_history
 
     def run_returns(self):
         return "actions"
 
-    def run(self, scenario_state, actions: List[AI2ThorAction]) -> List[AI2ThorAction]:
+    def run(self, scenario_state, actions: List[AI2ThorAction],
+            history=None) -> List[AI2ThorAction]:
         tool_map = {a.action_id: a for a in actions}
 
         tools = [
             ToolSpec(
                 name=a.action_id,
                 description=a.unstructured,
-                json_schema={"type": "object", "properties": {}, "required": []},
+                json_schema=(getattr(a, "tool_schema", None)
+                             or {"type": "object", "properties": {}, "required": []}),
             )
             for a in actions
         ]
@@ -93,7 +90,7 @@ class ProposerGeneratorAgent(ADMComponent):
         template_args = {
             "scenario_state": scenario_state,
             "tools": tools,
-            "action_history": self._history,
+            "action_history": self._action_history_from_pipeline_history(history),
             "num_candidates": self.num_candidates,
             "rollout_horizon": self.rollout_horizon,
         }

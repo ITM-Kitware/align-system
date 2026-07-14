@@ -1,3 +1,4 @@
+from collections import deque
 from collections.abc import Iterable
 from timeit import default_timer as timer
 
@@ -8,8 +9,9 @@ log = logging.getLogger(__name__)
 
 
 class PipelineADM(ActionBasedADM):
-    def __init__(self, steps: list[ADMComponent]):
+    def __init__(self, steps: list[ADMComponent], history_window=None):
         self.steps = steps
+        self.history = deque(maxlen=history_window)
 
     def choose_action(self,
                       scenario_state,
@@ -28,8 +30,9 @@ class PipelineADM(ActionBasedADM):
             step_returns = step.run_returns()
 
             start_time = timer()
-            # Run the step
-            run_output = call_with_coerced_args(step.run, working_output)
+            # Run the step, temporarily adding historical working outputs to working_output
+            working_output_with_history = {**{"history": list(self.history)}, **working_output}
+            run_output = call_with_coerced_args(step.run, working_output_with_history)
             end_time = timer()
 
             per_step_timing_stats.append(
@@ -74,16 +77,21 @@ class PipelineADM(ActionBasedADM):
         working_output.setdefault('choice_info', {})['per_step_timing_stats'] =\
             per_step_timing_stats
 
+        self.history.append(working_output)
         return working_output['chosen_action'], working_output
 
     def reset_history(self) -> None:
-        """Delegate to any pipeline step that maintains its own history."""
+        self.history.clear()
         for step in self.steps:
             if hasattr(step, 'reset_history'):
                 step.reset_history()
 
     def update_history(self, chosen_action) -> None:
-        """Delegate to any pipeline step that maintains its own history."""
+        """Annotate the most recent history entry with the action as it
+        was actually executed in the environment (which may differ from
+        the chosen action, e.g. truncated plans or no-effect actions)."""
+        if self.history:
+            self.history[-1]['executed_action'] = chosen_action
         for step in self.steps:
             if hasattr(step, 'update_history'):
                 step.update_history(chosen_action)

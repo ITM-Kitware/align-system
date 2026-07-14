@@ -30,6 +30,7 @@ step_definitions:
 
 instance:
   _target_: align_system.algorithms.pipeline_adm.PipelineADM
+  history_window: null
   steps:
     - ${ref:adm.step_definitions.proposer}
     - ${ref:adm.step_definitions.format_choices}

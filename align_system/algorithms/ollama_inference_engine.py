@@ -25,10 +25,14 @@ class OllamaInferenceEngine(StructuredInferenceEngine):
         model: str = "gpt-oss:20b",
         temperature: float = 0.0,
         num_ctx: int = 8192,
+        num_predict: int = 4096,
+        max_retries: int = 2,
     ):
         self.model = model
         self.temperature = temperature
         self.num_ctx = num_ctx
+        self.num_predict = num_predict
+        self.max_retries = max_retries
 
     def dialog_to_prompt(self, dialog) -> str:
         """
@@ -70,18 +74,53 @@ class OllamaInferenceEngine(StructuredInferenceEngine):
 
         results = []
         for prompt in prompts:
-            resp = ollama.generate(
-                model=self.model,
-                prompt=prompt,
-                format=format_schema,
-                options={"temperature": effective_temperature, "num_ctx": self.num_ctx},
-            )
-            text = resp["response"]
-            log.debug(f"[OllamaInferenceEngine] raw response:\n{text}")
+            for attempt in range(self.max_retries + 1):
+                # On retries, sample with some temperature so a greedy
+                # engine doesn't just reproduce the same bad output
+                retry_temperature = (effective_temperature if attempt == 0
+                                     else max(effective_temperature, 0.2))
+                resp = ollama.generate(
+                    model=self.model,
+                    prompt=prompt,
+                    format=format_schema,
+                    options={"temperature": retry_temperature,
+                             "num_ctx": self.num_ctx,
+                             "num_predict": self.num_predict},
+                )
+                text = resp["response"]
+                log.debug(f"[OllamaInferenceEngine] raw response:\n{text}")
 
-            results.append(json.loads(text))
+                try:
+                    results.append(self._parse_json_response(text))
+                    break
+                except (json.JSONDecodeError, RuntimeError) as e:
+                    if attempt == self.max_retries:
+                        raise
+                    log.warning(f"[OllamaInferenceEngine] failed to parse "
+                                f"response (attempt {attempt + 1} of "
+                                f"{self.max_retries + 1}): {e}; retrying")
 
         return results[0] if single_prompt else results
+
+    @staticmethod
+    def _parse_json_response(text: str):
+        """
+        Parse the first JSON value in the response, tolerating trailing
+        garbage (some models emit extra text after the schema-constrained
+        JSON despite the `format` parameter).
+        """
+        stripped = text.strip()
+        if not stripped:
+            raise RuntimeError(
+                "Ollama returned an empty response; the model may not "
+                "support structured output via the `format` parameter")
+
+        obj, end = json.JSONDecoder().raw_decode(stripped)
+        trailing = stripped[end:].strip()
+        if trailing:
+            log.warning(f"[OllamaInferenceEngine] ignoring trailing data "
+                        f"after JSON response: {trailing[:100]!r}")
+        return obj
 
     def cache_repr(self) -> str:
         return (

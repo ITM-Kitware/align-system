@@ -37,6 +37,8 @@ class AI2ThorAction:
     justification: Optional[str] = None
     kdma_association: Optional[Dict[str, Any]] = None
     plan: List[PlannerAction] = field(default_factory=list)
+    # JSON schema for this action's args (from the env's ToolSpec)
+    tool_schema: Optional[Dict[str, Any]] = None
 
     def to_dict(self):
         return {
@@ -78,7 +80,8 @@ class AI2ThorScenario(ActionBasedScenarioInterface):
 
     def get_available_actions(self) -> List[AI2ThorAction]:
         return [
-            AI2ThorAction(action_id=t.name, unstructured=t.description)
+            AI2ThorAction(action_id=t.name, unstructured=t.description,
+                          tool_schema=t.json_schema)
             for t in self.env.tools()
         ]
 
