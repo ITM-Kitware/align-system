@@ -86,12 +86,16 @@ class PipelineADM(ActionBasedADM):
             if hasattr(step, 'reset_history'):
                 step.reset_history()
 
-    def update_history(self, chosen_action) -> None:
+    def update_history(self, chosen_action=None, **annotations) -> None:
         """Annotate the most recent history entry with the action as it
         was actually executed in the environment (which may differ from
-        the chosen action, e.g. truncated plans or no-effect actions)."""
+        the chosen action, e.g. truncated or partially failed plans).
+        Extra keyword arguments are merged into the entry as additional
+        annotations (e.g. `failed_actions`)."""
         if self.history:
-            self.history[-1]['executed_action'] = chosen_action
+            if chosen_action is not None:
+                self.history[-1]['executed_action'] = chosen_action
+            self.history[-1].update(annotations)
         for step in self.steps:
             if hasattr(step, 'update_history'):
                 step.update_history(chosen_action)

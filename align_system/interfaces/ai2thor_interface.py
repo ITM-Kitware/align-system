@@ -20,6 +20,9 @@ class AI2ThorState:
     unstructured: str
     scenario_complete: bool = False
     env_step: int = field(default=-1)
+    # Whether the most recent action actually succeeded in the
+    # environment (None for the initial state)
+    last_action_success: Optional[bool] = None
     meta_info: _AI2ThorMetaInfo = field(default_factory=_AI2ThorMetaInfo)
     # Stubs to satisfy itm_phase1 driver attribute access (unused by AI2Thor)
     characters: List[Any] = field(default_factory=list)
@@ -94,6 +97,7 @@ class AI2ThorScenario(ActionBasedScenarioInterface):
                 unstructured=f"{self.task}\n\n{result.obs.text}",
                 scenario_complete=result.done,
                 env_step=self.env._step_count,
+                last_action_success=bool(result.info.get("success", False)),
             )
             if result.done:
                 break

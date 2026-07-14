@@ -23,10 +23,12 @@ def format_choices(choices, available_actions, scenario_state):
         # map to the corresponding action
         choices = []
         for a in available_actions:
-            if(a.action_type == ActionTypeEnum.APPLY_TREATMENT
+            # Non-ITM actions (e.g. AI2Thor) don't have an action_type
+            action_type = getattr(a, 'action_type', None)
+            if(action_type == ActionTypeEnum.APPLY_TREATMENT
                 and a.parameters is not None and len(a.parameters) > 0):
                 choices.append(detailed_unstructured_treatment_action_text(a, character_id_to_name))
-            elif(a.action_type == ActionTypeEnum.TAG_CHARACTER
+            elif(action_type == ActionTypeEnum.TAG_CHARACTER
                     and a.parameters is not None and len(a.parameters) > 0):
                 choices.append(detailed_unstructured_tagging_action_text(a, character_id_to_name))
             else:

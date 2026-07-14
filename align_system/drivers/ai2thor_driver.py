@@ -86,6 +86,7 @@ class AI2ThorDriver:
 
                 plan = getattr(action_to_take, "plan", None) or [None]
                 executed_plan: list[PlannerAction] = []
+                failed_plan: list[PlannerAction] = []
 
                 for plan_idx, plan_action in enumerate(plan):
                     if plan_action is None:
@@ -111,30 +112,32 @@ class AI2ThorDriver:
                         with open(save_input_output_to_path, "w") as f:
                             json.dump(inputs_outputs, f, indent=2)
 
-                    prev_env_step = getattr(current_state, "env_step", -1)
                     current_state = scenario.take_action(exec_action)
                     step += 1
 
-                    if getattr(current_state, "env_step", -1) != prev_env_step:
-                        executed_plan.append(
-                            plan_action if plan_action is not None
-                            else PlannerAction(tool_name=exec_action.action_id, args=exec_action.args or {})
-                        )
+                    planner_action = (
+                        plan_action if plan_action is not None
+                        else PlannerAction(tool_name=exec_action.action_id, args=exec_action.args or {})
+                    )
+                    if getattr(current_state, "last_action_success", False):
+                        executed_plan.append(planner_action)
                     else:
-                        log.info(f"[t={step-1}] action {exec_action.action_id} had no effect (env_step unchanged); skipping history")
+                        failed_plan.append(planner_action)
+                        log.info(f"[t={step-1}] action {exec_action.action_id} failed; recording as failed attempt")
 
                     if current_state.scenario_complete:
                         log.info(f"[bold]Task complete after {step} steps.[/bold]",
                                  extra={"markup": True})
                         break
 
-                if executed_plan and hasattr(adm, "update_history"):
+                if (executed_plan or failed_plan) and hasattr(adm, "update_history"):
                     adm.update_history(
                         AI2ThorAction(
                             action_id=executed_plan[0].tool_name,
                             unstructured=action_to_take.unstructured,
                             plan=executed_plan,
-                        )
+                        ) if executed_plan else None,
+                        failed_actions=failed_plan,
                     )
 
             if step >= self.max_steps and not current_state.scenario_complete:

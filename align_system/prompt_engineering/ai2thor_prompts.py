@@ -27,7 +27,8 @@ class AI2ThorProposerSystemPrompt():
 
 
 @compat_outlines_prompt
-def ai2thor_proposer_prompt(task, tools, action_history, num_candidates):
+def ai2thor_proposer_prompt(task, tools, action_history, failed_attempts,
+                            num_candidates):
     """
     Task: {{ task }}
 
@@ -44,17 +45,26 @@ def ai2thor_proposer_prompt(task, tools, action_history, num_candidates):
     {% else %}
     None
     {% endif %}
+    {% if failed_attempts %}
+
+    Failed attempts (these actions did NOT work; do not repeat them with the same args):
+    {% for action in failed_attempts %}
+    - {{ action.tool_name }}({{ action.args }})
+    {% endfor %}
+    {% endif %}
 
     Generate {{ num_candidates }} diverse candidate plans.
     """
 
 
 class AI2ThorProposerPrompt():
-    def __call__(self, scenario_state, tools, action_history, num_candidates):
+    def __call__(self, scenario_state, tools, action_history, failed_attempts,
+                 num_candidates):
         return ai2thor_proposer_prompt(
             scenario_state.unstructured,
             tools,
             action_history,
+            failed_attempts,
             num_candidates)
 
 

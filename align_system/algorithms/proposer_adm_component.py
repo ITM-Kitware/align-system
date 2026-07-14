@@ -25,9 +25,10 @@ class ProposerGeneratorAgent(ADMComponent):
     Action history is provided by `PipelineADM` via the injected
     `history` argument: a list of prior working_output dicts, each
     annotated (by the driver, via `PipelineADM.update_history()`) with
-    an `executed_action` recording what actually ran in the
-    environment.  Entries without an `executed_action` (e.g. actions
-    that had no environment effect) are ignored.
+    an `executed_action` recording what actually succeeded in the
+    environment and `failed_actions` recording attempts that failed.
+    Failed attempts are surfaced to the LLM so it can avoid repeating
+    them.
     """
 
     def __init__(
@@ -49,26 +50,28 @@ class ProposerGeneratorAgent(ADMComponent):
         self.inference_temperature = inference_temperature
 
     @staticmethod
-    def _action_history_from_pipeline_history(history) -> List[PlannerAction]:
-        """Flatten the pipeline's working_output history into the list of
-        `PlannerAction`s that were actually executed in the environment."""
-        action_history: List[PlannerAction] = []
+    def _action_history_from_pipeline_history(history):
+        """Flatten the pipeline's working_output history into two lists of
+        `PlannerAction`s: actions that succeeded in the environment and
+        attempts that failed."""
+        executed_history: List[PlannerAction] = []
+        failed_history: List[PlannerAction] = []
         for entry in history or []:
             executed = entry.get("executed_action")
-            if executed is None:
-                continue
-            plan = getattr(executed, "plan", None)
-            if plan:
-                action_history.extend(plan)
-            else:
-                tool_name = (
-                    executed.action_id
-                    if hasattr(executed, "action_id")
-                    else str(executed)
-                )
-                args = getattr(executed, "args", {}) or {}
-                action_history.append(PlannerAction(tool_name=tool_name, args=args))
-        return action_history
+            if executed is not None:
+                plan = getattr(executed, "plan", None)
+                if plan:
+                    executed_history.extend(plan)
+                else:
+                    tool_name = (
+                        executed.action_id
+                        if hasattr(executed, "action_id")
+                        else str(executed)
+                    )
+                    args = getattr(executed, "args", {}) or {}
+                    executed_history.append(PlannerAction(tool_name=tool_name, args=args))
+            failed_history.extend(entry.get("failed_actions") or [])
+        return executed_history, failed_history
 
     def run_returns(self):
         return "actions"
@@ -87,10 +90,13 @@ class ProposerGeneratorAgent(ADMComponent):
             for a in actions
         ]
 
+        executed_history, failed_history = \
+            self._action_history_from_pipeline_history(history)
         template_args = {
             "scenario_state": scenario_state,
             "tools": tools,
-            "action_history": self._action_history_from_pipeline_history(history),
+            "action_history": executed_history,
+            "failed_attempts": failed_history,
             "num_candidates": self.num_candidates,
             "rollout_horizon": self.rollout_horizon,
         }
@@ -170,6 +176,15 @@ class ProposerGeneratorAgent(ADMComponent):
                 )
                 for a in actions[: self.num_candidates]
             ]
+
+        # Downstream components key choices by the unstructured label;
+        # make sure duplicates are disambiguated
+        label_counts: dict = {}
+        for action in candidate_actions:
+            n = label_counts.get(action.unstructured, 0) + 1
+            label_counts[action.unstructured] = n
+            if n > 1:
+                action.unstructured += f" (alternative {n})"
 
         log.info(
             "[PlannerCandidateGenerator] candidates: "

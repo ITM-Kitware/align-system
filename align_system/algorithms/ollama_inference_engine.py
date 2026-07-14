@@ -22,7 +22,7 @@ class OllamaInferenceEngine(StructuredInferenceEngine):
 
     def __init__(
         self,
-        model: str = "gpt-oss:20b",
+        model: str = "gemma4:12b",
         temperature: float = 0.0,
         num_ctx: int = 8192,
         num_predict: int = 4096,
