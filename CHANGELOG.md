@@ -10,6 +10,14 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 * Added `MultinomialRandomEffectsModelAlignmentADMComponent` for binomial/trinomial alignment based on ADEPT's latest guidance
 * Added `TournamentRandomEffectsModelAlignmentADMComponent`, a tournament-style version of the random effects alignment function
   (note this is still not multi-kdma)
+* Added several new components for "Open World" experimentation: `OWFormatChoicesADMComponent` extracts relevant characters such that
+  the ADM chooses a character instead of an action, `OWChoiceToActionADMComponent` maps a character selection back to an actual action,
+  `OWActionParameterCompletionADMComponent` ensures all required parameters are filled in,`OWTaggingAdjustmentADMComponent` applies
+  heuristics to indirectly affect tag choice by the alignment target based on unaligned vs aligned patient ranking, and
+  `OWRandomParameterCompletionADMComponent` was added so that the random ADM can function in this environment for smoketests.
+* Added a new driver for "Open World" experimentation: `ITMOpenWorldDriver`. Note that while the name implies the ADM can operate in
+  an unconstrained environment, "Open World" has a slightly more restricted meaning for the program and assumes a specific scenario
+  structure.
 
 ### Fixed
 
