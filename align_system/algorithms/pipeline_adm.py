@@ -11,6 +11,11 @@ class PipelineADM(ActionBasedADM):
     def __init__(self, steps: list[ADMComponent]):
         self.steps = steps
 
+    def reset_history(self):
+        for step in self.steps:
+            if hasattr(step, 'reset_history'):
+                step.reset_history()
+
     def choose_action(self,
                       scenario_state,
                       available_actions,
