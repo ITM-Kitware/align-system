@@ -319,6 +319,146 @@ class MedicalUrgencyAlignmentWeightedADMComponent(MedicalUrgencyAlignmentADMComp
             return 0.5 + (medical_weight*medical_delta - attr_delta)/2
 
 
+class MultinomialWeightedMidpointAlignmentADMComponent(ADMComponent):
+    def __init__(
+        self,
+        attributes=None
+    ):
+        if attributes is None:
+            attributes = {}
+        self.attributes = attributes
+
+    def run_returns(self):
+        return ('chosen_choice', 'best_sample_idx', 'alignment_info')
+
+    def _midpoint_eqn(self, kdma, opt_a, opt_b):
+        medical_weights = {"affiliation": 2, "merit": 4}
+        medical_weight = medical_weights.get(kdma, 1.0)
+
+        med_delta = opt_a[med_urg_str] - opt_b[med_urg_str]
+        attr_delta = opt_b[kdma] - opt_a[kdma]
+        opt_a_attr = opt_a[kdma]
+
+        # Midpoint equation from ADEPT
+        if kdma == "affiliation":
+            pairwise_midpt = (opt_a_attr + medical_weight*med_delta - opt_a_attr*med_delta)/2
+        elif kdma == "merit":
+            pairwise_midpt = (opt_a_attr + medical_weight*med_delta)/4
+        else:
+            pairwise_midpt =  0.5 + (medical_weight*med_delta - attr_delta)/2
+
+        return pairwise_midpt, med_delta, attr_delta
+
+    def run(
+        self,
+        attribute_prediction_scores,
+        alignment_target,
+        attribute_relevance=None,
+    ):
+        """
+        Align based on medical urgency/KDMA tradeoff in a multinomial situation
+
+        attribute_prediction_scores: dict[str, dict[str, float | list[float]]]
+            Dictionary of choices mapped to KMDA value predictions, including medical
+            urgency prediction
+        alignment_target: alignment target info
+        attribute_relevance: dict[str, float | list[float]]
+            Dictionary of probe level KDMA relevance predictions
+        """
+        if alignment_target is None:
+            raise RuntimeError(
+                "Assumption violated: `alignment_target` was None"
+            )
+
+        target_kdmas = alignment_target_to_attribute_targets(
+            alignment_target,
+            self.attributes)
+        target_kdmas = [dict(t) for t in target_kdmas]
+
+        choices = list(attribute_prediction_scores.keys())
+
+        # Compute averages of predicted values
+        predictions = []
+        for choice, all_kdma_predictions in attribute_prediction_scores.items():
+            pred_dict = {"choice": choice}
+
+            # Get medical urgency
+            if med_urg_str not in all_kdma_predictions:
+                raise RuntimeError("Medical Urgency predictions required for this alignment function")
+
+            # Get KDMA predictions relevant to target
+            pred_dict.update(_get_avg_pred(all_kdma_predictions, target_kdmas))
+
+            predictions.append(pred_dict)
+
+        # Get relevance predictions relevant to target
+        probe_relevance = {}
+        if attribute_relevance is not None:
+            probe_relevance = _get_avg_pred(attribute_relevance, target_kdmas)
+
+        # Sort by medical urgency (descending)
+        predictions.sort(key=lambda pred: pred[med_urg_str], reverse=True)
+        ref_choice = predictions[0]  # most medically needy patient is the "default" choice
+
+        # Capture alignment information for input_output json
+        alignment_info = {
+            "source": type(self).__name__,
+            "per_kdma": {},
+        }
+
+        # TODO: Figure out what it means to be the best prediction for this alignment function
+        best_sample_idx = 0
+
+        # Compute midpoint per attribute
+        votes = {idx: 0 for idx in range(len(choices))}
+        for target_kdma in target_kdmas:
+            kdma = target_kdma["kdma"]
+            attr_target = target_kdma["value"]
+            attr_relevance = probe_relevance.get(kdma, 1.0)
+
+            # May not have predictions for this KDMA if it had 0 relevance
+            if math.isclose(attr_relevance, 0.):
+                continue
+
+            # Compare all other options to the reference option
+            final_candidates = {}
+            for candidate_idx, candidate_choice in enumerate(predictions[1:], start=1):
+                pairwise_midpt, med_delta, attr_delta = self._midpoint_eqn(kdma, ref_choice, candidate_choice)
+
+                # Choices are same medically and attribute-wise, doesn't meet switching threshold
+                if math.isclose(med_delta, 0) and math.isclose(attr_delta, 0):
+                    continue
+                # Reference choice is medically and attribute worthy
+                if attr_delta < 0 or math.isclose(attr_delta, 0):
+                    continue
+
+                if pairwise_midpt < attr_target:  # Decision maker would switch to this choice
+                    final_candidates[candidate_idx] = pairwise_midpt
+
+            if len(final_candidates) == 0:  # Nothing pulled from the default choice
+                votes[0] += attr_relevance
+            # TODO: Min or max?
+            else:  # Get candidate choices with the most "switchy-ness" -- in other words, the smallest midpoint
+                min_midpt = min(final_candidates.values())
+                min_keys = [choice_idx for choice_idx, score in final_candidates.items() if score == min_midpt]
+                vote_share = attr_relevance / len(min_keys)  # Only assign a fraction of this attr's vote based on tie size
+                for choice_idx in min_keys:
+                        votes[choice_idx] += vote_share
+
+        log.explain(votes)
+
+        max_votes = max(votes.values())
+        max_keys = [key for key, value in votes.items() if math.isclose(value, max_votes)]
+        log.info(f"Max vote keys: {max_keys}")
+
+        if len(max_keys) > 1:  # tie, choose first patient for determinism
+            log.explain("Multiple choices predicted to have same worthiness, selecting first choice for determinism")
+
+        alignment_info["votes"] = votes
+
+        return (predictions[max_keys[0]]["choice"], best_sample_idx, alignment_info)
+
+
 class RandomEffectsModelAlignmentADMComponent(ADMComponent):
     def __init__(
         self,

@@ -6,6 +6,7 @@ from contextlib import nullcontext as does_not_raise
 from align_system.algorithms.alignment_adm_component import (
     MedicalUrgencyAlignmentADMComponent,
     MedicalUrgencyAlignmentWeightedADMComponent,
+    MultinomialWeightedMidpointAlignmentADMComponent,
     RandomEffectsModelAlignmentADMComponent,
     MultinomialRandomEffectsModelAlignmentADMComponent,
     TournamentRandomEffectsModelAlignmentADMComponent,
@@ -656,7 +657,7 @@ class TestMedicalUrgencyAlignmentWeightedADMComponent:
             "name": "Affiliation Focus",
             "kdma": "affiliation",
             "description": "Test affiliation focus KDMA",
-        }
+        },
     }
 
     @pytest.mark.parametrize(
@@ -677,6 +678,637 @@ class TestMedicalUrgencyAlignmentWeightedADMComponent:
         assert (
             alignment_fn._midpoint_eqn(kdma, opt_a_value, medical_delta, attribute_delta) == pytest.approx(exp_value)
         )
+
+
+class TestMultinomialWeightedMidpointAlignmentADMComponent:
+    attribute_definitions = {
+        "merit": {
+            "name": "Merit Focus",
+            "kdma": "merit",
+            "description": "Test merit focus KDMA",
+        },
+        "affiliation": {
+            "name": "Affiliation Focus",
+            "kdma": "affiliation",
+            "description": "Test affiliation focus KDMA",
+        },
+        "KDMA_C": {
+            "name": "KDMA C",
+            "kdma": "KDMA_C",
+            "description": "Test KDMA C",
+        },
+    }
+
+    @pytest.mark.parametrize(
+        ("kdma", "opt_a", "opt_b", "exp_value"),
+        [
+            ("affiliation", {"medical": 0.8, "affiliation": 0.3}, {"medical": 0.1, "affiliation": 0.4}, 0.745),
+            ("merit", {"medical": 0.9, "merit": 0.5}, {"medical": 0.6, "merit": 0.7}, 0.425),
+            # Attribute delta shouldn't change result for affiliation/merit
+            ("affiliation", {"medical": 0.8, "affiliation": 0.3}, {"medical": 0.1, "affiliation": 0.9}, 0.745),
+            ("merit", {"medical": 0.9, "merit": 0.5}, {"medical": 0.6, "merit": 0.9}, 0.425),
+            ("KDMA_C", {"medical": 0.9, "KDMA_C": 0.3}, {"medical": 0.2, "KDMA_C": 0.4}, 0.8),
+            ("KDMA_C", {"medical": 0.9, "KDMA_C": 0.5}, {"medical": 0.6, "KDMA_C": 0.7}, 0.55),
+            ("KDMA_C", {"medical": 1.0, "KDMA_C": 0.6}, {"medical": 0.1, "KDMA_C": 1.0}, 0.75),
+            ("KDMA_C", {"medical": 0.9, "KDMA_C": 0.0}, {"medical": 0.8, "KDMA_C": 0.8}, 0.15),
+            ("KDMA_C", {"medical": 0.9, "KDMA_C": 0.7}, {"medical": 0.2, "KDMA_C": 0.8}, 0.8),
+        ],
+    )
+    def test_weighted_midpoint_eqn(self, kdma, opt_a, opt_b, exp_value):
+        """ Regression test to ensure equation doesn't get inadvertently modified """
+        alignment_fn = MultinomialWeightedMidpointAlignmentADMComponent(
+            TestMultinomialWeightedMidpointAlignmentADMComponent.attribute_definitions
+        )
+
+        midpt, _, _ = alignment_fn._midpoint_eqn(kdma, opt_a, opt_b)
+        assert (
+            midpt == pytest.approx(exp_value)
+        )
+
+    @pytest.mark.parametrize(
+        ("attribute_prediction_scores", "alignment_target", "exp_choice", "exp_raises"),
+        [
+            # No alignment target
+            (
+                {
+                    "Choice 0": {"medical": 0.1, "merit": 0.1, "affiliation": 0.8},
+                    "Choice 1": {"medical": 0.6, "merit": 0.3, "affiliation": 0.5},
+                },
+                None,
+                None,  # Raise expected so doesn't matter
+                pytest.raises(RuntimeError, match=r"Assumption violated: `alignment_target` was None"),
+            ),
+            # No medical predictions
+            (
+                {
+                    "Choice 0": {"merit": 0.1, "affiliation": 0.8},
+                    "Choice 1": {"merit": 0.3, "affiliation": 0.5},
+                },
+                {
+                    "kdma_values": [{"kdma": "affiliation", "value": 0.3}],
+                },
+                None,  # Raise expected so doesn't matter
+                pytest.raises(RuntimeError, match=r"Medical Urgency predictions required"),
+            ),
+            # >2 choices
+            (
+                {
+                    "Choice 0": {"medical": 0.9, "merit": 0.1},
+                    "Choice 1": {"medical": 0.2, "merit": 0.3},
+                    "Choice 2": {"medical": 0.6, "merit": 0.4},
+                },
+                {
+                    "kdma_values": [{"kdma": "merit", "value": 0.3}],
+                },
+                "Choice 0",
+                does_not_raise(),
+            ),
+            # <2 choices
+            (
+                {
+                    "Choice 0": {"medical": 0.1, "affiliation": 0.8},
+                },
+                {
+                    "kdma_values": [{"kdma": "affiliation", "value": 0.7}],
+                },
+                "Choice 0",
+                does_not_raise(),
+            ),
+            # Same medical
+            (
+                {
+                    "Choice 0": {"medical": 0.5, "merit": 0.1},
+                    "Choice 1": {"medical": 0.5, "merit": 0.9},
+                },
+                {
+                    "kdma_values": [{"kdma": "merit", "value": 0.3}],
+                },
+                "Choice 1",  # Attribute worthy patient
+                does_not_raise(),
+            ),
+            # Same patient is medically AND attribute worthy
+            (
+                {
+                    "Choice 0": {"medical": 0.5, "merit": 0.1},
+                    "Choice 1": {"medical": 0.9, "merit": 0.9},
+                },
+                {
+                    "kdma_values": [{"kdma": "merit", "value": 0.3}],
+                },
+                "Choice 1",
+                does_not_raise(),
+            ),
+            # Target above midpoint (0.35)
+            (
+                {
+                    "Choice 0": {"medical": 0.9, "merit": 0.1},
+                    "Choice 1": {"medical": 0.4, "merit": 0.9},
+                },
+                {
+                    "kdma_values": [{"kdma": "merit", "value": 0.7}],
+                },
+                "Choice 1",  # Choose attribute-worthy patient
+                does_not_raise(),
+            ),
+            # Target below midpoint (0.35)
+            (
+                {
+                    "Choice 0": {"medical": 0.9, "merit": 0.1},
+                    "Choice 1": {"medical": 0.4, "merit": 0.9},
+                },
+                {
+                    "kdma_values": [{"kdma": "merit", "value": 0.1}],
+                },
+                "Choice 0",  # Chose medically-worthy patient
+                does_not_raise(),
+            ),
+            # Target above midpoint (0.55)
+            (
+                {
+                    "Choice 0": {"medical": 0.3, "affiliation": 0.8},
+                    "Choice 1": {"medical": 0.7, "affiliation": 0.5},
+                },
+                {
+                    "kdma_values": [{"kdma": "affiliation", "value": 0.65}],
+                },
+                "Choice 0",  # Choose attribute-worthy patient
+                does_not_raise(),
+            ),
+            # Target below midpoint (0.55)
+            # Extra KDMAs should be ignored
+            (
+                {
+                    "Choice 0": {"medical": 0.3, "merit": 0.1, "affiliation": 0.8},
+                    "Choice 1": {"medical": 0.7, "merit": 0.9, "affiliation": 0.5},
+                },
+                {
+                    "kdma_values": [{"kdma": "affiliation", "value": 0.25}],
+                },
+                "Choice 1",  # Choose medically-worthy patient
+                does_not_raise(),
+            ),
+            # Target above midpoint (0.8)
+            (
+                {
+                    "Choice 0": {"medical": 0.2, "merit": 0.6},
+                    "Choice 1": {"medical": 0.9, "merit": 0.5},
+                },
+                {
+                    "kdma_values": [{"kdma": "merit", "value": 0.9}],
+                },
+                "Choice 0",  # Choose attribute-worthy patient
+                does_not_raise(),
+            ),
+            # Target below midpoint (0.8)
+            (
+                {
+                    "Choice 0": {"medical": 0.2, "merit": 0.6},
+                    "Choice 1": {"medical": 0.9, "merit": 0.5},
+                },
+                {
+                    "kdma_values": [{"kdma": "merit", "value": 0.3}],
+                },
+                "Choice 1",  # Chose medically-worthy patient
+                does_not_raise(),
+            ),
+            # Multiple predictions, predictions of different lengths, target above midpoint (0.575)
+            (
+                {
+                    "Choice 0": {"medical": [0.2, 0.3, 0.3, 0.2], "merit": [0.6, 0.8]},  # medical: 0.25, KDMA_A: 0.7
+                    "Choice 1": {"medical": [0.9, 0.5, 0.9, 0.5], "merit": [0.5]},  # medical: 0.7, KDMA_A: 0.5
+                },
+                {
+                    "kdma_values": [{"kdma": "merit", "value": 0.7}],
+                },
+                "Choice 0",  # Chose attribute-worthy patient
+                does_not_raise(),
+            ),
+            # Multiple predictions, predictions of different lengths, target below midpoint (0.575)
+            (
+                {
+                    "Choice 0": {"medical": [0.2, 0.3, 0.3, 0.2], "merit": [0.6, 0.8]},  # medical: 0.25, KDMA_A: 0.7
+                    "Choice 1": {"medical": [0.9, 0.5, 0.9, 0.5], "merit": [0.5]},  # medical: 0.7, KDMA_A: 0.5
+                },
+                {
+                    "kdma_values": [{"kdma": "merit", "value": 0.3}],
+                },
+                "Choice 1",  # Chose medically-worthy patient
+                does_not_raise(),
+            ),
+            # We choose randomly for target == midpoint, so no guarantees there
+        ],
+        ids=[
+            "no target", "no medical preds", ">2 choices", "<2 choices", "same medical",
+            "same medical and attribute patient", "target above midpoint (0.35)", "target below midpoint (0.35)",
+            "target above midpoint (0.55)", "target below midpoint (0.55), extraneous KDMAs",
+            "target above midpoint (0.8)", "target below midpoint (0.8)", "multiple predictions, target above midpoint (0.625)",
+            "multiple predictions, target below midpoint (0.625)"
+        ],
+    )
+    def test_run(self, attribute_prediction_scores, alignment_target, exp_choice, exp_raises):
+        """ Test expected outcomes """
+        alignment_fn = MultinomialWeightedMidpointAlignmentADMComponent(
+            TestMultinomialWeightedMidpointAlignmentADMComponent.attribute_definitions
+        )
+
+        with exp_raises:
+            # Only checking selected choice as best sample index not yet implemented
+            assert alignment_fn.run(attribute_prediction_scores, alignment_target)[0] == exp_choice
+
+    @pytest.mark.parametrize(
+        ("attribute_prediction_scores", "alignment_target", "exp_choice"),
+        [
+            # Same medical, one patient favored by all attributes
+            (
+                {
+                    "Choice 0": {"medical": 0.5, "merit": 0.1, "affiliation": 0.2},
+                    "Choice 1": {"medical": 0.5, "merit": 0.9, "affiliation": 0.7},
+                },
+                {
+                    "kdma_values": [
+                        {"kdma": "merit", "value": 0.3},
+                        {"kdma": "affiliation", "value": 0.7},
+                    ],
+                },
+                "Choice 1",  # Attribute worthy patient
+            ),
+            # Same medical, one attribute tied
+            (
+                {
+                    "Choice 0": {"medical": 0.5, "merit": 0.9, "affiliation": 0.4},
+                    "Choice 1": {"medical": 0.5, "merit": 0.9, "affiliation": 0.1},
+                },
+                {
+                    "kdma_values": [
+                        {"kdma": "merit", "value": 0.9},
+                        {"kdma": "affiliation", "value": 0.1},
+                    ],
+                },
+                "Choice 0",  # Attribute worthy patient
+            ),
+            # Fully tied patients chooses the "first" choice for determinism,
+            (
+                {
+                    "Choice 0": {"medical": 0.5, "merit": 0.9, "affiliation": 0.4},
+                    "Choice 1": {"medical": 0.5, "merit": 0.9, "affiliation": 0.4},
+                },
+                {
+                    "kdma_values": [
+                        {"kdma": "merit", "value": 0.9},
+                        {"kdma": "affiliation", "value": 0.1},
+                    ],
+                },
+                "Choice 0",  # First patient
+            ),
+            # Same patient is medically and attribute favored
+            (
+                {
+                    "Choice 0": {"medical": 0.1, "merit": 0.1, "affiliation": 0.2},
+                    "Choice 1": {"medical": 0.7, "merit": 0.9, "affiliation": 0.7},
+                },
+                {
+                    "kdma_values": [
+                        {"kdma": "merit", "value": 0.6},
+                        {"kdma": "affiliation", "value": 0.1},
+                    ],
+                },
+                "Choice 1",  # Medically and attribute worthy patient
+            ),
+            # Same medical/attr favored patient for merit, affiliation midpoint is 0.64
+            # Targets above 0.64 for affiliation would be tie vote
+            (
+                {
+                    "Choice 0": {"medical": 0.1, "merit": 0.1, "affiliation": 0.7},
+                    "Choice 1": {"medical": 0.7, "merit": 0.9, "affiliation": 0.2}, # merit, affiliation if target below 0.55
+                },
+                {
+                    "kdma_values": [
+                        {"kdma": "merit", "value": 0.1},
+                        {"kdma": "affiliation", "value": 0.3},
+                    ],
+                },
+                "Choice 1",
+            ),
+            (
+                {
+                    "Choice 0": {"medical": 0.1, "merit": 0.1, "affiliation": 0.7},
+                    "Choice 1": {"medical": 0.7, "merit": 0.9, "affiliation": 0.2}, # merit, affiliation if target below 0.55
+                },
+                {
+                    "kdma_values": [
+                        {"kdma": "merit", "value": 0.1},
+                        {"kdma": "affiliation", "value": 0.9},
+                    ],
+                },
+                "Choice 1",  # Tie vote, choose first patient for determinism (after sorting descending medically)
+            ),
+            # Same as previous but new target for merit (shouldn't matter)
+            (
+                {
+                    "Choice 0": {"medical": 0.1, "merit": 0.1, "affiliation": 0.7},
+                    "Choice 1": {"medical": 0.7, "merit": 0.9, "affiliation": 0.2}, # merit, affiliation if target below 0.55
+                },
+                {
+                    "kdma_values": [
+                        {"kdma": "merit", "value": 0.9},
+                        {"kdma": "affiliation", "value": 0.3},
+                    ],
+                },
+                "Choice 1",
+            ),
+            # merit midpoint is 0.725, affiliation midpoint is 0.64
+            (
+                {
+                    "Choice 0": {"medical": 0.1, "merit": 0.6, "affiliation": 0.7},
+                    "Choice 1": {"medical": 0.7, "merit": 0.5, "affiliation": 0.2},
+                },
+                {
+                    "kdma_values": [
+                        {"kdma": "merit", "value": 0.1},
+                        {"kdma": "affiliation", "value": 0.3},
+                    ],
+                },
+                "Choice 1",  # Both targets below midpoint
+            ),
+            # merit midpoint is 0.725, affiliation midpoint is 0.64
+            (
+                {
+                    "Choice 0": {"medical": 0.1, "merit": 0.6, "affiliation": 0.7},
+                    "Choice 1": {"medical": 0.7, "merit": 0.5, "affiliation": 0.2},
+                },
+                {
+                    "kdma_values": [
+                        {"kdma": "merit", "value": 0.9},
+                        {"kdma": "affiliation", "value": 0.7},
+                    ],
+                },
+                "Choice 0",  # Both targets above midpoint
+            ),
+            # merit midpoint is 0.725, affiliation midpoint is 0.64
+            (
+                {
+                    "Choice 0": {"medical": 0.1, "merit": 0.6, "affiliation": 0.7},
+                    "Choice 1": {"medical": 0.7, "merit": 0.5, "affiliation": 0.2},
+                },
+                {
+                    "kdma_values": [
+                        {"kdma": "merit", "value": 0.725},
+                        {"kdma": "affiliation", "value": 0.7},
+                    ],
+                },
+                "Choice 1",  # merit target is exactly midpoint so it votes for medically needy
+            ),
+            # merit midpoint is 0.725, affiliation midpoint is 0.64. KDMA_C isn't in target so it should be ignored
+            (
+                {
+                    "Choice 0": {"medical": 0.1, "merit": 0.6, "affiliation": 0.7, "KDMA_C": 0.9},
+                    "Choice 1": {"medical": 0.7, "merit": 0.5, "affiliation": 0.2, "KDMA_C": 0.1},
+                },
+                {
+                    "kdma_values": [
+                        {"kdma": "merit", "value": 0.725},
+                        {"kdma": "affiliation", "value": 0.2},
+                    ],
+                },
+                "Choice 1",  # merit target is exactly midpoint so it votes for medically needy
+            ),
+            # More than 2 targets. merit midpoint is 0.725, affiliation midpoint is 0.64, KDMA_C midpoint is 0.4
+            (
+                {
+                    "Choice 0": {"medical": 0.1, "merit": 0.6, "affiliation": 0.7, "KDMA_C": 0.9},
+                    "Choice 1": {"medical": 0.7, "merit": 0.5, "affiliation": 0.2, "KDMA_C": 0.1},
+                },
+                {
+                    "kdma_values": [
+                        {"kdma": "merit", "value": 0.9},
+                        {"kdma": "affiliation", "value": 0.7},
+                        {"kdma": "KDMA_C", "value": 0.8},
+                    ],
+                },
+                "Choice 0",  # All targets above midpoint
+            ),
+            # More than 2 targets. merit midpoint is 0.75, affiliation midpoint is 0.64, KDMA_C midpoint is 0.4
+            (
+                {
+                    "Choice 0": {"medical": 0.1, "merit": 0.6, "affiliation": 0.7, "KDMA_C": 0.9},
+                    "Choice 1": {"medical": 0.7, "merit": 0.5, "affiliation": 0.2, "KDMA_C": 0.1},
+                },
+                {
+                    "kdma_values": [
+                        {"kdma": "merit", "value": 0.9},
+                        {"kdma": "affiliation", "value": 0.7},
+                        {"kdma": "KDMA_C", "value": 0.2},
+                    ],
+                },
+                "Choice 0",  # 2/3 above midpoint
+            ),
+            # More than 2 targets. merit midpoint is 0.725, affiliation midpoint is 0.64, KDMA_C midpoint is 0.4
+            (
+                {
+                    "Choice 0": {"medical": 0.1, "merit": 0.6, "affiliation": 0.7, "KDMA_C": 0.9},
+                    "Choice 1": {"medical": 0.7, "merit": 0.5, "affiliation": 0.2, "KDMA_C": 0.1},
+                },
+                {
+                    "kdma_values": [
+                        {"kdma": "merit", "value": 0.9},
+                        {"kdma": "affiliation", "value": 0.1},
+                        {"kdma": "KDMA_C", "value": 0.8},
+                    ],
+                },
+                "Choice 0",  # 2/3 above midpoint
+            ),
+            # More than 2 targets. merit midpoint is 0.725, affiliation midpoint is 0.64, KDMA_C midpoint is 0.4
+            (
+                {
+                    "Choice 0": {"medical": 0.1, "merit": 0.6, "affiliation": 0.7, "KDMA_C": 0.9},
+                    "Choice 1": {"medical": 0.7, "merit": 0.5, "affiliation": 0.2, "KDMA_C": 0.1},
+                },
+                {
+                    "kdma_values": [
+                        {"kdma": "merit", "value": 0.5},
+                        {"kdma": "affiliation", "value": 0.7},
+                        {"kdma": "KDMA_C", "value": 0.8},
+                    ],
+                },
+                "Choice 0",  # 2/3 above midpoint
+            ),
+            # More than 2 targets. merit midpoint is 0.725, affiliation midpoint is 0.64, KDMA_C midpoint is 0.4
+            (
+                {
+                    "Choice 0": {"medical": 0.1, "merit": 0.6, "affiliation": 0.7, "KDMA_C": 0.9},
+                    "Choice 1": {"medical": 0.7, "merit": 0.5, "affiliation": 0.2, "KDMA_C": 0.1},
+                },
+                {
+                    "kdma_values": [
+                        {"kdma": "merit", "value": 0.5},
+                        {"kdma": "affiliation", "value": 0.2},
+                        {"kdma": "KDMA_C", "value": 0.8},
+                    ],
+                },
+                "Choice 1",  # 2/3 below midpoint
+            ),
+            # More than 2 targets. merit midpoint is 0.725, affiliation midpoint is 0.64, KDMA_C midpoint is 0.4
+            (
+                {
+                    "Choice 0": {"medical": 0.1, "merit": 0.6, "affiliation": 0.7, "KDMA_C": 0.9},
+                    "Choice 1": {"medical": 0.7, "merit": 0.5, "affiliation": 0.2, "KDMA_C": 0.1},
+                },
+                {
+                    "kdma_values": [
+                        {"kdma": "merit", "value": 0.5},
+                        {"kdma": "affiliation", "value": 0.2},
+                        {"kdma": "KDMA_C", "value": 0.4},
+                    ],
+                },
+                "Choice 1",  # 2/3 below midpoint, other exactly midpoint
+            ),
+            # More than 2 targets. merit midpoint is 0.725, affiliation midpoint is 0.64, KDMA_C midpoint is 0.4
+            (
+                {
+                    "Choice 0": {"medical": 0.1, "merit": 0.6, "affiliation": 0.7, "KDMA_C": 0.9},
+                    "Choice 1": {"medical": 0.7, "merit": 0.5, "affiliation": 0.2, "KDMA_C": 0.1},
+                },
+                {
+                    "kdma_values": [
+                        {"kdma": "merit", "value": 0.725},
+                        {"kdma": "affiliation", "value": 0.2},
+                        {"kdma": "KDMA_C", "value": 0.4},
+                    ],
+                },
+                "Choice 1",  # 1 below midpoint, other 2 exactly midpoint
+            ),
+            # Multiple predictions. merit midpoint is 0.65, affiliation midpoint is 0.55
+            (
+                {
+                    "Choice 0": {"medical": 0.1, "merit": [0.6, 0.5, 0.4], "affiliation": [0.7, 0.6]},  # merit: 0.5, affiliation: 0.65
+                    "Choice 1": {"medical": [0.7, 0.6], "merit": [0.5, 0.3], "affiliation": 0.2},  # medical: 0.6, merit: 0.4
+                },
+                {
+                    "kdma_values": [
+                        {"kdma": "merit", "value": 0.75},
+                        {"kdma": "affiliation", "value": 0.6},
+                    ],
+                },
+                "Choice 0",  # Both targets above midpoint
+            ),
+        ],
+    )
+    def test_run_with_multi_kdma(
+        self, attribute_prediction_scores, alignment_target, exp_choice
+    ):
+        """ Test expected outcomes """
+        alignment_fn = MultinomialWeightedMidpointAlignmentADMComponent(
+            TestMultinomialWeightedMidpointAlignmentADMComponent.attribute_definitions
+        )
+
+        # Only checking selected choice as best sample index not yet implemented
+        assert alignment_fn.run(attribute_prediction_scores, alignment_target)[0] == exp_choice
+
+    @pytest.mark.parametrize(
+        ("attribute_prediction_scores", "alignment_target", "attribute_relevance", "exp_choice"),
+        [
+            # Binary relevance. merit midpoint is 0.725, affiliation midpoint is 0.64
+            (
+                {
+                    "Choice 0": {"medical": 0.1, "merit": 0.6, "affiliation": 0.7},
+                    "Choice 1": {"medical": 0.7, "merit": 0.5, "affiliation": 0.2},
+                },
+                {
+                    "kdma_values": [
+                        {"kdma": "merit", "value": 0.2},
+                        {"kdma": "affiliation", "value": 0.6},
+                    ],
+                },
+                {"merit": 1.0, "affiliation": 0.0},
+                "Choice 1",  # Target below midpoint
+            ),
+            # Same as previous, change KDMA B target (shouldn't matter)
+            (
+                {
+                    "Choice 0": {"medical": 0.1, "merit": 0.6, "affiliation": 0.7},
+                    "Choice 1": {"medical": 0.7, "merit": 0.5, "affiliation": 0.2},
+                },
+                {
+                    "kdma_values": [
+                        {"kdma": "merit", "value": 0.2},
+                        {"kdma": "affiliation", "value": 0.2},
+                    ],
+                },
+                {"merit": 1.0, "affiliation": 0.0},
+                "Choice 1",  # Target below midpoint
+            ),
+            # Binary relevance. merit midpoint is 0.725, affiliation midpoint is 0.64
+            (
+                {
+                    "Choice 0": {"medical": 0.1, "merit": 0.6, "affiliation": 0.7},
+                    "Choice 1": {"medical": 0.7, "merit": 0.5, "affiliation": 0.2},
+                },
+                {
+                    "kdma_values": [
+                        {"kdma": "merit", "value": 0.9},
+                        {"kdma": "affiliation", "value": 0.2},
+                    ],
+                },
+                {"merit": 1.0, "affiliation": 0.0},
+                "Choice 0",  # Target above midpoint
+            ),
+            # Binary relevance. merit midpoint is 0.725, affiliation midpoint is 0.64
+            (
+                {
+                    "Choice 0": {"medical": 0.1, "merit": 0.6, "affiliation": 0.7},
+                    "Choice 1": {"medical": 0.7, "merit": 0.5, "affiliation": 0.2},
+                },
+                {
+                    "kdma_values": [
+                        {"kdma": "merit", "value": 0.2},
+                        {"kdma": "affiliation", "value": 0.9},
+                    ],
+                },
+                {"merit": 0.0, "affiliation": 1.0},
+                "Choice 0",  # Target above midpoint
+            ),
+            # merit midpoint is 0.725, affiliation midpoint is 0.64
+            (
+                {
+                    "Choice 0": {"medical": 0.1, "merit": 0.6, "affiliation": 0.7},
+                    "Choice 1": {"medical": 0.7, "merit": 0.5, "affiliation": 0.2},
+                },
+                {
+                    "kdma_values": [
+                        {"kdma": "merit", "value": 1.0},
+                        {"kdma": "merit", "value": 0.75},
+                    ],
+                },
+                {"merit": 0.25, "affiliation": 0.5},
+                "Choice 0",  # 0.25 to Choice 0, 0.5 to Choice 0 -> Choice 0
+            ),
+            # merit midpoint is 0.725, affiliation midpoint is 0.64
+            (
+                {
+                    "Choice 0": {"medical": 0.1, "merit": 0.6, "affiliation": 0.7},
+                    "Choice 1": {"medical": 0.7, "merit": 0.5, "affiliation": 0.2},
+                },
+                {
+                    "kdma_values": [
+                        {"kdma": "merit", "value": 0.6},
+                        {"kdma": "affiliation", "value": 0.7},
+                    ],
+                },
+                {"merit": 0.25, "affiliation": 0.5},
+                "Choice 0",  # 0.25 to Choice 1, 0.5 to Choice 0 -> Choice 0
+            ),
+        ],
+    )
+    def test_run_with_explicit_relevance(
+        self, attribute_prediction_scores, alignment_target, attribute_relevance, exp_choice
+    ):
+        """ Test expected outcomes """
+        alignment_fn = MultinomialWeightedMidpointAlignmentADMComponent(
+            TestMultinomialWeightedMidpointAlignmentADMComponent.attribute_definitions
+        )
+
+        # Only checking selected choice as best sample index not yet implemented
+        assert alignment_fn.run(attribute_prediction_scores, alignment_target, attribute_relevance)[0] == exp_choice
 
 
 class TestRandomEffectsModelAlignmentADMComponent:
