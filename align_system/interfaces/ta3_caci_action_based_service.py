@@ -21,7 +21,8 @@ class TA3CACIActionBasedServiceInterface(Interface):
                  session_type='eval',
                  scenario_ids=[],
                  domain=None,
-                 training_session=None):
+                 training_session=None,
+                 adm_profile=None):
         self.api_endpoint = api_endpoint
         # Append a UUID onto the end of our username, as the TA3
         # server doesn't allow multiple concurrent sessions for the
@@ -36,6 +37,8 @@ class TA3CACIActionBasedServiceInterface(Interface):
         self.training_session = training_session
 
         self.domain = domain
+
+        self.adm_profile = adm_profile
 
         config = Configuration()
         config.host = self.api_endpoint
@@ -54,6 +57,9 @@ class TA3CACIActionBasedServiceInterface(Interface):
                                    "either 'full' or 'solo'")
 
             start_session_params['kdma_training'] = self.training_session
+
+        if self.adm_profile is not None:
+            start_session_params['adm_profile'] = self.adm_profile
 
         self.session_id = self.connection.start_session(
             **start_session_params)

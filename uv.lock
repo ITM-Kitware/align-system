@@ -4647,8 +4647,8 @@ wheels = [
 
 [[package]]
 name = "swagger-client"
-version = "0.5.3"
-source = { git = "https://github.com/NextCenturyCorporation/itm-evaluation-client.git#c4cb122676732492bd20fdcd76afa217987039dd" }
+version = "0.6.1"
+source = { git = "https://github.com/NextCenturyCorporation/itm-evaluation-client.git#0d70d5889bd852c3e6c1f6e2faab4909525a851d" }
 dependencies = [
     { name = "pydantic" },
     { name = "python-dateutil" },
