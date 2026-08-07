@@ -11,6 +11,7 @@ interface:
   training_session: null
   username: "testrun-pipeline_random"
   domain: "p2triage"
+  adm_profile: FEB_OPENWORLD2
 
 adm:
   instance:
