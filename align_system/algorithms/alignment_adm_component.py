@@ -426,8 +426,12 @@ class MultinomialWeightedMidpointAlignmentADMComponent(ADMComponent):
                 pairwise_midpt, med_delta, attr_delta = self._midpoint_eqn(kdma, ref_choice, candidate_choice)
 
                 # Choices are same medically and attribute-wise, doesn't meet switching threshold
-                if math.isclose(med_delta, 0) and math.isclose(attr_delta, 0):
-                    continue
+                if math.isclose(med_delta, 0):
+                    if math.isclose(attr_delta, 0):
+                        continue
+                    # TODO: Other patient is same medical, but more attr-worthy. Should we always switch?
+                    #if attr_delta > 0:
+                    #   final_candidates[candidate_idx] = pairwise_midpt
                 # Reference choice is medically and attribute worthy
                 if attr_delta < 0 or math.isclose(attr_delta, 0):
                     continue
@@ -437,8 +441,7 @@ class MultinomialWeightedMidpointAlignmentADMComponent(ADMComponent):
 
             if len(final_candidates) == 0:  # Nothing pulled from the default choice
                 votes[0] += attr_relevance
-            # TODO: Min or max?
-            else:  # Get candidate choices with the most "switchy-ness" -- in other words, the smallest midpoint
+            else:  # Get candidate choices with the most "switchy-ness" -- in other words, the lowest midpoint
                 min_midpt = min(final_candidates.values())
                 min_keys = [choice_idx for choice_idx, score in final_candidates.items() if score == min_midpt]
                 vote_share = attr_relevance / len(min_keys)  # Only assign a fraction of this attr's vote based on tie size

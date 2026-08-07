@@ -1310,6 +1310,137 @@ class TestMultinomialWeightedMidpointAlignmentADMComponent:
         # Only checking selected choice as best sample index not yet implemented
         assert alignment_fn.run(attribute_prediction_scores, alignment_target, attribute_relevance)[0] == exp_choice
 
+    @pytest.mark.parametrize(
+        ("attribute_prediction_scores", "alignment_target", "exp_choice"),
+        [
+            (
+                {
+                    "Choice 0": {"medical": 0.9, "merit": 0.1},
+                    "Choice 1": {"medical": 0.2, "merit": 0.3}, # midpt: 0.725
+                    "Choice 2": {"medical": 0.6, "merit": 0.4}, # midpt: 0.325
+                },
+                {
+                    "kdma_values": [{"kdma": "merit", "value": 0.3}],
+                },
+                "Choice 0",
+            ),
+            (
+                {
+                    "Choice 0": {"medical": 0.9, "merit": 0.1},
+                    "Choice 1": {"medical": 0.2, "merit": 0.3}, # midpt: 0.725
+                    "Choice 2": {"medical": 0.6, "merit": 0.4}, # midpt: 0.325
+                },
+                {
+                    "kdma_values": [{"kdma": "merit", "value": 0.4}],
+                },
+                "Choice 2",
+            ),
+            (
+                {
+                    "Choice 0": {"medical": 0.9, "merit": 0.1},
+                    "Choice 1": {"medical": 0.2, "merit": 0.3}, # midpt: 0.725
+                    "Choice 2": {"medical": 0.6, "merit": 0.4}, # midpt: 0.325
+                },
+                {
+                    "kdma_values": [{"kdma": "merit", "value": 0.9}],
+                },
+                "Choice 2",
+            ),
+            (
+                {
+                    "Choice 0": {"medical": 0.9, "merit": 0.9},
+                    "Choice 1": {"medical": 0.2, "merit": 0.3}, # midpt: 0.925
+                    "Choice 2": {"medical": 0.6, "merit": 0.4}, # midpt: 0.525
+                },
+                {
+                    "kdma_values": [{"kdma": "merit", "value": 0.3}],
+                },
+                "Choice 0",
+            ),
+            (
+                {
+                    "Choice 0": {"medical": 0.9, "merit": 0.9},
+                    "Choice 1": {"medical": 0.2, "merit": 0.3}, # midpt: 0.925
+                    "Choice 2": {"medical": 0.6, "merit": 0.4}, # midpt: 0.525
+                },
+                {
+                    "kdma_values": [{"kdma": "merit", "value": 0.6}],
+                },
+                "Choice 0",
+            ),
+            (
+                # TODO: Other patient is same medical, but more attr-worthy. Should we always switch?
+                {
+                    "Choice 0": {"medical": 0.6, "KDMA_C": 0.2},
+                    "Choice 1": {"medical": 0.2, "KDMA_C": 0.3}, # midpt: 0.65
+                    "Choice 2": {"medical": 0.6, "KDMA_C": 0.9}, # midpt: 0.15
+                },
+                {
+                    "kdma_values": [{"kdma": "KDMA_C", "value": 0.0}],
+                },
+                "Choice 0",
+            ),
+            (
+                {
+                    "Choice 0": {"medical": 0.6, "KDMA_C": 0.2},
+                    "Choice 1": {"medical": 0.2, "KDMA_C": 0.3}, # midpt: 0.65
+                    "Choice 2": {"medical": 0.6, "KDMA_C": 0.9}, # midpt: 0.15
+                },
+                {
+                    "kdma_values": [{"kdma": "KDMA_C", "value": 0.8}],
+                },
+                "Choice 2",
+            ),
+            (
+                # Two duplicate patients, choose the first one
+                {
+                    "Choice 0": {"medical": 0.6, "KDMA_C": 0.2},
+                    "Choice 1": {"medical": 0.2, "KDMA_C": 0.3}, # midpt: 0.65
+                    "Choice 2": {"medical": 0.3, "KDMA_C": 0.9}, # midpt: 0.3
+                    "Choice 3": {"medical": 0.3, "KDMA_C": 0.9}, # midpt: 0.3
+                },
+                {
+                    "kdma_values": [{"kdma": "KDMA_C", "value": 0.8}],
+                },
+                "Choice 2",
+            ),
+            (
+                # First patient is not the most medically needy
+                {
+                    "Choice 0": {"medical": 0.2, "KDMA_C": 0.3}, # midpt: 0.65
+                    "Choice 1": {"medical": 0.6, "KDMA_C": 0.2},
+                    "Choice 2": {"medical": 0.3, "KDMA_C": 0.9}, # midpt: 0.3
+                },
+                {
+                    "kdma_values": [{"kdma": "KDMA_C", "value": 0.2}],
+                },
+                "Choice 1",
+            ),
+            (
+                # First patient is not the most medically needy
+                {
+                    "Choice 0": {"medical": 0.2, "KDMA_C": 0.3}, # midpt: 0.65
+                    "Choice 1": {"medical": 0.6, "KDMA_C": 0.2},
+                    "Choice 2": {"medical": 0.3, "KDMA_C": 0.9}, # midpt: 0.3
+                },
+                {
+                    "kdma_values": [{"kdma": "KDMA_C", "value": 0.8}],
+                },
+                "Choice 2",
+            ),
+        ],
+    )
+    def test_run_with_multinomial_choices(
+        self, attribute_prediction_scores, alignment_target, exp_choice
+    ):
+        """ Test expected outcomes """
+        alignment_fn = MultinomialWeightedMidpointAlignmentADMComponent(
+            TestMultinomialWeightedMidpointAlignmentADMComponent.attribute_definitions
+        )
+
+        # Only checking selected choice as best sample index not yet implemented
+        assert alignment_fn.run(attribute_prediction_scores, alignment_target)[0] == exp_choice
+
 
 class TestRandomEffectsModelAlignmentADMComponent:
     attribute_definitions = {
