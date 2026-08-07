@@ -12,6 +12,7 @@ interface:
   training_session: null
   username: "testrun-ALIGN-ADM-OutlinesBaseline-Mistral-7B-Instruct-v0.3"
   domain: "p2triage"
+  adm_profile: FEB_OPENWORLD1
 
 adm:
   step_definitions:

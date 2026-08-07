@@ -387,7 +387,7 @@ class ITMOpenWorldDriver:
                     else:
                         current_state = scenario.take_action(action_to_take)
                 except Exception as e:
-                    log.info(action_to_take)
+                    log.info(e.json(indent=2))
                     raise e
 
                 # If we treated a patient, record that treatment so we can ensure we treat everyone

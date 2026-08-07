@@ -217,7 +217,6 @@ class OWTaggingAdjustmentADMComponent(MedicalOnlyAlignmentADMComponent):
         chosen_choice,
         chosen_action,
         attribute_prediction_scores,
-        p_choices,
     ):
         if chosen_action.action_type == ActionTypeEnum.TAG_CHARACTER:
             tag_order = [
@@ -240,8 +239,8 @@ class OWTaggingAdjustmentADMComponent(MedicalOnlyAlignmentADMComponent):
                     if original_index == choice_idx:
                         return i  # new ranking
 
-            # Get ranking based on alignment
-            aligned_ranking = _get_sorted_ranking(p_choices, descending=True)
+            # Since we are tagging this patient they are at the top of the alignment list
+            aligned_ranking = 0
 
             # Get medical only ranking
             _, _, med_urg_info = super().run(attribute_prediction_scores)
