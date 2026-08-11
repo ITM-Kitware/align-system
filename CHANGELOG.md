@@ -18,6 +18,9 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 * Added a new driver for "Open World" experimentation: `ITMOpenWorldDriver`. Note that while the name implies the ADM can operate in
   an unconstrained environment, "Open World" has a slightly more restricted meaning for the program and assumes a specific scenario
   structure.
+* Added `MultinomialWeightedMidpointAlignmentADMComponent` for multinomial probes aligned against midpoint based targets.
+* Added a new `adm_profile` option to `TA3CACIActionBasedServiceInterface`, corresponding to the server parameter of the
+  same name.
 
 ### Fixed
 
