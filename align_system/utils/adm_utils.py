@@ -22,8 +22,10 @@ def format_choices(choices, available_actions, scenario_state):
         # available actions as we'll use the selected index later to
         # map to the corresponding action
         choices = []
+
         for a in available_actions:
-            if(a.action_type == ActionTypeEnum.APPLY_TREATMENT
+            if((a.action_type == 'APPLY_TREATMENT' or
+                a.action_type == 'TREAT_PATIENT')
                 and a.parameters is not None and len(a.parameters) > 0):
                 choices.append(detailed_unstructured_treatment_action_text(a, character_id_to_name))
             elif(a.action_type == ActionTypeEnum.TAG_CHARACTER
