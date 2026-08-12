@@ -176,6 +176,7 @@ class ITMOpenWorldDriver:
             last_scene_id = None
 
             treated_patients = set()
+            tagged_patients = set()
             evac_patients = set()
 
             while not scenario_complete:
@@ -229,6 +230,18 @@ class ITMOpenWorldDriver:
                                 characters=current_state.characters
                             ))
 
+                        elif a.action_type == ActionTypeEnum.MOVE_TO:
+                            available_actions_expanded.extend(self._expand_action_by_character(
+                                action=a,
+                                characters=current_state.characters
+                            ))
+
+                        elif a.action_type == ActionTypeEnum.CHECK_VITALS:
+                            available_actions_expanded.extend(self._expand_action_by_character(
+                                action=a,
+                                characters=current_state.characters
+                            ))
+
                         else:
                             available_actions_expanded.append(a)
 
@@ -243,13 +256,16 @@ class ITMOpenWorldDriver:
                     available_actions_filtered = []
                     for a in available_actions_expanded:
                         if a.action_type == ActionTypeEnum.END_SCENE:
-                            # We want to restrict end scene until all characters have been treated
-                            continue
+                            if(len(treated_patients) < len(current_state.characters) or
+                               len(tagged_patients) < len(current_state.characters)):
+                                # We want to restrict end scene until all characters have been tagged and treated
+                                continue
 
                         elif a.action_type == ActionTypeEnum.TAG_CHARACTER:
                             untagged_characters = {
                                 c.id for c in current_state.characters
                                 if c.tag is None and not c.unseen
+                                and c.nearby
                             }
                             if len(untagged_characters) == 0:  # No more patients to tag
                                 continue
@@ -263,6 +279,7 @@ class ITMOpenWorldDriver:
                             treatable_patients = {
                                 c.id for c in current_state.characters
                                 if c.id not in treated_patients
+                                and c.nearby
                             }
                             if len(treatable_patients) == 0:  # No more patients to treat
                                 continue
@@ -277,6 +294,26 @@ class ITMOpenWorldDriver:
                             if len(evacable_patients) == 0:  # No more patients to evac
                                 continue
                             if a.character_id is not None and a.character_id not in evacable_patients:
+                                continue
+
+                        elif a.action_type == ActionTypeEnum.MOVE_TO:
+                            distant_patients = {
+                                c.id for c in current_state.characters
+                                if not c.nearby
+                            }
+                            if len(distant_patients) == 0:  # No more patients to evac
+                                continue
+                            if a.character_id is not None and a.character_id not in distant_patients:
+                                continue
+
+                        elif a.action_type == ActionTypeEnum.CHECK_VITALS:
+                            nearby_patients = {
+                                c.id for c in current_state.characters
+                                if c.nearby
+                            }
+                            if len(nearby_patients) == 0:  # No more patients to check
+                                continue
+                            if a.character_id is not None and a.character_id not in nearby_patients:
                                 continue
 
                         available_actions_filtered.append(a)
@@ -393,6 +430,9 @@ class ITMOpenWorldDriver:
                 # If we treated a patient, record that treatment so we can ensure we treat everyone
                 if action_to_take.action_type == ActionTypeEnum.TREAT_PATIENT:
                     treated_patients.add(action_to_take.character_id)
+                # If we tagged a patient, record that tagging so we can ensure we tag everyone
+                if action_to_take.action_type == ActionTypeEnum.TAG_CHARACTER:
+                    tagged_patients.add(action_to_take.character_id)
                 # If we evaced a patient, record that so we don't try to evac them again
                 if action_to_take.action_type == ActionTypeEnum.MOVE_TO_EVAC:
                     evac_patients.add(action_to_take.character_id)
