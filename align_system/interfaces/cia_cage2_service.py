@@ -7,29 +7,16 @@ from align_system.interfaces.abstracts import (
     Interface,
     ActionBasedScenarioInterface)
 
-from swagger_client.models import (
-    State,
-    Action,
-    Character,
-    Supplies,
-    Injury,
-    Environment,
-    DecisionEnvironment,
-    Aid,
-    SimEnvironment, MetaInfo,
-)
-
+from swagger_client.models import (MetaInfo,)
+import random
 from CybORG import CybORG
-# from CybORG.Agents import B_lineAgent, SleepAgent
-# import CybORG.Agents 
-# print(dir(CybORG.Agents))
-from CybORG.Agents.SimpleAgents.B_line_resilience import B_lineAgent_Resilience
-# from CybORG.Agents import B_lineAgent_Resilience
-from CybORG.Agents.SimpleAgents.BaseAgent import BaseAgent
+
 from CybORG.Agents.SimpleAgents.SleepAgent import SleepAgent
-from CybORG.Agents.SimpleAgents.BlueLoadAgent import BlueLoadAgent
-from CybORG.Agents.SimpleAgents.BlueReactAgent import BlueReactRemoveAgent
 from CybORG.Agents.SimpleAgents.Meander_Resilience import RedMeanderAgent_Resilience
+from CybORG.Agents.SimpleAgents.B_line_resilience import B_lineAgent_Resilience
+from CybORG.Agents.SimpleAgents.B_line_resilience import B_lineAgent_Resilience_C
+from CybORG.Agents.SimpleAgents.B_line_resilience import B_lineAgent_Resilience_I
+from CybORG.Agents.SimpleAgents.B_line_resilience import B_lineAgent_Resilience_A
 from CybORG.Agents.Wrappers import BlueTableWrapper
 
 from CybORG.AlignmentMetric.resilience_measure import ResilienceMetric
@@ -38,11 +25,10 @@ log = logging.getLogger(__name__)
 
 
 class CAGEActionBasedServiceInterface(Interface):
-    EPISODE_LENGTH=50
+    EPISODE_LENGTH=4
     seed = None
     cyborg_version = '2.1'
-    scenario = 'Scenario2_resilience'
-    # scenario = 'Scenario1b'
+    scenario = 'base'
     def __init__(self,
             n_rollouts:int = 10,
                  ):
@@ -59,14 +45,17 @@ class CAGEActionBasedServiceInterface(Interface):
 
         # TODO: we need to set up the CAGE environment here, and specify what agents are doing the scenario
         path = str(inspect.getfile(CybORG))
-        path = path[:-10] + '/Shared/Scenarios/Scenario2_resilience.yaml'
+        path = path[:-10] + '/Shared/Scenarios/scalability_experiments/base.yaml'
+        # path = path[:-10] + '/Shared/Scenarios/Scenario2_resilience.yaml'
         # path = path[:-10] + '/Shared/Scenarios/Scenario1b.yaml'
 
         print(f'using CybORG v{self.cyborg_version}, {self.scenario}\n')
 
-        cyborg = CybORG(path, 'sim', agents={'Red': B_lineAgent_Resilience})
-        self.wrapped_cyborg = BlueTableWrapper(cyborg, output_mode = 'table') #'blue_table')
-
+        # cyborg = CybORG(path, 'sim', agents={'Red': SleepAgent})
+        cyborg = CybORG(path, 'sim', agents={'Red': RedMeanderAgent_Resilience})
+        # cyborg = CybORG(path, 'sim', agents={'Red': B_lineAgent_Resilience})
+        # cyborg = CybORG(path, 'sim', agents={'Red': B_lineAgent_Resilience_C})
+        self.wrapped_cyborg = BlueTableWrapper(cyborg, output_mode = 'table')
 
         return CAGEActionBasedScenario(self.wrapped_cyborg, episode_length=self.EPISODE_LENGTH, episode_number = self.current_rollout)
 
@@ -128,6 +117,16 @@ class CAGEAction:
                 "unstructured": self.unstructured,
                 "kdma_association": self.kdma_association,
                 "action_id": self.action_id}
+    
+class RedAgentAction:
+    def __init__(self, name):
+        self.name = name
+        self.justification = None
+        # self.unstructured = self.name 
+
+    def to_dict(self):
+        return {'name': self.name,
+                "justification": self.justification}
 
 
 
@@ -143,6 +142,7 @@ class CAGEActionBasedScenario(ActionBasedScenarioInterface):
         self.cyborg_sim = cyborg_sim
         cage_obs = cyborg_sim.reset() #agent='blue_agent_4')
         cage_act_space = self.cyborg_sim.get_action_space(self.agent_name)
+
         self.hostnames = list(cage_act_space['hostname'].keys())
         self.obs = CAGEState(cage_obs.observation, self.hostnames, episode_number)
         self.reward = 0
@@ -171,15 +171,20 @@ class CAGEActionBasedScenario(ActionBasedScenarioInterface):
 
     def get_available_actions(self):
         cage_act_space = self.cyborg_sim.get_action_space(self.agent_name)
+        # print(cage_act_space)
         return [CAGEAction(k) for k in cage_act_space['action']]
+    
+    def get_available_Red_actions(self):
+        available_actions = ['Sleep', 'Meander', 'B-line']
+        return [RedAgentAction(k) for k in available_actions]
 
     def _take_or_intend_action(self, align_system_action):
         # Convert to proper 'Action' object prior to submission
         # align_system_action
-        if align_system_action.name is "Sleep":
+        if align_system_action.name == "Sleep":
             action = align_system_action.cage_class()
         else:
-            if align_system_action.hostname is None:
+            if align_system_action.hostname == None:
                 action = align_system_action.cage_class(agent = "Blue", session = 0)
             else:
                 action = align_system_action.cage_class(hostname = align_system_action.hostname, 
@@ -187,6 +192,20 @@ class CAGEActionBasedScenario(ActionBasedScenarioInterface):
 
         ## TODO takes an action and updates the state
         res = self.cyborg_sim.step(action=action, agent='Blue')
+
+        self.scenario_count += 1
+        cage_obs = res.observation
+        self.reward = res.reward
+        self.done = res.done or self.scenario_count >= self.episode_length 
+        self.obs.unstructured = str(cage_obs)
+
+        self.cia_scores = self.metric.calculate_scores(env = self.cyborg_sim, blue_action = action)
+        return self.get_state()
+    
+    def step(self, action):
+        ## TODO takes an action and updates the state
+        res = self.cyborg_sim.step(action=action, agent='Blue')
+
         self.scenario_count += 1
         cage_obs = res.observation
         self.reward = res.reward

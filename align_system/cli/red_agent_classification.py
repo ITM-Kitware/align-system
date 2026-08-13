@@ -13,7 +13,7 @@ from timeit import default_timer as timer
 
 from align_system.utils import logging
 from align_system.utils.hydra_utils import initialize_with_custom_references
-import matplotlib.pyplot as plt
+
 log = logging.getLogger(__name__)
 JSON_HIGHLIGHTER = JSONHighlighter()
 from collections import deque
@@ -124,9 +124,6 @@ def main(cfg: DictConfig) -> None:
     else:
         filter_tag_character = False
 
-    # Defaults to True
-    apply_action_filtering = cfg.get('apply_action_filtering', True)
-
     # HACK: need to invoke 'load_model' for ADMs that require it,
     # maybe it makes more sense to load_model in the init method for
     # those ADMs
@@ -151,10 +148,10 @@ def main(cfg: DictConfig) -> None:
             "max_time_s": max(times_s) if n_times else 0.,
             "raw_times_s": times_s
         }
-
+    predictions = [0, 0 , 0]
     # Loop through available scenarios
     while scenario := interface.start_scenario():
-        collected_observations = deque(maxlen = 10)
+        collected_observations = deque(maxlen = 2)
         if scenario.id() == '':
             log.info("Next scenario ID is blank, assuming we're done, exiting")
             break
@@ -211,38 +208,7 @@ def main(cfg: DictConfig) -> None:
 
             available_actions = scenario.get_available_actions()
             action_to_take = available_actions[0]
-
-            # log.info("[bold]*ACTION BEING TAKEN*[/bold]",
-            #          extra={"markup": True})
-            # if isinstance(action_to_take, dict):
-            #     log.info(json.dumps(action_to_take, indent=4),
-            #              extra={"highlighter": JSON_HIGHLIGHTER})
-            # else:
-            #     log.info(json.dumps(action_to_take.to_dict(), indent=4),
-            #              extra={"highlighter": JSON_HIGHLIGHTER})
-
-            action_choice_idx = None
-            for i, a in enumerate(available_actions):
-                if a.action_id == action_to_take.action_id:
-                    action_choice_idx = i
-                    break
             
-            # if choice_info is not None:
-            # # Ensure that 'actions' stored in 'choice_info' are serializable
-            #     for info in choice_info.values():
-            #         if 'action' in info:
-            #             info['action'] = info['action'].to_dict()
-
-            # inputs_outputs.append({'input': {'scenario_id': scenario.id(),
-            #                                  'alignment_target_id': alignment_target.id if cfg.align_to_target else None,
-            #                                  'full_state': current_state.to_dict(),
-            #                                  'state': current_state.unstructured,
-            #                                  'choices': [a.to_dict() for a in available_actions]},
-            #                        'label': [{} if a.kdma_association is None else a.kdma_association for a in available_actions],
-            #                        'choice_info': choice_info,
-            #                        'output': {'choice': action_choice_idx,
-            #                                   'action': action_to_take.to_dict()}})
-
             if save_input_output_to_path is not None:
                 with open(save_input_output_to_path, 'w') as f:
                     json.dump(inputs_outputs, f, indent=2)
@@ -258,43 +224,23 @@ def main(cfg: DictConfig) -> None:
 
             scenario_complete = current_state.scenario_complete
 
-            # if scenario_complete:
-            #     log.info("*Final state unstructured*: {}".format(
-            #         current_state.unstructured))
-
-            #     if cfg.get('save_last_unstructured_state_per_scenario', False):
-            #         if alignment_target is None:
-            #             scenario_alignment_target = scenario.get_alignment_target()
-
-            #             if scenario_alignment_target is not None:
-            #                 alignment_target_id = scenario_alignment_target.id
-            #             else:
-            #                 alignment_target_id = None
-            #         else:
-            #             alignment_target_id = alignment_target.id
-
-            #         final_scenario_state_output_path = os.path.join(
-            #             output_dir, "{}.{}.final_state_unstructured.json".format(
-            #                 scenario.id(), alignment_target_id))
-            #         with open(final_scenario_state_output_path, "w") as f:
-            #             print(current_state.unstructured, file=f)
         
         observation = ''
-        for i in collected_observations:
-            observation += i + '\n'
+        for i in range(len(collected_observations)):
+            observation += 'Observation {0}:'.format(i) + '\n'
+            observation += collected_observations[i] + '\n'
 
         # print(observation)
-
-        available_actions = ['Sleep', 'Meander', 'B-line']
+        log.info(observation)
+        current_state.unstructured = observation
+        available_actions = scenario.get_available_Red_actions()
 
         choose_action_result = adm.choose_action(
-            current_state,
-            [deepcopy(a) for a in available_actions],
-            alignment_target if cfg.align_to_target else None,
-            scenario_id=scenario.id(),
-            **cfg.adm.get('inference_kwargs', {}))
-        
-        # print(choose_action_result)
+                current_state,
+                [deepcopy(a) for a in available_actions],
+                alignment_target if cfg.align_to_target else None,
+                scenario_id=scenario.id(),
+                **cfg.adm.get('inference_kwargs', {}))
 
         # Handle choose action result (for backwards compatibility if no choice_info)
         if isinstance(choose_action_result, tuple):
@@ -310,35 +256,19 @@ def main(cfg: DictConfig) -> None:
         log.info("[bold]*ACTION BEING TAKEN*[/bold]",
                     extra={"markup": True})
         
-        log.info(action_to_take, extra={"highlighter": JSON_HIGHLIGHTER})
-
-        # if save_timing_to_path is not None:
-        #     action_times["scenarios"].append(_compute_time_stats(sce_times_s))
-
-        # if alignment_target is not None:
-        #     try:
-        #         session_alignment = interface.get_session_alignment(
-        #             alignment_target)
-        #     except Exception:
-        #         # Could be more specific about what kind of exceptions
-        #         # to expect here
-        #         session_alignment = None
-
-        #     if session_alignment is None:
-        #         log.info("Couldn't get session alignment from interface")
-        #     else:
-        #         session_alignment_scores.append(session_alignment)
-
-        #         if isinstance(session_alignment, dict):
-        #             session_alignment_dict = session_alignment
-        #         else:
-        #             session_alignment_dict = session_alignment.to_dict()
-
-        #         log.info("[bold]*TA1 Alignment Score*[/bold]",
-        #                  extra={"markup": True})
-        #         log.info(json.dumps(session_alignment_dict, indent=4),
-        #                  extra={"highlighter": JSON_HIGHLIGHTER})
-
+        if isinstance(action_to_take, dict):
+                log.info(json.dumps(action_to_take, indent=4),
+                         extra={"highlighter": JSON_HIGHLIGHTER})
+        else:
+            log.info(json.dumps(action_to_take.to_dict(), indent=4),
+                        extra={"highlighter": JSON_HIGHLIGHTER})
+            
+        if action_to_take.name == 'Sleep':
+            predictions[0] += 1
+        elif action_to_take.name == 'Meander':
+            predictions[1] += 1
+        elif action_to_take.name == 'B-line':   
+            predictions[2] += 1
 
     if save_timing_to_path is not None:
         all_times = []
@@ -355,7 +285,8 @@ def main(cfg: DictConfig) -> None:
             with open(save_alignment_score_to_path, 'w') as f:
                 json.dump([(s if isinstance(s, dict) else s.to_dict())
                            for s in session_alignment_scores], f, indent=2)
-
+    log.info('Red agents classification results:')
+    log.info(predictions)
 
 if __name__ == "__main__":
     main()
