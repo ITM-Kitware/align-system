@@ -62,10 +62,7 @@ class CAGERedAgentADMComponent(ADMComponent):
         return ('choices')
 
     def run(self, scenario_state, actions):
-        choices = []
-        for a in actions: #available_actions['action'].keys():
-            choices.append(a)
-
+        choices = adm_utils.cage_format_choices(actions)
         return choices
 
 

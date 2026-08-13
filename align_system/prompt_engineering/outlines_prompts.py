@@ -27,6 +27,7 @@ def llms_are_acds_system_prompt():
        ## AVAILABLE ACTIONS
 	  - Monitor: Collection of information about flagged malicious activity on the system. Does not require a hostname. Identifies hosts with network connections and associated processes that are identified as malicious.
       - Analyse host:<hostname>: Analyze a host for suspicious activity. Collection of further information relating to malware, on a specific host to enable blue to better identify if red is present on the system. Analyse should be executed when it is suspected that red agents have been active on the network.  
+      - DecoyAction host:<hostname>: Setup of a decoy service on a specified host. Green agents do not access these services, so any access is an unambiguous indicator of red activity. Decoy services cannot replace legitimate services. When a red agent discovers or exploits a decoy service, the blue agent will receive alerts involving that host or service. The red agent will not be able to successfully exploit the decoy service.
       - Remove host:<hostname>: Attempting to remove red from a host by destroying MALICIOUS PROCESSES, files and services. This action attempts to stop all processes identified as malicious by the monitor action. Can succeed or fail, and should be executed when it is suspected that red agents have user-level compromise of a host. 
       - Restore host:<hostname>: Restoring a system to a known good state. This has significant consequences for system availability. Ideal when detecting MALICIOUS PROCESSES with an admin-level compromise.
 
@@ -99,6 +100,7 @@ def llms_are_acds_system_prompt():
       - CRITICAL: A red agent has been detected on the host with a privileged escalation. This is a critical compromise. Can be addressed only with a Restore action.
     """
 
+
 @outlines.prompt
 def llms_for_red_agent_classification_prompt():
     """
@@ -106,31 +108,33 @@ def llms_for_red_agent_classification_prompt():
 
       You are an expert in cyber security defending an enterprise network. Analyze the network states and choose the correct red agent from the list of possible red agents based on their description.
 
-      You will receive an observation under `# OBSERVATION` that will describe the last 10 observations of the network. The observation will follow the format described under `# OBSERVATION STRUCTURE`.
+      You will receive under `# OBSERVATIONS` the last 10 observations of the network. Each observation will follow the format described under `# OBSERVATION STRUCTURE`.
       
-      Your task is to analyze the network state based on this observation, and choose the correct red agent from the list of possible red agents based on their description.
+      Your task is to analyze the network state based on these observations, and choose the correct red agent that is attacking the network from the list of possible red agents based on their description.
      
       Respond EXACTLY with one action: ONLY ONE action from `## AVAILABLE ACTIONS`. 
 
        ## AVAILABLE ACTIONS
-	  - Sleep: This agent is a baseline agent that takes no offensive actions. 
-      - Meander: This agent has no knowledge of the network layout, and methodically explores and attempts to gain privileged access on all the hosts within each subnet before progressing onto the next subnet.
-      - B-line: This agent acts with prior knowledge of the network, and selects actions that result in impacting the operational server in the shortest number of steps 
+	  - Sleep: This agent takes no actions, resulting in no activity or compromised network state. 
+      - Meander: This agent has a scan activity in Obsevation 0 and Observation 1.
+      - B-line: This agent has a scan activity in Observation 0 and an exploit activity in Observation 1.
 
       # ENVIRONMENT RULES
       ## NETWORK STRUCTURE:
-      - 3 subnets: User subnetwork, Enterprise subnet w/ servers and the Defender host, and Operational subnet with Operational Server & Operational Hosts 
+      - 3 subnets: User subnetwork, Enterprise subnet w/ servers and the Defender host, and Operational subnet with Database, Front, and Auth Servers & Operational Hosts 
       - Each zone has 0-3 servers and 1-6 user hosts
 
       ## HOSTNAMES	
+      - Auth
+      - Database
       - Defender 
       - Enterprise0
       - Enterprise1
       - Enterprise2
+      - Front
       - Op_Host0 
       - Op_Host1 
       - Op_Host2 
-      - Op_Server0
       - User0   
       - User1   
       - User2   
@@ -141,32 +145,7 @@ def llms_for_red_agent_classification_prompt():
       - 1 Network Defender in the Enterprise subnet:
       - Red team starts in User subnet
       - Red maintains constant presence in User subnet
-	  - Maintaining Operational Server in healthy state is KEY to the system owners
-
-
-      ## REWARD STRUCTURE:
-      - Penalties for:
-        * Green (user) agent work failures
-        * Invalid service connections
-        * Host unavailability (restore action)
-        * Red team impacts
-	  - Penalties higher for Enterprise and Operational Servers vs Hosts
-
-      
-      # OBSERVATION STRUCTURE
-      ```
-      Suspicious Activity Detected: # Suspicious activity detected in your network
-      <activity1>      # Hostname and activity detected   
-      <activity2>      # Hostname and activity detected   
-      ```
-      
-      `Suspicious Activity Detected` will be `None` if no suspicious activity is detected.
-      If there is suspicious activity, the activity per host will contain one or more of the following:
-      - WARNING: A suspicious connection has been detected. Means that a red agent has attempted to connect to a host or a deployed decoy.
-      - ALERT: A red agent has been detected on the host. This is a user-level compromise. Can be addressed with a Remove or Restore action.
-      - CRITICAL: A red agent has been detected on the host with a privileged escalation. This is a critical compromise. Can be addressed only with a Restore action.
     """
-
 
 
 @outlines.prompt

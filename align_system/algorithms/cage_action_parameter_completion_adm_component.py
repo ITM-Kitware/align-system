@@ -76,7 +76,7 @@ class CAGEActionParameterCompletionADMComponent(ADMComponent):
         return action_to_take, output_dialog
 
     def populate_action_parameters(self, scenario_state, action_to_take, dialog):
-        if action_to_take.name in { 'Analyse', 'Misinform', 'Remove', 'Restore'}:
+        if action_to_take.name in { 'Analyse', 'Misinform', 'Remove', 'Restore', 'DecoyAction'}:
             action_to_take, selected_hostname, selected_hostname_idx, dialog =\
                 self.ensure_hostname_is_populated(scenario_state, action_to_take, dialog)
 
