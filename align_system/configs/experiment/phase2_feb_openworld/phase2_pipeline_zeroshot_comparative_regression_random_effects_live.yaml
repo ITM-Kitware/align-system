@@ -15,7 +15,7 @@ interface:
   api_endpoint: "https://darpaitm.caci.com"
   session_type: eval
   training_session: null
-  username: "ALIGN-ADM-Ph2-ComparativeRegression-Zeroshot-Mistral-7B-Instruct-v0.3"
+  username: "ALIGN-ADM-Ph2-Zeroshot-ComparativeRegression-Mistral-7B-Instruct-v0.3"
   domain: "p2triage"
 
 adm:
