@@ -14,6 +14,7 @@ adm:
     format_choices:
       _target_: align_system.algorithms.misc_itm_adm_components.HierarchicalCAGE4ADMComponent
     outlines_baseline:
+      _target_: align_system.algorithms.outlines_baseline_adm_component.OutlinesMultipleBaselineADMComponent
       scenario_description_template:
         _target_: align_system.prompt_engineering.outlines_prompts.CAGEScenarioDescription
       output_schema_template:
