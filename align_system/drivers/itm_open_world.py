@@ -358,7 +358,7 @@ class ITMOpenWorldDriver:
 
                 # Ensure that 'actions' stored in 'choice_info' are serializable
                 for info in choice_info.values():
-                    if 'action' in info:
+                    if isinstance(info, dict) and 'action' in info:
                         info['action'] = info['action'].to_dict()
 
                 inputs_outputs.append({'input': {'scenario_id': scenario.id(),
@@ -387,7 +387,10 @@ class ITMOpenWorldDriver:
                     else:
                         current_state = scenario.take_action(action_to_take)
                 except Exception as e:
-                    log.info(e.json(indent=2))
+                    if hasattr(e, 'json'):
+                        log.info(e.json(indent=2))
+                    else:
+                        log.info(str(e))
                     raise e
 
                 # If we treated a patient, record that treatment so we can ensure we treat everyone

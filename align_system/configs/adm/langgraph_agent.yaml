@@ -1,0 +1,25 @@
+name: langgraph_agent
+
+defaults:
+  # Import defaults into this namespace (adm) as @name, for further
+  # customization
+
+  # Shared variables / components
+  - /inference_engine@structured_inference_engine: outlines_structured_greedy
+  # Components the agent uses to validate/complete proposed actions
+  - /adm_component/misc@choice_to_action: ow_choice_to_action
+  - /adm_component/misc@action_parameter_completion: ow_action_parameter_completion
+  # Use definitions in this file to override defaults defined above
+  - _self_
+
+instance:
+  _target_: align_system.algorithms.langgraph_agent_adm.LangGraphAgentADM
+
+  structured_inference_engine: ${ref:adm.structured_inference_engine}
+  choice_to_action_component: ${ref:adm.choice_to_action}
+  action_parameter_completion_component: ${ref:adm.action_parameter_completion}
+
+  max_retries: 3
+  # Number of past decisions (within the current scenario) shown to
+  # the agent in the propose prompt
+  max_history_in_prompt: 10

@@ -122,7 +122,7 @@ class TA3CACIActionBasedScenario(ActionBasedScenarioInterface):
         if isinstance(action, dict):
             action = Action(**action)
 
-        if self.domain == "p2triage":
+        if self.domain in ("p2triage", "owtriage"):
             updated_state = take_or_intend(
                 session_id=self.session_id,
                 action=action)
@@ -152,7 +152,7 @@ class TA3CACIActionBasedScenario(ActionBasedScenarioInterface):
         state = self.connection.get_scenario_state(
             session_id=self.session_id, scenario_id=self.scenario.id)
 
-        if self.domain == "p2triage":
+        if self.domain in ("p2triage", "owtriage"):
             if state.threat_state is not None:
                 state.unstructured = "{}\n{}".format(
                     state.threat_state.unstructured,

@@ -8,8 +8,8 @@ interface:
   api_endpoint: "https://darpaitm.caci.com"
   session_type: eval
   training_session: null
-  username: "ALIGN-ADM-Ph2-ComparativeRegression-Mistral-7B-Instruct-v0.3"
-  domain: "p2triage"
+  username: "testrun-ALIGN-ADM-Ph2-ComparativeRegression-Mistral-7B-Instruct-v0.3"
+  domain: "owtriage"
   adm_profile: FEB_OPENWORLD1
 
 adm:

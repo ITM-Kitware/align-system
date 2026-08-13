@@ -116,6 +116,7 @@ class OWActionParameterCompletionADMComponent(ADMComponent):
 
         # Action requires a character ID
         if chosen_action.action_type in {'TREAT_PATIENT',
+                                         ActionTypeEnum.MOVE_TO,
                                          ActionTypeEnum.MOVE_TO_EVAC,
                                          ActionTypeEnum.TAG_CHARACTER}:
             if chosen_action.character_id is None:

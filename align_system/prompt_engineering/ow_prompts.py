@@ -36,7 +36,7 @@ def followup_clarify_character(scenario_description, action):
     character should receive the action.
 
     Scenario:
-    {{ scenario_descriptoin }}
+    {{ scenario_description }}
 
     Selected action:
     {{ action.unstructured }}
