@@ -57,6 +57,13 @@ class CAGEITMFormatChoicesADMComponent(ADMComponent):
 
         return choices
 
+class HierarchicalCAGE4ADMComponent(ADMComponent):
+    def run_returns(self):
+        return ('choices')
+
+    def run(self, scenario_state, actions):
+        choices = ['Investigate', 'Restore']
+        return choices
 
 class JustificationFromReasonings(ADMComponent):
     def run_returns(self):

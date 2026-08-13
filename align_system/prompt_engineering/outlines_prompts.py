@@ -99,6 +99,89 @@ def llms_are_acds_system_prompt():
       - CRITICAL: A red agent has been detected on the host with a privileged escalation. This is a critical compromise. Can be addressed only with a Restore action.
     """
 
+@outlines.prompt
+def hierarchical_llm_cage_prompt():
+    """
+      # DESCRIPTION
+      
+      You are an expert in cyber security defending an enterprise network. Analyze the network state and choose the best action and parameter from the list of actions based on their description.
+
+      Each time, you will receive an observation under `# OBSERVATION` that will describe the status of the network. The observation will follow the format described under `# OBSERVATION STRUCTURE`.
+    
+      Your task is to analyze the network state based on this observation, and choose the best action and parameter from the list of actions based on their description.
+    
+      Respond EXACTLY with one response as a dictionary with the following keys:
+      - action: ONLY ONE action from `## AVAILABLE ACTIONS`, always including the assigned BLUE AGENT number.
+      - reason: ONLY ONE reason for your choice.
+
+      Review examples from `## EXAMPLE RESPONSES` if you are unsure.
+
+       ## AVAILABLE ACTIONS
+	  - Investigate blue_agent_x: Collects more information about subnetwork of blue_agent_x
+      - Recover blue_agent_x: Attempts to recover a host in the subnetwork of blue_agent_x
+
+      ## EXAMPLE RESPONSES
+      - Example 1:
+      {"action": "Recover blue_agent_2", "reason": "ALERT: User-level compromise detected in host admin_network_subnet_server_host_2"}
+      - Example 2:
+      {"action": "Investigate blue_agent_3", "reason": "Hostname: operational_zone_a_subnet_server_host_0 | IP: 10.0.150.254 | INFO: Connection to 10.0.150.43"}
+
+      # ENVIRONMENT RULES
+      ## NETWORK STRUCTURE:
+      - 4 Networks: 2 Deployed Networks (A & B), HQ Network, Contractor Network
+      - Security Zones:
+        * Deployed Networks: Restricted Zone + Operational Zone each
+        * HQ Network: Public Access, Admin, Office Zones
+        * Contractor Network: UAV Control Zone (undefended)
+      - Each zone has 1-6 servers and 3-10 user hosts
+      - Each host/server has 1-5 services
+
+      ## DEFENSE SETUP:
+      - 5 Network Defenders:
+        * 2 in each Deployed Network (1 per zone)
+        * 1 in HQ Network (covers all zones)
+        * Contractor Network is undefended
+      - Red team starts in Contractor Network
+      - Maximum 1 red agent per zone
+      - Red maintains constant presence in Contractor Network
+
+      ## MISSION PHASES & PRIORITIES:
+      1. Phase 1 (Pre-planning):
+         - All missions have low priority
+         - Standard network connectivity
+    
+      2. Phase 2A (Mission A Active):
+         - High priority: Deployed Network A zones
+         - Low priority: All other zones
+         - Operational Zone A isolates
+         - Restricted Zone A connects only to HQ
+    
+      3. Phase 2B (Mission B Active):
+         - High priority: Deployed Network B zones
+         - Low priority: All other zones
+         - Operational Zone B isolates
+         - Restricted Zone B connects only to HQ
+      
+      ## BLUE AGENT NETWORKS
+         - blue_agent_0: restricted_zone_a
+         - blue_agent_1: operational_zone_a
+         - blue_agent_2: restricted_zone_b
+         - blue_agent_3: operational_zone_b
+         - blue_agent_4: public_access_zone, admin_network, office_network
+
+      # OBSERVATION STRUCTURE
+      ```
+      blue_agent_x: # Suspicious activity detected in blue agent x network
+      - <hostname>: <activity>      # Hostname and activity detected   
+      ```
+      
+      `Suspicious Activity Detected` will be `None` if no suspicious activity is detected.
+      If there is suspicious activity, the activity per host will contain one or more of the following:
+      - INFO: A connection has been detected. Not necessarily malicious.
+      - WARNING: A suspicious connection has been detected. Means that a red agent has attempted to connect to a host or a deployed decoy.
+      - ALERT: A red agent has been detected on the host. This is a user-level compromise. Can be addressed with a Remove or Restore action.
+      - CRITICAL: A red agent has been detected on the host with a privileged escalation. This is a critical compromise. Can be addressed only with a Restore action.
+    """
 
 @outlines.prompt
 def cage_system_prompt():
@@ -662,6 +745,52 @@ def action_choice_json_schema(choices_json_str, reasoning_max_length=512):
      "type": "object"}
     '''
 
+@outlines.prompt
+def actions_choice_json_schema(choices_json_str, reasoning_max_length=512, agent_list = None):
+    '''
+{
+  "$defs": {
+    "ActionChoice": {
+      "enum": {{ choices_json_str }},
+      "title": "ActionChoice",
+      "type": "string"
+    },
+    "ActionWithReasoning": {
+      "type": "object",
+      "properties": {
+        "action_choice": {
+          "$ref": "#/$defs/ActionChoice"
+        },
+        "reasoning": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": ["action_choice", "reasoning"]
+    }
+  },
+  "properties": {
+    "overall_reasoning": {
+      "type": "string",
+      "minLength": 1{% if reasoning_max_length > 0 %}, "maxLength": {{ reasoning_max_length }}{% endif %}
+    },
+    "action_choices": {
+      "type": "object",
+      "properties": {
+        {% for agent in agent_list %}
+        "{{ agent }}": {
+          "$ref": "#/$defs/ActionWithReasoning"
+        }{% if not loop.last %},{% endif %}
+        {% endfor %}
+      },
+      "required": {{ agent_list | tojson }}
+    }
+  },
+  "required": ["overall_reasoning", "action_choices"],
+  "title": "ActionSelection",
+  "type": "object"
+}
+    '''
 
 @outlines.prompt
 def cage_hostname_choice_json_schema(choices_json_str):
@@ -1290,6 +1419,13 @@ class DefaultChoiceSelectionSchema():
             json.dumps(choices), reasoning_max_length)
 
 
+class DefaultMultipleChoiceSelectionSchema():
+    def __call__(self, choices, reasoning_max_length=512):
+        agents = ['blue_agent_0', 'blue_agent_1', 'blue_agent_2', 'blue_agent_3', 'blue_agent_4']
+        return actions_choice_json_schema(
+            json.dumps(choices), reasoning_max_length, agents)
+                
+
 class DefaultITMBaselineSystemPrompt():
     def __call__(self):
         return baseline_system_prompt()
@@ -1300,7 +1436,9 @@ class CAGESystemPrompt():
 class CAGEACDSystemPrompt():
     def __call__(self):
         return llms_are_acds_system_prompt()
-
+class CAGEHMARLSystemPrompt():
+    def __call__(self):
+        return hierarchical_llm_cage_prompt()
 class PromptBasedBinaryITMSystemPrompt():
     def __call__(self, target_kdma, target_value):
         if target_kdma == "Moral judgement":

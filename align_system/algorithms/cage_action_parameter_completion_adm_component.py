@@ -1,4 +1,4 @@
-import copy
+from copy import deepcopy
 import json
 
 from rich.highlighter import JSONHighlighter
@@ -132,3 +132,61 @@ class CAGEActionParameterCompletionADMComponent(ADMComponent):
 
         return action_to_take, selected_hostname, selected_hostname_idx, dialog
 
+class HierarchichalCAGEParameterCompletionADMComponent(ADMComponent):
+    def __init__(self,
+                 structured_inference_engine):
+        self.structured_inference_engine = structured_inference_engine
+
+    # TODO: Copied from outlines_adm.py; should use a common template/prompt
+    def _state_to_top_level_prompt(self, scenario_state, actions):
+        """
+        Generate prompt dialog based on given state and actions
+        """
+        choices = adm_utils.format_choices(
+            [a.unstructured for a in actions],
+            actions,
+            scenario_state
+        )
+
+        scenario_description = scenario_state_description_1(scenario_state)
+        prompt = action_selection_prompt(scenario_description, choices)
+
+        return prompt, choices
+
+    def run_returns(self):
+        return ('chosen_action',
+                'action_parameter_completion_dialog')
+
+    def run(self,
+            scenario_state,
+            actions,
+            choices,
+            chosen_choice,
+            dialog=None,
+            alignment_target=None):
+        if dialog is None:
+            # If prior steps didn't provide any dialog/context, use a
+            # sensible default:
+            prompt, _ = self._state_to_top_level_prompt(
+                scenario_state,
+                actions)
+
+            dialog = [DialogElement(role='user',
+                                    content=prompt,
+                                    tags=['parameter_completion'])]
+
+        # If last dialog message is an 'assistant' message, remove it
+        # as we'll generate one for each follow-up needed.  (Dialogs
+        # should have alternating assistant/user elements)
+
+        if dialog[-1].role == 'assistant':
+            dialog.pop()
+
+        # chosen_choice_idx = choices.index(chosen_choice)
+        # chosen_action = actions[chosen_choice_idx]
+        chosen_action = {}
+        for key in chosen_choice:
+            chosen_choice_idx = choices.index(chosen_choice[key]['action_choice'])
+            chosen_action[key] = deepcopy(actions[chosen_choice_idx])
+            chosen_action[key].justification = chosen_choice[key]['reasoning']
+        return chosen_action, dialog
