@@ -1,0 +1,8 @@
+# CAGE 4 Environment Documentation
+
+## Hybrid agent (LLM + RL)
+
+To run hybrid framework, where a LLM predicts high level action and then a RL agent selects a low level action, use this:
+```
+python './align-system/align_system/cli/LLM_HMARL.py' +experiment=phase2_july_collab/pipeline_baseline_hybrid_cage4
+```
