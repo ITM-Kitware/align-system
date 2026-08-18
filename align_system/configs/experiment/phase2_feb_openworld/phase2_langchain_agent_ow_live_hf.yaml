@@ -1,0 +1,27 @@
+# @package _global_
+# Live eval with the LangChain agent driver running a HuggingFace
+# model served by vLLM's OpenAI-compatible endpoint.  Start the server
+# first, e.g.:
+#   vllm serve Qwen/Qwen2.5-7B-Instruct --enable-auto-tool-choice \
+#     --tool-call-parser hermes --port 8000
+# If you serve a different model, override driver.chat_model.model and
+# update interface.username to match (keep the testrun- prefix for
+# test runs).
+defaults:
+  # The LangChain agent drives the scenario itself; no ADM is used
+  - override /adm: null
+  - override /interface: ta3
+  - override /driver: itm_phase2_ow_langchain
+  - override /driver/chat_model: vllm_qwen25_7b
+
+interface:
+  api_endpoint: "https://darpaitm.caci.com"
+  session_type: eval
+  training_session: null
+  username: "testrun-ALIGN-ADM-Ph2-LangChainAgent-HF-Qwen2.5-7B-Instruct"
+  domain: "owtriage"
+  adm_profile: FEB_OPENWORLD3
+
+force_determinism: true
+align_to_target: true
+save_last_unstructured_state_per_scenario: true

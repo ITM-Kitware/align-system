@@ -1,0 +1,18 @@
+# @package _global_
+# Offline smoke test of the LangChain agent driver with a HuggingFace
+# model served by vLLM's OpenAI-compatible endpoint.  Start the server
+# first, e.g.:
+#   vllm serve Qwen/Qwen2.5-1.5B-Instruct --enable-auto-tool-choice \
+#     --tool-call-parser hermes --max-model-len 8192 --port 8000
+defaults:
+  # The LangChain agent drives the scenario itself; no ADM is used
+  - override /adm: null
+  - override /interface: input_output_file
+  - override /driver: itm_phase2_ow_langchain
+  - override /driver/chat_model: vllm_qwen25_15b
+
+interface:
+  input_output_filepath: 'example_data/input_output_files/openworld_smoke_input_output.json'
+  state_hydration_domain: p2triage
+
+align_to_target: false

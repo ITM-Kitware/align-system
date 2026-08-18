@@ -1,0 +1,9 @@
+# HuggingFace model served locally by vLLM's OpenAI-compatible
+# endpoint; start the server first, e.g.:
+#   vllm serve Qwen/Qwen2.5-1.5B-Instruct --enable-auto-tool-choice \
+#     --tool-call-parser hermes --max-model-len 8192 --port 8000
+_target_: langchain_openai.ChatOpenAI
+model: Qwen/Qwen2.5-1.5B-Instruct
+base_url: http://localhost:8000/v1
+api_key: EMPTY
+temperature: 0.0

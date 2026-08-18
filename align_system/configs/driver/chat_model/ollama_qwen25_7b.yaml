@@ -1,0 +1,4 @@
+_target_: langchain_ollama.ChatOllama
+model: qwen2.5:7b
+temperature: 0.0
+num_ctx: 16384

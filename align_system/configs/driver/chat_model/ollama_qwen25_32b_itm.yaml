@@ -1,0 +1,7 @@
+# qwen2.5:32b served by the ollama instance on the itm server (4x RTX
+# A6000); reachable directly on the local network
+_target_: langchain_ollama.ChatOllama
+model: qwen2.5:32b
+base_url: http://itm:11434
+temperature: 0.0
+num_ctx: 16384

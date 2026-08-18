@@ -1,0 +1,36 @@
+defaults:
+  # Chat model for the agent -- must support tool calling.  Select a
+  # different backend with e.g.
+  #   - override /driver/chat_model: vllm_qwen25_7b
+  # in an experiment config (see configs/driver/chat_model/ for the
+  # available options; add new yamls there for other providers such as
+  # langchain_openai.ChatOpenAI or langchain_anthropic.ChatAnthropic).
+  # Alternatively set `model` to an init_chat_model string (e.g.
+  # "openai:gpt-4o"), which takes precedence over `chat_model`.
+  #
+  # NOTE: a local transformers pipeline
+  # (langchain_huggingface.HuggingFacePipeline) does NOT support tool
+  # calling and will not work with this driver; to run HuggingFace
+  # models locally, serve them with vLLM instead (see the vllm_*
+  # chat_model configs)
+  - chat_model: ollama_llama31
+  - _self_
+
+_target_: align_system.drivers.itm_open_world_langchain.ITMOpenWorldLangChainDriver
+
+model: null
+
+apply_action_filtering: true
+sort_available_actions: false
+expand_actions: true
+expand_tagging: false
+
+# Hard cap on environment actions per scenario (safety net against
+# agent loops)
+max_actions_per_scenario: 100
+# If the agent makes this many LLM calls without taking an action, the
+# driver takes the first available action on its behalf so a live
+# session can't stall
+max_llm_calls_between_actions: 8
+# Rolling window of conversation messages kept in the agent's context
+max_messages_in_context: 40
