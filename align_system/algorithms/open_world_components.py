@@ -7,8 +7,16 @@ from align_system.algorithms.abstracts import ADMComponent
 from align_system.algorithms.outlines_baseline_adm_component import OutlinesBaselineADMComponent
 from align_system.algorithms.alignment_adm_component import MedicalOnlyAlignmentADMComponent
 from align_system.data_models.dialog import DialogElement
-from align_system.prompt_engineering.outlines_prompts import character_choice_json_schema, tag_choice_json_schema
-from align_system.prompt_engineering.ow_prompts import FollowupClarifyCharacterPrompt, FollowupClarifyTagPrompt
+from align_system.prompt_engineering.outlines_prompts import (
+    character_choice_json_schema,
+    tag_choice_json_schema,
+    treatment_choice_from_list_json_schema
+)
+from align_system.prompt_engineering.ow_prompts import (
+    FollowupClarifyCharacterPrompt,
+    FollowupClarifyTagPrompt,
+    FollowupClarifyTreatmentPrompt
+)
 from align_system.utils import call_with_coerced_args, logging, get_swagger_class_enum_values
 
 log = logging.getLogger(__name__)
@@ -103,6 +111,7 @@ class OWActionParameterCompletionADMComponent(ADMComponent):
 
         self.followup_character_prompt = FollowupClarifyCharacterPrompt()
         self.followup_tag_prompt = FollowupClarifyTagPrompt()
+        self.followup_treatment_prompt = FollowupClarifyTreatmentPrompt()
 
     def run_returns(self):
         return ('chosen_action', 'action_parameter_completion_dialog')
@@ -199,6 +208,52 @@ class OWActionParameterCompletionADMComponent(ADMComponent):
                     chosen_action.justification = justification
 
                 action_parameter_completion_dialog["tag"] = dialog
+
+        # Treatment requires a selected treatment supply
+        if chosen_action.action_type == ActionTypeEnum.TREAT_PATIENT:
+            dialog = []
+            if self.system_prompt is not None:
+                dialog.append(DialogElement(role='system', content=self.system_prompt()))
+
+            if chosen_action.parameters is None:
+                chosen_action.parameters = {}
+
+            if 'treatment' not in chosen_action.parameters:
+                chosen_character = None
+                for c in scenario_state.characters:
+                    if c.id == chosen_action.character_id:
+                        chosen_character = c
+                        break
+
+                supplies_dict = {s.type.value: s.quantity for s in scenario_state.supplies
+                                 if s.quantity > 0}
+                # TODO: Better handle this corner case
+                assert len(supplies_dict) > 0
+                dialog.append(
+                    DialogElement(role='user', content=self.followup_treatment_prompt(chosen_character, supplies_dict))
+                )
+
+                dialog_prompt = self.structured_inference_engine.dialog_to_prompt(dialog)
+                log.info("[bold]*TREATMENT FOLLOWUP PROMPT*[/bold]", extra={"markup": True})
+                log.info(dialog_prompt)
+
+                valid_treatments = list(supplies_dict.keys())
+                selected_treatment = self.structured_inference_engine.run_inference(
+                    dialog_prompt,
+                    treatment_choice_from_list_json_schema(json.dumps(valid_treatments))
+                )
+                log.info("[bold]*TREATMENT FOLLOWUP RESPONSE*[/bold]", extra={"markup": True})
+                log.info(selected_treatment, extra={"highlighter": JSON_HIGHLIGHTER})
+
+                chosen_action.parameters['treatment'] = selected_treatment["treatment_choice"]
+
+                justification = selected_treatment["brief_reasoning"]
+                if isinstance(chosen_action, tuple) and hasattr(chosen_action, "_replace"):
+                    chosen_action = chosen_action._replace(justification=justification)
+                else:
+                    chosen_action.justification = justification
+
+                action_parameter_completion_dialog["treatment"] = dialog
 
         return chosen_action, action_parameter_completion_dialog
 
