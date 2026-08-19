@@ -26,6 +26,9 @@ adm:
 
       enable_caching: true
 
+    action_parameter_completion:
+      enable_caching: true
+
   instance:
     steps:
     # Reference the step instances we want to use in order
