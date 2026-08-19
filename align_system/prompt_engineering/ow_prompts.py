@@ -45,3 +45,23 @@ def followup_clarify_character(scenario_description, action):
 class FollowupClarifyCharacterPrompt:
     def __call__(self, scenario_description, action):
         return followup_clarify_character(scenario_description, action)
+
+
+@compat_outlines_prompt
+def followup_clarify_treatment(character, supplies):
+    """
+    Given the description below, please state what treatment supply \
+    should be applied to the patient given their injuries and vitals. \
+    Select a treatment from the following list of available supplies \
+    (quantities shown in parentheses):
+    {% for supply, qty in supplies.items() %}
+    - {{ supply }} (x{{ qty }})
+    {% endfor %}
+
+    Description:
+    {{ character.unstructured }}
+    """
+
+class FollowupClarifyTreatmentPrompt:
+    def __call__(self, character, supplies):
+        return followup_clarify_treatment(character, supplies)

@@ -131,6 +131,9 @@ class ITMOpenWorldDriver:
                 "raw_times_s": times_s
             }
 
+        # Tracking last action and state to help prevent ADMs getting stuck in a loop
+        last_action = None
+        last_state = None
         # Loop through available scenarios
         while scenario := interface.start_scenario():
             if scenario.id() == '':
@@ -178,6 +181,7 @@ class ITMOpenWorldDriver:
             treated_patients = set()
             tagged_patients = set()
             evac_patients = set()
+            checked_patients = set()
 
             while not scenario_complete:
                 current_scene_id = current_state.meta_info.scene_id
@@ -301,19 +305,36 @@ class ITMOpenWorldDriver:
                                 c.id for c in current_state.characters
                                 if not c.nearby
                             }
-                            if len(distant_patients) == 0:  # No more patients to evac
+                            if len(distant_patients) == 0:  # No more patients to move to
                                 continue
                             if a.character_id is not None and a.character_id not in distant_patients:
                                 continue
 
+                            # Don't allow the ADM to choose "move_to"
+                            # twice in a row.  This helps the ADM not
+                            # get stuck in a move to A to B to A
+                            # etc. loop
+                            if last_action is not None and last_action.action_type == ActionTypeEnum.MOVE_TO:
+                                # UNLESS, the action is to move_to a
+                                # new character that wasn't previously
+                                # accessible
+                                if last_state is not None:
+                                    last_state_characters = {c.id for c in last_state.characters}
+                                else:
+                                    last_state_characters = set()
+
+                                # Character was already accessible in prior state
+                                if a.character_id in last_state_characters:
+                                    continue
+
                         elif a.action_type == ActionTypeEnum.CHECK_VITALS:
-                            nearby_patients = {
+                            nearby_unchecked_patients = {
                                 c.id for c in current_state.characters
-                                if c.nearby
+                                if c.nearby and c.id not in checked_patients
                             }
-                            if len(nearby_patients) == 0:  # No more patients to check
+                            if len(nearby_unchecked_patients) == 0:  # No more patients to check
                                 continue
-                            if a.character_id is not None and a.character_id not in nearby_patients:
+                            if a.character_id is not None and a.character_id not in nearby_unchecked_patients:
                                 continue
 
                         available_actions_filtered.append(a)
@@ -333,7 +354,7 @@ class ITMOpenWorldDriver:
 
                     if end_scene_idx is not None:
                         log.info("** All patients have been tagged and treated, ending scene")
-                        action_to_take = available_actions[end_scene_idx]
+                        action_to_take = available_actions_expanded[end_scene_idx]
                         action_to_take.justification = "All patients have been tagged and treated"
                     else:
                         raise RuntimeError("No available actions from filtered list!")
@@ -418,6 +439,7 @@ class ITMOpenWorldDriver:
                     with open(save_input_output_to_path, 'w') as f:
                         json.dump(inputs_outputs, f, indent=2)
 
+                last_state = current_state
                 try:
                     if hasattr(action_to_take, "intent_action") and action_to_take.intent_action:
                         current_state = scenario.intend_action(action_to_take)
@@ -436,6 +458,14 @@ class ITMOpenWorldDriver:
                 # If we evaced a patient, record that so we don't try to evac them again
                 if action_to_take.action_type == ActionTypeEnum.MOVE_TO_EVAC:
                     evac_patients.add(action_to_take.character_id)
+                # If we checked vitals on a patient, record that so we don't check them again
+                # TODO: If in the future it's possible for vitals to
+                # change as the scenario progresses then we need
+                # something more sophisticated here
+                if action_to_take.action_type == ActionTypeEnum.CHECK_VITALS:
+                    checked_patients.add(action_to_take.character_id)
+
+                last_action = action_to_take
 
                 scenario_complete = current_state.scenario_complete
 
@@ -459,6 +489,9 @@ class ITMOpenWorldDriver:
                                 scenario.id(), alignment_target_id))
                         with open(final_scenario_state_output_path, "w") as f:
                             print(current_state.unstructured, file=f)
+
+                    last_action = None
+                    last_state = None
 
             if save_timing_to_path is not None:
                 action_times["scenarios"].append(_compute_time_stats(sce_times_s))

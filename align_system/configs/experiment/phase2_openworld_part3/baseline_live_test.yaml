@@ -2,12 +2,14 @@
 defaults:
   - override /adm: pipeline_baseline
   - override /inference_engine@adm.structured_inference_engine: outlines_structured_greedy
+  - override /adm_component/misc@adm.step_definitions.format_choices: ow_format_choices
   - override /adm_component/misc@adm.step_definitions.action_parameter_completion: ow_action_parameter_completion
   - override /interface: ta3
   - override /driver: itm_phase2_ow
 
 interface:
-  api_endpoint: "https://darpaitm.caci.com"
+#  api_endpoint: "https://darpaitm.caci.com"
+  api_endpoint: 'http://127.0.0.1:8081'
   session_type: eval
   training_session: null
   username: "testrun-ALIGN-ADM-OutlinesBaseline-Mistral-7B-Instruct-v0.3"
@@ -40,4 +42,5 @@ driver:
 
 force_determinism: true
 align_to_target: false
+
 save_last_unstructured_state_per_scenario: true
