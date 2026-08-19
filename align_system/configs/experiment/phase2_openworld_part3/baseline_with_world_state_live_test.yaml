@@ -1,0 +1,51 @@
+# @package _global_
+defaults:
+  - /adm_component/misc@adm.step_definitions.world_state_tracker: world_state_tracker
+  - override /adm: pipeline_baseline
+  - override /inference_engine@adm.structured_inference_engine: outlines_structured_greedy
+  - override /adm_component/misc@adm.step_definitions.format_choices: ow_format_choices
+  - override /adm_component/misc@adm.step_definitions.action_parameter_completion: ow_action_parameter_completion
+  - override /interface: ta3
+  - override /driver: itm_phase2_ow
+
+interface:
+#  api_endpoint: "https://darpaitm.caci.com"
+  api_endpoint: 'http://127.0.0.1:8081'
+  session_type: eval
+  training_session: null
+  username: "testrun-ALIGN-ADM-OutlinesBaseline-Mistral-7B-Instruct-v0.3"
+  domain: "owtriage"
+  adm_profile: FEB_OPENWORLD3
+
+adm:
+  step_definitions:
+    outlines_baseline:
+      scenario_description_template:
+        _target_: align_system.prompt_engineering.outlines_prompts.OWPart3ScenarioDescriptionWVitals
+      prompt_template:
+        _target_: align_system.prompt_engineering.outlines_prompts.Phase2BaselinePrompt
+
+      enable_caching: true
+
+    action_parameter_completion:
+      enable_caching: true
+
+  instance:
+    steps:
+    # Reference the step instances we want to use in order
+    - ${ref:adm.step_definitions.world_state_tracker}
+    - ${ref:adm.step_definitions.format_choices}
+    - ${ref:adm.step_definitions.outlines_baseline}
+    - ${ref:adm.step_definitions.ensure_chosen_action}
+    - ${ref:adm.step_definitions.action_parameter_completion}
+    - ${ref:adm.step_definitions.populate_choice_info}
+
+driver:
+  expand_actions: true
+  expand_tagging: false
+  apply_action_filtering: true
+
+force_determinism: true
+align_to_target: false
+
+save_last_unstructured_state_per_scenario: true
