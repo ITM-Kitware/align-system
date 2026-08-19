@@ -1,5 +1,9 @@
+import copy
+import inspect
 import json
+import re
 from collections import defaultdict
+import ubelt as ub
 from rich.highlighter import JSONHighlighter
 from swagger_client.models import ActionTypeEnum, CharacterTagEnum
 
@@ -104,10 +108,12 @@ class OWActionParameterCompletionADMComponent(ADMComponent):
         structured_inference_engine,
         scenario_description_template,
         system_prompt=None,
+        enable_caching=False,
     ):
         self.structured_inference_engine = structured_inference_engine
         self.scenario_description_template = scenario_description_template
         self.system_prompt = system_prompt
+        self.enable_caching = enable_caching
 
         self.followup_character_prompt = FollowupClarifyCharacterPrompt()
         self.followup_tag_prompt = FollowupClarifyTagPrompt()
@@ -121,6 +127,30 @@ class OWActionParameterCompletionADMComponent(ADMComponent):
         scenario_state,
         chosen_action,
     ):
+        if self.enable_caching:
+            scenario_state_copy = copy.deepcopy(scenario_state)
+            if hasattr(scenario_state, 'elapsed_time'):
+                # Don't consider the elapsed_time of the state when caching
+                scenario_state_copy.elapsed_time = 0
+
+            depends = '\n'.join((
+                self.cache_repr(),
+                repr(scenario_state_copy),
+                repr(chosen_action)))
+
+            cacher = ub.Cacher('ow_action_parameter_completion_adm_component', depends, verbose=0)
+            log.debug(f'cacher.fpath={cacher.fpath}')
+
+            cached_output = cacher.tryload()
+            if cached_output is not None:
+                log.info("Cache hit for `ow_action_parameter_completion_adm_component`"
+                         " returning cached output")
+                return cached_output
+            else:
+                log.info("Cache miss for `ow_action_parameter_completion_adm_component` ..")
+
+        # Make a deepcopy of chosen_action so in-place modifications don't mutate input state if un-cached
+        chosen_action = copy.deepcopy(chosen_action)
         action_parameter_completion_dialog = {}
 
         # Action requires a character ID
@@ -255,7 +285,42 @@ class OWActionParameterCompletionADMComponent(ADMComponent):
 
                 action_parameter_completion_dialog["treatment"] = dialog
 
-        return chosen_action, action_parameter_completion_dialog
+        outputs = (chosen_action, action_parameter_completion_dialog)
+
+        if self.enable_caching:
+            cacher.save(outputs)
+
+        return outputs
+
+    def cache_repr(self):
+        '''
+        Return a string representation of this object for caching;
+        .i.e. if the return value of this function is the same for two
+        object instances, it's assumed that `run` output will be
+        the same if given the same parameters
+        '''
+
+        def _generic_object_repr(obj):
+            if obj is None:
+                return "None"
+
+            init_params = inspect.signature(obj.__class__.__init__).parameters
+            obj_vars = vars(obj)
+
+            return "{}.{}({})".format(
+                obj.__class__.__module__,
+                obj.__class__.__name__,
+                ", ".join([f"{p}={obj_vars[p]}" for p in init_params
+                           if p != 'self' and p != 'args' and p != 'kwargs']))
+
+        return re.sub(r'^\s+', '',
+                      f"""
+                       {self.__class__.__module__}.{self.__class__.__name__}(
+                       structured_inference_engine={self.structured_inference_engine.cache_repr()},
+                       scenario_description_template={_generic_object_repr(self.scenario_description_template)},
+                       system_prompt={_generic_object_repr(self.system_prompt) if callable(self.system_prompt) else self.system_prompt},
+                       )""", flags=re.MULTILINE).strip()
+
 
 
 class OWTaggingAdjustmentADMComponent(MedicalOnlyAlignmentADMComponent):
