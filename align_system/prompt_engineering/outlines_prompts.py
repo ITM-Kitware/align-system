@@ -1232,6 +1232,36 @@ class Phase2ScenarioDescriptionWCasualtyInfo():
 
 
 @compat_outlines_prompt
+def ow_part3_scenario_state_description_w_vitals(scenario_state):
+    """
+    {{ scenario_state.unstructured.rstrip() }}
+
+    Casualties:
+    {% for c in scenario_state.characters %}
+    - {{ c.name }}: {{ c.unstructured }}
+    {% if c.vitals is none or (c.vitals.avpu is none and c.vitals.breathing is none and c.vitals.heart_rate is none) %}
+        Vitals: Unknown
+    {% else %}
+        Vitals:
+      {% if c.vitals.avpu is not none %}
+          - AVPU: {{ c.vitals.avpu.value if c.vitals.avpu.value is defined else c.vitals.avpu }}
+      {% endif %}
+      {% if c.vitals.breathing is not none %}
+          - Breathing: {{ c.vitals.breathing.value if c.vitals.breathing.value is defined else c.vitals.breathing }}
+      {% endif %}
+      {% if c.vitals.heart_rate is not none %}
+          - Heart Rate: {{ c.vitals.heart_rate.value if c.vitals.heart_rate.value is defined else c.vitals.heart_rate }}
+      {% endif %}
+    {% endif %}
+    {% endfor %}
+    """
+
+class OWPart3ScenarioDescriptionWVitals():
+    def __call__(self, scenario_state):
+        return ow_part3_scenario_state_description_w_vitals(scenario_state)
+
+
+@compat_outlines_prompt
 def phase2_baseline_prompt(scenario_description, choices):
     """
     Scenario:
