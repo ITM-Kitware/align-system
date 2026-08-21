@@ -17,6 +17,7 @@ from align_system.drivers.itm_open_world import (
 from align_system.utils import logging
 from align_system.utils.action_completion import (
     DEFAULT_TAGS,
+    VALID_INJURY_LOCATIONS,
     complete_action_parameters,
 )
 
@@ -40,35 +41,63 @@ CHARACTER_REQUIRED_ACTIONS = {
 }
 
 
+# The agent-facing tool name for each action type in the pipeline
+TOOL_NAMES_BY_ACTION_TYPE = {
+    ActionTypeEnum.CHECK_VITALS: 'check_vitals',
+    ActionTypeEnum.TREAT_PATIENT: 'treat_patient',
+    ActionTypeEnum.TAG_CHARACTER: 'tag_character',
+    ActionTypeEnum.MOVE_TO: 'move_to',
+    ActionTypeEnum.MOVE_TO_EVAC: 'move_to_evac',
+    ActionTypeEnum.SEARCH: 'search',
+    ActionTypeEnum.MESSAGE: 'send_message',
+    ActionTypeEnum.END_SCENE: 'end_scene',
+}
+
+
 DEFAULT_LANGCHAIN_AGENT_SYSTEM_PROMPT = """\
 You are an autonomous medical triage agent operating in an open-world
 mass-casualty simulation.  You interact with the environment
 exclusively through the provided tools:
 
 - observe_environment: look at the current scene and casualties
-- list_available_actions: see what actions you can currently take
-- take_action: carry out one of the listed actions (by its number)
+- list_available_actions: see which actions the environment currently
+  offers
+- check_vitals(character_name): assess a casualty's vitals
+- treat_patient(character_name, treatment_supply, injury_location):
+  treat a casualty's injuries with a supply from your inventory
+- tag_character(character_name, triage_tag): apply a triage tag
+  (MINIMAL, DELAYED, IMMEDIATE, or EXPECTANT)
+- move_to(character_name): move to a casualty
+- move_to_evac(character_name): move a casualty to evacuation
+- search: search the area for additional casualties
+- send_message: deliver the currently offered message/communication
+- end_scene: end the current scene once all casualties are handled
 
-Work in a loop: observe the environment, list the available actions,
-reason about which action best serves the casualties, then take it.
-After each action, re-observe before deciding what to do next --
-the environment changes as you act.
+Every action tool also takes a justification argument -- always
+provide a brief clinical justification for the action you choose.
+
+Not every action is available at every moment; use
+list_available_actions when unsure, and if a tool reports that it is
+unavailable, choose among the actions it says are available.
+
+Work in a loop: observe the environment, reason about which action
+best serves the casualties, then take it.  After each action,
+re-observe before deciding what to do next -- the environment changes
+as you act.
 
 Triage guidance: assess and tag untagged casualties, treat the most
-urgent injuries first, and evacuate patients when appropriate.  Always
-provide a brief clinical justification when taking an action.  When an
-action targets a specific casualty, pass their name as take_action's
-character_name argument; when applying a triage tag, pass the category
-as the triage_tag argument.
+urgent injuries first, and evacuate patients when appropriate.
 
 Continue taking actions until you are told the scenario is complete."""
 
 
-def _format_action_choices(actions):
-    """Number the actions for the agent; take_action's action_index
-    refers back to this numbering."""
-    return "\n".join(f"{idx}: {a.unstructured}"
-                     for idx, a in enumerate(actions))
+def _format_available_actions(actions):
+    """Describe each available action as `- tool_name: description` so
+    the agent can map what the environment offers onto its tools."""
+    return "\n".join(
+        f"- {TOOL_NAMES_BY_ACTION_TYPE.get(a.action_type, a.action_type)}: "
+        f"{a.unstructured}"
+        for a in actions)
 
 
 class _AgentScenarioSession:
@@ -90,6 +119,7 @@ class _AgentScenarioSession:
         self.treated_patients = set()
         self.evac_patients = set()
         self.available_actions = []
+        self.actions_expanded = []
         self.actions_filtered = []
         self.n_actions = 0
         self.times_s = []
@@ -116,6 +146,7 @@ class _AgentScenarioSession:
             filtered = [self.driver._end_scene_fallback_action(expanded)]
 
         self.available_actions = available_actions
+        self.actions_expanded = expanded
         self.actions_filtered = filtered
 
         return filtered
@@ -145,10 +176,12 @@ class _AgentScenarioSession:
             else:
                 log.info(str(e))
 
-            if getattr(e, 'status', None) == 400:
-                # The environment refused the action (e.g. the
-                # targeted character is too far away); recoverable
-                # by choosing differently
+            if getattr(e, 'status', None) in (400, 500):
+                # The environment refused the action -- 400 for e.g. a
+                # too-distant character, 500 when the (live) server
+                # chokes on the action's parameters (e.g. TREAT_PATIENT
+                # without a treatment supply); recoverable by choosing
+                # differently
                 raise _ActionRejectedException(
                     str(getattr(e, 'body', e))) from e
             raise e
@@ -203,8 +236,11 @@ class ITMOpenWorldLangChainDriver(ITMOpenWorldDriver):
     scenario directly.
 
     Instead of delegating each decision to an ADM, the driver exposes the
-    environment to a LangChain tool-calling agent as tools (observe /
-    list actions / take action) and lets the agent run its own
+    environment to a LangChain tool-calling agent as tools -- two
+    observation tools (observe_environment / list_available_actions)
+    plus one tool per action type in the pipeline (check_vitals,
+    treat_patient, tag_character, move_to, move_to_evac, search,
+    send_message, end_scene) -- and lets the agent run its own
     observe -> decide -> act loop until the scenario is complete.  The
     loop is implemented directly with LangChain primitives
     (``chat_model.bind_tools`` plus explicit message handling); no
@@ -296,6 +332,10 @@ class ITMOpenWorldLangChainDriver(ITMOpenWorldDriver):
                            for c in current_state.characters
                            if not getattr(c, 'unseen', False)],
         }
+        supplies = getattr(current_state, 'supplies', None)
+        if supplies:
+            observation['supplies'] = [
+                {'type': s.type, 'quantity': s.quantity} for s in supplies]
         if getattr(current_state, 'environment', None) is not None:
             env = current_state.environment
             env_dict = env.to_dict() if hasattr(env, 'to_dict') else env
@@ -303,9 +343,212 @@ class ITMOpenWorldLangChainDriver(ITMOpenWorldDriver):
 
         return json.dumps(observation, indent=2, default=str)
 
+    def _perform_typed_action(self, session, action_type, justification,
+                              character_name="", triage_tag="",
+                              treatment_supply="", injury_location=""):
+        """Carry out an action of `action_type` on behalf of one of the
+        per-action-type tools: re-fetch what the environment currently
+        offers, match/complete an action of that type from the agent's
+        arguments, and execute it.  Returns the string result for the
+        agent."""
+        tool_name = TOOL_NAMES_BY_ACTION_TYPE[action_type]
+
+        session.refresh_actions()
+        candidates = [a for a in session.actions_filtered
+                      if a.action_type == action_type]
+
+        if not candidates:
+            if (action_type == ActionTypeEnum.END_SCENE
+                    and any(a.action_type == ActionTypeEnum.END_SCENE
+                            for a in session.actions_expanded)):
+                # END_SCENE is held back by action filtering until no
+                # other (filtered) actions remain
+                return ("Cannot end the scene yet; there are still "
+                        "actions to complete first:\n"
+                        + _format_available_actions(
+                            session.actions_filtered))
+
+            return (f"{tool_name} is not currently available.  The "
+                    "currently available actions are:\n"
+                    + _format_available_actions(session.actions_filtered))
+
+        if action_type in CHARACTER_REQUIRED_ACTIONS:
+            visible_characters = [
+                c for c in session.current_state.characters
+                if not getattr(c, 'unseen', False)]
+
+            if not character_name:
+                names = ", ".join(c.name for c in visible_characters)
+                return (f"{tool_name} requires a target casualty; call "
+                        "it again with character_name set to one of: "
+                        f"{names}")
+
+            matched_character = next(
+                (c for c in visible_characters
+                 if character_name.lower() in (c.name.lower(),
+                                               c.id.lower())),
+                None)
+
+            if matched_character is None:
+                names = ", ".join(c.name for c in visible_characters)
+                return (f"Unknown casualty '{character_name}'; "
+                        f"valid casualties are: {names}")
+
+            # Per-casualty guards mirroring the base driver's action
+            # filtering (which can only exclude actions that already
+            # name a specific casualty)
+            if self.apply_action_filtering:
+                if (action_type == ActionTypeEnum.TREAT_PATIENT
+                        and matched_character.id in session.treated_patients):
+                    return (f"{matched_character.name} has already been "
+                            "treated; choose a different casualty or "
+                            "action.")
+                if (action_type == ActionTypeEnum.MOVE_TO_EVAC
+                        and matched_character.id in session.evac_patients):
+                    return (f"{matched_character.name} has already been "
+                            "moved to evac; choose a different casualty "
+                            "or action.")
+                if (action_type == ActionTypeEnum.TAG_CHARACTER
+                        and matched_character.tag is not None):
+                    return (f"{matched_character.name} is already tagged "
+                            f"as {matched_character.tag}; choose a "
+                            "different casualty or action.")
+
+            # Prefer an action already targeting the casualty (e.g.
+            # from per-character expansion), otherwise complete a
+            # generic (untargeted) one
+            action_to_take = next(
+                (a for a in candidates
+                 if a.character_id == matched_character.id),
+                None)
+
+            if action_to_take is not None:
+                action_to_take = deepcopy(action_to_take)
+            else:
+                generic_action = next(
+                    (a for a in candidates if a.character_id is None),
+                    None)
+
+                if generic_action is None:
+                    character_ids_to_names = {
+                        c.id: c.name for c in visible_characters}
+                    targets = ", ".join(sorted(
+                        {character_ids_to_names.get(a.character_id,
+                                                    a.character_id)
+                         for a in candidates}))
+                    return (f"{tool_name} is not currently available "
+                            f"for {matched_character.name}; it is "
+                            f"available for: {targets}")
+
+                action_to_take = deepcopy(generic_action)
+                action_to_take.character_id = matched_character.id
+        else:
+            if len(candidates) > 1:
+                log.info(f"{tool_name}: multiple candidate actions "
+                         "offered by the environment; taking the first "
+                         f"('{candidates[0].unstructured}')")
+            action_to_take = deepcopy(candidates[0])
+
+        if action_to_take.action_type == ActionTypeEnum.TAG_CHARACTER:
+            if action_to_take.parameters is None:
+                action_to_take.parameters = {}
+
+            if 'category' not in action_to_take.parameters:
+                if not triage_tag:
+                    return ("Tagging requires a triage category; call "
+                            f"{tool_name} again with triage_tag set to "
+                            f"one of: {', '.join(DEFAULT_TAGS)}")
+
+                matched_tag = next(
+                    (t for t in DEFAULT_TAGS
+                     if t.lower() == triage_tag.lower()),
+                    None)
+
+                if matched_tag is None:
+                    return (f"Unknown triage_tag '{triage_tag}'; "
+                            f"valid tags are: {', '.join(DEFAULT_TAGS)}")
+
+                action_to_take.parameters['category'] = matched_tag
+
+        if action_to_take.action_type == ActionTypeEnum.TREAT_PATIENT:
+            # The (live) environment errors on TREAT_PATIENT without a
+            # treatment supply/location; only enforceable when the
+            # state reports supplies
+            in_stock_supplies = [
+                s for s in (getattr(session.current_state, 'supplies',
+                                    None) or [])
+                if s.quantity is None or s.quantity > 0]
+
+            if in_stock_supplies:
+                if action_to_take.parameters is None:
+                    action_to_take.parameters = {}
+
+                if 'treatment' not in action_to_take.parameters:
+                    supplies_listing = ", ".join(
+                        f"{s.type} (x{s.quantity})" if s.quantity is not None
+                        else str(s.type)
+                        for s in in_stock_supplies)
+
+                    if not treatment_supply:
+                        return ("Treating requires choosing a supply; "
+                                f"call {tool_name} again with "
+                                "treatment_supply set to one of: "
+                                f"{supplies_listing} -- and "
+                                "injury_location set to the injury's "
+                                "location (e.g. 'left calf', 'right "
+                                "thigh', 'center chest'; 'unspecified' "
+                                "if unclear)")
+
+                    matched_supply = next(
+                        (s.type for s in in_stock_supplies
+                         if str(s.type).lower() == treatment_supply.lower()),
+                        None)
+
+                    if matched_supply is None:
+                        return ("Unknown or out-of-stock "
+                                f"treatment_supply '{treatment_supply}'; "
+                                "available supplies are: "
+                                f"{supplies_listing}")
+
+                    action_to_take.parameters['treatment'] = matched_supply
+
+                if 'location' not in action_to_take.parameters:
+                    if injury_location:
+                        matched_location = next(
+                            (loc for loc in VALID_INJURY_LOCATIONS
+                             if loc.lower() == injury_location.lower()),
+                            None)
+
+                        if matched_location is None:
+                            return ("Unknown injury_location "
+                                    f"'{injury_location}'; valid "
+                                    "locations are: "
+                                    f"{', '.join(VALID_INJURY_LOCATIONS)}")
+                    else:
+                        matched_location = 'unspecified'
+
+                    action_to_take.parameters['location'] = matched_location
+
+        try:
+            current_state = session.execute(action_to_take, justification)
+        except _ActionRejectedException as e:
+            return (f"The environment rejected this action: {e}  "
+                    "Choose a different action (for example, you may "
+                    "need to move_to a casualty before assessing or "
+                    "treating them).")
+
+        if current_state.scenario_complete:
+            return "Action executed.  SCENARIO COMPLETE -- you are done."
+
+        return ("Action executed.  Updated environment:\n"
+                + self._observation_text(current_state))
+
     def _build_tools(self, session):
         """Build the LangChain tools through which the agent interacts
-        with the per-scenario `session`."""
+        with the per-scenario `session`: two observation tools plus one
+        tool per action type in the pipeline (see
+        TOOL_NAMES_BY_ACTION_TYPE)."""
+        driver = self
 
         @tool
         def observe_environment() -> str:
@@ -318,10 +561,9 @@ class ITMOpenWorldLangChainDriver(ITMOpenWorldDriver):
 
         @tool
         def list_available_actions() -> str:
-            """List the actions currently available in the environment,
-            numbered.  Use the number with take_action to carry one
-            out."""
-            listing = _format_action_choices(session.refresh_actions())
+            """List the actions the environment currently offers, named
+            by the tool that carries each one out."""
+            listing = _format_available_actions(session.refresh_actions())
 
             log.info("[bold]*AGENT LISTING AVAILABLE ACTIONS*[/bold]",
                      extra={"markup": True})
@@ -330,102 +572,116 @@ class ITMOpenWorldLangChainDriver(ITMOpenWorldDriver):
             return listing
 
         @tool
-        def take_action(action_index: int,
-                        justification: str,
-                        character_name: str = "",
-                        triage_tag: str = "") -> str:
-            """Take one of the currently available actions.
+        def check_vitals(character_name: str, justification: str) -> str:
+            """Check the vitals of a casualty.
 
             Args:
-                action_index: the number of the action from the most
-                    recent list_available_actions call
-                justification: brief clinical reasoning for why this
-                    action was chosen
-                character_name: the casualty to target, when the action
-                    requires one and doesn't already name a specific
-                    casualty
-                triage_tag: for tagging actions, the triage category to
-                    apply (MINIMAL, DELAYED, IMMEDIATE, or EXPECTANT)
+                character_name: the casualty whose vitals to check
+                justification: brief clinical reasoning for this action
             """
-            if not session.actions_filtered:
-                return ("No current action list; call "
-                        "list_available_actions first (the available "
-                        "actions change after every action taken).")
+            return driver._perform_typed_action(
+                session, ActionTypeEnum.CHECK_VITALS, justification,
+                character_name=character_name)
 
-            if not (0 <= action_index < len(session.actions_filtered)):
-                return (f"Invalid action_index {action_index}; must be "
-                        f"between 0 and {len(session.actions_filtered) - 1}. "
-                        "Call list_available_actions to see the current "
-                        "options.")
+        @tool
+        def treat_patient(character_name: str, justification: str,
+                          treatment_supply: str = "",
+                          injury_location: str = "") -> str:
+            """Treat a casualty's injuries with a supply from your
+            inventory.
 
-            action_to_take = deepcopy(session.actions_filtered[action_index])
+            Args:
+                character_name: the casualty to treat
+                justification: brief clinical reasoning for this action
+                treatment_supply: the supply to treat with (one of the
+                    supplies listed in your observation, e.g.
+                    'Tourniquet', 'Pressure bandage', 'Hemostatic
+                    gauze')
+                injury_location: where on the body the injury being
+                    treated is (e.g. 'left calf', 'right thigh',
+                    'center chest'; 'unspecified' if unclear)
+            """
+            return driver._perform_typed_action(
+                session, ActionTypeEnum.TREAT_PATIENT, justification,
+                character_name=character_name,
+                treatment_supply=treatment_supply,
+                injury_location=injury_location)
 
-            # Complete required action parameters from the agent's
-            # arguments, asking the agent to retry when something the
-            # environment requires is missing
-            if (action_to_take.action_type in CHARACTER_REQUIRED_ACTIONS
-                    and action_to_take.character_id is None):
-                visible_characters = [
-                    c for c in session.current_state.characters
-                    if not getattr(c, 'unseen', False)]
+        @tool
+        def tag_character(character_name: str, triage_tag: str,
+                          justification: str) -> str:
+            """Apply a triage tag to a casualty.
 
-                if not character_name:
-                    names = ", ".join(c.name for c in visible_characters)
-                    return ("This action requires a target casualty; "
-                            "call take_action again with character_name "
-                            f"set to one of: {names}")
+            Args:
+                character_name: the casualty to tag
+                triage_tag: the triage category to apply (MINIMAL,
+                    DELAYED, IMMEDIATE, or EXPECTANT)
+                justification: brief clinical reasoning for this action
+            """
+            return driver._perform_typed_action(
+                session, ActionTypeEnum.TAG_CHARACTER, justification,
+                character_name=character_name, triage_tag=triage_tag)
 
-                matched_character = next(
-                    (c for c in visible_characters
-                     if character_name.lower() in (c.name.lower(),
-                                                   c.id.lower())),
-                    None)
+        @tool
+        def move_to(character_name: str, justification: str) -> str:
+            """Move to a casualty (often required before they can be
+            assessed or treated).
 
-                if matched_character is None:
-                    names = ", ".join(c.name for c in visible_characters)
-                    return (f"Unknown casualty '{character_name}'; "
-                            f"valid casualties are: {names}")
+            Args:
+                character_name: the casualty to move to
+                justification: brief clinical reasoning for this action
+            """
+            return driver._perform_typed_action(
+                session, ActionTypeEnum.MOVE_TO, justification,
+                character_name=character_name)
 
-                action_to_take.character_id = matched_character.id
+        @tool
+        def move_to_evac(character_name: str, justification: str) -> str:
+            """Move a casualty to evacuation.
 
-            if action_to_take.action_type == ActionTypeEnum.TAG_CHARACTER:
-                if action_to_take.parameters is None:
-                    action_to_take.parameters = {}
+            Args:
+                character_name: the casualty to evacuate
+                justification: brief clinical reasoning for this action
+            """
+            return driver._perform_typed_action(
+                session, ActionTypeEnum.MOVE_TO_EVAC, justification,
+                character_name=character_name)
 
-                if 'category' not in action_to_take.parameters:
-                    if not triage_tag:
-                        return ("Tagging requires a triage category; "
-                                "call take_action again with triage_tag "
-                                "set to one of: "
-                                f"{', '.join(DEFAULT_TAGS)}")
+        @tool
+        def search(justification: str) -> str:
+            """Search the area for additional casualties.
 
-                    matched_tag = next(
-                        (t for t in DEFAULT_TAGS
-                         if t.lower() == triage_tag.lower()),
-                        None)
+            Args:
+                justification: brief reasoning for this action
+            """
+            return driver._perform_typed_action(
+                session, ActionTypeEnum.SEARCH, justification)
 
-                    if matched_tag is None:
-                        return (f"Unknown triage_tag '{triage_tag}'; "
-                                "valid tags are: "
-                                f"{', '.join(DEFAULT_TAGS)}")
+        @tool
+        def send_message(justification: str) -> str:
+            """Deliver the message/communication the environment
+            currently offers.
 
-                    action_to_take.parameters['category'] = matched_tag
+            Args:
+                justification: brief reasoning for this action
+            """
+            return driver._perform_typed_action(
+                session, ActionTypeEnum.MESSAGE, justification)
 
-            try:
-                current_state = session.execute(action_to_take, justification)
-            except _ActionRejectedException as e:
-                return (f"The environment rejected this action: {e}  "
-                        "Choose a different action (for example, you "
-                        "may need to move to a casualty before "
-                        "assessing or treating them).")
+        @tool
+        def end_scene(justification: str) -> str:
+            """End the current scene.  Only do this once all casualties
+            have been assessed, tagged, and treated as appropriate.
 
-            if current_state.scenario_complete:
-                return "Action executed.  SCENARIO COMPLETE -- you are done."
+            Args:
+                justification: brief reasoning for this action
+            """
+            return driver._perform_typed_action(
+                session, ActionTypeEnum.END_SCENE, justification)
 
-            return ("Action executed.  Updated environment:\n"
-                    + self._observation_text(current_state))
-
-        return [observe_environment, list_available_actions, take_action]
+        return [observe_environment, list_available_actions,
+                check_vitals, treat_patient, tag_character, move_to,
+                move_to_evac, search, send_message, end_scene]
 
     @staticmethod
     def _parse_text_tool_calls(content):
@@ -528,10 +784,25 @@ class ITMOpenWorldLangChainDriver(ITMOpenWorldDriver):
         tools_by_name = {t.name: t for t in tools}
         llm_with_tools = self._resolve_chat_model().bind_tools(tools)
 
+        log.info("[bold]*AGENT TOOLS*[/bold]", extra={"markup": True})
+        # First paragraph of each tool's description (the rest is
+        # argument documentation)
+        log.info("\n".join(
+            "- {}: {}".format(
+                t.name, " ".join(t.description.split("\n\n")[0].split()))
+            for t in tools))
+
         system_message = SystemMessage(content=self.system_prompt)
         messages = [HumanMessage(content=(
             "A new scenario has started.  Observe the environment and "
             "handle the casualties until the scenario is complete."))]
+
+        log.info("[bold]*AGENT SYSTEM PROMPT*[/bold]",
+                 extra={"markup": True})
+        log.info(self.system_prompt)
+        log.info("[bold]*AGENT INITIAL PROMPT*[/bold]",
+                 extra={"markup": True})
+        log.info(messages[0].content)
 
         llm_calls_since_action = 0
         consecutive_llm_failures = 0
@@ -563,6 +834,14 @@ class ITMOpenWorldLangChainDriver(ITMOpenWorldDriver):
             if ai_message is not None:
                 messages.append(ai_message)
 
+                # Reasoning models' think phase (e.g. ChatOllama with
+                # reasoning: true routes it here)
+                thinking = ai_message.additional_kwargs.get(
+                    'reasoning_content')
+                if thinking:
+                    log.info("[bold]*AGENT THINKING*[/bold]: {}".format(
+                        thinking), extra={"markup": True})
+
                 if ai_message.content:
                     log.info("[bold]*AGENT*[/bold]: {}".format(
                         ai_message.content), extra={"markup": True})
@@ -580,22 +859,33 @@ class ITMOpenWorldLangChainDriver(ITMOpenWorldDriver):
                 if not tool_calls:
                     llm_calls_since_action += 1
 
+                    log.warning(
+                        "Agent response contained no tool calls"
+                        + ("" if ai_message.content
+                           else " (and no content)"))
+
                     # Some models narrate instead of calling tools;
                     # put the concrete options in front of them
-                    choices_block = _format_action_choices(
+                    choices_block = _format_available_actions(
                         session.refresh_actions())
 
                     messages.append(HumanMessage(content=(
                         "You did not call any tool, so nothing happened "
                         "in the environment.  The scenario is not yet "
                         "complete.  The currently available actions "
-                        f"are:\n{choices_block}\n\nCall the take_action "
-                        "tool with the action_index of your chosen "
-                        "action (or observe_environment to look "
-                        "around).")))
+                        f"are:\n{choices_block}\n\nCall the named tool "
+                        "for your chosen action, with a justification "
+                        "(or observe_environment to look around).")))
                 else:
                     acted = False
                     for tool_call in tool_calls:
+                        log.info("[bold]*AGENT TOOL CALL*[/bold]: "
+                                 "{}({})".format(
+                                     tool_call['name'],
+                                     json.dumps(tool_call['args'],
+                                                default=str)),
+                                 extra={"markup": True})
+
                         # Every tool call needs a reply message, even
                         # after the scenario completes mid-batch
                         if session.scenario_complete:
@@ -604,6 +894,8 @@ class ITMOpenWorldLangChainDriver(ITMOpenWorldDriver):
                             result = (f"Unknown tool: {tool_call['name']}. "
                                       "Available tools: "
                                       f"{', '.join(tools_by_name)}")
+                            log.warning("Agent called unknown tool "
+                                        f"'{tool_call['name']}'")
                         else:
                             n_actions_before = session.n_actions
                             try:
@@ -616,6 +908,7 @@ class ITMOpenWorldLangChainDriver(ITMOpenWorldDriver):
                                 # the agent; environment errors
                                 # propagate (as in the base driver)
                                 result = f"Tool call failed: {e}"
+                                log.warning(f"Tool call failed: {e}")
                             if session.n_actions > n_actions_before:
                                 acted = True
 

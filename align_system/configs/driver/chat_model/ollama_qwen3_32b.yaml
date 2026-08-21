@@ -1,0 +1,13 @@
+_target_: langchain_ollama.ChatOllama
+model: qwen3:32b
+temperature: 0.0
+# qwen3's native context window; the OW scene observations are large,
+# and overflowing num_ctx makes ollama silently truncate the oldest
+# context (including the system prompt's instructions)
+num_ctx: 40960
+# qwen3 is a thinking model.  With reasoning false (think
+# suppression) qwen3:32b was observed returning completely empty
+# responses (no content, no tool calls); with true, the think phase
+# runs but langchain-ollama routes it to a separate channel, keeping
+# message content clean
+reasoning: true
