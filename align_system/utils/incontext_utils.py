@@ -888,10 +888,26 @@ class Phase2ComparativeRegressionIncontextExampleGenerator(IncontextExampleGener
         cot_reasoning = f"{max_choice} demonstates {adjective} more {target_kdma['name']} than {min_choice}."
         return cot_reasoning
 
+
 # TODO: Refactor IncontextExampleGenerators to take scenario
 # description and prompt templates as arguments and use
 # `call_with_coerced_args`
 class Phase2ComparativeRegressionIncontextExampleGeneratorOWConversion(Phase2ComparativeRegressionIncontextExampleGenerator):
+    def __init__(
+        self,
+        incontext_settings,
+        target_kdmas,
+        state_hydration_domain=None,
+        scenario_description_template=None,
+        scorer=None,
+        character_choice_template=None,
+        choice_schema_transform=None,
+    ):
+        self.character_choice_template = character_choice_template
+        self.choice_schema_transform = choice_schema_transform
+
+        super().__init__(incontext_settings, target_kdmas, state_hydration_domain, scenario_description_template, scorer)
+
     def set_icl_datasets(self):
         from swagger_client.models import ActionTypeEnum
 
@@ -906,11 +922,12 @@ class Phase2ComparativeRegressionIncontextExampleGeneratorOWConversion(Phase2Com
 
             # Add each examples to icl_datasets
             for example in kdma_incontext_data:
-                character_unstructured_by_id = {c.id: c.unstructured for c in example['state'].characters}
+                character_by_id = {c.id: c for c in example['state'].characters}
 
                 # Get example response
                 icl_response = {}
                 included_choices = []
+                schema_choices = []
                 for action, choice, kdma_value in zip(example['actions'], example['choices'], example["kdma_values"]):
                     # HACK: Reformat choice string for OW
                     # TODO: Bring more in line with OWFormatChoicesADMComponent (align_system/algorithms/open_world_components.py)
@@ -925,21 +942,29 @@ class Phase2ComparativeRegressionIncontextExampleGeneratorOWConversion(Phase2Com
                         # expansion or??
                         assert c_id is not None
 
-                        choice = f"{c_id}: {character_unstructured_by_id[c_id]}"
+                        if self.character_choice_template is None:
+                            choice = f"{c_id}: {character_by_id[c_id].unstructured}"
+                        else:
+                            choice = self.character_choice_template(character_by_id[c_id]).rstrip()
 
                     # Only include choice if there is a ground truth KDMA value available
                     if kdma_value is None:
                         continue
                     # Groundtruth KDMA values are 0-1, but ADM may predict on a different scale
                     scaled_kdma_value = int(kdma_value * target_kdma["factor"])
-                    icl_response[choice] = {}
-                    icl_response[choice]['score'] = scaled_kdma_value
+                    schema_choice = choice
+                    if self.choice_schema_transform is not None:
+                        schema_choice = self.choice_schema_transform(schema_choice)
+                    icl_response[schema_choice] = {}
+                    icl_response[schema_choice]['score'] = scaled_kdma_value
                     included_choices.append(choice)
+                    schema_choices.append(schema_choice)
                 icl_response_with_reasoning={}
                 icl_response_with_reasoning['reasoning'] = self.get_chain_of_thought_reasoning(target_kdma, icl_response)
                 icl_response_with_reasoning.update(icl_response) # reasoning first
                 # Check if response is valid against json schema
-                correct_schema = json.loads(comparative_regression_json_schema(included_choices, target_kdma["factor"]))
+
+                correct_schema = json.loads(comparative_regression_json_schema(schema_choices, target_kdma["factor"]))
                 validate(instance=icl_response_with_reasoning, schema=correct_schema)
 
                 # Get example prompt
