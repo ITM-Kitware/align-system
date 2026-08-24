@@ -19,7 +19,8 @@ from align_system.prompt_engineering.outlines_prompts import (
 from align_system.prompt_engineering.ow_prompts import (
     FollowupClarifyCharacterPrompt,
     FollowupClarifyTagPrompt,
-    FollowupClarifyTreatmentPrompt
+    FollowupClarifyTreatmentPrompt,
+    OWPart3CharacterDescriptionWVitals
 )
 from align_system.utils import call_with_coerced_args, logging, get_swagger_class_enum_values
 
@@ -28,6 +29,9 @@ JSON_HIGHLIGHTER = JSONHighlighter()
 
 
 class OWFormatChoicesADMComponent(ADMComponent):
+    def __init__(self):
+        self.choice_template = OWPart3CharacterDescriptionWVitals()
+
     def run_returns(self):
         return ('choices', 'choice_to_action_mapping')
 
@@ -40,7 +44,7 @@ class OWFormatChoicesADMComponent(ADMComponent):
         ]
 
         character_to_choice = {
-            c.id: f"{c.name}: {c.unstructured}"
+            c.id: self.choice_template(c).rstrip()
             for c in scenario_state.characters
         }
 
@@ -327,6 +331,7 @@ class OWTaggingAdjustmentADMComponent(MedicalOnlyAlignmentADMComponent):
     def __init__(self, increase_priority_threshold=0.55, decrease_priority_threshold=0.80):
         self.increase_priority_threshold = increase_priority_threshold
         self.decrease_priority_threshold = decrease_priority_threshold
+
     def run_returns(self):
         return ('chosen_action')
 
@@ -371,10 +376,10 @@ class OWTaggingAdjustmentADMComponent(MedicalOnlyAlignmentADMComponent):
             ranking_delta = medical_ranking - aligned_ranking
             percent_change = ranking_delta / len(choices)
 
-            # What tags have been given out already
+            # What tags have been given out already (nearby)
             tag_counts = defaultdict(int)
             for c in scenario_state.characters:
-                if c.tag is not None:
+                if c.tag is not None and not c.unseen and c.nearby:
                     tag_counts[c.tag] += 1
             lowest_priority_given_idx = None
             for i in range(len(tag_order)-2, -1, -1):  # Don't consider black tags, order is slightly weird
@@ -387,7 +392,7 @@ class OWTaggingAdjustmentADMComponent(MedicalOnlyAlignmentADMComponent):
                 adjusted_tag_idx = max(0, adjusted_tag_idx - 1)
             if percent_change < -self.decrease_priority_threshold:
                 adjusted_tag_idx = min(len(tag_order)-1, adjusted_tag_idx + 1)
-            # Have already given out lower priority tags, heuristic only works when omniscient
+            # Check if we have already given out lower priority tags nearby
             if lowest_priority_given_idx is not None and lowest_priority_given_idx > assigned_tag_idx:
                 adjusted_tag_idx = lowest_priority_given_idx
 
@@ -402,3 +407,11 @@ class OWTaggingAdjustmentADMComponent(MedicalOnlyAlignmentADMComponent):
                 )
 
         return chosen_action
+
+
+class OWChoiceSchemaTransform:
+    def __call__(self, choice):
+        if ":" in choice:
+            return choice.split(':', 1)[0]
+        else:
+            return choice
