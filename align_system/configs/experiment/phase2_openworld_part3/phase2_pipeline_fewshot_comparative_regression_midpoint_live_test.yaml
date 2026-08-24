@@ -33,6 +33,10 @@ adm:
             merit: /data/shared/samba/phase2_icl/Feb2026-MF-train_20251218.json
             personal_safety: /data/shared/samba/phase2_icl/Feb2026-PS-train_20251218.json
             search: /data/shared/samba/phase2_icl/Feb2026-SS-train_20251218.json
+        character_choice_template:
+          _target_: align_system.prompt_engineering.ow_prompts.OWPart3CharacterDescriptionWVitals
+        choice_schema_transform:
+          _target_: align_system.algorithms.open_world_components.OWChoiceSchemaTransform
       enable_caching: true
     comparative_regression:
       enable_caching: true

@@ -88,5 +88,5 @@ def ow_part3_character_description_w_vitals(c):
     """
 
 class OWPart3CharacterDescriptionWVitals:
-    def __call__(self, scenario_state):
-        return ow_part3_character_description_w_vitals(scenario_state)
+    def __call__(self, character):
+        return ow_part3_character_description_w_vitals(character)
