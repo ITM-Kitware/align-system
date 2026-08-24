@@ -65,3 +65,28 @@ def followup_clarify_treatment(character, supplies):
 class FollowupClarifyTreatmentPrompt:
     def __call__(self, character, supplies):
         return followup_clarify_treatment(character, supplies)
+
+
+@compat_outlines_prompt
+def ow_part3_character_description_w_vitals(c):
+    """
+    {{ c.name }}: {{ c.unstructured }}
+    {% if c.vitals is none or (c.vitals.avpu is none and c.vitals.breathing is none and c.vitals.heart_rate is none) %}
+      Vitals: Unknown
+    {% else %}
+      Vitals:
+      {% if c.vitals.avpu is not none %}
+        - AVPU: {{ c.vitals.avpu.value if c.vitals.avpu.value is defined else c.vitals.avpu }}
+      {% endif %}
+      {% if c.vitals.breathing is not none %}
+        - Breathing: {{ c.vitals.breathing.value if c.vitals.breathing.value is defined else c.vitals.breathing }}
+      {% endif %}
+      {% if c.vitals.heart_rate is not none %}
+        - Heart Rate: {{ c.vitals.heart_rate.value if c.vitals.heart_rate.value is defined else c.vitals.heart_rate }}
+      {% endif %}
+    {% endif %}
+    """
+
+class OWPart3CharacterDescriptionWVitals:
+    def __call__(self, scenario_state):
+        return ow_part3_character_description_w_vitals(scenario_state)
