@@ -88,8 +88,12 @@ adm:
 
             You'll be given a situation description and casualty description and asked to assign a "personal safety" score between 0 to 100 along with a reasoning for your score.  Ignore any details that are not relevant to the personal safety score.  Your response should be formatted as valid JSON.
     ensure_chosen_action:
+      scenario_description_template:
+        _target_: align_system.prompt_engineering.outlines_prompts.OWPart3ScenarioDescriptionWVitals
       enable_caching: true
     action_parameter_completion:
+      scenario_description_template:
+        _target_: align_system.prompt_engineering.outlines_prompts.OWPart3ScenarioDescriptionWVitals
       enable_caching: true
 
   instance:

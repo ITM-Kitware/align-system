@@ -6,7 +6,7 @@ from align_system.prompt_engineering.compat.outlines.templates import prompt as 
 
 
 @compat_outlines_prompt
-def followup_clarify_tag(character):
+def followup_clarify_tag(c):
     """
     Given the description below, please state what triage category \
     should be applied to the patient given their injuries and vitals. \
@@ -21,7 +21,21 @@ def followup_clarify_tag(character):
     resources during the incident. This category should be used sparingly.
 
     Description:
-    {{ character.unstructured }}
+    {{ c.unstructured }}
+    {% if c.vitals is none or (c.vitals.avpu is none and c.vitals.breathing is none and c.vitals.heart_rate is none) %}
+      Vitals: Unknown
+    {% else %}
+      Vitals:
+      {% if c.vitals.avpu is not none %}
+        - AVPU: {{ c.vitals.avpu.value if c.vitals.avpu.value is defined else c.vitals.avpu }}
+      {% endif %}
+      {% if c.vitals.breathing is not none %}
+        - Breathing: {{ c.vitals.breathing.value if c.vitals.breathing.value is defined else c.vitals.breathing }}
+      {% endif %}
+      {% if c.vitals.heart_rate is not none %}
+        - Heart Rate: {{ c.vitals.heart_rate.value if c.vitals.heart_rate.value is defined else c.vitals.heart_rate }}
+      {% endif %}
+    {% endif %}
     """
 
 class FollowupClarifyTagPrompt:
@@ -36,7 +50,7 @@ def followup_clarify_character(scenario_description, action):
     character should receive the action.
 
     Scenario:
-    {{ scenario_descriptoin }}
+    {{ scenario_description }}
 
     Selected action:
     {{ action.unstructured }}
@@ -48,7 +62,7 @@ class FollowupClarifyCharacterPrompt:
 
 
 @compat_outlines_prompt
-def followup_clarify_treatment(character, supplies):
+def followup_clarify_treatment(c, supplies):
     """
     Given the description below, please state what treatment supply \
     should be applied to the patient given their injuries and vitals. \
@@ -59,7 +73,21 @@ def followup_clarify_treatment(character, supplies):
     {% endfor %}
 
     Description:
-    {{ character.unstructured }}
+    {{ c.unstructured }}
+    {% if c.vitals is none or (c.vitals.avpu is none and c.vitals.breathing is none and c.vitals.heart_rate is none) %}
+      Vitals: Unknown
+    {% else %}
+      Vitals:
+      {% if c.vitals.avpu is not none %}
+        - AVPU: {{ c.vitals.avpu.value if c.vitals.avpu.value is defined else c.vitals.avpu }}
+      {% endif %}
+      {% if c.vitals.breathing is not none %}
+        - Breathing: {{ c.vitals.breathing.value if c.vitals.breathing.value is defined else c.vitals.breathing }}
+      {% endif %}
+      {% if c.vitals.heart_rate is not none %}
+        - Heart Rate: {{ c.vitals.heart_rate.value if c.vitals.heart_rate.value is defined else c.vitals.heart_rate }}
+      {% endif %}
+    {%- endif %}
     """
 
 class FollowupClarifyTreatmentPrompt:
@@ -84,7 +112,7 @@ def ow_part3_character_description_w_vitals(c):
       {% if c.vitals.heart_rate is not none %}
         - Heart Rate: {{ c.vitals.heart_rate.value if c.vitals.heart_rate.value is defined else c.vitals.heart_rate }}
       {% endif %}
-    {% endif %}
+    {%- endif %}
     """
 
 class OWPart3CharacterDescriptionWVitals:

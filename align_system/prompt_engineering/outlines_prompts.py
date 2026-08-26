@@ -1236,9 +1236,11 @@ def ow_part3_scenario_state_description_w_vitals(scenario_state):
     """
     {{ scenario_state.unstructured.rstrip() }}
 
+    {% if scenario_state.characters|length > 1 %}
     Casualties:
+    {% endif %}
     {% for c in scenario_state.characters %}
-    - {{ c.name }}: {{ c.unstructured }}
+    {% if scenario_state.characters|length > 1 %}- {% endif %}{{ c.name }}: {{ c.unstructured }}
     {% if c.vitals is none or (c.vitals.avpu is none and c.vitals.breathing is none and c.vitals.heart_rate is none) %}
         Vitals: Unknown
     {% else %}

@@ -40,7 +40,12 @@ class ITMOpenWorldDriver:
         for character in characters:
             new_action = deepcopy(action)
             new_action.character_id = character.id
-            new_action.unstructured = re.sub(r"(a )?Patient", character.name, action.unstructured)
+            new_action.unstructured = re.sub(
+                r"(a )?Patient",
+                character.name,
+                action.unstructured,
+                flags=re.IGNORECASE
+            )
 
             expanded_actions.append(new_action)
 

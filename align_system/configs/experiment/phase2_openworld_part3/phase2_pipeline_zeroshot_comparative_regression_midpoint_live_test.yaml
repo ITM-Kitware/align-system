@@ -27,8 +27,12 @@ adm:
       choice_schema_transform:
          _target_: align_system.algorithms.open_world_components.OWChoiceSchemaTransform
     ensure_chosen_action:
+      scenario_description_template:
+        _target_: align_system.prompt_engineering.outlines_prompts.OWPart3ScenarioDescriptionWVitals
       enable_caching: true
     action_parameter_completion:
+      scenario_description_template:
+        _target_: align_system.prompt_engineering.outlines_prompts.OWPart3ScenarioDescriptionWVitals
       enable_caching: true
 
   instance:
