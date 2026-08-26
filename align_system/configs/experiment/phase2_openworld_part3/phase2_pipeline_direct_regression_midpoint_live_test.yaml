@@ -31,7 +31,7 @@ adm:
             Given the injury described below, provide a reasoning and a medical urgency rating:
 
             {{ character.unstructured }}
-            {%- if not character.vitals or (character.vitals.avpu is none and character.vitals.breathing is none and character.vitals.heart_rate is none) %}
+            {%- if character.vitals is none or character.vitals|length==0 or (character.vitals.avpu is none and character.vitals.breathing is none and character.vitals.heart_rate is none) %}
               Vitals: Unknown
             {%- else %}
               Vitals:
