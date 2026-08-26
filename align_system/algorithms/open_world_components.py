@@ -90,8 +90,25 @@ class OWChoiceToActionADMComponent(OutlinesBaselineADMComponent):
         elif len(possible_actions) == 1:  # Single action, choose that
             chosen_action = possible_actions[0]
         else:
+            relevant_char_ids = set()
+            filter_by_ids = True
+            for a in possible_actions:
+                if a.character_id is not None:
+                    relevant_char_ids.add(a.character_id)
+                else:  # Could be any character
+                    filter_by_ids = False
+                    break
+
+            filtered_scenario_state = copy.deepcopy(scenario_state)
+            if filter_by_ids:
+                filtered_scenario_state_characters = []
+                for c in scenario_state.characters:
+                    if c.id in relevant_char_ids:
+                        filtered_scenario_state_characters.append(c)
+                filtered_scenario_state.characters = filtered_scenario_state_characters
+
             choices = [a.unstructured for a in possible_actions]
-            chosen_choice, justification, choice_to_action_dialog = super().run(scenario_state, choices)
+            chosen_choice, justification, choice_to_action_dialog = super().run(filtered_scenario_state, choices)
 
             chosen_action = possible_actions[choices.index(chosen_choice)]
 
