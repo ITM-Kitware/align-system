@@ -8,8 +8,8 @@ defaults:
   - override /driver: itm_phase2_ow
 
 interface:
-#  api_endpoint: "https://darpaitm.caci.com"
-  api_endpoint: 'http://127.0.0.1:8081'
+  api_endpoint: "https://darpaitm.caci.com"
+#  api_endpoint: 'http://127.0.0.1:8081'
   session_type: eval
   training_session: null
   username: "testrun-ALIGN-ADM-OutlinesBaseline-Mistral-7B-Instruct-v0.3"
@@ -27,6 +27,8 @@ adm:
       enable_caching: true
 
     action_parameter_completion:
+      scenario_description_template:
+        _target_: align_system.prompt_engineering.outlines_prompts.OWPart3ScenarioDescriptionWVitals
       enable_caching: true
 
   instance:
@@ -47,3 +49,7 @@ force_determinism: true
 align_to_target: false
 
 save_last_unstructured_state_per_scenario: true
+
+hydra:
+  run:
+    dir: 'ow_part3_live_test/baseline/${now:%Y-%m-%d__%H-%M-%S}'
