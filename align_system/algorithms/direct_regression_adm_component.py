@@ -234,3 +234,120 @@ class DirectRegressionADMComponent(ADMComponent):
                        num_samples={self.num_samples},
                        target_attribute_names_override={self.target_attribute_names_override},
                        )""", flags=re.MULTILINE).strip()
+
+
+class OWDirectRegressionADMComponent(DirectRegressionADMComponent):
+    def run(self,
+            scenario_state,
+            choices,
+            icl_dialog_elements=[],
+            alignment_target=None):
+        if alignment_target is None:
+            target_attribute_names = []
+        else:
+            target_attribute_names = attributes_in_alignment_target(alignment_target)
+
+        if self.target_attribute_names_override is not None:
+            overridden_target_attribute_names = []
+            for attribute_name in self.target_attribute_names_override:
+                if attribute_name == '*':
+                    # '*' in the override means to include the attribute names
+                    # from the target (in addition to whatever else is
+                    # specified in the override)
+                    overridden_target_attribute_names.extend(target_attribute_names)
+                else:
+                    overridden_target_attribute_names.append(attribute_name)
+
+            target_attribute_names = overridden_target_attribute_names
+
+        if self.enable_caching:
+            scenario_state_copy = copy.deepcopy(scenario_state)
+            if hasattr(scenario_state, 'elapsed_time'):
+                # Don't consider the elapsed_time of the state when caching
+                scenario_state_copy.elapsed_time = 0
+
+            depends = '\n'.join((
+                self.cache_repr(),
+                repr(scenario_state_copy),
+                repr(choices),
+                repr(icl_dialog_elements),
+                repr(target_attribute_names)))
+
+            cacher = ub.Cacher('direct_regression_adm_component', depends, verbose=0)
+            log.debug(f'cacher.fpath={cacher.fpath}')
+
+            cached_output = cacher.tryload()
+            if cached_output is not None:
+                log.info("Cache hit for `direct_regression_adm_component`"
+                         " returning cached output")
+                return cached_output
+            else:
+                log.info("Cache miss for `direct_regression_adm_component` ..")
+
+        if not isinstance(scenario_state, Mapping):
+            scenario_state = scenario_state.to_dict()
+
+        attribute_prediction_scores = {}
+        attribute_prediction_reasonings = {}
+        for attribute in target_attribute_names:
+            if attribute not in self.per_attribute_templates:
+                raise RuntimeError(f"Missing {attribute} from self.per_attribute_templates")
+
+            for choice in choices:
+                dialog = []
+                system_prompt = self.per_attribute_templates[attribute]['system_prompt']
+                if callable(system_prompt):
+                    system_prompt = call_with_coerced_args(
+                        system_prompt,
+                        {'model':self.structured_inference_engine.model}
+                    )
+                elif not isinstance(system_prompt, str):
+                    raise RuntimeError("system_prompt is of an unexpected type")
+
+                dialog.insert(0, DialogElement(role='system', content=system_prompt))
+
+                prompt_template = self.per_attribute_templates[attribute]['prompt_template']
+                if callable(prompt_template):
+                    prompt = call_with_coerced_args(
+                        prompt_template,
+                        {'choice': choice,
+                         'scenario_state': scenario_state})
+                elif isinstance(prompt_template, str):
+                    prompt = Template(prompt_template).render(
+                        {'choice': choice,
+                         'scenario_state': scenario_state})
+                else:
+                    raise RuntimeError("prompt_template is of an unexpected type")
+
+                dialog.append(DialogElement(role='user',
+                                            content=prompt))
+
+                dialog_prompt = self.structured_inference_engine.dialog_to_prompt(dialog)
+
+                log.info(f"[bold]*{attribute.upper()} PREDICTION DIALOG PROMPT*[/bold]",
+                         extra={"markup": True})
+                log.info(dialog_prompt)
+
+                output_schema = call_with_coerced_args(
+                    self.per_attribute_templates[attribute]['schema_template'], {})
+
+                responses = self.structured_inference_engine.run_inference(
+                    [dialog_prompt] * self.num_samples, output_schema)
+
+                for i, response in enumerate(responses):
+                    log.info(f"[bold]*{attribute.upper()} PREDICTION RESPONSE (sample #{i})*[/bold]", extra={"markup": True})
+                    log.info(response, extra={"highlighter": JSON_HIGHLIGHTER})
+
+                factor = self.per_attribute_templates[attribute].get('factor', 100)
+                attribute_prediction_scores.setdefault(choice, {})[attribute] =\
+                    [r['score'] / float(factor) for r in responses]
+                attribute_prediction_reasonings.setdefault(choice, {})[attribute] =\
+                    [r['reasoning'] for r in responses]
+
+        outputs = (attribute_prediction_reasonings,
+                   attribute_prediction_scores)
+
+        if self.enable_caching:
+            cacher.save(outputs)
+
+        return outputs
