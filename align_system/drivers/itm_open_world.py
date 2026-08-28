@@ -446,6 +446,8 @@ class ITMOpenWorldDriver:
 
                 last_state = current_state
                 try:
+                    if cfg.get('remove_justifications', False):
+                        action_to_take.justification = "Dummy justification"
                     if hasattr(action_to_take, "intent_action") and action_to_take.intent_action:
                         current_state = scenario.intend_action(action_to_take)
                     else:
