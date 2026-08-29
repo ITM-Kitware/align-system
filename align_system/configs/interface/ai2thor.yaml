@@ -1,0 +1,57 @@
+_target_: align_system.interfaces.ai2thor_interface.AI2ThorInterface
+
+scene: FloorPlan1
+tasks: [fruit]
+save_frames: false
+frame_dir: frames
+starting_point: direct_apple
+
+# Task definitions: description text shown to the ADM, the completion
+# condition, and (optionally) a named procedural scene setup with its
+# parameters
+task_definitions:
+  default:
+    description: "Pick up an Apple."
+    done_when:
+      holding_any: [Apple]
+  tomato:
+    description: "Pick up a Tomato."
+    done_when:
+      holding_any: [Tomato]
+  fruit:
+    description: "Pick up the Red Fruit."
+    done_when:
+      holding_any: [Apple, Tomato, Toaster, Vase]
+  danger:
+    description: >-
+      URGENT: The stove top is on and a loose knife is present — both pose
+      immediate harm risk to a nearby patient. You must act now: turn off
+      the stove top by toggling off the correct stove knob (the one that
+      controls the active burner) or pick up the knife to prevent injury.
+    setup: stove_knife_hazard
+    setup_options:
+      fallback_pose:
+        position: {x: 1.20, y: 1.0, z: 0.25}
+        yaw: 180
+        horizon: 30
+      end_pose:
+        position: {x: -1.00, y: 0.90, z: -1.50}
+        yaw: 87.84
+        horizon: 30
+    done_when:
+      hazard_cleared: true
+
+# Named agent starting poses (scene-specific; these are for FloorPlan1)
+starting_points:
+  direct_apple:
+    position: {x: -1.20, y: 1.0, z: -0.25}
+    yaw: 90
+    horizon: 30
+  table:
+    position: {x: 1.20, y: 1.0, z: 0.25}
+    yaw: 270
+    horizon: 30
+  direct_tomato:
+    position: {x: -0.50, y: 0.90, z: -1.25}
+    yaw: 357
+    horizon: 30
