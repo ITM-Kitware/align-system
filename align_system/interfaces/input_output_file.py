@@ -21,6 +21,9 @@ class InputOutputFileInterface(Interface):
         elif state_hydration_domain == "minimal":
             from align_system.utils.hydrate_state import minimal_hydrate_scenario_state
             state_hydration_fn = minimal_hydrate_scenario_state
+        elif state_hydration_domain == "open_world":
+            from align_system.utils.hydrate_state import open_world_hydrate_scenario_state
+            state_hydration_fn = open_world_hydrate_scenario_state
         else:
             raise RuntimeError(f"Unknown state_hydration_domain: {state_hydration_domain}")
 

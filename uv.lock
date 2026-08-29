@@ -176,6 +176,9 @@ openai = [
     { name = "httpx" },
     { name = "openai" },
 ]
+pdb = [
+    { name = "web-pdb" },
+]
 
 [package.metadata]
 requires-dist = [
@@ -209,6 +212,7 @@ openai = [
     { name = "httpx", specifier = ">=0.28.1,<0.29.0" },
     { name = "openai", specifier = ">=2.15.0,<3.0.0" },
 ]
+pdb = [{ name = "web-pdb", specifier = ">=2.0.1" }]
 
 [[package]]
 name = "annotated-doc"
@@ -5264,6 +5268,15 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/35/a2/8e3becb46433538a38726c948d3399905a4c7cabd0df578ede5dc51f0ec2/wcwidth-0.6.0.tar.gz", hash = "sha256:cdc4e4262d6ef9a1a57e018384cbeb1208d8abbc64176027e2c2455c81313159", size = 159684, upload-time = "2026-02-06T19:19:40.919Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/68/5a/199c59e0a824a3db2b89c5d2dade7ab5f9624dbf6448dc291b46d5ec94d3/wcwidth-0.6.0-py3-none-any.whl", hash = "sha256:1a3a1e510b553315f8e146c54764f4fb6264ffad731b3d78088cdb1478ffbdad", size = 94189, upload-time = "2026-02-06T19:19:39.646Z" },
+]
+
+[[package]]
+name = "web-pdb"
+version = "2.0.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/a1/cc/3371492ea814400c6d4c818024f9c0cd5131f8ff41d92a2953804367e2d1/web_pdb-2.0.1.tar.gz", hash = "sha256:7d0bf3e5a844780450d02969d72d9ddfd8b514d7d0393babd6dd53c8b746b6e4", size = 424752, upload-time = "2026-05-21T19:02:18.57Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/a4/bd/a7aea40336add41aabe375bdbb33d862e832364474caff13498ad103fa56/web_pdb-2.0.1-py3-none-any.whl", hash = "sha256:60144cf565baa4de537bf72da257fe1ec1f6293ecb43c2e9b0dd208402cf8a45", size = 422239, upload-time = "2026-05-21T19:02:17.39Z" },
 ]
 
 [[package]]

@@ -1,3 +1,44 @@
+from typing import Any, Dict, List, Optional
+
+from pydantic import BaseModel
+
+
+class _OpenWorldBase(BaseModel):
+    def to_dict(self) -> Dict[str, Any]:
+        return self.model_dump()
+
+
+class OpenWorldMetaInfo(_OpenWorldBase):
+    scene_id: str
+
+
+class OpenWorldCharacter(_OpenWorldBase):
+    id: str
+    name: str
+    unstructured: str
+    intent: Optional[str] = None
+    rapport: Optional[str] = None
+    unseen: Optional[bool] = False
+
+
+class OpenWorldAction(_OpenWorldBase):
+    action_id: str
+    action_type: Optional[str] = None
+    unstructured: str
+    character_id: Optional[str] = None
+    intent_action: bool = False
+    kdma_association: Optional[Any] = None
+    justification: Optional[str] = None
+
+
+class OpenWorldState(_OpenWorldBase):
+    unstructured: str
+    elapsed_time: int = 0
+    scenario_complete: bool
+    meta_info: OpenWorldMetaInfo
+    characters: List[OpenWorldCharacter]
+
+
 def hydrate_scenario_state(record):
     """ Hydrate scenario state from p1 record """
     from align_system.data_models.compat.ta3_ph1_client_models import (
@@ -56,6 +97,26 @@ def p2triage_hydrate_scenario_state(record):
         a.justification = None
 
     return state, actions
+
+def open_world_hydrate_scenario_state(record):
+    """Hydrate open-world scenario state; no environment/supplies required."""
+    full_state = record['full_state']
+
+    state = OpenWorldState(
+        unstructured=full_state['unstructured'],
+        elapsed_time=full_state.get('elapsed_time', 0),
+        scenario_complete=full_state['scenario_complete'],
+        meta_info=OpenWorldMetaInfo(**full_state['meta_info']),
+        characters=[OpenWorldCharacter(**c) for c in full_state.get('characters', [])],
+    )
+
+    actions = [
+        OpenWorldAction(**a, justification=None)
+        for a in record['choices']
+    ]
+
+    return state, actions
+
 
 def minimal_hydrate_scenario_state(record):
     """ Hydrate scenario state from minimal record """

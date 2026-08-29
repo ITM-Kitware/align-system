@@ -75,7 +75,7 @@ class OutlinesTransformersInferenceEngine(StructuredInferenceEngine):
 
     def dialog_to_prompt(self, dialog):
         tokenizer = self.model.tokenizer.tokenizer
-
+        # import web_pdb; web_pdb.set_trace()
         try:
             encoded_dialog = tokenizer.apply_chat_template(dialog)
         except jinja2.exceptions.TemplateError:
@@ -92,7 +92,9 @@ class OutlinesTransformersInferenceEngine(StructuredInferenceEngine):
             dialog = [{"role": "user", "content": updated_content}, *rest]
 
             encoded_dialog = tokenizer.apply_chat_template(dialog)
-
+        with open("prompt.txt", 'a') as f:
+            f.write(tokenizer.decode(encoded_dialog))
+            f.write("\n\n------------------------------------------------------------------\n\n")
         return tokenizer.decode(encoded_dialog)
 
     # Function borrowed from
@@ -128,6 +130,11 @@ class OutlinesTransformersInferenceEngine(StructuredInferenceEngine):
         return outputs
 
     def run_inference(self, prompts, schema):
+        # print("run inference")
+        # print(type(prompts))
+        # print(isinstance(prompts, Iterable))
+        # # print(json.dumps(json.loads(prompts), indent=2))
+        # print(prompts)
         json_schema = JsonSchema(schema, whitespace_pattern=r"[ ]?")
 
         generator = outlines.Generator(self.model, json_schema)
@@ -201,7 +208,7 @@ class SpectrumTunedInferenceEngine(OutlinesTransformersInferenceEngine):
                 element.role = "input"
             elif element.role == "assistant":
                 element.role = "output"
-            else:
+            elif element.role not in ("description", "input", "output"): 
                 raise RuntimeError(f"{element.role} dialog element unrecognized.")
 
         try:
