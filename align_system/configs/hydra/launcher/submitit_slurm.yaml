@@ -1,0 +1,13 @@
+_target_: hydra_plugins.hydra_submitit_launcher.submitit_launcher.SlurmLauncher
+
+submitit_folder: ${hydra.sweep.dir}/.submitit/%j
+
+name: ${hydra.job.name}
+timeout_min: 10080  # 7 days
+nodes: 1
+tasks_per_node: 1
+cpus_per_task: 8
+gpus_per_node: 1
+mem_gb: 24
+account: itm
+stderr_to_stdout: false

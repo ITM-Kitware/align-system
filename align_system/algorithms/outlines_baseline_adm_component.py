@@ -165,3 +165,100 @@ class OutlinesBaselineADMComponent(ADMComponent):
                        num_samples={self.num_samples},
                        vote_calculator_fn={_generic_object_repr(self.vote_calculator_fn)},
                        )""", flags=re.MULTILINE).strip()
+
+
+class OutlinesRAGBaselineADMComponent(OutlinesBaselineADMComponent):
+    """
+    Variant of OutlinesBaselineADMComponent that accepts rag_context from the
+    pipeline's working_output and passes it to system_prompt_template and
+    prompt_template calls. Templates that don't declare a rag_context parameter
+    will silently ignore it via call_with_coerced_args.
+    """
+
+    def run(self,
+            scenario_state,
+            choices,
+            rag_context=None):
+        if self.enable_caching:
+            scenario_state_copy = copy.deepcopy(scenario_state)
+            if hasattr(scenario_state, 'elapsed_time'):
+                scenario_state_copy.elapsed_time = 0
+
+            depends = '\n'.join((
+                self.cache_repr(),
+                repr(scenario_state_copy),
+                repr(choices),
+                repr(rag_context)))
+
+            cacher = ub.Cacher('outlines_rag_baseline_adm_component', depends, verbose=0)
+            log.debug(f'cacher.fpath={cacher.fpath}')
+
+            cached_output = cacher.tryload()
+            if cached_output is not None:
+                log.info("Cache hit for `outlines_rag_baseline_adm_component`"
+                         " returning cached output")
+                return cached_output
+            else:
+                log.info("Cache miss for `outlines_rag_baseline_adm_component` ..")
+
+        scenario_description = call_with_coerced_args(
+            self.scenario_description_template,
+            {'scenario_state': scenario_state,
+             'rag_context': rag_context})
+
+        dialog = []
+        if self.system_prompt is not None:
+            system_prompt = self.system_prompt
+            dialog.insert(0, DialogElement(role='system',
+                                           content=system_prompt,
+                                           tags=['regression']))
+        elif self.system_prompt_template is not None:
+            system_prompt = call_with_coerced_args(
+                self.system_prompt_template,
+                {'rag_context': rag_context})
+            dialog.insert(0, DialogElement(role='system',
+                                           content=system_prompt))
+
+        prompt = call_with_coerced_args(
+            self.prompt_template,
+            {'scenario_state': scenario_state,
+             'scenario_description': scenario_description,
+             'choices': choices,
+             'rag_context': rag_context})
+
+        dialog.append(DialogElement(role='user', content=prompt))
+
+        output_schema = call_with_coerced_args(
+            self.output_schema_template,
+            {'choices': choices})
+
+        dialog_prompt = self.structured_inference_engine.dialog_to_prompt(dialog)
+
+        log.info("[bold]*RAG TAGGING DIALOG PROMPT*[/bold]",
+                 extra={"markup": True})
+        log.info(dialog_prompt)
+
+        responses = self.structured_inference_engine.run_inference(
+            [dialog_prompt] * self.num_samples, output_schema)
+
+        votes = self.vote_calculator_fn(
+            choices, [r['action_choice'] for r in responses])
+
+        log.explain("[bold]*VOTES*[/bold]",
+                    extra={"markup": True})
+        log.explain(votes, extra={"highlighter": JSON_HIGHLIGHTER})
+
+        top_choice, top_choice_score = max(votes.items(), key=lambda x: x[1])
+
+        top_choice_justification = ""
+        for response in responses:
+            if response['action_choice'] == top_choice:
+                top_choice_justification = response['detailed_reasoning']
+                break
+
+        outputs = (top_choice, top_choice_justification, dialog)
+
+        if self.enable_caching:
+            cacher.save(outputs)
+
+        return outputs

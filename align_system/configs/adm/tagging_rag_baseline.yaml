@@ -1,0 +1,27 @@
+name: tagging_rag_baseline
+
+defaults:
+  - /inference_engine@structured_inference_engine: outlines_structured_multinomial
+  - /adm_component/misc@step_definitions.format_choices: itm_format_choices
+  - /adm_component/misc@step_definitions.rag_indexer: rag_indexer
+  - /adm_component/direct@step_definitions.tagging_rag_baseline: tagging_rag_baseline
+  - /adm_component/misc@step_definitions.ensure_chosen_action: ensure_chosen_action
+  - /adm_component/misc@step_definitions.populate_choice_info: populate_choice_info
+  - _self_
+
+step_definitions:
+  rag_indexer:
+    docs_files:
+      - /data/users/yonatan.gefen/align-system/align_system/documents/start.md
+      - /data/users/yonatan.gefen/align-system/align_system/documents/start_triage_flowchart.md
+      - /data/users/yonatan.gefen/align-system/align_system/documents/Salt.md
+
+instance:
+  _target_: align_system.algorithms.pipeline_adm.PipelineADM
+
+  steps:
+    - ${ref:adm.step_definitions.format_choices}
+    - ${ref:adm.step_definitions.rag_indexer}
+    - ${ref:adm.step_definitions.tagging_rag_baseline}
+    - ${ref:adm.step_definitions.ensure_chosen_action}
+    - ${ref:adm.step_definitions.populate_choice_info}

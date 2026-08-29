@@ -1,0 +1,48 @@
+name: tagging_sweep_icl_rag_with_prompt
+
+defaults:
+  - /attribute@start: start
+  - /attribute@salt: salt
+  - /attribute@bcd: bcd
+  - /inference_engine@structured_inference_engine: outlines_structured_multinomial
+  - /template/scenario_description@scenario_description_template: tagging
+  - /template/prompt@prompt_template: tagging
+  - /adm_component/misc@step_definitions.rag_indexer: rag_indexer
+  - /adm_component/icl@step_definitions.icl: tagging
+  - /adm_component/misc@step_definitions.format_choices: itm_format_choices
+  - /adm_component/direct@step_definitions.direct_step: tagging_rag_aligned
+  - /adm_component/misc@step_definitions.ensure_chosen_action: ensure_chosen_action
+  - /adm_component/misc@step_definitions.populate_choice_info: populate_choice_info
+  - _self_
+
+attribute_definitions:
+  START: ${adm.start}
+  SALT: ${adm.salt}
+  BCD_SIEVE: ${adm.bcd}
+
+step_definitions:
+  rag_indexer:
+    docs_files:
+      - /data/users/yonatan.gefen/align-system/align_system/documents/start.md
+      - /data/users/yonatan.gefen/align-system/align_system/documents/start_triage_flowchart.md
+      - /data/users/yonatan.gefen/align-system/align_system/documents/Salt.md
+  icl:
+    scenario_description_template: ${ref:adm.scenario_description_template}
+    attributes: ${adm.attribute_definitions}
+    prompt_template: ${ref:adm.prompt_template}
+    icl_generator_partial:
+      scenario_description_template: ${ref:adm.scenario_description_template}
+  direct_step:
+    system_prompt_template:
+      _target_: align_system.prompt_engineering.tagging_prompts.TaggingSystemPrompt
+
+instance:
+  _target_: align_system.algorithms.pipeline_adm.PipelineADM
+
+  steps:
+    - ${ref:adm.step_definitions.format_choices}
+    - ${ref:adm.step_definitions.rag_indexer}
+    - ${ref:adm.step_definitions.icl}
+    - ${ref:adm.step_definitions.direct_step}
+    - ${ref:adm.step_definitions.ensure_chosen_action}
+    - ${ref:adm.step_definitions.populate_choice_info}

@@ -25,6 +25,8 @@ class PipelineADM(ActionBasedADM):
         per_step_timing_stats = []
 
         for i, step in enumerate(self.steps):
+            if step is None:
+                continue
             step_returns = step.run_returns()
 
             start_time = timer()

@@ -1,0 +1,32 @@
+name: tagging_sweep_no_icl_no_rag_no_prompt
+
+defaults:
+  - /attribute@start: start
+  - /attribute@salt: salt
+  - /attribute@bcd: bcd
+  - /inference_engine@structured_inference_engine: outlines_structured_multinomial
+  - /template/scenario_description@scenario_description_template: tagging
+  - /template/prompt@prompt_template: tagging
+  - /adm_component/misc@step_definitions.format_choices: itm_format_choices
+  - /adm_component/direct@step_definitions.direct_step: tagging_aligned
+  - /adm_component/misc@step_definitions.ensure_chosen_action: ensure_chosen_action
+  - /adm_component/misc@step_definitions.populate_choice_info: populate_choice_info
+  - _self_
+
+attribute_definitions:
+  START: ${adm.start}
+  SALT: ${adm.salt}
+  BCD_SIEVE: ${adm.bcd}
+
+step_definitions:
+  direct_step:
+    system_prompt_template: null
+
+instance:
+  _target_: align_system.algorithms.pipeline_adm.PipelineADM
+
+  steps:
+    - ${ref:adm.step_definitions.format_choices}
+    - ${ref:adm.step_definitions.direct_step}
+    - ${ref:adm.step_definitions.ensure_chosen_action}
+    - ${ref:adm.step_definitions.populate_choice_info}
