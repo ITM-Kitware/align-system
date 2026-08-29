@@ -1,0 +1,15 @@
+# @package _global_
+defaults:
+  - override /adm: phase2_pipeline_oracle
+  - override /interface: ta3
+  - override /adm_component/alignment@adm.step_definitions.scalar_alignment: medical_urgency_weighted_scalar
+
+interface:
+  session_type: adept
+  training_session: full
+  username: "pipeline_oracle_weighted_test"
+  domain: "p2triage"
+
+apply_action_filtering: false
+force_determinism: true
+align_to_target: true
