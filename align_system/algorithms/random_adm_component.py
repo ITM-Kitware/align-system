@@ -1,5 +1,7 @@
 import random
 
+from swagger_client.models import ActionTypeEnum as OWActionTypeEnum
+
 from align_system.data_models.compat.ta3_ph1_client_models import (
     ActionTypeEnum,
     InjuryLocationEnum,
@@ -19,6 +21,10 @@ class RandomChoiceADMComponent(ADMComponent):
 
 
 class RandomParameterCompletionADMComponent(ADMComponent):
+    # Phase-1 counterpart of action_completion.complete_action_parameters,
+    # kept separate because the action vocabularies differ (phase 1's
+    # APPLY_TREATMENT / CHECK_* actions and aid_id parameter don't
+    # exist in the open world / phase-2 enum, and vice versa)
     def run_returns(self):
         return 'chosen_action'
 
@@ -97,11 +103,13 @@ class OWRandomParameterCompletionADMComponent(ADMComponent):
             chosen_choice_idx = choices.index(chosen_choice)
             chosen_action = actions[chosen_choice_idx]
 
+        # Phase-2 / open world action types (the phase-1 compat
+        # ActionTypeEnum imported above has no TREAT_PATIENT)
         complete_action_parameters(
             scenario_state, chosen_action,
-            character_required_actions={'TREAT_PATIENT',
-                                        ActionTypeEnum.MOVE_TO_EVAC,
-                                        ActionTypeEnum.TAG_CHARACTER})
+            character_required_actions={OWActionTypeEnum.TREAT_PATIENT,
+                                        OWActionTypeEnum.MOVE_TO_EVAC,
+                                        OWActionTypeEnum.TAG_CHARACTER})
 
         chosen_action.justification = "Random choice"
 

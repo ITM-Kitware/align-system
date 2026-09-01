@@ -1,5 +1,4 @@
 import json
-import re
 from copy import deepcopy
 from timeit import default_timer as timer
 
@@ -10,25 +9,23 @@ from rich.highlighter import JSONHighlighter
 from swagger_client.models import ActionTypeEnum
 
 from align_system.drivers.itm_open_world import (
+    ActionRejectedException,
     ITMOpenWorldDriver,
+    ScenarioSession,
     as_dict,
-    make_input_output_entry,
 )
 from align_system.utils import logging
 from align_system.utils.action_completion import (
     DEFAULT_TAGS,
     VALID_INJURY_LOCATIONS,
     complete_action_parameters,
+    in_stock_supplies,
 )
+from align_system.utils.text_tool_calls import parse_text_tool_calls
 
 
 log = logging.getLogger(__name__)
 JSON_HIGHLIGHTER = JSONHighlighter()
-
-
-class _ActionRejectedException(Exception):
-    """The environment refused an action (e.g. HTTP 400 from the live
-    TA3 server); recoverable by choosing a different action."""
 
 
 # Action types the (live) environment rejects without a character_id
@@ -98,137 +95,6 @@ def _format_available_actions(actions):
         f"- {TOOL_NAMES_BY_ACTION_TYPE.get(a.action_type, a.action_type)}: "
         f"{a.unstructured}"
         for a in actions)
-
-
-class _AgentScenarioSession:
-    """Mutable per-scenario state for the agent: the current environment
-    state, manual treated/evac'd patient tracking (see the base driver's
-    filtering HACK note), the most recently listed actions, and
-    input/output bookkeeping for each executed action."""
-
-    def __init__(self, driver, scenario, alignment_target,
-                 sort_available_actions, record_input_output):
-        self.driver = driver
-        self.scenario = scenario
-        self.alignment_target = alignment_target
-        self.sort_available_actions = sort_available_actions
-        self.record_input_output = record_input_output
-
-        self.current_state = scenario.get_state()
-        self.scenario_complete = self.current_state.scenario_complete
-        self.treated_patients = set()
-        self.evac_patients = set()
-        self.available_actions = []
-        self.actions_expanded = []
-        self.actions_filtered = []
-        self.n_actions = 0
-        self.times_s = []
-        self.decision_start = timer()
-
-    def refresh_actions(self):
-        """Re-fetch, expand, and filter the environment's available
-        actions, updating `available_actions` / `actions_filtered`."""
-        available_actions = self.scenario.get_available_actions()
-
-        if self.sort_available_actions:
-            available_actions = sorted(
-                available_actions, key=lambda a: a.unstructured)
-
-        expanded, filtered = self.driver._get_expanded_and_filtered_actions(
-            self.current_state,
-            available_actions,
-            self.treated_patients,
-            self.evac_patients)
-
-        if len(filtered) == 0:
-            # END_SCENE is excluded from the filtered list; once
-            # nothing else remains it's the only sensible choice
-            filtered = [self.driver._end_scene_fallback_action(expanded)]
-
-        self.available_actions = available_actions
-        self.actions_expanded = expanded
-        self.actions_filtered = filtered
-
-        return filtered
-
-    def execute(self, action_to_take, justification=None):
-        """Submit an action to the environment, record it, and update
-        the session state; raises _ActionRejectedException when the
-        environment refuses the action (recoverable by choosing a
-        different action)."""
-        if justification and getattr(
-                action_to_take, 'justification', None) is None:
-            action_to_take.justification = justification
-
-        log.info("[bold]*ACTION BEING TAKEN*[/bold]",
-                 extra={"markup": True})
-        log.info(json.dumps(as_dict(action_to_take), indent=4),
-                 extra={"highlighter": JSON_HIGHLIGHTER})
-
-        try:
-            if getattr(action_to_take, "intent_action", False):
-                current_state = self.scenario.intend_action(action_to_take)
-            else:
-                current_state = self.scenario.take_action(action_to_take)
-        except Exception as e:
-            if hasattr(e, 'json'):
-                log.info(e.json(indent=2))
-            else:
-                log.info(str(e))
-
-            if getattr(e, 'status', None) in (400, 500):
-                # The environment refused the action -- 400 for e.g. a
-                # too-distant character, 500 when the (live) server
-                # chokes on the action's parameters (e.g. TREAT_PATIENT
-                # without a treatment supply); recoverable by choosing
-                # differently
-                raise _ActionRejectedException(
-                    str(getattr(e, 'body', e))) from e
-            raise e
-
-        # Only successfully executed actions are recorded
-        self._record_action(action_to_take)
-
-        if action_to_take.action_type == ActionTypeEnum.TREAT_PATIENT:
-            self.treated_patients.add(action_to_take.character_id)
-        if action_to_take.action_type == ActionTypeEnum.MOVE_TO_EVAC:
-            self.evac_patients.add(action_to_take.character_id)
-
-        self.current_state = current_state
-        self.scenario_complete = current_state.scenario_complete
-        self.n_actions += 1
-        # Listed actions are stale after the environment changes
-        self.actions_filtered = []
-        self.decision_start = timer()
-
-        return current_state
-
-    def _record_action(self, action_to_take):
-        # Called before the session state is updated, so the recorded
-        # state/choices are the ones the decision was made against
-        self.times_s.append(timer() - self.decision_start)
-
-        action_choice_idx = None
-        for i, a in enumerate(self.available_actions):
-            if a.action_id == action_to_take.action_id:
-                action_choice_idx = i
-                break
-
-        choice_info = {
-            'langchain_agent': {
-                'justification': getattr(action_to_take, 'justification', None),
-                'n_actions_taken_in_scenario': self.n_actions}}
-
-        self.record_input_output(make_input_output_entry(
-            scenario_id=self.scenario.id(),
-            alignment_target_id=(self.alignment_target.id
-                                 if self.alignment_target is not None
-                                 else None),
-            current_state=self.current_state,
-            available_actions=self.available_actions,
-            choice_info=choice_info,
-            action_choice_idx=action_choice_idx,
-            action_to_take=action_to_take))
 
 
 class ITMOpenWorldLangChainDriver(ITMOpenWorldDriver):
@@ -344,10 +210,192 @@ class ITMOpenWorldLangChainDriver(ITMOpenWorldDriver):
                 {'type': s.type, 'quantity': s.quantity} for s in supplies]
         if getattr(current_state, 'environment', None) is not None:
             env = current_state.environment
-            env_dict = env.to_dict() if hasattr(env, 'to_dict') else env
-            observation['environment'] = env_dict
+            observation['environment'] = (
+                env.to_dict() if hasattr(env, 'to_dict') else env)
 
         return json.dumps(observation, indent=2, default=str)
+
+    @staticmethod
+    def _execute_agent_action(session, action_to_take, justification):
+        """Execute an action with the agent's bookkeeping: decision
+        time measured as the wall time since the last executed action,
+        and the agent's justification recorded in choice_info."""
+        choice_info = {'langchain_agent': {
+            'justification': (getattr(action_to_take, 'justification', None)
+                              or justification),
+            'n_actions_taken_in_scenario': session.n_actions}}
+
+        return session.execute(
+            action_to_take, justification,
+            choice_info=choice_info,
+            decision_time_s=timer() - session.decision_start)
+
+    def _match_candidate_for_character(self, session, tool_name,
+                                       action_type, candidates,
+                                       character_name):
+        """Match one of `candidates` to the casualty named by the
+        agent, completing a generic (untargeted) candidate if needed.
+        Returns (action, None) on success, or (None, error) where
+        `error` is the message to send back to the agent."""
+        visible_characters = [
+            c for c in session.current_state.characters
+            if not getattr(c, 'unseen', False)]
+
+        if not character_name:
+            names = ", ".join(c.name for c in visible_characters)
+            return None, (f"{tool_name} requires a target casualty; call "
+                          "it again with character_name set to one of: "
+                          f"{names}")
+
+        matched_character = next(
+            (c for c in visible_characters
+             if character_name.lower() in (c.name.lower(),
+                                           c.id.lower())),
+            None)
+
+        if matched_character is None:
+            names = ", ".join(c.name for c in visible_characters)
+            return None, (f"Unknown casualty '{character_name}'; "
+                          f"valid casualties are: {names}")
+
+        # Per-casualty guards mirroring the base driver's action
+        # filtering (which can only exclude actions that already
+        # name a specific casualty)
+        if self.apply_action_filtering:
+            if (action_type == ActionTypeEnum.TREAT_PATIENT
+                    and matched_character.id in session.treated_patients):
+                return None, (f"{matched_character.name} has already been "
+                              "treated; choose a different casualty or "
+                              "action.")
+            if (action_type == ActionTypeEnum.MOVE_TO_EVAC
+                    and matched_character.id in session.evac_patients):
+                return None, (f"{matched_character.name} has already been "
+                              "moved to evac; choose a different casualty "
+                              "or action.")
+            if (action_type == ActionTypeEnum.TAG_CHARACTER
+                    and matched_character.tag is not None):
+                return None, (f"{matched_character.name} is already tagged "
+                              f"as {matched_character.tag}; choose a "
+                              "different casualty or action.")
+
+        # Prefer an action already targeting the casualty (e.g. from
+        # per-character expansion), otherwise complete a generic
+        # (untargeted) one
+        targeted_action = next(
+            (a for a in candidates
+             if a.character_id == matched_character.id),
+            None)
+
+        if targeted_action is not None:
+            return deepcopy(targeted_action), None
+
+        generic_action = next(
+            (a for a in candidates if a.character_id is None),
+            None)
+
+        if generic_action is None:
+            character_ids_to_names = {
+                c.id: c.name for c in visible_characters}
+            targets = ", ".join(sorted(
+                {character_ids_to_names.get(a.character_id,
+                                            a.character_id)
+                 for a in candidates}))
+            return None, (f"{tool_name} is not currently available "
+                          f"for {matched_character.name}; it is "
+                          f"available for: {targets}")
+
+        action_to_take = deepcopy(generic_action)
+        action_to_take.character_id = matched_character.id
+        return action_to_take, None
+
+    @staticmethod
+    def _fill_tag_parameters(action, tool_name, triage_tag):
+        """Set the action's triage category from the agent's
+        `triage_tag`, in place; the agent's explicit choice overrides
+        any category a (tag-expanded) candidate action already
+        carries.  Returns an error message for the agent, or None."""
+        if action.parameters is None:
+            action.parameters = {}
+
+        if not triage_tag:
+            if 'category' in action.parameters:
+                return None
+            return ("Tagging requires a triage category; call "
+                    f"{tool_name} again with triage_tag set to "
+                    f"one of: {', '.join(DEFAULT_TAGS)}")
+
+        matched_tag = next(
+            (t for t in DEFAULT_TAGS
+             if t.lower() == triage_tag.lower()),
+            None)
+
+        if matched_tag is None:
+            return (f"Unknown triage_tag '{triage_tag}'; "
+                    f"valid tags are: {', '.join(DEFAULT_TAGS)}")
+
+        action.parameters['category'] = matched_tag
+        return None
+
+    @staticmethod
+    def _fill_treatment_parameters(session, action, tool_name,
+                                   treatment_supply, injury_location):
+        """Set the action's treatment supply and injury location from
+        the agent's arguments, in place; explicit arguments override
+        any parameters a candidate action already carries.  The (live)
+        environment errors on TREAT_PATIENT without them, but they are
+        only enforceable when the state reports supplies.  Returns an
+        error message for the agent, or None."""
+        supplies = in_stock_supplies(session.current_state)
+        if not supplies:
+            return None
+
+        if action.parameters is None:
+            action.parameters = {}
+
+        supplies_listing = ", ".join(
+            f"{s.type} (x{s.quantity})" if s.quantity is not None
+            else str(s.type)
+            for s in supplies)
+
+        if treatment_supply:
+            matched_supply = next(
+                (s.type for s in supplies
+                 if str(s.type).lower() == treatment_supply.lower()),
+                None)
+
+            if matched_supply is None:
+                return ("Unknown or out-of-stock "
+                        f"treatment_supply '{treatment_supply}'; "
+                        f"available supplies are: {supplies_listing}")
+
+            action.parameters['treatment'] = matched_supply
+        elif 'treatment' not in action.parameters:
+            return ("Treating requires choosing a supply; "
+                    f"call {tool_name} again with "
+                    "treatment_supply set to one of: "
+                    f"{supplies_listing} -- and "
+                    "injury_location set to the injury's "
+                    "location (e.g. 'left calf', 'right "
+                    "thigh', 'center chest'; 'unspecified' "
+                    "if unclear)")
+
+        if injury_location:
+            matched_location = next(
+                (loc for loc in VALID_INJURY_LOCATIONS
+                 if loc.lower() == injury_location.lower()),
+                None)
+
+            if matched_location is None:
+                return ("Unknown injury_location "
+                        f"'{injury_location}'; valid "
+                        "locations are: "
+                        f"{', '.join(VALID_INJURY_LOCATIONS)}")
+
+            action.parameters['location'] = matched_location
+        elif 'location' not in action.parameters:
+            action.parameters['location'] = 'unspecified'
+
+        return None
 
     def _perform_typed_action(self, session, action_type, justification,
                               character_name="", triage_tag="",
@@ -379,75 +427,11 @@ class ITMOpenWorldLangChainDriver(ITMOpenWorldDriver):
                     + _format_available_actions(session.actions_filtered))
 
         if action_type in CHARACTER_REQUIRED_ACTIONS:
-            visible_characters = [
-                c for c in session.current_state.characters
-                if not getattr(c, 'unseen', False)]
-
-            if not character_name:
-                names = ", ".join(c.name for c in visible_characters)
-                return (f"{tool_name} requires a target casualty; call "
-                        "it again with character_name set to one of: "
-                        f"{names}")
-
-            matched_character = next(
-                (c for c in visible_characters
-                 if character_name.lower() in (c.name.lower(),
-                                               c.id.lower())),
-                None)
-
-            if matched_character is None:
-                names = ", ".join(c.name for c in visible_characters)
-                return (f"Unknown casualty '{character_name}'; "
-                        f"valid casualties are: {names}")
-
-            # Per-casualty guards mirroring the base driver's action
-            # filtering (which can only exclude actions that already
-            # name a specific casualty)
-            if self.apply_action_filtering:
-                if (action_type == ActionTypeEnum.TREAT_PATIENT
-                        and matched_character.id in session.treated_patients):
-                    return (f"{matched_character.name} has already been "
-                            "treated; choose a different casualty or "
-                            "action.")
-                if (action_type == ActionTypeEnum.MOVE_TO_EVAC
-                        and matched_character.id in session.evac_patients):
-                    return (f"{matched_character.name} has already been "
-                            "moved to evac; choose a different casualty "
-                            "or action.")
-                if (action_type == ActionTypeEnum.TAG_CHARACTER
-                        and matched_character.tag is not None):
-                    return (f"{matched_character.name} is already tagged "
-                            f"as {matched_character.tag}; choose a "
-                            "different casualty or action.")
-
-            # Prefer an action already targeting the casualty (e.g.
-            # from per-character expansion), otherwise complete a
-            # generic (untargeted) one
-            action_to_take = next(
-                (a for a in candidates
-                 if a.character_id == matched_character.id),
-                None)
-
-            if action_to_take is not None:
-                action_to_take = deepcopy(action_to_take)
-            else:
-                generic_action = next(
-                    (a for a in candidates if a.character_id is None),
-                    None)
-
-                if generic_action is None:
-                    character_ids_to_names = {
-                        c.id: c.name for c in visible_characters}
-                    targets = ", ".join(sorted(
-                        {character_ids_to_names.get(a.character_id,
-                                                    a.character_id)
-                         for a in candidates}))
-                    return (f"{tool_name} is not currently available "
-                            f"for {matched_character.name}; it is "
-                            f"available for: {targets}")
-
-                action_to_take = deepcopy(generic_action)
-                action_to_take.character_id = matched_character.id
+            action_to_take, error = self._match_candidate_for_character(
+                session, tool_name, action_type, candidates,
+                character_name)
+            if error is not None:
+                return error
         else:
             if len(candidates) > 1:
                 log.info(f"{tool_name}: multiple candidate actions "
@@ -456,88 +440,22 @@ class ITMOpenWorldLangChainDriver(ITMOpenWorldDriver):
             action_to_take = deepcopy(candidates[0])
 
         if action_to_take.action_type == ActionTypeEnum.TAG_CHARACTER:
-            if action_to_take.parameters is None:
-                action_to_take.parameters = {}
-
-            if 'category' not in action_to_take.parameters:
-                if not triage_tag:
-                    return ("Tagging requires a triage category; call "
-                            f"{tool_name} again with triage_tag set to "
-                            f"one of: {', '.join(DEFAULT_TAGS)}")
-
-                matched_tag = next(
-                    (t for t in DEFAULT_TAGS
-                     if t.lower() == triage_tag.lower()),
-                    None)
-
-                if matched_tag is None:
-                    return (f"Unknown triage_tag '{triage_tag}'; "
-                            f"valid tags are: {', '.join(DEFAULT_TAGS)}")
-
-                action_to_take.parameters['category'] = matched_tag
+            error = self._fill_tag_parameters(
+                action_to_take, tool_name, triage_tag)
+            if error is not None:
+                return error
 
         if action_to_take.action_type == ActionTypeEnum.TREAT_PATIENT:
-            # The (live) environment errors on TREAT_PATIENT without a
-            # treatment supply/location; only enforceable when the
-            # state reports supplies
-            in_stock_supplies = [
-                s for s in (getattr(session.current_state, 'supplies',
-                                    None) or [])
-                if s.quantity is None or s.quantity > 0]
-
-            if in_stock_supplies:
-                if action_to_take.parameters is None:
-                    action_to_take.parameters = {}
-
-                if 'treatment' not in action_to_take.parameters:
-                    supplies_listing = ", ".join(
-                        f"{s.type} (x{s.quantity})" if s.quantity is not None
-                        else str(s.type)
-                        for s in in_stock_supplies)
-
-                    if not treatment_supply:
-                        return ("Treating requires choosing a supply; "
-                                f"call {tool_name} again with "
-                                "treatment_supply set to one of: "
-                                f"{supplies_listing} -- and "
-                                "injury_location set to the injury's "
-                                "location (e.g. 'left calf', 'right "
-                                "thigh', 'center chest'; 'unspecified' "
-                                "if unclear)")
-
-                    matched_supply = next(
-                        (s.type for s in in_stock_supplies
-                         if str(s.type).lower() == treatment_supply.lower()),
-                        None)
-
-                    if matched_supply is None:
-                        return ("Unknown or out-of-stock "
-                                f"treatment_supply '{treatment_supply}'; "
-                                "available supplies are: "
-                                f"{supplies_listing}")
-
-                    action_to_take.parameters['treatment'] = matched_supply
-
-                if 'location' not in action_to_take.parameters:
-                    if injury_location:
-                        matched_location = next(
-                            (loc for loc in VALID_INJURY_LOCATIONS
-                             if loc.lower() == injury_location.lower()),
-                            None)
-
-                        if matched_location is None:
-                            return ("Unknown injury_location "
-                                    f"'{injury_location}'; valid "
-                                    "locations are: "
-                                    f"{', '.join(VALID_INJURY_LOCATIONS)}")
-                    else:
-                        matched_location = 'unspecified'
-
-                    action_to_take.parameters['location'] = matched_location
+            error = self._fill_treatment_parameters(
+                session, action_to_take, tool_name,
+                treatment_supply, injury_location)
+            if error is not None:
+                return error
 
         try:
-            current_state = session.execute(action_to_take, justification)
-        except _ActionRejectedException as e:
+            current_state = self._execute_agent_action(
+                session, action_to_take, justification)
+        except ActionRejectedException as e:
             return (f"The environment rejected this action: {e}  "
                     "Choose a different action (for example, you may "
                     "need to move_to a casualty before assessing or "
@@ -689,62 +607,6 @@ class ITMOpenWorldLangChainDriver(ITMOpenWorldDriver):
                 check_vitals, treat_patient, tag_character, move_to,
                 move_to_evac, search, send_message, end_scene]
 
-    @staticmethod
-    def _parse_text_tool_calls(content):
-        """Recover tool calls that the model emitted as plain JSON text
-        (e.g. '{"name": "take_action", "parameters": {...}}') instead
-        of as structured tool calls; some smaller models fall back to
-        this style mid-conversation."""
-        if isinstance(content, list):
-            content = "\n".join(
-                part if isinstance(part, str) else part.get('text', '')
-                for part in content)
-        if not content:
-            return []
-
-        text = re.sub(r'```(?:json)?', '', content)
-
-        # Extract top-level {...} blocks with a simple depth counter
-        candidates = []
-        depth = 0
-        start = None
-        for i, ch in enumerate(text):
-            if ch == '{':
-                if depth == 0:
-                    start = i
-                depth += 1
-            elif ch == '}' and depth > 0:
-                depth -= 1
-                if depth == 0:
-                    candidates.append(text[start:i + 1])
-                    start = None
-
-        tool_calls = []
-        for idx, candidate in enumerate(candidates):
-            try:
-                obj = json.loads(candidate)
-            except json.JSONDecodeError:
-                continue
-
-            if not isinstance(obj, dict) or 'name' not in obj:
-                continue
-
-            args = obj.get('parameters',
-                           obj.get('arguments', obj.get('args', {})))
-            if isinstance(args, str):
-                try:
-                    args = json.loads(args)
-                except json.JSONDecodeError:
-                    continue
-            if not isinstance(args, dict):
-                continue
-
-            tool_calls.append({'name': obj['name'],
-                               'args': args,
-                               'id': f'text-tool-call-{idx}'})
-
-        return tool_calls
-
     def _trim_message_window(self, messages):
         """Keep the conversation within `max_messages_in_context`
         messages (the system prompt is handled separately by the
@@ -765,20 +627,71 @@ class ITMOpenWorldLangChainDriver(ITMOpenWorldDriver):
         (with heuristically completed parameters), for when the agent
         is spinning without acting."""
         for fallback_candidate in session.refresh_actions():
-            fallback_action = complete_action_parameters(
-                session.current_state, deepcopy(fallback_candidate),
+            fallback_action = deepcopy(fallback_candidate)
+            complete_action_parameters(
+                session.current_state, fallback_action,
                 character_required_actions=CHARACTER_REQUIRED_ACTIONS)
             try:
-                session.execute(
-                    fallback_action,
+                self._execute_agent_action(
+                    session, fallback_action,
                     justification=("Fallback selection: agent "
                                    "made no progress"))
                 return fallback_action
-            except _ActionRejectedException as e:
+            except ActionRejectedException as e:
                 log.warning("Fallback action rejected by "
                             f"environment: {e}")
 
         raise RuntimeError("Environment rejected every fallback action")
+
+    def _handle_tool_calls(self, session, tools_by_name, tool_calls,
+                           recovered_from_text, messages):
+        """Invoke each of the agent's tool calls, appending a reply
+        message for every call (a ToolMessage, or a HumanMessage for
+        calls recovered from plain text).  Returns whether any call
+        resulted in an environment action being taken."""
+        acted = False
+        for tool_call in tool_calls:
+            log.info("[bold]*AGENT TOOL CALL*[/bold]: "
+                     "{}({})".format(
+                         tool_call['name'],
+                         json.dumps(tool_call['args'], default=str)),
+                     extra={"markup": True})
+
+            # Every tool call needs a reply message, even after the
+            # scenario completes mid-batch
+            if session.scenario_complete:
+                result = "Scenario is already complete."
+            elif tool_call['name'] not in tools_by_name:
+                result = (f"Unknown tool: {tool_call['name']}. "
+                          "Available tools: "
+                          f"{', '.join(tools_by_name)}")
+                log.warning("Agent called unknown tool "
+                            f"'{tool_call['name']}'")
+            else:
+                n_actions_before = session.n_actions
+                try:
+                    result = tools_by_name[tool_call['name']].invoke(
+                        tool_call['args'])
+                except (ValidationError, TypeError, ToolException) as e:
+                    # Malformed arguments are fed back to the agent;
+                    # environment errors propagate (as in the base
+                    # driver)
+                    result = f"Tool call failed: {e}"
+                    log.warning(f"Tool call failed: {e}")
+                if session.n_actions > n_actions_before:
+                    acted = True
+
+            if recovered_from_text:
+                # Without a structured tool call to reply to, return
+                # the result as a user message
+                messages.append(HumanMessage(content=(
+                    f"Result of {tool_call['name']}: {result}")))
+            else:
+                messages.append(ToolMessage(
+                    content=str(result),
+                    tool_call_id=tool_call['id']))
+
+        return acted
 
     def _run_agent_loop(self, session):
         """Run the agent's observe -> decide -> act loop for a single
@@ -855,8 +768,7 @@ class ITMOpenWorldLangChainDriver(ITMOpenWorldDriver):
                 tool_calls = ai_message.tool_calls
                 recovered_from_text = False
                 if not tool_calls:
-                    tool_calls = self._parse_text_tool_calls(
-                        ai_message.content)
+                    tool_calls = parse_text_tool_calls(ai_message.content)
                     recovered_from_text = bool(tool_calls)
                     if recovered_from_text:
                         log.info(f"Recovered {len(tool_calls)} tool "
@@ -883,54 +795,12 @@ class ITMOpenWorldLangChainDriver(ITMOpenWorldDriver):
                         "for your chosen action, with a justification "
                         "(or observe_environment to look around).")))
                 else:
-                    acted = False
-                    for tool_call in tool_calls:
-                        log.info("[bold]*AGENT TOOL CALL*[/bold]: "
-                                 "{}({})".format(
-                                     tool_call['name'],
-                                     json.dumps(tool_call['args'],
-                                                default=str)),
-                                 extra={"markup": True})
+                    acted = self._handle_tool_calls(
+                        session, tools_by_name, tool_calls,
+                        recovered_from_text, messages)
 
-                        # Every tool call needs a reply message, even
-                        # after the scenario completes mid-batch
-                        if session.scenario_complete:
-                            result = "Scenario is already complete."
-                        elif tool_call['name'] not in tools_by_name:
-                            result = (f"Unknown tool: {tool_call['name']}. "
-                                      "Available tools: "
-                                      f"{', '.join(tools_by_name)}")
-                            log.warning("Agent called unknown tool "
-                                        f"'{tool_call['name']}'")
-                        else:
-                            n_actions_before = session.n_actions
-                            try:
-                                result = tools_by_name[
-                                    tool_call['name']].invoke(
-                                        tool_call['args'])
-                            except (ValidationError, TypeError,
-                                    ToolException) as e:
-                                # Malformed arguments are fed back to
-                                # the agent; environment errors
-                                # propagate (as in the base driver)
-                                result = f"Tool call failed: {e}"
-                                log.warning(f"Tool call failed: {e}")
-                            if session.n_actions > n_actions_before:
-                                acted = True
-
-                        if recovered_from_text:
-                            # Without a structured tool call to reply
-                            # to, return the result as a user message
-                            messages.append(HumanMessage(content=(
-                                f"Result of {tool_call['name']}: "
-                                f"{result}")))
-                        else:
-                            messages.append(ToolMessage(
-                                content=str(result),
-                                tool_call_id=tool_call['id']))
-
-                    llm_calls_since_action =\
-                        0 if acted else llm_calls_since_action + 1
+                    llm_calls_since_action = (
+                        0 if acted else llm_calls_since_action + 1)
 
             if (not session.scenario_complete
                     and llm_calls_since_action
@@ -954,7 +824,7 @@ class ITMOpenWorldLangChainDriver(ITMOpenWorldDriver):
                       sort_available_actions, record_input_output):
         # The agent doesn't align to KDMA targets; the alignment target
         # is only recorded for scoring purposes
-        session = _AgentScenarioSession(
+        session = ScenarioSession(
             driver=self,
             scenario=scenario,
             alignment_target=alignment_target,

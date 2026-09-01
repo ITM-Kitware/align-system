@@ -67,6 +67,10 @@ class VLLMServerChatModel:
         self._server_process = None
 
     # -- LangChain chat model surface (delegated) ---------------------
+    # Note this duck-typed surface is all this class provides; in
+    # particular bind_tools returns the underlying ChatOpenAI runnable,
+    # so everything downstream of binding bypasses this wrapper (the
+    # server is guaranteed up by then)
 
     def bind_tools(self, tools, **kwargs):
         return self._ensure_client().bind_tools(tools, **kwargs)
@@ -95,17 +99,24 @@ class VLLMServerChatModel:
 
         return self._client
 
-    def _server_is_up(self):
+    def _served_models(self):
+        """The model ids served at `base_url`, or None when no server
+        answers there."""
         request = Request(
             f"{self.base_url.rstrip('/')}/models",
             headers={'Authorization': f'Bearer {self.api_key}'})
         try:
             with urlopen(request, timeout=5) as response:
                 if response.status != 200:
-                    return False
-                served = [m.get('id') for m in
-                          json.load(response).get('data', [])]
+                    return None
+                return [m.get('id') for m in
+                        json.load(response).get('data', [])]
         except (URLError, OSError, ValueError):
+            return None
+
+    def _server_is_up(self):
+        served = self._served_models()
+        if served is None:
             return False
 
         if self.model not in served:
@@ -170,7 +181,10 @@ class VLLMServerChatModel:
                     f"{self._server_process.returncode}); see "
                     f"{server_log.name}")
 
-            if self._server_is_up():
+            # Not _server_is_up: this is our own server coming up, so
+            # a not-yet-registered model just means keep waiting (the
+            # foreign-server check ran before starting it)
+            if self.model in (self._served_models() or []):
                 log.info(f"vLLM server for {self.model} is up at "
                          f"{self.base_url}")
                 return

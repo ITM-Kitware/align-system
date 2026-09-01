@@ -10,13 +10,21 @@ DEFAULT_TAGS = get_swagger_class_enum_values(CharacterTagEnum)
 VALID_INJURY_LOCATIONS = get_swagger_class_enum_values(InjuryLocationEnum)
 
 
+def in_stock_supplies(scenario_state):
+    """The scenario state's supplies that are in stock (a supply with
+    no reported quantity is assumed available); empty when the state
+    doesn't report supplies at all."""
+    return [s for s in (getattr(scenario_state, 'supplies', None) or [])
+            if s.quantity is None or s.quantity > 0]
+
+
 def complete_action_parameters(scenario_state, action,
                                character_required_actions,
                                tags=DEFAULT_TAGS):
     """Randomly fill in required-but-missing action parameters (target
-    character_id, triage tag category, treatment supply/location) so
-    the environment will accept the action; already-set parameters are
-    left untouched.
+    character_id, triage tag category, treatment supply/location), in
+    place, so the environment will accept the action; already-set
+    parameters are left untouched.
 
     `character_required_actions` is the set of action types the
     environment rejects without a character_id (this varies by
@@ -39,19 +47,14 @@ def complete_action_parameters(scenario_state, action,
         # The (live) environment errors on TREAT_PATIENT without a
         # treatment supply/location; only completable when the state
         # reports supplies
-        in_stock_supplies = [
-            s.type for s in (getattr(scenario_state, 'supplies', None) or [])
-            if s.quantity is None or s.quantity > 0]
+        supply_types = [s.type for s in in_stock_supplies(scenario_state)]
 
-        if in_stock_supplies:
+        if supply_types:
             if action.parameters is None:
                 action.parameters = {}
 
             if 'treatment' not in action.parameters:
-                action.parameters['treatment'] = random.choice(
-                    in_stock_supplies)
+                action.parameters['treatment'] = random.choice(supply_types)
             if 'location' not in action.parameters:
                 action.parameters['location'] = random.choice(
                     VALID_INJURY_LOCATIONS)
-
-    return action

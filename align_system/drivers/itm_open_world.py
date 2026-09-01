@@ -21,6 +21,8 @@ JSON_HIGHLIGHTER = JSONHighlighter()
 
 
 def as_dict(obj):
+    if isinstance(obj, dict):
+        return obj
     return obj.to_dict() if hasattr(obj, "to_dict") else obj._asdict()
 
 
@@ -55,6 +57,159 @@ def make_input_output_entry(scenario_id,
             'choice_info': choice_info,
             'output': {'choice': action_choice_idx,
                        'action': as_dict(action_to_take)}}
+
+
+class ActionRejectedException(Exception):
+    """The environment refused an action (e.g. HTTP 400 from the live
+    TA3 server); recoverable by choosing a different action."""
+
+
+class ScenarioSession:
+    """Mutable per-scenario state shared by the open world drivers: the
+    current environment state, manual treated/evac'd patient tracking
+    (see the action filtering HACK note), the most recently listed
+    actions, and input/output bookkeeping for each executed action."""
+
+    def __init__(self, driver, scenario, alignment_target,
+                 sort_available_actions, record_input_output):
+        self.driver = driver
+        self.scenario = scenario
+        self.alignment_target = alignment_target
+        self.sort_available_actions = sort_available_actions
+        self.record_input_output = record_input_output
+
+        self.current_state = scenario.get_state()
+        self.scenario_complete = self.current_state.scenario_complete
+        self.treated_patients = set()
+        self.evac_patients = set()
+        self.available_actions = []
+        self.actions_expanded = []
+        self.actions_filtered = []
+        self.end_scene_forced = False
+        self.n_actions = 0
+        self.times_s = []
+        self.decision_start = timer()
+
+    def refresh_actions(self):
+        """Re-fetch, expand, and filter the environment's available
+        actions, updating `available_actions` / `actions_filtered`.
+        When action filtering leaves nothing, falls back to a
+        single-item END_SCENE list (END_SCENE is excluded from the
+        filtered list while filtering is on) and sets
+        `end_scene_forced`."""
+        available_actions = self.scenario.get_available_actions()
+
+        if self.sort_available_actions:
+            # Impose a fixed ordering of available actions to help
+            # with determinism
+            available_actions = sorted(
+                available_actions, key=lambda a: a.unstructured)
+
+        log.debug("[bold]*AVAILABLE ACTIONS*[/bold]",
+                  extra={"markup": True})
+        log.debug(json.dumps([as_dict(a) for a in available_actions],
+                             indent=4),
+                  extra={"highlighter": JSON_HIGHLIGHTER})
+
+        expanded, filtered = self.driver._get_expanded_and_filtered_actions(
+            self.current_state,
+            available_actions,
+            self.treated_patients,
+            self.evac_patients)
+
+        self.end_scene_forced = len(filtered) == 0
+        if self.end_scene_forced:
+            filtered = [self.driver._end_scene_fallback_action(expanded)]
+
+        self.available_actions = available_actions
+        self.actions_expanded = expanded
+        self.actions_filtered = filtered
+
+        return filtered
+
+    def execute(self, action_to_take, justification=None, choice_info=None,
+                decision_time_s=None):
+        """Submit an action to the environment, record it, and update
+        the session state; raises ActionRejectedException when the
+        environment refuses the action (recoverable by choosing a
+        different action).
+
+        `decision_time_s`, when given, is appended to the
+        per-scenario timing stats (`times_s`); when omitted no timing
+        entry is recorded for this action."""
+        if justification and getattr(
+                action_to_take, 'justification', None) is None:
+            action_to_take.justification = justification
+
+        log.info("[bold]*ACTION BEING TAKEN*[/bold]",
+                 extra={"markup": True})
+        log.info(json.dumps(as_dict(action_to_take), indent=4),
+                 extra={"highlighter": JSON_HIGHLIGHTER})
+
+        try:
+            if getattr(action_to_take, "intent_action", False):
+                current_state = self.scenario.intend_action(action_to_take)
+            else:
+                current_state = self.scenario.take_action(action_to_take)
+        except Exception as e:
+            if hasattr(e, 'json'):
+                log.info(e.json(indent=2))
+            else:
+                log.info(str(e))
+
+            if getattr(e, 'status', None) in (400, 500):
+                # The environment refused the action -- 400 for e.g. a
+                # too-distant character, 500 when the (live) server
+                # chokes on the action's parameters (e.g. TREAT_PATIENT
+                # without a treatment supply); recoverable by choosing
+                # differently
+                raise ActionRejectedException(
+                    str(getattr(e, 'body', e))) from e
+            raise e
+
+        # Only successfully executed actions are recorded
+        if decision_time_s is not None:
+            self.times_s.append(decision_time_s)
+        self._record_action(action_to_take, choice_info or {})
+
+        if action_to_take.action_type == ActionTypeEnum.TREAT_PATIENT:
+            self.treated_patients.add(action_to_take.character_id)
+        if action_to_take.action_type == ActionTypeEnum.MOVE_TO_EVAC:
+            self.evac_patients.add(action_to_take.character_id)
+
+        self.current_state = current_state
+        self.scenario_complete = current_state.scenario_complete
+        self.n_actions += 1
+        # Listed actions are stale after the environment changes
+        self.actions_filtered = []
+        self.decision_start = timer()
+
+        return current_state
+
+    def _record_action(self, action_to_take, choice_info):
+        # Called before the session state is updated, so the recorded
+        # state/choices are the ones the decision was made against
+        action_choice_idx = None
+        for i, a in enumerate(self.available_actions):
+            if a.action_id == action_to_take.action_id:
+                action_choice_idx = i
+                break
+
+        # Ensure that 'actions' stored in 'choice_info' are serializable
+        for info in choice_info.values():
+            if isinstance(info, dict) and 'action' in info:
+                info['action'] = as_dict(info['action'])
+
+        self.record_input_output(make_input_output_entry(
+            scenario_id=self.scenario.id(),
+            alignment_target_id=(self.alignment_target.id
+                                 if self.alignment_target is not None
+                                 else None),
+            current_state=self.current_state,
+            available_actions=self.available_actions,
+            choice_info=choice_info,
+            action_choice_idx=action_choice_idx,
+            action_to_take=action_to_take))
 
 
 class ITMOpenWorldDriver:
@@ -252,47 +407,30 @@ class ITMOpenWorldDriver:
             log.info("[bold]*Resetting choice history*[/bold]")
             adm.reset_history()
 
-        current_state = scenario.get_state()
-        scenario_complete = current_state.scenario_complete
-
-        sce_times_s = []
+        session = ScenarioSession(
+            driver=self,
+            scenario=scenario,
+            alignment_target=(alignment_target
+                              if cfg.align_to_target else None),
+            sort_available_actions=sort_available_actions,
+            record_input_output=record_input_output)
 
         last_scene_id = None
 
-        treated_patients = set()
-        evac_patients = set()
-
-        while not scenario_complete:
-            current_scene_id = current_state.meta_info.scene_id
+        while not session.scenario_complete:
+            current_scene_id = session.current_state.meta_info.scene_id
             if last_scene_id != current_scene_id:
                 log.info(f"[bold]*CHANGED SCENE TO*: {current_scene_id}[/bold]",
                          extra={"markup": True})
                 last_scene_id = current_scene_id
 
-            available_actions = scenario.get_available_actions()
+            available_actions_filtered = session.refresh_actions()
 
-            if sort_available_actions:
-                # Impose a fixed ordering of available actions to help
-                # with determinism
-                available_actions = sorted(available_actions, key=lambda a: a.unstructured)
-
-            log.debug("[bold]*AVAILABLE ACTIONS*[/bold]",
-                      extra={"markup": True})
-            log.debug(json.dumps([as_dict(a) for a in available_actions], indent=4),
-                      extra={"highlighter": JSON_HIGHLIGHTER})
-
-            available_actions_expanded, available_actions_filtered =\
-                self._get_expanded_and_filtered_actions(
-                    current_state,
-                    available_actions,
-                    treated_patients,
-                    evac_patients)
-
-            if len(available_actions_filtered) == 0:
-                action_to_take = self._end_scene_fallback_action(
-                    available_actions_expanded)
+            if session.end_scene_forced:
+                action_to_take = available_actions_filtered[0]
                 action_to_take.justification = "All patients have been tagged and treated"
                 choice_info = {}
+                decision_time_s = None
             else:
                 start_choose_action = timer()
 
@@ -302,9 +440,9 @@ class ITMOpenWorldDriver:
                     # considering doing the same for current_state and
                     # alignment_target)
                     choose_action_result = adm.choose_action(
-                        current_state,
+                        session.current_state,
                         [deepcopy(a) for a in available_actions_filtered],
-                        alignment_target if cfg.align_to_target else None,
+                        session.alignment_target,
                         scenario_id=scenario.id(),
                         **cfg.adm.get('inference_kwargs', {}))
 
@@ -329,63 +467,13 @@ class ITMOpenWorldDriver:
 
                     log.warning(f"Taking random action to advance: {action_to_take.action_type if hasattr(action_to_take, 'action_type') else 'unknown'}")
 
-                # Common code for both success and exception paths
-                end_choose_action = timer()
-                sce_times_s.append(end_choose_action - start_choose_action)
-                log.debug(f"choose_action took {end_choose_action - start_choose_action} seconds")
+                decision_time_s = timer() - start_choose_action
+                log.debug(f"choose_action took {decision_time_s} seconds")
 
-            log.info("[bold]*ACTION BEING TAKEN*[/bold]",
-                    extra={"markup": True})
-            if isinstance(action_to_take, dict):
-                log.info(json.dumps(action_to_take, indent=4),
-                         extra={"highlighter": JSON_HIGHLIGHTER})
-            else:
-                log.info(json.dumps(as_dict(action_to_take), indent=4),
-                         extra={"highlighter": JSON_HIGHLIGHTER})
+            session.execute(action_to_take, choice_info=choice_info,
+                            decision_time_s=decision_time_s)
 
-            action_choice_idx = None
-            for i, a in enumerate(available_actions):
-                if a.action_id == action_to_take.action_id:
-                    action_choice_idx = i
-                    break
-
-            # Ensure that 'actions' stored in 'choice_info' are serializable
-            for info in choice_info.values():
-                if isinstance(info, dict) and 'action' in info:
-                    info['action'] = info['action'].to_dict()
-
-            record_input_output(make_input_output_entry(
-                scenario_id=scenario.id(),
-                alignment_target_id=(alignment_target.id
-                                     if cfg.align_to_target else None),
-                current_state=current_state,
-                available_actions=available_actions,
-                choice_info=choice_info,
-                action_choice_idx=action_choice_idx,
-                action_to_take=action_to_take))
-
-            try:
-                if hasattr(action_to_take, "intent_action") and action_to_take.intent_action:
-                    current_state = scenario.intend_action(action_to_take)
-                else:
-                    current_state = scenario.take_action(action_to_take)
-            except Exception as e:
-                if hasattr(e, 'json'):
-                    log.info(e.json(indent=2))
-                else:
-                    log.info(str(e))
-                raise e
-
-            # If we treated a patient, record that treatment so we can ensure we treat everyone
-            if action_to_take.action_type == ActionTypeEnum.TREAT_PATIENT:
-                treated_patients.add(action_to_take.character_id)
-            # If we evaced a patient, record that so we don't try to evac them again
-            if action_to_take.action_type == ActionTypeEnum.MOVE_TO_EVAC:
-                evac_patients.add(action_to_take.character_id)
-
-            scenario_complete = current_state.scenario_complete
-
-        return sce_times_s, current_state, scenario_complete
+        return session.times_s, session.current_state, session.scenario_complete
 
     def drive(self, cfg):
         interface = cfg.interface
