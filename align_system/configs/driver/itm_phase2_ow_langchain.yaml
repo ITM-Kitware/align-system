@@ -11,8 +11,10 @@ defaults:
   # NOTE: a local transformers pipeline
   # (langchain_huggingface.HuggingFacePipeline) does NOT support tool
   # calling and will not work with this driver; to run HuggingFace
-  # models locally, serve them with vLLM instead (see the vllm_*
-  # chat_model configs)
+  # models locally, use the vllm_* chat_model configs instead, which
+  # serve the model through vLLM's OpenAI-compatible endpoint (started
+  # automatically -- see
+  # align_system.utils.vllm_chat_model.VLLMServerChatModel)
   - chat_model: ollama_llama31
   - _self_
 

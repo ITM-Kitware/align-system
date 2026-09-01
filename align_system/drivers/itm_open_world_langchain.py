@@ -315,7 +315,13 @@ class ITMOpenWorldLangChainDriver(ITMOpenWorldDriver):
     def _initialize_run(self, cfg):
         # Resolve the chat model up front so a missing/misconfigured
         # model fails fast, before any session is started
-        self._resolve_chat_model()
+        chat_model = self._resolve_chat_model()
+
+        # Self-managed backends (e.g. VLLMServerChatModel) bring up
+        # their server here rather than mid-scenario
+        ensure_ready = getattr(chat_model, 'ensure_ready', None)
+        if ensure_ready is not None:
+            ensure_ready()
 
     @staticmethod
     def _describe_character(character):
