@@ -122,15 +122,19 @@ class TA3CACIActionBasedScenario(ActionBasedScenarioInterface):
         if isinstance(action, dict):
             action = Action(**action)
 
-        updated_state = take_or_intend(
-            session_id=self.session_id,
-            action=action)
-
         if self.domain == "p2triage":
+            updated_state = take_or_intend(
+                session_id=self.session_id,
+                action=action)
+
             if updated_state.threat_state is not None:
                 updated_state.unstructured = "{}\n{}".format(
                     updated_state.threat_state.unstructured,
                     updated_state.unstructured)
+        else:
+            updated_state = take_or_intend(
+                session_id=self.session_id,
+                body=action)
 
         return updated_state
 

@@ -11,7 +11,8 @@ defaults:
   - override /driver/chat_model: ollama_qwen25_32b
 
 interface:
-  api_endpoint: "https://darpaitm.caci.com"
+#  api_endpoint: "https://darpaitm.caci.com"
+  api_endpoint: 'http://127.0.0.1:8081'
   session_type: eval
   training_session: null
   username: "testrun-ALIGN-ADM-Ph2-LangChainAgent-Qwen2.5-32B-Instruct"

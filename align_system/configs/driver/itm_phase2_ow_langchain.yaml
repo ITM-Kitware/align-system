@@ -12,9 +12,9 @@ defaults:
   # (langchain_huggingface.HuggingFacePipeline) does NOT support tool
   # calling and will not work with this driver; to run HuggingFace
   # models locally, use the vllm_* chat_model configs instead, which
-  # serve the model through vLLM's OpenAI-compatible endpoint (started
-  # automatically -- see
-  # align_system.utils.vllm_chat_model.VLLMServerChatModel)
+  # talk to a separately started `vllm serve` OpenAI-compatible
+  # endpoint (see the docstring of
+  # align_system.drivers.itm_open_world_langchain for why)
   - chat_model: ollama_llama31
   - _self_
 
@@ -24,11 +24,9 @@ model: null
 
 apply_action_filtering: true
 sort_available_actions: false
-expand_actions: true
-expand_tagging: false
 
 # Hard cap on environment actions per scenario (safety net against
-# agent loops)
+# agent loops); when hit, the driver ends the scene itself
 max_actions_per_scenario: 100
 # If the agent makes this many LLM calls without taking an action, the
 # driver takes the first available action on its behalf so a live

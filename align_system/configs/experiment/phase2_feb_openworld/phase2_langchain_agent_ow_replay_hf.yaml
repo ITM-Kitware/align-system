@@ -1,7 +1,7 @@
 # @package _global_
 # Offline smoke test of the LangChain agent driver with a HuggingFace
-# model served by vLLM's OpenAI-compatible endpoint (the server is
-# started automatically; see the vllm_* chat_model configs)
+# model served by vLLM's OpenAI-compatible endpoint.  Start the server
+# first (see the vllm_* chat_model configs for the exact command)
 defaults:
   # The LangChain agent drives the scenario itself; no ADM is used
   - override /adm: null

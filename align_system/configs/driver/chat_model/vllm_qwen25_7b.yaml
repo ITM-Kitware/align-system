@@ -1,10 +1,12 @@
-# HuggingFace model served locally by vLLM's OpenAI-compatible
-# endpoint.  The server is started automatically on first use (and
-# shut down at exit); a server already listening at base_url is reused
-# instead, so you can also serve manually, e.g.:
+# HuggingFace model served by vLLM's OpenAI-compatible endpoint.
+# Serving is left to the user (the align system doesn't manage the
+# server process); start it before running, with tool calling enabled:
 #   vllm serve Qwen/Qwen2.5-7B-Instruct --enable-auto-tool-choice \
 #     --tool-call-parser hermes --port 8000
-_target_: align_system.utils.vllm_chat_model.VLLMServerChatModel
+# See the docstring of align_system.drivers.itm_open_world_langchain
+# for why the agent goes through the server rather than
+# align_system.algorithms.vllm_inference_engine.
+_target_: langchain_openai.ChatOpenAI
 model: Qwen/Qwen2.5-7B-Instruct
 base_url: http://localhost:8000/v1
 api_key: EMPTY
