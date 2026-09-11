@@ -320,16 +320,41 @@ class ITMOpenWorldDriver:
                             # get stuck in a move to A to B to A
                             # etc. loop
                             if last_action is not None and last_action.action_type == ActionTypeEnum.MOVE_TO:
-                                # UNLESS, the action is to move_to a
-                                # new character that wasn't previously
-                                # accessible
-                                if last_state is not None:
-                                    last_state_characters = {c.id for c in last_state.characters}
-                                else:
-                                    last_state_characters = set()
+                                nearby_unchecked_patients = {
+                                    c.id for c in current_state.characters
+                                    if c.nearby and c.id not in checked_patients}
+                                distant_unchecked_patients = {
+                                    c.id for c in current_state.characters
+                                    if not c.nearby and c.id not in checked_patients}
 
-                                # Character was already accessible in prior state
-                                if a.character_id in last_state_characters:
+                                nearby_untagged_patients = {
+                                    c.id for c in current_state.characters
+                                    if c.nearby and c.id not in tagged_patients}
+                                distant_untagged_patients = {
+                                    c.id for c in current_state.characters
+                                    if not c.nearby and c.id not in tagged_patients}
+
+                                nearby_untreated_patients = {
+                                    c.id for c in current_state.characters
+                                    if c.nearby and c.id not in treated_patients}
+                                distant_untreated_patients = {
+                                    c.id for c in current_state.characters
+                                    if not c.nearby and c.id not in treated_patients}
+
+                                # If there are no valid actions on
+                                # nearby characters, and the move_to
+                                # action is for a non-nearby character
+                                # (and there are valid actions on
+                                # non-nearby characters) allow
+                                if(a.character_id in distant_patients and
+                                   (len(nearby_unchecked_patients) == 0 and
+                                    len(nearby_untreated_patients) == 0 and
+                                    len(nearby_untagged_patients) == 0) and
+                                   (len(distant_unchecked_patients) > 0 or
+                                    len(distant_untreated_patients) > 0 or
+                                    len(distant_untagged_patients) > 0)):
+                                    pass
+                                else:
                                     continue
 
                         elif a.action_type == ActionTypeEnum.CHECK_VITALS:
@@ -356,6 +381,9 @@ class ITMOpenWorldDriver:
                         if a.action_type == ActionTypeEnum.END_SCENE:
                             end_scene_idx = idx
                             break
+
+                    import IPython
+                    IPython.embed()
 
                     if end_scene_idx is not None:
                         log.info("** All patients have been tagged and treated, ending scene")
