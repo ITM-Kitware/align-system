@@ -1,0 +1,13 @@
+# HuggingFace model served by vLLM's OpenAI-compatible endpoint (start
+# the server yourself; see vllm_qwen25_7b for details).  Qwen2.5-3B is
+# the smallest of the Qwen2.5 instruct models observed reliably
+# driving the agent loop with structured tool calls (1.5B tends to
+# emit dangling <tool_call> tags instead); at max-model-len 4096 it
+# fits an 8GB GPU:
+#   vllm serve Qwen/Qwen2.5-3B-Instruct --enable-auto-tool-choice \
+#     --tool-call-parser hermes --max-model-len 4096 --port 8000
+_target_: langchain_openai.ChatOpenAI
+model: Qwen/Qwen2.5-3B-Instruct
+base_url: http://localhost:8000/v1
+api_key: EMPTY
+temperature: 0.0

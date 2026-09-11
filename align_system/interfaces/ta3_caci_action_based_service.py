@@ -13,6 +13,8 @@ from align_system.interfaces.abstracts import (
 
 log = logging.getLogger(__name__)
 
+PHASE2_DOMAINS = {"p2triage", "owtriage"}
+
 
 class TA3CACIActionBasedServiceInterface(Interface):
     def __init__(self,
@@ -122,7 +124,7 @@ class TA3CACIActionBasedScenario(ActionBasedScenarioInterface):
         if isinstance(action, dict):
             action = Action(**action)
 
-        if self.domain == "p2triage":
+        if self.domain in PHASE2_DOMAINS:
             updated_state = take_or_intend(
                 session_id=self.session_id,
                 action=action)
@@ -152,7 +154,7 @@ class TA3CACIActionBasedScenario(ActionBasedScenarioInterface):
         state = self.connection.get_scenario_state(
             session_id=self.session_id, scenario_id=self.scenario.id)
 
-        if self.domain == "p2triage":
+        if self.domain in PHASE2_DOMAINS:
             if state.threat_state is not None:
                 state.unstructured = "{}\n{}".format(
                     state.threat_state.unstructured,

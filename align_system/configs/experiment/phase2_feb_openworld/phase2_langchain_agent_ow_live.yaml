@@ -1,0 +1,24 @@
+# @package _global_
+defaults:
+  # The LangChain agent drives the scenario itself; no ADM is used
+  - override /adm: null
+  - override /interface: ta3
+  - override /driver: itm_phase2_ow_langchain
+  # llama3.1-8b tends to narrate instead of emitting tool calls on the
+  # larger open-world scenes; qwen2.5:32b is a much more reliable
+  # tool-caller.  If you change the model, update interface.username
+  # to match (keep the testrun- prefix for test runs).
+  - override /driver/chat_model: ollama_qwen25_32b
+
+interface:
+#  api_endpoint: "https://darpaitm.caci.com"
+  api_endpoint: 'http://127.0.0.1:8081'
+  session_type: eval
+  training_session: null
+  username: "testrun-ALIGN-ADM-Ph2-LangChainAgent-Qwen2.5-32B-Instruct"
+  domain: "owtriage"
+  adm_profile: FEB_OPENWORLD3
+
+force_determinism: true
+align_to_target: true
+save_last_unstructured_state_per_scenario: true
