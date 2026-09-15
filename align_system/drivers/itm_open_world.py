@@ -315,47 +315,42 @@ class ITMOpenWorldDriver:
                             if a.character_id is not None and a.character_id not in distant_patients:
                                 continue
 
-                            # Don't allow the ADM to choose "move_to"
-                            # twice in a row.  This helps the ADM not
-                            # get stuck in a move to A to B to A
-                            # etc. loop
-                            if last_action is not None and last_action.action_type == ActionTypeEnum.MOVE_TO:
-                                nearby_unchecked_patients = {
-                                    c.id for c in current_state.characters
-                                    if c.nearby and c.id not in checked_patients}
-                                distant_unchecked_patients = {
-                                    c.id for c in current_state.characters
-                                    if not c.nearby and c.id not in checked_patients}
+                            nearby_unchecked_patients = {
+                                c.id for c in current_state.characters
+                                if c.nearby and c.id not in checked_patients}
+                            distant_unchecked_patients = {
+                                c.id for c in current_state.characters
+                                if not c.nearby and c.id not in checked_patients}
 
-                                nearby_untagged_patients = {
-                                    c.id for c in current_state.characters
-                                    if c.nearby and c.id not in tagged_patients}
-                                distant_untagged_patients = {
-                                    c.id for c in current_state.characters
-                                    if not c.nearby and c.id not in tagged_patients}
+                            nearby_untagged_patients = {
+                                c.id for c in current_state.characters
+                                if c.nearby and c.id not in tagged_patients}
+                            distant_untagged_patients = {
+                                c.id for c in current_state.characters
+                                if not c.nearby and c.id not in tagged_patients}
 
-                                nearby_untreated_patients = {
-                                    c.id for c in current_state.characters
-                                    if c.nearby and c.id not in treated_patients}
-                                distant_untreated_patients = {
-                                    c.id for c in current_state.characters
-                                    if not c.nearby and c.id not in treated_patients}
+                            nearby_untreated_patients = {
+                                c.id for c in current_state.characters
+                                if c.nearby and c.id not in treated_patients}
+                            distant_untreated_patients = {
+                                c.id for c in current_state.characters
+                                if not c.nearby and c.id not in treated_patients}
 
-                                # If there are no valid actions on
-                                # nearby characters, and the move_to
-                                # action is for a non-nearby character
-                                # (and there are valid actions on
-                                # non-nearby characters) allow
-                                if(a.character_id in distant_patients and
-                                   (len(nearby_unchecked_patients) == 0 and
-                                    len(nearby_untreated_patients) == 0 and
-                                    len(nearby_untagged_patients) == 0) and
-                                   (len(distant_unchecked_patients) > 0 or
-                                    len(distant_untreated_patients) > 0 or
-                                    len(distant_untagged_patients) > 0)):
-                                    pass
-                                else:
-                                    continue
+                            # If there are no valid actions on
+                            # nearby characters, and the move_to
+                            # action is for a non-nearby character
+                            # (and there are valid actions on
+                            # non-nearby characters) allow
+                            if(a.character_id in distant_patients and
+                               (len(nearby_unchecked_patients) == 0 and
+                                len(nearby_untreated_patients) == 0 and
+                                len(nearby_untagged_patients) == 0) and
+                               (len(distant_unchecked_patients) > 0 or
+                                len(distant_untreated_patients) > 0 or
+                                len(distant_untagged_patients) > 0)):
+                                pass
+                            else:
+                                continue
 
                         elif a.action_type == ActionTypeEnum.CHECK_VITALS:
                             nearby_unchecked_patients = {
