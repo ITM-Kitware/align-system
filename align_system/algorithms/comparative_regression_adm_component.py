@@ -46,7 +46,8 @@ class ComparativeRegressionADMComponent(ADMComponent):
                  target_attribute_names_override=None,
                  enable_caching=False,
                  reverse_choice_ordering=False,
-                 output_conflict_resolver=None):
+                 output_conflict_resolver=None,
+                 choice_schema_transform=None):
         self.structured_inference_engine = structured_inference_engine
         self.scenario_description_template = scenario_description_template
         self.prompt_template = prompt_template
@@ -68,6 +69,8 @@ class ComparativeRegressionADMComponent(ADMComponent):
         self.reverse_choice_ordering = reverse_choice_ordering
 
         self.output_conflict_resolver = output_conflict_resolver
+
+        self.choice_schema_transform = choice_schema_transform
 
     def run_returns(self):
         return ('attribute_prediction_reasonings',
@@ -129,6 +132,10 @@ class ComparativeRegressionADMComponent(ADMComponent):
         attribute_dialogs = {}
         attribute_prediction_scores = {}
         attribute_prediction_reasonings = {}
+        if self.choice_schema_transform is not None:
+            shortened_choices = [self.choice_schema_transform(choice) for choice in choices]
+        else:
+            shortened_choices = list(choices)
         for attribute in target_attributes:
             scenario_description = call_with_coerced_args(
                 self.scenario_description_template,
@@ -166,7 +173,7 @@ class ComparativeRegressionADMComponent(ADMComponent):
 
             score_schema = call_with_coerced_args(
                 self.score_schema_template,
-                {'choices': choices,
+                {'choices': shortened_choices,
                  'attribute': attribute.name})
 
             dialog_prompt = self.structured_inference_engine.dialog_to_prompt(dialog)
@@ -183,16 +190,16 @@ class ComparativeRegressionADMComponent(ADMComponent):
                     attribute.kdma, i), extra={"markup": True})
                 log.info(response, extra={"highlighter": JSON_HIGHLIGHTER})
 
-                for choice in choices:
+                for choice, shortened_choice in zip(choices, shortened_choices):
                     attribute_prediction_scores.setdefault(choice, {})
                     attribute_prediction_scores[choice].setdefault(
-                        attribute.kdma, []).append(response[choice]['score'] / attribute.factor)
+                        attribute.kdma, []).append(response[shortened_choice]['score'] / attribute.factor)
 
                     attribute_prediction_reasonings.setdefault(choice, {})
                     # Choice level reasoning
                     try:
                         attribute_prediction_reasonings[choice].setdefault(
-                            attribute.kdma, []).append(response[choice]['reasoning'])
+                            attribute.kdma, []).append(response[shortened_choice]['reasoning'])
                     # Probe level reasoning
                     except KeyError:
                         attribute_prediction_reasonings[choice].setdefault(

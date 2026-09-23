@@ -1,0 +1,78 @@
+# @package _global_
+defaults:
+  - /adm_component/misc@adm.step_definitions.world_state_tracker: world_state_tracker
+  - /adm_component/misc@adm.step_definitions.action_parameter_completion: ow_action_parameter_completion
+  - /adm_component/misc@adm.step_definitions.tagging_adjustment: ow_tagging_adjustment
+  - override /adm: phase2_pipeline_direct_regression
+  - override /interface: ta3
+  - override /adm_component/misc@adm.step_definitions.format_choices: ow_format_choices
+  - override /adm_component/alignment@adm.step_definitions.scalar_alignment: multinomial_medical_urgency_weighted_scalar
+  - override /adm_component/misc@adm.step_definitions.ensure_chosen_action: ow_choice_to_action
+  - override /driver: itm_phase2_ow
+
+interface:
+  api_endpoint: 'http://127.0.0.1:8081'
+  #api_endpoint: "https://darpaitm.caci.com"
+  session_type: eval
+  training_session: null
+  username: "testrun-ALIGN-ADM-Ph2-DirectRegression-Mistral-7B-Instruct-v0.3"
+  domain: "owtriage"
+  adm_profile: FEB_OPENWORLD3
+
+adm:
+  step_definitions:
+    direct_regression:
+      _target_: align_system.algorithms.direct_regression_adm_component.OWDirectRegressionADMComponent
+      enable_caching: true
+
+      per_attribute_templates:
+        # Include vitals information for Medical Urgency
+        medical:
+          prompt_template: |
+            Given the injury described below, provide a reasoning and a medical urgency rating:
+
+            {{ choice }}
+
+        affiliation:
+          prompt_template: |
+            Given the casualty described below, provide a reasoning and an affiliation score:
+
+            {{ choice }}
+
+        merit:
+          prompt_template: |
+            Given the casualty described below, provide a reasoning and a merit score:
+
+            {{ choice }}
+
+    ensure_chosen_action:
+      scenario_description_template:
+        _target_: align_system.prompt_engineering.outlines_prompts.OWPart3ScenarioDescriptionWVitals
+      enable_caching: true
+    action_parameter_completion:
+      scenario_description_template:
+        _target_: align_system.prompt_engineering.outlines_prompts.OWPart3ScenarioDescriptionWVitals
+      enable_caching: true
+
+  instance:
+    steps:
+    # Reference the step instances we want to use in order
+    - ${ref:adm.step_definitions.world_state_tracker}
+    - ${ref:adm.step_definitions.format_choices}
+    - ${ref:adm.step_definitions.direct_regression}
+    #- ${ref:adm.step_definitions.regression_rule_based_correction}
+    - ${ref:adm.step_definitions.scalar_alignment}
+    - ${ref:adm.step_definitions.justification_from_reasonings}
+    - ${ref:adm.step_definitions.ensure_chosen_action}
+    - ${ref:adm.step_definitions.action_parameter_completion}
+    - ${ref:adm.step_definitions.tagging_adjustment}
+    - ${ref:adm.step_definitions.populate_choice_info}
+
+driver:
+  expand_actions: true
+  expand_tagging: false
+  apply_action_filtering: true
+
+force_determinism: true
+align_to_target: true
+save_last_unstructured_state_per_scenario: true

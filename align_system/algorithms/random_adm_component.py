@@ -99,12 +99,23 @@ class OWRandomParameterCompletionADMComponent(ADMComponent):
         # Action requires a character ID
         if chosen_action.action_type in {'TREAT_PATIENT',
                                          ActionTypeEnum.MOVE_TO_EVAC,
-                                         ActionTypeEnum.TAG_CHARACTER}:
+                                         ActionTypeEnum.TAG_CHARACTER,
+                                         'CHECK_VITALS'}:
             if chosen_action.character_id is None:
                 chosen_action.character_id = random.choice([
                     c.id
                     for c in scenario_state.characters
                     if hasattr(c, "unseen") and not c.unseen
+                    if hasattr(c, "nearby") and c.nearby
+                ])
+
+        elif chosen_action.action_type == 'MOVE_TO':
+            if chosen_action.character_id is None:
+                chosen_action.character_id = random.choice([
+                    c.id
+                    for c in scenario_state.characters
+                    if hasattr(c, "unseen") and not c.unseen
+                    if hasattr(c, "nearby") and not c.nearby
                 ])
 
         if chosen_action.action_type == ActionTypeEnum.TAG_CHARACTER:
@@ -114,6 +125,14 @@ class OWRandomParameterCompletionADMComponent(ADMComponent):
             if 'category' not in chosen_action.parameters:
                 chosen_action.parameters['category'] = random.choice(
                     get_swagger_class_enum_values(CharacterTagEnum))
+
+        if chosen_action.action_type == 'TREAT_PATIENT':
+            if chosen_action.parameters is None:
+                chosen_action.parameters = {}
+
+            chosen_action.parameters['treatment'] = random.choice([
+                s.type.value for s in scenario_state.supplies
+                if s.quantity > 0])
 
         chosen_action.justification = "Random choice"
 
