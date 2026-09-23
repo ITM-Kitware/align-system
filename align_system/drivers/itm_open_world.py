@@ -336,21 +336,26 @@ class ITMOpenWorldDriver:
                                 c.id for c in current_state.characters
                                 if not c.nearby and c.id not in treated_patients}
 
-                            # If there are no valid actions on
-                            # nearby characters, and the move_to
-                            # action is for a non-nearby character
-                            # (and there are valid actions on
-                            # non-nearby characters) allow
-                            if(a.character_id in distant_patients and
-                               (len(nearby_unchecked_patients) == 0 and
-                                len(nearby_untreated_patients) == 0 and
-                                len(nearby_untagged_patients) == 0) and
-                               (len(distant_unchecked_patients) > 0 or
-                                len(distant_untreated_patients) > 0 or
-                                len(distant_untagged_patients) > 0)):
-                                pass
-                            else:
+                            # More strict than the other MOVE_TO
+                            # filters above, only allow MOVE_TO to an
+                            # untreated, unchecked, or untagged
+                            # patient
+                            if a.character_id is not None and a.character_id not in set.union(
+                                    distant_untreated_patients,
+                                    distant_unchecked_patients,
+                                    distant_untagged_patients):
                                 continue
+
+                            if last_action is not None and last_action.action_type == ActionTypeEnum.MOVE_TO:
+                                # If last_action was MOVE_TO and there
+                                # are non-MOVE_TO actions to take on
+                                # nearby patients you cannot MOVE_TO
+                                # again (until you take a non-MOVE_TO
+                                # action)
+                                if len(set.union(nearby_untreated_patients,
+                                                 nearby_untagged_patients,
+                                                 nearby_unchecked_patients)) > 0:
+                                    continue
 
                         elif a.action_type == ActionTypeEnum.CHECK_VITALS:
                             nearby_unchecked_patients = {
@@ -376,9 +381,6 @@ class ITMOpenWorldDriver:
                         if a.action_type == ActionTypeEnum.END_SCENE:
                             end_scene_idx = idx
                             break
-
-                    import IPython
-                    IPython.embed()
 
                     if end_scene_idx is not None:
                         log.info("** All patients have been tagged and treated, ending scene")
