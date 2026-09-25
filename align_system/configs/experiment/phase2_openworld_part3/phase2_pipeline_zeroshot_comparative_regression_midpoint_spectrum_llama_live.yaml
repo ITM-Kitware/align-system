@@ -1,0 +1,66 @@
+# @package _global_
+defaults:
+  - /adm_component/misc@adm.step_definitions.world_state_tracker: world_state_tracker
+  - /adm_component/misc@adm.step_definitions.action_parameter_completion: ow_action_parameter_completion
+  - /adm_component/misc@adm.step_definitions.tagging_adjustment: ow_tagging_adjustment
+  - override /adm: phase2_pipeline_zeroshot_comparative_regression
+  - override /interface: ta3
+  - override /adm_component/misc@adm.step_definitions.format_choices: ow_format_choices
+  - override /adm_component/alignment@adm.step_definitions.scalar_alignment: multinomial_medical_urgency_weighted_scalar
+  - override /adm_component/misc@adm.step_definitions.ensure_chosen_action: ow_choice_to_action
+  - override /template/scenario_description@adm.scenario_description_template: phase2
+  - override /driver: itm_phase2_ow
+
+interface:
+  api_endpoint: "https://darpaitm.caci.com"
+  session_type: eval
+  training_session: null
+  username: "ALIGN-ADM-Ph2-Zeroshot-ComparativeRegression-spectrum-Llama-3.1-8B-v1"
+  domain: "owtriage"
+  adm_profile: FEB_OPENWORLD3
+
+adm:
+  structured_inference_engine:
+    _target_: align_system.algorithms.outlines_inference_engine.SpectrumTunedInferenceEngine
+    model_name: tsor13/spectrum-Llama-3.1-8B-v1
+
+  step_definitions:
+    comparative_regression:
+      enable_caching: true
+      choice_schema_transform:
+         _target_: align_system.algorithms.open_world_components.OWChoiceSchemaTransform
+    ensure_chosen_action:
+      scenario_description_template:
+        _target_: align_system.prompt_engineering.outlines_prompts.OWPart3ScenarioDescriptionWVitals
+      enable_caching: true
+    action_parameter_completion:
+      scenario_description_template:
+        _target_: align_system.prompt_engineering.outlines_prompts.OWPart3ScenarioDescriptionWVitals
+      enable_caching: true
+
+  instance:
+    steps:
+    # Reference the step instances we want to use in order
+    - ${ref:adm.step_definitions.world_state_tracker}
+    - ${ref:adm.step_definitions.format_choices}
+    - ${ref:adm.step_definitions.comparative_regression}
+    #- ${ref:adm.step_definitions.regression_rule_based_correction}
+    - ${ref:adm.step_definitions.scalar_alignment}
+    - ${ref:adm.step_definitions.justification_from_reasonings}
+    - ${ref:adm.step_definitions.ensure_chosen_action}
+    - ${ref:adm.step_definitions.action_parameter_completion}
+    - ${ref:adm.step_definitions.tagging_adjustment}
+    - ${ref:adm.step_definitions.populate_choice_info}
+
+driver:
+  expand_actions: true
+  expand_tagging: false
+  apply_action_filtering: true
+
+force_determinism: true
+align_to_target: true
+save_last_unstructured_state_per_scenario: true
+
+hydra:
+  run:
+    dir: 'ow_part3_live/zeroshot_comparative_regression-spectrum-llama/${now:%Y-%m-%d__%H-%M-%S}'
