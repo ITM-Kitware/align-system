@@ -372,6 +372,20 @@ class ScenarioSession:
         if action_to_take.action_type == ActionTypeEnum.TAG_CHARACTER:
             self.tagged_patients.add(action_to_take.character_id)
 
+        if (current_state.meta_info.scene_id
+                != self.current_state.meta_info.scene_id):
+            # A new scene presents fresh injuries (and drops tags), so
+            # the manually tracked per-scene bookkeeping is stale;
+            # without this reset the filter would drop every action
+            # once each patient had been treated / tagged once
+            log.info("Scene changed "
+                     f"({self.current_state.meta_info.scene_id} -> "
+                     f"{current_state.meta_info.scene_id}); resetting "
+                     "treated / evacuated / tagged tracking")
+            self.treated_patients.clear()
+            self.evac_patients.clear()
+            self.tagged_patients.clear()
+
         self.current_state = current_state
         self.scenario_complete = current_state.scenario_complete
         self.n_actions += 1
@@ -445,11 +459,18 @@ class ITMOpenWorldLangChainDriver:
                  max_llm_calls_between_actions=8,
                  max_messages_in_context=40,
                  apply_action_filtering=True,
-                 sort_available_actions=False):
+                 sort_available_actions=False,
+                 extra_tools=None):
         # Model resolution is deferred to drive() so that composing /
         # instantiating configs never imports a provider package
         self._chat_model = chat_model
         self._model = model
+
+        # Optional toolkits (see align_system.agent_tools) whose tools
+        # are offered to the agent alongside the environment tools;
+        # a name -> provider mapping so hydra configs can attach them
+        # individually
+        self.extra_tools = dict(extra_tools) if extra_tools else {}
 
         if system_prompt is None:
             system_prompt = DEFAULT_LANGCHAIN_AGENT_SYSTEM_PROMPT
@@ -805,6 +826,18 @@ class ITMOpenWorldLangChainDriver:
                 chosen_action=deepcopy(fallback_candidate))
             fallback_action.justification = justification
 
+            if fallback_action.action_type == ActionTypeEnum.TREAT_PATIENT:
+                # The parameter completer leaves treatment / location
+                # unset, which the (live) server rejects; use the first
+                # in-stock supply
+                supplies = _in_stock_supplies(session.current_state)
+                if supplies and not (fallback_action.parameters or {}).get(
+                        'treatment'):
+                    self._fill_treatment_parameters(
+                        session, fallback_action,
+                        TOOL_NAMES_BY_ACTION_TYPE[ActionTypeEnum.TREAT_PATIENT],
+                        str(_enum_value(supplies[0].type)), 'unspecified')
+
             try:
                 self._execute_agent_action(
                     session, fallback_action, justification)
@@ -953,26 +986,42 @@ class ITMOpenWorldLangChainDriver:
             return driver._perform_typed_action(
                 session, ActionTypeEnum.END_SCENE, justification)
 
-        return [observe_environment, list_available_actions,
-                check_vitals, treat_patient, tag_character, move_to,
-                move_to_evac, search, send_message, end_scene]
+        tools = [observe_environment, list_available_actions,
+                 check_vitals, treat_patient, tag_character, move_to,
+                 move_to_evac, search, send_message, end_scene]
+
+        for name, provider in self.extra_tools.items():
+            extra = list(provider.build_tools(session))
+            log.info(f"Toolkit '{name}' added tools: "
+                     f"{', '.join(t.name for t in extra)}")
+            tools.extend(extra)
+
+        return tools
 
     # -- Agent loop -----------------------------------------------------
 
     def _trim_message_window(self, messages):
         """Keep the conversation within `max_messages_in_context`
         messages (the system prompt is handled separately by the
-        caller).  The window must not start with a ToolMessage (which
-        would be an orphaned reply to a trimmed-out assistant
+        caller).  The opening human prompt is always kept at the front
+        of the window: a smoothly acting agent only ever adds assistant
+        and tool messages after it, and some chat templates (e.g.
+        Qwen3.8's) reject a conversation with no user turn at all.
+        The rest of the window must not start with a ToolMessage
+        (which would be an orphaned reply to a trimmed-out assistant
         message)."""
         if len(messages) <= self.max_messages_in_context:
             return list(messages)
 
-        window = list(messages[-self.max_messages_in_context:])
+        opening = messages[0]
+        # (`max_messages_in_context` of 1 leaves room for the opening
+        # prompt only; `messages[-0:]` would be the whole list)
+        n_recent = max(self.max_messages_in_context - 1, 0)
+        window = list(messages[-n_recent:]) if n_recent else []
         while window and isinstance(window[0], ToolMessage):
             window.pop(0)
 
-        return window
+        return [opening, *window]
 
     def _handle_tool_calls(self, session, tools_by_name, tool_calls,
                            messages):
@@ -1016,6 +1065,31 @@ class ITMOpenWorldLangChainDriver:
 
         return acted
 
+    def _add_decision_context(self, session, messages):
+        """Give every attached toolkit the chance to put information in
+        front of the agent for the upcoming decision (see
+        `AgentToolProvider.decision_context`); each returned text is
+        appended as a human message (merged into the preceding one if
+        the last message is already from the human side).  The opening
+        prompt is never merged into: `_trim_message_window` pins it at
+        the front of every window, so anything merged there would stay
+        in front of the agent (stale) for the whole scenario."""
+        for name, provider in self.extra_tools.items():
+            context_fn = getattr(provider, 'decision_context', None)
+            context = context_fn(session) if context_fn else None
+            if not context:
+                continue
+
+            log.info(f"[bold]*TOOLKIT '{name}' DECISION CONTEXT*[/bold]",
+                     extra={"markup": True})
+            log.info(context)
+
+            if len(messages) > 1 and isinstance(messages[-1], HumanMessage):
+                messages[-1] = HumanMessage(
+                    content=f"{messages[-1].content}\n\n{context}")
+            else:
+                messages.append(HumanMessage(content=context))
+
     def _run_agent_loop(self, session):
         """Run the agent's observe -> decide -> act loop for a single
         scenario using plain LangChain tool calling: the chat model is
@@ -1034,23 +1108,34 @@ class ITMOpenWorldLangChainDriver:
                 t.name, " ".join(t.description.split("\n\n")[0].split()))
             for t in tools))
 
-        system_message = SystemMessage(content=self.system_prompt)
+        system_prompt = "\n\n".join(
+            [self.system_prompt,
+             *(p.prompt_hint for p in self.extra_tools.values()
+               if getattr(p, 'prompt_hint', None))])
+        system_message = SystemMessage(content=system_prompt)
         messages = [HumanMessage(content=(
             "A new scenario has started.  Observe the environment and "
             "handle the casualties until the scenario is complete."))]
 
         log.info("[bold]*AGENT SYSTEM PROMPT*[/bold]",
                  extra={"markup": True})
-        log.info(self.system_prompt)
+        log.info(system_prompt)
         log.info("[bold]*AGENT INITIAL PROMPT*[/bold]",
                  extra={"markup": True})
         log.info(messages[0].content)
 
         llm_calls_since_action = 0
         consecutive_llm_failures = 0
+        # Decision point (action count) the toolkits last provided
+        # context for
+        context_n_actions = None
 
         while (not session.scenario_complete
                and session.n_actions < self.max_actions_per_scenario):
+            if session.n_actions != context_n_actions:
+                context_n_actions = session.n_actions
+                self._add_decision_context(session, messages)
+
             message_window = self._trim_message_window(messages)
 
             try:
@@ -1164,8 +1249,10 @@ class ITMOpenWorldLangChainDriver:
 
     @staticmethod
     def _get_alignment_target(cfg, scenario):
-        # The agent doesn't align to KDMA targets; the alignment
-        # target is only recorded (and used for scoring)
+        # The agent itself doesn't align to KDMA targets; the alignment
+        # target is recorded (and used for scoring), and offered to any
+        # attached toolkits (e.g. the Kaleido value assessment) via the
+        # session
         if 'alignment_target' in cfg:
             alignment_target = cfg.alignment_target
             # Alignment targets specified in hydra configs require

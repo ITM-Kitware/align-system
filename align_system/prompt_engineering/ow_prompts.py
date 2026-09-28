@@ -45,3 +45,53 @@ def followup_clarify_character(scenario_description, action):
 class FollowupClarifyCharacterPrompt:
     def __call__(self, scenario_description, action):
         return followup_clarify_character(scenario_description, action)
+
+
+@compat_outlines_prompt
+def kaleido_auto_assess_hint():
+    """
+    Value alignment: your actions must align with the alignment target.
+    Before each decision you are given a value assessment of the currently
+    available actions: per action and target attribute, how relevant the
+    attribute is, whether the action supports or opposes it, and an
+    estimated attribute value alongside the target value.  Read it before
+    choosing: prefer the action whose estimates are closest to the target
+    (breaking ties on clinical grounds), and if you choose a different
+    action, say in your justification why the assessment does not apply.
+    You also have an assess_available_actions(justification) tool that
+    returns the same assessment again if you need to re-read it.
+    """
+
+
+class KaleidoAutoAssessHintPrompt:
+    """System prompt addition for the LangChain agent when the Kaleido
+    toolkit hands it an assessment before every decision
+    (auto_assess=True)."""
+    def __call__(self):
+        return kaleido_auto_assess_hint()
+
+
+@compat_outlines_prompt
+def kaleido_tool_hint():
+    """
+    You also have a value-assessment tool:
+
+    - assess_available_actions(justification): score every currently
+      available action against the attributes of your alignment target
+      using a value model.  It reports, per action and attribute, how
+      relevant the attribute is, whether the action supports or opposes
+      it, and an estimated attribute value alongside the target value.
+
+    Your actions must align with the alignment target, so before choosing
+    each environment action, call assess_available_actions and prefer the
+    action whose estimates are closest to the target (breaking ties on
+    clinical grounds).  Call it once per decision, then act; do not call
+    it repeatedly without taking an action in between.
+    """
+
+
+class KaleidoToolHintPrompt:
+    """System prompt addition for the LangChain agent when it has to
+    request a Kaleido assessment itself (auto_assess=False)."""
+    def __call__(self):
+        return kaleido_tool_hint()
