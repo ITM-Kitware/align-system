@@ -34,3 +34,11 @@ max_actions_per_scenario: 100
 max_llm_calls_between_actions: 8
 # Rolling window of conversation messages kept in the agent's context
 max_messages_in_context: 40
+
+# Optional toolkits (align_system.agent_tools) offering additional
+# tools to the agent, keyed by name.  Attach one from an experiment
+# config with e.g.
+#   - /driver/tools@driver.extra_tools.kaleido: kaleido
+# (listed before any `override` entries in the defaults list)
+# (see configs/driver/tools/)
+extra_tools: {}

@@ -1,0 +1,27 @@
+# @package _global_
+# LangChain agent driver with the Kaleido value-assessment toolkit
+# attached as an extra agent tool (see configs/driver/tools/kaleido.yaml)
+defaults:
+  # Attach the toolkit under driver.extra_tools (must precede the
+  # overrides below; hydra requires overrides to come last)
+  - /driver/tools@driver.extra_tools.kaleido: kaleido
+  # The LangChain agent drives the scenario itself; no ADM is used
+  - override /adm: null
+  - override /interface: ta3
+  - override /driver: itm_phase2_ow_langchain
+  - override /driver/chat_model: ollama_qwen25_32b
+
+interface:
+#  api_endpoint: "https://darpaitm.caci.com"
+  api_endpoint: 'http://127.0.0.1:8081'
+  session_type: eval
+  training_session: null
+  username: "testrun-ALIGN-ADM-Ph2-LangChainAgent-Kaleido-Qwen2.5-32B-Instruct"
+  domain: "owtriage"
+  adm_profile: FEB_OPENWORLD3
+
+force_determinism: true
+# The Kaleido tool scores actions against the alignment target, so
+# the target must be requested from the server
+align_to_target: true
+save_last_unstructured_state_per_scenario: true
