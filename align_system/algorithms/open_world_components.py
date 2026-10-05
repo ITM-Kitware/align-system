@@ -29,8 +29,10 @@ JSON_HIGHLIGHTER = JSONHighlighter()
 
 
 class OWFormatChoicesADMComponent(ADMComponent):
-    def __init__(self):
+    def __init__(self, replace_newlines=False):
         self.choice_template = OWPart3CharacterDescriptionWVitals()
+        # ChatGPT API doesn't accept newlines in JSON schemas
+        self.replace_newlines = replace_newlines
 
     def run_returns(self):
         return ('choices', 'choice_to_action_mapping')
@@ -50,6 +52,10 @@ class OWFormatChoicesADMComponent(ADMComponent):
 
         def _add_choice(choice, action):
             """Add choice to list of choices (if needed), add action to mapping."""
+            # SMELL: Doesn't feel quite right to have this here
+            if self.replace_newlines:
+                choice = choice.replace('\n', ' ')
+
             if choice not in choices:
                 choices.append(choice)
             choice_to_action_mapping[choice].append(action)
