@@ -1,7 +1,6 @@
 import random
 
-from swagger_client.models import ActionTypeEnum, InjuryLocationEnum, CharacterTagEnum
-
+from align_system.data_models.compat.ta3_ph1_client_models import ActionTypeEnum, InjuryLocationEnum, CharacterTagEnum
 from align_system.utils import logging
 from align_system.algorithms.abstracts import ActionBasedADM
 from align_system.utils import get_swagger_class_enum_values

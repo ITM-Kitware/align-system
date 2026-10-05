@@ -1,0 +1,43 @@
+# @package _global_
+defaults:
+  - override /adm: phase2_pipeline_fewshot_comparative_regression_bert_relevance
+  - override /interface: ta3
+  - override /adm_component/alignment@adm.step_definitions.scalar_alignment: multinomial_random_effects_tuple
+
+interface:
+  api_endpoint: "https://darpaitm.caci.com"
+  session_type: eval
+  training_session: null
+  username: "ALIGN-ADM-Ph2-ComparativeRegression-BertRelevance-spectrum-Llama-3.1-8B-v1"
+  domain: "p2triage"
+
+adm:
+  structured_inference_engine:
+    _target_: align_system.algorithms.outlines_inference_engine.SpectrumTunedInferenceEngine
+    model_name: tsor13/spectrum-Llama-3.1-8B-v1
+
+  step_definitions:
+    regression_icl:
+      icl_generator_partial:
+        incontext_settings:
+          number: 20
+          datasets:
+            medical: /data/shared/samba/phase2_icl/Jun2026-MU-train_20260529.json
+            affiliation: /data/shared/samba/phase2_icl/Jun2026-AF-train_20260529.json
+            merit: /data/shared/samba/phase2_icl/Jun2026-MF-train_20260529.json
+            personal_safety: /data/shared/samba/phase2_icl/Jun2026-PS-train_20260529.json
+            search: /data/shared/samba/phase2_icl/Jun2026-SS-train_20260529.json
+      enable_caching: true
+    comparative_regression:
+      enable_caching: true
+
+driver:
+  apply_action_filtering: false
+
+force_determinism: true
+align_to_target: true
+save_last_unstructured_state_per_scenario: true
+
+hydra:
+  run:
+    dir: 'phase2_jun2026_multi_results_live/comp_reg_binary_multi_eval_spectrum_llama/${now:%Y-%m-%d__%H-%M-%S}'

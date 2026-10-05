@@ -7,8 +7,62 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Added
 
+* Added `MultinomialRandomEffectsModelAlignmentADMComponent` for binomial/trinomial alignment based on ADEPT's latest guidance
+* Added `TournamentRandomEffectsModelAlignmentADMComponent`, a tournament-style version of the random effects alignment function
+  (note this is still not multi-kdma)
+* Added several new components for "Open World" experimentation: `OWFormatChoicesADMComponent` extracts relevant characters such that
+  the ADM chooses a character instead of an action, `OWChoiceToActionADMComponent` maps a character selection back to an actual action,
+  `OWActionParameterCompletionADMComponent` ensures all required parameters are filled in,`OWTaggingAdjustmentADMComponent` applies
+  heuristics to indirectly affect tag choice by the alignment target based on unaligned vs aligned patient ranking, and
+  `OWRandomParameterCompletionADMComponent` was added so that the random ADM can function in this environment for smoketests.
+* Added a new driver for "Open World" experimentation: `ITMOpenWorldDriver`. Note that while the name implies the ADM can operate in
+  an unconstrained environment, "Open World" has a slightly more restricted meaning for the program and assumes a specific scenario
+  structure.
+* Added `MultinomialWeightedMidpointAlignmentADMComponent` for multinomial probes aligned against midpoint based targets.
+* Added a new `adm_profile` option to `TA3CACIActionBasedServiceInterface`, corresponding to the server parameter of the
+  same name.
+
+### Fixed
+
+* Fixed outdated `RandomEffectsModelAlignmentADMComponent` unit tests from previously changed z-scale values (from 2026-01-21)
+
+## 0.5.10
+
+### Added
+
 * Added more details and examples to the pipeline ADM documentation
 * Added a new Phase 2 medical urgency alignment function (weighted) to reflect program collaboration updates
+* Added option for ICL example choice ordering - fixed, swapped, or random
+* Added option to swap choice ordering for comparative regression pipeline ADM component
+* Added capability to resolve pipeline ADM step output conflicts with a custom function
+* Added inference engine for spectrum tuned LLMs that appropriately reformats chat template roles
+* Added alignment function based on a random-effects model
+* Added "always choose index X" ADM
+* Added direct regression ADM component and pipeline
+* Added DecisionFlow integration with fine-grained value prompts, unstructured objective function parsing, and JSON retry utilities
+* Added ICL similarity score and ICL examples to choice info
+* Added July 2025 evaluation configs
+* Added Feb 2026 evaluation configs
+* Added caching for ICL step and BertRelevance component
+* Added alignment info (with source) to choice_info output
+* Added per-step timing info for pipeline ADM
+* Added ALIGN App link and updated pipeline ADM documentation
+* Added support for raw text system prompts for the pipeline baseline ADM
+* Added tagging ADM configs
+
+
+### Changed
+
+* Refactored ICL selection strategies to reduce duplication; factored out similarity strategies
+* Factored out scenario driver component and updated configs
+* Updated TA3 client version and ICL databases; copied Phase 1 TA3 models for backward compatibility
+* Removed deprecated `tags` property from Dialog
+* Removed lots of old pre-Hydra/Outlines code
+* Made comparative regression reasoning length configurable
+
+### Fixed
+
+* Removed non-determinism from midpoint alignment functions
 
 ## 0.5.9
 

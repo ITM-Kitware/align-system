@@ -10,8 +10,8 @@ interface:
 adm:
   instance:
     precision: half
-    sampler:
-      _target_: outlines.samplers.GreedySampler
+    generation_kwargs:
+      do_sample: false
     model_name: mistralai/Mistral-7B-Instruct-v0.3
   inference_kwargs:
     kdma_score_examples: true

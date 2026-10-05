@@ -1,4 +1,3 @@
-import argparse
 from uuid import uuid4
 
 import swagger_client
@@ -14,6 +13,8 @@ from align_system.interfaces.abstracts import (
 
 log = logging.getLogger(__name__)
 
+PHASE2_DOMAINS = {"p2triage", "owtriage"}
+
 
 class TA3CACIActionBasedServiceInterface(Interface):
     def __init__(self,
@@ -22,7 +23,8 @@ class TA3CACIActionBasedServiceInterface(Interface):
                  session_type='eval',
                  scenario_ids=[],
                  domain=None,
-                 training_session=None):
+                 training_session=None,
+                 adm_profile=None):
         self.api_endpoint = api_endpoint
         # Append a UUID onto the end of our username, as the TA3
         # server doesn't allow multiple concurrent sessions for the
@@ -37,6 +39,8 @@ class TA3CACIActionBasedServiceInterface(Interface):
         self.training_session = training_session
 
         self.domain = domain
+
+        self.adm_profile = adm_profile
 
         config = Configuration()
         config.host = self.api_endpoint
@@ -55,6 +59,9 @@ class TA3CACIActionBasedServiceInterface(Interface):
                                    "either 'full' or 'solo'")
 
             start_session_params['kdma_training'] = self.training_session
+
+        if self.adm_profile is not None:
+            start_session_params['adm_profile'] = self.adm_profile
 
         self.session_id = self.connection.start_session(
             **start_session_params)
@@ -84,48 +91,6 @@ class TA3CACIActionBasedServiceInterface(Interface):
                 self.session_id, alignment_target.id)
         else:
             return None
-
-    @classmethod
-    def cli_parser(cls, parser=None):
-        if parser is None:
-            parser = argparse.ArgumentParser(
-                description=cls.cli_parser_description())
-
-        parser.add_argument('-u', '--username',
-                            type=str,
-                            default='ALIGN-ADM',
-                            help='ADM Username (provided to TA3 API server, '
-                                 'default: "ALIGN-ADM")')
-        parser.add_argument('-s', '--session-type',
-                            type=str,
-                            default="test",
-                            help='TA3 API Session Type (default: "eval")')
-        parser.add_argument('-e', '--api_endpoint',
-                            default="http://127.0.0.1:8080",
-                            type=str,
-                            help='Restful API endpoint for scenarios / probes '
-                                 '(default: "http://127.0.0.1:8080")')
-        parser.add_argument('--training-session',
-                            action='store_true',
-                            default=False,
-                            help='Return training related information from '
-                                 'API requests')
-        parser.add_argument('-S', '--scenario-id',
-                            dest='scenario_ids',
-                            required=False,
-                            default=[],
-                            nargs='*',
-                            help='Specific scenario to run (multiples allowed)')
-
-        return parser
-
-    @classmethod
-    def cli_parser_description(cls):
-        return "Interface with CACI's TA3 web-based service"
-
-    @classmethod
-    def init_from_parsed_args(cls, parsed_args):
-        return cls(**vars(parsed_args))
 
 
 class TA3CACIActionBasedScenario(ActionBasedScenarioInterface):
@@ -159,14 +124,15 @@ class TA3CACIActionBasedScenario(ActionBasedScenarioInterface):
         if isinstance(action, dict):
             action = Action(**action)
 
-        if self.domain == "p2triage":
+        if self.domain in PHASE2_DOMAINS:
             updated_state = take_or_intend(
                 session_id=self.session_id,
                 action=action)
 
-            updated_state.unstructured = "{}\n{}".format(
-                updated_state.threat_state.unstructured,
-                updated_state.unstructured)
+            if updated_state.threat_state is not None:
+                updated_state.unstructured = "{}\n{}".format(
+                    updated_state.threat_state.unstructured,
+                    updated_state.unstructured)
         else:
             updated_state = take_or_intend(
                 session_id=self.session_id,
@@ -188,9 +154,10 @@ class TA3CACIActionBasedScenario(ActionBasedScenarioInterface):
         state = self.connection.get_scenario_state(
             session_id=self.session_id, scenario_id=self.scenario.id)
 
-        if self.domain == "p2triage":
-            state.unstructured = "{}\n{}".format(
-                state.threat_state.unstructured,
-                state.unstructured)
+        if self.domain in PHASE2_DOMAINS:
+            if state.threat_state is not None:
+                state.unstructured = "{}\n{}".format(
+                    state.threat_state.unstructured,
+                    state.unstructured)
 
         return state

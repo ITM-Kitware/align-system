@@ -1,0 +1,28 @@
+# Qwen3.8-27B (https://huggingface.co/Qwen/Qwen3.8-27B) served by
+# vLLM's OpenAI-compatible endpoint (start the server yourself; see
+# vllm_qwen25_7b for details).  It is a dense 27B model: the bf16
+# weights are ~54GB and OOM on a 48GB card during load, so the
+# default here is Qwen's official FP8 build (~27GB, fits a 48GB card
+# with room for KV cache); to serve bf16 instead use an 80GB GPU or
+# two 48GB cards with --tensor-parallel-size 2, and set `model` to
+# match what was served.  Thinking is on by default, so serve it
+# with a reasoning parser as well as the tool-call parser (the
+# qwen3_xml parser matches its native tool-call format), skip the
+# vision tower since the agent only sends text, and cap concurrent
+# sequences (the agent runs one request at a time; the default of 256
+# makes this model's per-sequence linear-attention state OOM a 48GB
+# card during profiling).  The env var sidesteps FlashInfer JIT-
+# compiling its sampling kernel, which fails where nvcc lacks the CUDA
+# headers; the native sampler is exact at temperature 0:
+#   VLLM_USE_FLASHINFER_SAMPLER=0 vllm serve Qwen/Qwen3.8-27B-FP8 \
+#     --language-model-only --reasoning-parser qwen3 \
+#     --enable-auto-tool-choice --tool-call-parser qwen3_xml \
+#     --max-model-len 65536 --max-num-seqs 8 --port 8000
+# With the reasoning parser the think phase comes back as
+# reasoning_content (logged by the driver) and message content stays
+# clean for tool calls.
+_target_: langchain_openai.ChatOpenAI
+model: Qwen/Qwen3.8-27B-FP8
+base_url: http://localhost:8000/v1
+api_key: EMPTY
+temperature: 0.0

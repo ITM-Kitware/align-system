@@ -1,0 +1,25 @@
+name: tagging_baseline
+
+defaults:
+  # Import defaults into this namspace (adm) as @name, for further
+  # customization
+
+  # Shared variables / components
+  - /inference_engine@structured_inference_engine: outlines_structured_multinomial
+  # ADM components to be used in "steps"
+  - /adm_component/misc@step_definitions.format_choices: itm_format_choices
+  - /adm_component/direct@step_definitions.tagging_baseline: tagging_baseline
+  - /adm_component/misc@step_definitions.ensure_chosen_action: ensure_chosen_action
+  - /adm_component/misc@step_definitions.populate_choice_info: populate_choice_info
+  # Use definitions in this file to override defaults defined above
+  - _self_
+
+instance:
+  _target_: align_system.algorithms.pipeline_adm.PipelineADM
+
+  steps:
+    # Reference the step instances we want to use in order
+    - ${ref:adm.step_definitions.format_choices}
+    - ${ref:adm.step_definitions.tagging_baseline}
+    - ${ref:adm.step_definitions.ensure_chosen_action}
+    - ${ref:adm.step_definitions.populate_choice_info}

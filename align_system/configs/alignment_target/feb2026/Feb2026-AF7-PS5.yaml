@@ -1,0 +1,22 @@
+id: Feb2026-AF7-PS5
+kdma_values:
+- kdma: affiliation
+  value: null
+  kdes: null
+  parameters:
+  - name: intercept
+    value: 2.5125
+  - name: attr_weight
+    value: 0.890625
+  - name: medical_weight
+    value: 1.84375
+- kdma: personal_safety
+  value: null
+  kdes: null
+  parameters:
+  - name: intercept
+    value: 0.2875
+  - name: attr_weight
+    value: 1.8825
+  - name: medical_weight
+    value: 0.46625

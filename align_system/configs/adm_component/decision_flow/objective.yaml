@@ -1,0 +1,6 @@
+# Objective stage: Filters weighted pairs and builds objective function string
+# NOTE: This stage does NOT make an LLM call (matches DecisionFlow reference)
+_target_: align_system.algorithms.decision_flow_adm.objective_stage_component.ObjectiveStageComponent
+
+attributes: ${ref:adm.attribute_definitions}
+weight_threshold: 0.3

@@ -1,0 +1,164 @@
+[
+  {
+    "input": {
+      "scenario_id": "ow_smoke",
+      "full_state": {
+        "unstructured": "You are the only medic at the scene of a vehicle accident with two casualties.",
+        "characters": [
+          {
+            "id": "casualty_a",
+            "name": "Alpha",
+            "unstructured": "Adult with a deep laceration to the left thigh, bleeding heavily."
+          },
+          {
+            "id": "casualty_b",
+            "name": "Bravo",
+            "unstructured": "Adult with minor abrasions, walking and talking."
+          }
+        ],
+        "meta_info": {
+          "scene_id": "scene_1"
+        },
+        "scenario_complete": false
+      },
+      "state": "You are the only medic at the scene of a vehicle accident with two casualties.",
+      "choices": [
+        {
+          "action_id": "check_vitals_a",
+          "action_type": "CHECK_VITALS",
+          "unstructured": "Check the vitals of Alpha",
+          "character_id": "casualty_a",
+          "kdma_association": null
+        },
+        {
+          "action_id": "tag_character",
+          "action_type": "TAG_CHARACTER",
+          "unstructured": "Tag a Patient with a triage tag",
+          "kdma_association": null
+        }
+      ]
+    }
+  },
+  {
+    "input": {
+      "scenario_id": "ow_smoke",
+      "full_state": {
+        "unstructured": "You are the only medic at the scene of a vehicle accident with two casualties. You have assessed the casualties.",
+        "characters": [
+          {
+            "id": "casualty_a",
+            "name": "Alpha",
+            "unstructured": "Adult with a deep laceration to the left thigh, bleeding heavily."
+          },
+          {
+            "id": "casualty_b",
+            "name": "Bravo",
+            "unstructured": "Adult with minor abrasions, walking and talking."
+          }
+        ],
+        "meta_info": {
+          "scene_id": "scene_1"
+        },
+        "scenario_complete": false
+      },
+      "state": "You are the only medic at the scene of a vehicle accident with two casualties.",
+      "choices": [
+        {
+          "action_id": "tag_character",
+          "action_type": "TAG_CHARACTER",
+          "unstructured": "Tag a Patient with a triage tag",
+          "kdma_association": null
+        },
+        {
+          "action_id": "treat_patient",
+          "action_type": "TREAT_PATIENT",
+          "unstructured": "Treat a Patient",
+          "kdma_association": null
+        }
+      ]
+    }
+  },
+  {
+    "input": {
+      "scenario_id": "ow_smoke",
+      "full_state": {
+        "unstructured": "You are the only medic at the scene of a vehicle accident with two casualties. Casualties are tagged.",
+        "characters": [
+          {
+            "id": "casualty_a",
+            "name": "Alpha",
+            "unstructured": "Adult with a deep laceration to the left thigh, bleeding controlled.",
+            "tag": "IMMEDIATE"
+          },
+          {
+            "id": "casualty_b",
+            "name": "Bravo",
+            "unstructured": "Adult with minor abrasions, walking and talking.",
+            "tag": "MINIMAL"
+          }
+        ],
+        "meta_info": {
+          "scene_id": "scene_1"
+        },
+        "scenario_complete": false
+      },
+      "state": "You are the only medic at the scene of a vehicle accident with two casualties.",
+      "choices": [
+        {
+          "action_id": "treat_patient",
+          "action_type": "TREAT_PATIENT",
+          "unstructured": "Treat a Patient",
+          "kdma_association": null
+        },
+        {
+          "action_id": "end_scene",
+          "action_type": "END_SCENE",
+          "unstructured": "End the scene",
+          "kdma_association": null
+        }
+      ]
+    }
+  },
+  {
+    "input": {
+      "scenario_id": "ow_smoke",
+      "full_state": {
+        "unstructured": "Both casualties are stabilized.",
+        "characters": [
+          {
+            "id": "casualty_a",
+            "name": "Alpha",
+            "unstructured": "Adult with a deep laceration to the left thigh, bleeding controlled.",
+            "tag": "IMMEDIATE"
+          },
+          {
+            "id": "casualty_b",
+            "name": "Bravo",
+            "unstructured": "Adult with minor abrasions, walking and talking.",
+            "tag": "MINIMAL"
+          }
+        ],
+        "meta_info": {
+          "scene_id": "scene_1"
+        },
+        "scenario_complete": false
+      },
+      "state": "Both casualties are stabilized.",
+      "choices": [
+        {
+          "action_id": "end_scene",
+          "action_type": "END_SCENE",
+          "unstructured": "End the scene",
+          "kdma_association": null
+        },
+        {
+          "action_id": "treat_patient_b",
+          "action_type": "TREAT_PATIENT",
+          "unstructured": "Treat Bravo",
+          "character_id": "casualty_b",
+          "kdma_association": null
+        }
+      ]
+    }
+  }
+]

@@ -1,0 +1,12 @@
+id: Feb2026-MF-5
+kdma_values:
+- kdma: merit
+  value: null
+  kdes: null
+  parameters:
+  - name: intercept
+    value: 2.8375
+  - name: attr_weight
+    value: 2.3625
+  - name: medical_weight
+    value: 2.15

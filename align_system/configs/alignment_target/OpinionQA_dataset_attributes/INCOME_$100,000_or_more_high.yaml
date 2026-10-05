@@ -1,4 +1,4 @@
-_target_: swagger_client.models.AlignmentTarget
+_target_: align_system.data_models.compat.ta3_ph1_client_models.AlignmentTarget
 id: INCOME_$100,000_or_more_high
 kdma_values:
 - kdma: INCOME_$100,000 or more

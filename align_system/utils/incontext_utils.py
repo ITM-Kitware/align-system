@@ -4,6 +4,8 @@ import torch
 import random
 import numpy as np
 from abc import ABCMeta, abstractmethod
+from bert_score import BERTScorer
+from omegaconf import ListConfig, OmegaConf
 
 from align_system.utils import adm_utils
 from align_system.utils import outlines_prompts_utils
@@ -23,6 +25,143 @@ from align_system.prompt_engineering.outlines_prompts import (
 )
 
 
+def bert_similarity_selection(candidates, texts_to_compare, reference_text, n_examples, score_adjustments=None, least_similar_examples=False, scorer=None):
+    """Common BERT similarity selection logic for all strategies.
+
+    Args:
+        candidates: List of candidate examples
+        texts_to_compare: List of texts to compare against reference
+        reference_text: Reference text to compare against
+        n_examples: Number of examples to select
+        score_adjustments: Optional list of score adjustments (same length as candidates)
+        least_similar_examples: If True, selects least similar examples to approximate domain shift
+                               between train and eval on train data only
+        scorer: BERTScorer instance to use; if None, a default one is created
+
+    Returns:
+        List of selected candidates with 'similarity_score' field added
+    """
+    if scorer is None:
+        scorer = BERTScorer(lang="en")
+    _, _, scores = scorer.score([reference_text] * len(texts_to_compare), texts_to_compare)
+
+    if score_adjustments is not None:
+        for i, adjustment in enumerate(score_adjustments):
+            scores[i] += adjustment
+
+    # Select examples: largest=True for most similar, largest=False for least similar
+    _, indices = torch.topk(scores, n_examples, largest=(not least_similar_examples))
+
+    # If using least_similar_examples, reverse indices to maintain most-similar-first order
+    # within the selected examples
+    if least_similar_examples:
+        indices = reversed(indices)
+
+    selected_candidates = [
+        {**candidates[i].copy(), 'similarity_score': float(scores[i])}
+        for i in indices
+    ]
+
+    return selected_candidates
+
+
+def select_random_strategy(possible_examples, n_examples, **kwargs):
+    """Random selection strategy for ICL examples"""
+    selected_samples = random.sample(possible_examples, n_examples)
+    selected_with_scores = [
+        {**sample.copy(), 'similarity_score': None}
+        for sample in selected_samples
+    ]
+    return selected_with_scores
+
+
+def select_scenario_bert_similarity_strategy(possible_examples, n_examples, scenario_to_match, least_similar_examples=False, scorer=None, **kwargs):
+    """Scenario-based BERT similarity selection strategy"""
+    final_candidates = list({ex['scenario_description']: ex for ex in possible_examples}.values())
+    possible_scenarios = [icl_sample["scenario_description"] for icl_sample in final_candidates]
+
+    return bert_similarity_selection(
+        final_candidates,
+        possible_scenarios,
+        scenario_to_match,
+        n_examples,
+        least_similar_examples=least_similar_examples,
+        scorer=scorer
+    )
+
+
+def select_prompt_bert_similarity_strategy(possible_examples, n_examples, prompt_to_match, least_similar_examples=False, scorer=None, **kwargs):
+    """Prompt-based BERT similarity selection strategy"""
+    final_candidates = list({ex['prompt']: ex for ex in possible_examples}.values())
+    possible_prompts = [icl_sample["prompt"] for icl_sample in final_candidates]
+
+    return bert_similarity_selection(
+        final_candidates,
+        possible_prompts,
+        prompt_to_match,
+        n_examples,
+        least_similar_examples=least_similar_examples,
+        scorer=scorer
+    )
+
+
+def select_matching_actions_strategy(possible_examples, n_examples, prompt_to_match, actions, least_similar_examples=False, scorer=None, **kwargs):
+    """Action-matching with BERT similarity selection strategy"""
+    action_types = set([action.action_type for action in actions])
+    possible_prompts = [icl_sample["prompt"] for icl_sample in possible_examples]
+    possible_actions = [set([action.action_type for action in icl_sample['actions']]) for icl_sample in possible_examples]
+
+    # Boost similarity score for examples that contain all the same action types as current scenario
+    # Adding +1 prioritizes examples with matching action types over purely text-based similarity
+    score_adjustments = [
+        1 if action_types.issubset(actions_set) else 0
+        for actions_set in possible_actions
+    ]
+
+    return bert_similarity_selection(
+        possible_examples,
+        possible_prompts,
+        prompt_to_match,
+        n_examples,
+        score_adjustments,
+        least_similar_examples=least_similar_examples,
+        scorer=scorer
+    )
+
+
+def select_matching_characters_strategy(possible_examples, n_examples, prompt_to_match, actions, least_similar_examples=False, scorer=None, **kwargs):
+    """Character-matching with BERT similarity selection strategy"""
+    action_chars = set([action.character_id for action in actions])
+    possible_prompts = [icl_sample["prompt"] for icl_sample in possible_examples]
+    possible_chars = [set([action.character_id for action in icl_sample['actions']]) for icl_sample in possible_examples]
+
+    # Boost similarity score for examples that involve the same characters as current scenario
+    # Adding +1 prioritizes character-matched examples over purely text-based similarity
+    score_adjustments = [
+        1 if action_chars.issubset(chars_set) else 0
+        for chars_set in possible_chars
+    ]
+
+    return bert_similarity_selection(
+        possible_examples,
+        possible_prompts,
+        prompt_to_match,
+        n_examples,
+        score_adjustments,
+        least_similar_examples=least_similar_examples,
+        scorer=scorer
+    )
+
+
+ICL_SELECTION_STRATEGIES = {
+    'random': select_random_strategy,
+    'scenario_bert_similarity': select_scenario_bert_similarity_strategy,
+    'prompt_bert_similarity': select_prompt_bert_similarity_strategy,
+    'matching_actions': select_matching_actions_strategy,
+    'matching_characters': select_matching_characters_strategy
+}
+
+
 class IncontextExampleGenerator(object, metaclass=ABCMeta):
     '''
     Abstract class for incontext example generator
@@ -33,8 +172,14 @@ class IncontextExampleGenerator(object, metaclass=ABCMeta):
         incontext_settings,
         target_kdmas,
         state_hydration_domain=None,
+        scenario_description_template=None,
+        scorer=None,
     ):
         self.incontext_settings = incontext_settings
+        # Default device for BERTScorer is 'cuda' if available, else 'cpu'
+        if scorer is None and incontext_settings.get("method") != "random":
+            scorer = BERTScorer(lang="en")
+        self.scorer = scorer
         self.target_kdmas = []
         for target_kdma in target_kdmas:
             if not isinstance(target_kdma, dict):
@@ -49,8 +194,13 @@ class IncontextExampleGenerator(object, metaclass=ABCMeta):
         elif state_hydration_domain == "p2triage":
             from align_system.utils.hydrate_state import p2triage_hydrate_scenario_state
             self.state_hydration_fn = p2triage_hydrate_scenario_state
+        elif state_hydration_domain == "minimal":
+            from align_system.utils.hydrate_state import minimal_hydrate_scenario_state
+            self.state_hydration_fn = minimal_hydrate_scenario_state
         else:
             raise RuntimeError(f"Unknown state_hydration_domain: {state_hydration_domain}")
+
+        self.scenario_description_template = scenario_description_template
 
         self.set_icl_datasets()
 
@@ -76,6 +226,7 @@ class IncontextExampleGenerator(object, metaclass=ABCMeta):
             {kdma:[{state, actions, choices, kdma_values}, ...], ...}
         '''
         incontext_data = {}
+        choice_order = self.incontext_settings.get('choice_order', 'fixed')
         # For each kdma
         for target_kdma in self.target_kdmas:
             sys_kdma_name = target_kdma['kdma']
@@ -85,6 +236,8 @@ class IncontextExampleGenerator(object, metaclass=ABCMeta):
             # Add examples for each dataset file
             dset_files = self.incontext_settings["datasets"][sys_kdma_name]
             # If there is only one, make it a list for the following loop
+            if isinstance(dset_files, ListConfig):
+                dset_files = OmegaConf.to_object(dset_files)
             if not isinstance(dset_files, list):
                 dset_files = [dset_files]
 
@@ -98,25 +251,41 @@ class IncontextExampleGenerator(object, metaclass=ABCMeta):
                     # Get state and actions
                     state, actions = self.state_hydration_fn(icl_sample["input"])
                     labels = icl_sample["label"]
+                    reasonings = icl_sample.get("reasoning", [{}]*len(labels))
                     if self.incontext_settings.sort_actions:
                         # Impose a fixed ordering of available actions and labels to help with determinism
-                        combined = list(zip(actions, labels))
+                        combined = list(zip(actions, labels, reasonings))
                         combined_sorted = sorted(combined, key=lambda x: x[0].unstructured)
-                        actions, labels = zip(*combined_sorted)
+                        actions, labels, reasonings = zip(*combined_sorted)
+                    # Swap choice order if requested
+                    if choice_order == "swapped" or (choice_order == "random" and random.choice([0, 1])):
+                        combined = list(zip(actions, labels, reasonings))
+                        combined_sorted = sorted(combined, key=lambda x: x[0].unstructured, reverse=True)
+                        actions, labels, reasonings = zip(*combined_sorted)
                     # Get choices
                     choices = adm_utils.format_choices(
                         [a.unstructured for a in actions],
                         actions,
                         state
                     )
+
                     # Get KDMA_values
                     kdma_values = []
                     for label in labels:
-                        if sys_kdma_name not in label:
-                            kdma_values.append(None)
-                        else:
-                            kdma_values.append(label[sys_kdma_name])
-                    example = {'state':state, 'actions': actions, 'choices':choices, 'kdma_values':kdma_values}
+                            kdma_values.append(label.get(sys_kdma_name, None))
+
+                    # Get any pre-generated reasoning
+                    kdma_reasoning = []
+                    for reasoning in reasonings:
+                        kdma_reasoning.append(reasoning.get(sys_kdma_name, None))
+
+                    example = {
+                        'state':state,
+                        'actions': actions,
+                        'choices': choices,
+                        'kdma_values':kdma_values,
+                        'kdma_reasoning': kdma_reasoning,
+                    }
                     incontext_data[sys_kdma_name].append(example)
 
             # Normalize ground truth KDMA values
@@ -170,26 +339,37 @@ class IncontextExampleGenerator(object, metaclass=ABCMeta):
                     # Get state and actions
                     state, actions = self.state_hydration_fn(icl_sample["input"])
                     labels = icl_sample["label"]
+                    reasonings = icl_sample.get("reasoning", [{}]*len(labels))
                     if self.incontext_settings.sort_actions:
                         # Impose a fixed ordering of available actions and labels to help with determinism
-                        combined = list(zip(actions, labels))
+                        combined = list(zip(actions, labels, reasonings))
                         combined_sorted = sorted(combined, key=lambda x: x[0].unstructured)
-                        actions, labels = zip(*combined_sorted)
+                        actions, labels, reasonings = zip(*combined_sorted)
+
                     # Get choices
                     choices = adm_utils.format_choices(
                         [a.unstructured for a in actions],
                         actions,
                         state
                     )
+
                     # Get KDMA_values
                     kdma_values = []
                     for label in labels:
-                        if sys_kdma_name not in label:
-                            kdma_values.append(None)
-                        else:
-                            kdma_values.append(label[sys_kdma_name])
+                            kdma_values.append(label.get(sys_kdma_name, None))
 
-                    example = {'state':state, 'actions': actions, 'choices':choices, 'kdma_values':kdma_values}
+                    # Get any pre-generated reasoning
+                    kdma_reasoning = []
+                    for reasoning in reasonings:
+                        kdma_reasoning.append(reasoning.get(sys_kdma_name, None))
+
+                    example = {
+                        'state':state,
+                        'actions': actions,
+                        'choices': choices,
+                        'kdma_values':kdma_values,
+                        'kdma_reasoning': kdma_reasoning,
+                    }
                     incontext_data[sys_kdma_name].append(example)
 
             # Normalize ground truth KDMA values
@@ -281,94 +461,25 @@ class IncontextExampleGenerator(object, metaclass=ABCMeta):
         icl_strategy = self.incontext_settings["method"]
         least_similar_examples = self.incontext_settings.get("least_similar_examples", False)
 
-        if icl_strategy == "random":
-            selected_icl_examples = random.sample(possible_icl_examples, n_icl_examples)
-        elif icl_strategy == "scenario_bert_similarity":
-            scenario_description_set = set()
-            final_icl_candidates = []
-            for icl_sample in possible_icl_examples:
-                if icl_sample["scenario_description"] not in scenario_description_set:
-                    final_icl_candidates.append(icl_sample)
-                    scenario_description_set.add(icl_sample["scenario_description"])
-            possible_icl_scenarios = [icl_sample["scenario_description"] for icl_sample in final_icl_candidates]
-            # Create similarity scores between the ICL samples and find top-k indices
-            from bert_score import score
-            _, _, F1 = score([scenario_description_to_match]*len(possible_icl_scenarios), possible_icl_scenarios, lang="en")
-            _, indices = torch.topk(F1, n_icl_examples, largest=(not least_similar_examples))
+        if icl_strategy not in ICL_SELECTION_STRATEGIES:
+            raise ValueError(f'"{icl_strategy}" is not a valid incontext method. Available strategies: '
+                           f'{", ".join(ICL_SELECTION_STRATEGIES.keys())}')
 
-            # Sort so that most similar (of selected) is still first
-            if least_similar_examples:
-                indices = reversed(indices)
-
-            selected_icl_examples = [final_icl_candidates[i] for i in indices]
-        elif icl_strategy == "prompt_bert_similarity":
-            prompt_set = set()
-            final_icl_candidates = []
-            for icl_sample in possible_icl_examples:
-                if icl_sample["prompt"] not in prompt_set:
-                    final_icl_candidates.append(icl_sample)
-                    prompt_set.add(icl_sample["prompt"])
-            possible_icl_prompts = [icl_sample["prompt"] for icl_sample in final_icl_candidates]
-            # Create similarity scores between the ICL samples and find top-k indices
-            from bert_score import score
-            _, _, F1 = score([prompt_to_match]*len(possible_icl_prompts), possible_icl_prompts, lang="en")
-            _, indices = torch.topk(F1, n_icl_examples, largest=(not least_similar_examples))
-
-            # Sort so that most similar (of selected) is still first
-            if least_similar_examples:
-                indices = reversed(indices)
-
-            selected_icl_examples = [final_icl_candidates[i] for i in indices]
-        elif icl_strategy == "matching_actions":
-            action_types = set([action.action_type for action in actions])
-            possible_icl_prompts = [icl_sample["prompt"] for icl_sample in possible_icl_examples]
-            possible_icl_actions = [set([action.action_type for action in icl_sample['actions']]) for icl_sample in possible_icl_examples]
-
-            # Create similarity scores between the ICL samples and find top-k indices
-            from bert_score import score
-            _, _, scores = score([prompt_to_match]*len(possible_icl_prompts), possible_icl_prompts, lang="en")
-
-            # Give examples with the same action types more weight
-            for i in range(len(scores)):
-                if action_types.issubset(possible_icl_actions[i]):
-                    scores[i] += 1
-
-            _, indices = torch.topk(scores, n_icl_examples, largest=(not least_similar_examples))
-
-            # Sort so that most similar (of selected) is still first
-            if least_similar_examples:
-                indices = reversed(indices)
-
-            selected_icl_examples = [possible_icl_examples[i] for i in indices]
-        elif icl_strategy == "matching_characters":
-            action_chars = set([action.character_id for action in actions])
-            possible_icl_prompts = [icl_sample["prompt"] for icl_sample in possible_icl_examples]
-            possible_icl_chars = [set([action.character_id for action in icl_sample['actions']]) for icl_sample in possible_icl_examples]
-
-            # Create similarity scores between the ICL samples and find top-k indices
-            from bert_score import score
-            _, _, scores = score([prompt_to_match]*len(possible_icl_prompts), possible_icl_prompts, lang="en")
-
-            # Give examples with the same character more weight
-            for i in range(len(scores)):
-                if action_chars.issubset(possible_icl_chars[i]):
-                    scores[i] += 1
-
-            _, indices = torch.topk(scores, n_icl_examples, largest=(not least_similar_examples))
-
-            # Sort so that most similar (of selected) is still first
-            if least_similar_examples:
-                indices = reversed(indices)
-
-            selected_icl_examples = [possible_icl_examples[i] for i in indices]
-        else:
-            raise ValueError(f'"{icl_strategy}" is not a valid incontext method. Please use "random" or '
-                                '"scenario_bert_similarity" or "prompt_bert_similarity"')
+        strategy_fn = ICL_SELECTION_STRATEGIES[icl_strategy]
+        selected_examples = strategy_fn(
+            possible_examples=possible_icl_examples,
+            n_examples=n_icl_examples,
+            scenario_to_match=scenario_description_to_match,
+            prompt_to_match=prompt_to_match,
+            actions=actions,
+            least_similar_examples=least_similar_examples,
+            scorer=self.scorer
+        )
 
         if self.incontext_settings.get("most_similar_first", True):
-            return selected_icl_examples
+            return selected_examples
         else:
-            return list(reversed(selected_icl_examples))
+            return list(reversed(selected_examples))
 
 
 class BaselineIncontextExampleGenerator(IncontextExampleGenerator):
@@ -384,6 +495,9 @@ class BaselineIncontextExampleGenerator(IncontextExampleGenerator):
         icl_datasets = {}
         incontext_data = self._read_icl_dataset_files()
 
+        if self.scenario_description_template is None:
+            self.scenario_description_template = scenario_state_description_1
+
         # Add each target to icl_datasets
         for target_kdma in self.target_kdmas:
             sys_kdma_name = target_kdma['kdma']
@@ -394,7 +508,7 @@ class BaselineIncontextExampleGenerator(IncontextExampleGenerator):
             for example in kdma_incontext_data:
 
                 # Get scenario and prompt
-                icl_scenario_description = scenario_state_description_1(example['state'])
+                icl_scenario_description = self.scenario_description_template(example['state'])
                 icl_prompt = action_selection_prompt(icl_scenario_description, example['choices'])
 
                 # Get example response
@@ -404,9 +518,12 @@ class BaselineIncontextExampleGenerator(IncontextExampleGenerator):
                 ]
                 correct_answer_idx = np.argmin(dist_to_tgt)
                 correct_choice = example['choices'][correct_answer_idx]
-                adjective = "low" if target_kdma['value'] < 0.5 else "high"
-                reasoning = f"Per the principle of {adjective} {target_kdma['name']}, " \
-                            f'\\"{correct_choice}\\" is the correct answer.'
+                if 'kdma_reasoning' in example and example['kdma_reasoning'][correct_answer_idx] is not None:
+                    reasoning = example['kdma_reasoning'][correct_answer_idx]
+                else:
+                    adjective = "low" if target_kdma['value'] < 0.5 else "high"
+                    reasoning = f"Per the principle of {adjective} {target_kdma['name']}, " \
+                                f'\\"{correct_choice}\\" is the correct answer.'
                 icl_response = {"detailed_reasoning": reasoning,
                                 "action_choice": correct_choice}
                 # Validate response against schema
@@ -770,3 +887,80 @@ class Phase2ComparativeRegressionIncontextExampleGenerator(IncontextExampleGener
 
         cot_reasoning = f"{max_choice} demonstates {adjective} more {target_kdma['name']} than {min_choice}."
         return cot_reasoning
+
+# TODO: Refactor IncontextExampleGenerators to take scenario
+# description and prompt templates as arguments and use
+# `call_with_coerced_args`
+class Phase2ComparativeRegressionIncontextExampleGeneratorOWConversion(Phase2ComparativeRegressionIncontextExampleGenerator):
+    def set_icl_datasets(self):
+        from swagger_client.models import ActionTypeEnum
+
+        icl_datasets = {}
+        incontext_data = self._read_icl_dataset_files()
+
+        # Add each target to icl_datasets
+        for target_kdma in self.target_kdmas:
+            sys_kdma_name = target_kdma['kdma']
+            icl_datasets[sys_kdma_name] = []
+            kdma_incontext_data = incontext_data[sys_kdma_name]
+
+            # Add each examples to icl_datasets
+            for example in kdma_incontext_data:
+                character_unstructured_by_id = {c.id: c.unstructured for c in example['state'].characters}
+
+                # Get example response
+                icl_response = {}
+                included_choices = []
+                for action, choice, kdma_value in zip(example['actions'], example['choices'], example["kdma_values"]):
+                    # HACK: Reformat choice string for OW
+                    # TODO: Bring more in line with OWFormatChoicesADMComponent (align_system/algorithms/open_world_components.py)
+                    if action.action_type in {ActionTypeEnum.END_SCENE, ActionTypeEnum.SEARCH}:
+                        choice = action.unstructured
+                    else:
+                        c_id = action.character_id
+                        # Not doing action expansion here as is done
+                        # in the OWFormatChoiceADMComponent, since
+                        # it's not clear whether the ground truth
+                        # values would just be duplicated across the
+                        # expansion or??
+                        assert c_id is not None
+
+                        choice = f"{c_id}: {character_unstructured_by_id[c_id]}"
+
+                    # Only include choice if there is a ground truth KDMA value available
+                    if kdma_value is None:
+                        continue
+                    # Groundtruth KDMA values are 0-1, but ADM may predict on a different scale
+                    scaled_kdma_value = int(kdma_value * target_kdma["factor"])
+                    icl_response[choice] = {}
+                    icl_response[choice]['score'] = scaled_kdma_value
+                    included_choices.append(choice)
+                icl_response_with_reasoning={}
+                icl_response_with_reasoning['reasoning'] = self.get_chain_of_thought_reasoning(target_kdma, icl_response)
+                icl_response_with_reasoning.update(icl_response) # reasoning first
+                # Check if response is valid against json schema
+                correct_schema = json.loads(comparative_regression_json_schema(included_choices, target_kdma["factor"]))
+                validate(instance=icl_response_with_reasoning, schema=correct_schema)
+
+                # Get example prompt
+                icl_scenario_description = phase2_scenario_state_description(example['state'])
+                # Only include choices in the prompt if they are in the response
+                included_icl_choices_with_outcomes = {}
+                for choice in included_choices:
+                    # TODO: Include outcome prediction for ICL examples?
+                    included_icl_choices_with_outcomes[choice] = {'predicted_outcome':None}
+
+                icl_prompt = comparative_regression_prompt(icl_scenario_description,
+                                                           included_icl_choices_with_outcomes,
+                                                           target_kdma['name'])
+
+                # Add example
+                icl_datasets[sys_kdma_name].append({
+                    "state": example["state"],
+                    "scenario_description": icl_scenario_description,
+                    "prompt": icl_prompt,
+                    "response": icl_response_with_reasoning,
+                    "actions": example['actions']
+                    })
+
+        self.icl_datasets = icl_datasets

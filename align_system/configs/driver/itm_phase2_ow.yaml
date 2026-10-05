@@ -1,0 +1,4 @@
+_target_: align_system.drivers.itm_open_world.ITMOpenWorldDriver
+
+apply_action_filtering: true
+sort_available_actions: false

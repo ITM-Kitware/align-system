@@ -1,0 +1,6 @@
+_target_: align_system.data_models.attribute.Attribute
+
+name: protocol focus
+kdma: "ProtocolFocus"
+description: Protocol focus is the tendency to prioritize based on aprotocol or rule, instead of considering specific context factors as reasons to make exceptions to the protocol. A high protocol focus person will stick to the rules, even when it seems like that may waste time, effort, or cause unhappiness.
+factor: 10

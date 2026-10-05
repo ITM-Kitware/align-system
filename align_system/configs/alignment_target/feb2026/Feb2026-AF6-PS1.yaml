@@ -1,0 +1,22 @@
+id: Feb2026-AF6-PS1
+kdma_values:
+- kdma: affiliation
+  value: null
+  kdes: null
+  parameters:
+  - name: intercept
+    value: 2.5125
+  - name: attr_weight
+    value: -0.64063
+  - name: medical_weight
+    value: 1.84375
+- kdma: personal_safety
+  value: null
+  kdes: null
+  parameters:
+  - name: intercept
+    value: -2.8125
+  - name: attr_weight
+    value: 1.6475
+  - name: medical_weight
+    value: 1.05125

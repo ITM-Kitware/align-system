@@ -1,0 +1,36 @@
+# @package _global_
+defaults:
+  - override /adm: phase2_pipeline_fewshot_comparative_regression
+  - override /interface: ta3
+  - override /adm_component/alignment@adm.step_definitions.scalar_alignment: multinomial_medical_urgency_weighted_scalar
+
+interface:
+  api_endpoint: "https://darpaitm.caci.com"
+  session_type: eval
+  training_session: null
+  username: "ALIGN-ADM-Ph2-ComparativeRegression-Mistral-7B-Instruct-v0.3"
+  domain: "p2triage"
+  adm_profile: FEB_OPENWORLD1
+
+adm:
+  step_definitions:
+    regression_icl:
+      icl_generator_partial:
+        incontext_settings:
+          number: 20
+          datasets:
+            medical: /data/shared/samba/phase2_icl/Jun2026-MU-train_20260529.json
+            affiliation: /data/shared/samba/phase2_icl/Jun2026-AF-train_20260529.json
+            merit: /data/shared/samba/phase2_icl/Jun2026-MF-train_20260529.json
+            personal_safety: /data/shared/samba/phase2_icl/Jun2026-PS-train_20260529.json
+            search: /data/shared/samba/phase2_icl/Jun2026-SS-train_20260529.json
+
+    comparative_regression:
+      enable_caching: true
+
+driver:
+  apply_action_filtering: false
+
+force_determinism: true
+align_to_target: true
+save_last_unstructured_state_per_scenario: true

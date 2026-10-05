@@ -31,7 +31,10 @@ class EnsureChosenActionADMComponent(ADMComponent):
         if (hasattr(chosen_action, 'justification')
                 and chosen_action.justification is None
                 and justification is not None):
-            chosen_action.justification = justification
+            if isinstance(chosen_action, tuple) and hasattr(chosen_action, "_replace"):
+                chosen_action = chosen_action._replace(justification=justification)
+            else:
+                chosen_action.justification = justification
 
         return chosen_action
 
@@ -93,7 +96,10 @@ class PopulateChoiceInfo(ADMComponent):
             actions,
             alignment_target=None,
             attribute_prediction_scores=None,
-            attribute_relevance=None):
+            attribute_relevance=None,
+            icl_example_info=None,
+            alignment_info=None,
+    ):
         choice_info = {}
 
         if alignment_target is None:
@@ -106,6 +112,12 @@ class PopulateChoiceInfo(ADMComponent):
 
         if attribute_relevance is not None:
             choice_info['predicted_relevance'] = attribute_relevance
+
+        if icl_example_info is not None:
+            choice_info['icl_example_responses'] = icl_example_info
+
+        if alignment_info is not None:
+            choice_info['alignment_info'] = alignment_info
 
         true_kdma_values = {}
         true_relevance = {}

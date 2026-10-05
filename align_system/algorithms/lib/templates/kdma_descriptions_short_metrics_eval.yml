@@ -1,9 +1,0 @@
-MoralDesert:
-  name: Moral Deservingness
-  description: Favoring victims or bystanders over those who are perpetrators or otherwise potentially blame-worthy
-  vrd: Value
-
-maximization:
-  name: Maximization
-  description: Prioritize gathering information to take the most informed, life-saving actions
-  vrd: Value

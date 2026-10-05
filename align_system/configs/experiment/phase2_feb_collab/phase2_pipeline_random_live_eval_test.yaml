@@ -1,0 +1,32 @@
+# @package _global_
+defaults:
+  - override /adm: pipeline_random
+  - override /interface: ta3
+
+interface:
+  api_endpoint: "https://darpaitm.caci.com"
+  session_type: eval
+  training_session: null
+  username: "testrun-pipeline_random"
+  domain: "p2triage"
+
+adm:
+  instance:
+    steps:
+    # Reference the step instances we want to use in order
+    - ${ref:adm.step_definitions.format_choices}
+    - ${ref:adm.step_definitions.random_choice}
+    # - ${ref:adm.step_definitions.action_parameter_completion}
+    - ${ref:adm.step_definitions.ensure_chosen_action}
+    - ${ref:adm.step_definitions.populate_choice_info}
+
+driver:
+  apply_action_filtering: false
+
+force_determinism: true
+align_to_target: false
+save_last_unstructured_state_per_scenario: true
+
+hydra:
+  run:
+    dir: 'phase2_feb2026_results_local/phase2_pipeline_random_live_eval_test/${now:%Y-%m-%d__%H-%M-%S}'

@@ -1,0 +1,22 @@
+id: Feb2026-AF8-PS4
+kdma_values:
+- kdma: affiliation
+  value: null
+  kdes: null
+  parameters:
+  - name: intercept
+    value: 2.8375
+  - name: attr_weight
+    value: 0.453125
+  - name: medical_weight
+    value: 2.10625
+- kdma: personal_safety
+  value: null
+  kdes: null
+  parameters:
+  - name: intercept
+    value: -0.4875
+  - name: attr_weight
+    value: 0.7075
+  - name: medical_weight
+    value: 0.95375

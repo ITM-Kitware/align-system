@@ -324,7 +324,34 @@
         "Treat Patient B": {
           "Moral judgement": 0.55
         }
-      }
+      },
+      "per_step_timing_stats": [
+        {
+          "step": "align_system.algorithms.misc_itm_adm_components.ITMFormatChoicesADMComponent",
+          "step_num": 0,
+          "elapsed_s": 5.3581781685352325e-05
+        },
+        {
+          "step": "align_system.algorithms.outlines_baseline_adm_component.OutlinesBaselineADMComponent",
+          "step_num": 1,
+          "elapsed_s": 7.774507644586265
+        },
+        {
+          "step": "align_system.algorithms.action_parameter_completion_adm_component.ActionParameterCompletionADMComponent",
+          "step_num": 2,
+          "elapsed_s": 6.314177978783846
+        },
+        {
+          "step": "align_system.algorithms.misc_itm_adm_components.EnsureChosenActionADMComponent",
+          "step_num": 3,
+          "elapsed_s": 4.288088530302048e-05
+        },
+        {
+          "step": "align_system.algorithms.misc_itm_adm_components.PopulateChoiceInfo",
+          "step_num": 4,
+          "elapsed_s": 3.758259117603302e-05
+        }
+      ]
     },
     "output": {
       "choice": 8,
@@ -676,7 +703,34 @@
         "Treat Patient B": {
           "Moral judgement": 0.65
         }
-      }
+      },
+      "per_step_timing_stats": [
+        {
+          "step": "align_system.algorithms.misc_itm_adm_components.ITMFormatChoicesADMComponent",
+          "step_num": 0,
+          "elapsed_s": 3.423541784286499e-05
+        },
+        {
+          "step": "align_system.algorithms.outlines_baseline_adm_component.OutlinesBaselineADMComponent",
+          "step_num": 1,
+          "elapsed_s": 5.502487134188414
+        },
+        {
+          "step": "align_system.algorithms.action_parameter_completion_adm_component.ActionParameterCompletionADMComponent",
+          "step_num": 2,
+          "elapsed_s": 6.161301428452134
+        },
+        {
+          "step": "align_system.algorithms.misc_itm_adm_components.EnsureChosenActionADMComponent",
+          "step_num": 3,
+          "elapsed_s": 4.2790547013282776e-05
+        },
+        {
+          "step": "align_system.algorithms.misc_itm_adm_components.PopulateChoiceInfo",
+          "step_num": 4,
+          "elapsed_s": 3.406498581171036e-05
+        }
+      ]
     },
     "output": {
       "choice": 7,
@@ -1028,7 +1082,34 @@
         "Treat Patient B": {
           "Moral judgement": 0.7
         }
-      }
+      },
+      "per_step_timing_stats": [
+        {
+          "step": "align_system.algorithms.misc_itm_adm_components.ITMFormatChoicesADMComponent",
+          "step_num": 0,
+          "elapsed_s": 3.293156623840332e-05
+        },
+        {
+          "step": "align_system.algorithms.outlines_baseline_adm_component.OutlinesBaselineADMComponent",
+          "step_num": 1,
+          "elapsed_s": 5.507810204289854
+        },
+        {
+          "step": "align_system.algorithms.action_parameter_completion_adm_component.ActionParameterCompletionADMComponent",
+          "step_num": 2,
+          "elapsed_s": 5.86658610869199
+        },
+        {
+          "step": "align_system.algorithms.misc_itm_adm_components.EnsureChosenActionADMComponent",
+          "step_num": 3,
+          "elapsed_s": 4.28520143032074e-05
+        },
+        {
+          "step": "align_system.algorithms.misc_itm_adm_components.PopulateChoiceInfo",
+          "step_num": 4,
+          "elapsed_s": 3.400444984436035e-05
+        }
+      ]
     },
     "output": {
       "choice": 7,
@@ -1380,7 +1461,34 @@
         "Treat Patient B": {
           "Moral judgement": 0.7
         }
-      }
+      },
+      "per_step_timing_stats": [
+        {
+          "step": "align_system.algorithms.misc_itm_adm_components.ITMFormatChoicesADMComponent",
+          "step_num": 0,
+          "elapsed_s": 3.341399133205414e-05
+        },
+        {
+          "step": "align_system.algorithms.outlines_baseline_adm_component.OutlinesBaselineADMComponent",
+          "step_num": 1,
+          "elapsed_s": 5.956251637078822
+        },
+        {
+          "step": "align_system.algorithms.action_parameter_completion_adm_component.ActionParameterCompletionADMComponent",
+          "step_num": 2,
+          "elapsed_s": 5.8827875927090645
+        },
+        {
+          "step": "align_system.algorithms.misc_itm_adm_components.EnsureChosenActionADMComponent",
+          "step_num": 3,
+          "elapsed_s": 4.240032285451889e-05
+        },
+        {
+          "step": "align_system.algorithms.misc_itm_adm_components.PopulateChoiceInfo",
+          "step_num": 4,
+          "elapsed_s": 3.343261778354645e-05
+        }
+      ]
     },
     "output": {
       "choice": 7,

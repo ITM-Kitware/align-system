@@ -26,7 +26,6 @@ Given the following possible actions, please provide a detailed reasoning for wh
 - Treat Patient A
 - Treat Patient B
 [/INST]
-PyTorch version 2.3.1+cu118 available.
 [bold]*VOTES*[/bold]
 {'DIRECT MOBILE CHARACTERS': -1e-06, 'SITREP': -1e-06, 'TAG CHARACTER': -1e-06, 'Treat Patient A': -1e-06, 'Treat Patient B': 1.000004}
 [bold]*DIALOG PROMPT*[/bold]

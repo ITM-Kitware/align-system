@@ -21,6 +21,7 @@ class OutlinesBaselineADMComponent(ADMComponent):
                  prompt_template,
                  output_schema_template,
                  system_prompt_template=None,
+                 system_prompt=None,
                  num_samples=1,
                  vote_calculator_fn=calculate_votes,
                  enable_caching=False):
@@ -30,6 +31,7 @@ class OutlinesBaselineADMComponent(ADMComponent):
         self.output_schema_template = output_schema_template
 
         self.system_prompt_template = system_prompt_template
+        self.system_prompt = system_prompt
 
         self.num_samples = num_samples
         self.vote_calculator_fn = vote_calculator_fn
@@ -69,13 +71,19 @@ class OutlinesBaselineADMComponent(ADMComponent):
             {'scenario_state': scenario_state})
 
         dialog = []
-        if self.system_prompt_template is not None:
-            system_prompt = call_with_coerced_args(
-                self.system_prompt_template, {})
+        if self.system_prompt is not None:
+            system_prompt = self.system_prompt
 
             dialog.insert(0, DialogElement(role='system',
                                            content=system_prompt,
                                            tags=['regression']))
+
+        elif self.system_prompt_template is not None:
+            system_prompt = call_with_coerced_args(
+                self.system_prompt_template, {})
+
+            dialog.insert(0, DialogElement(role='system',
+                                           content=system_prompt))
 
         prompt = call_with_coerced_args(
             self.prompt_template,
@@ -84,8 +92,7 @@ class OutlinesBaselineADMComponent(ADMComponent):
              'choices': choices})
 
         dialog.append(DialogElement(role='user',
-                                    content=prompt,
-                                    tags=['regression']))
+                                    content=prompt))
 
         output_schema = call_with_coerced_args(
             self.output_schema_template,
@@ -136,6 +143,9 @@ class OutlinesBaselineADMComponent(ADMComponent):
         '''
 
         def _generic_object_repr(obj):
+            if obj is None:
+                return "None"
+
             init_params = inspect.signature(obj.__class__.__init__).parameters
             obj_vars = vars(obj)
 
@@ -153,6 +163,7 @@ class OutlinesBaselineADMComponent(ADMComponent):
                        prompt_template={_generic_object_repr(self.prompt_template)},
                        output_schema_template={_generic_object_repr(self.output_schema_template)},
                        system_prompt_template={_generic_object_repr(self.system_prompt_template)},
+                       system_prompt={self.system_prompt},
                        num_samples={self.num_samples},
                        vote_calculator_fn={_generic_object_repr(self.vote_calculator_fn)},
                        )""", flags=re.MULTILINE).strip()

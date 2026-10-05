@@ -1,0 +1,7 @@
+_target_: align_system.data_models.attribute.Attribute
+
+name: SALT
+kdma: "SALT"
+description: SALT tagging protocol
+factor: 1
+score_examples: null

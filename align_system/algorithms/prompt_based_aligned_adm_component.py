@@ -80,16 +80,14 @@ class PromptBasedAlignedADMComponent(ADMComponent):
 
             positive_dialog.insert(
                 0, DialogElement(role='system',
-                                 content=positive_system_prompt,
-                                 tags=['regression']))
+                                 content=positive_system_prompt))
 
         if len(positive_icl_dialog_elements) > 0:
             positive_dialog.extend(positive_icl_dialog_elements)
 
         positive_dialog.append(
             DialogElement(role='user',
-                          content=prompt,
-                          tags=['regression']))
+                          content=prompt))
 
         positive_dialog_prompt = self.structured_inference_engine.dialog_to_prompt(
             positive_dialog)
@@ -108,16 +106,14 @@ class PromptBasedAlignedADMComponent(ADMComponent):
 
                 negative_dialog.insert(
                     0, DialogElement(role='system',
-                                     content=negative_system_prompt,
-                                     tags=['regression']))
+                                     content=negative_system_prompt))
 
             if len(negative_icl_dialog_elements) > 0:
                 negative_dialog.extend(negative_icl_dialog_elements)
 
             negative_dialog.append(
                 DialogElement(role='user',
-                              content=prompt,
-                              tags=['regression']))
+                              content=prompt))
 
             negative_dialog_prompt = self.structured_inference_engine.dialog_to_prompt(
                 negative_dialog)

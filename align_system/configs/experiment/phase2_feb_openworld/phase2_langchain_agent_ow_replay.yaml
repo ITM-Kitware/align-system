@@ -1,0 +1,15 @@
+# @package _global_
+# Local smoke test for the LangChain agent driver: replays recorded
+# scenario states from a file instead of hitting a live TA3 server, so
+# the agent's observe -> decide -> act loop can be exercised offline
+defaults:
+  # The LangChain agent drives the scenario itself; no ADM is used
+  - override /adm: null
+  - override /interface: input_output_file
+  - override /driver: itm_phase2_ow_langchain
+
+interface:
+  input_output_filepath: 'example_data/input_output_files/openworld_smoke_input_output.json'
+  state_hydration_domain: p2triage
+
+align_to_target: false

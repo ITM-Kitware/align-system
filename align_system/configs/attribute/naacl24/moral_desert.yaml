@@ -1,0 +1,6 @@
+_target_: align_system.data_models.attribute.Attribute
+
+name: moral desert
+kdma: "MoralDesert"
+description: Moral desert refers to rewarding moral actions and punishing immoral misdeeds, which is related to concepts of justice. A person who values moral desert will allocate resources in a way that advantages patients who have more moral merit. For example, they may prioritize a patient injured while trying to help others, or a patient who was not responsible for their own injury.
+factor: 10

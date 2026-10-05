@@ -273,7 +273,7 @@ Cannot access gated repo for url https://huggingface.co/mistralai/Mistral-7B-Ins
 Access to model mistralai/Mistral-7B-Instruct-v0.3 is restricted. You must have access to it and be authenticated to access it. Please log in.
 ```
 1. Visit the model URL while logged in to huggingface to accept the terms and conditions.
-2. If not already done, create an access token on the HuggingFace website: click your profile picture > Access Tokens > Create new token > Read > Create Token > copy token 
+2. If not already done, create an access token on the HuggingFace website: click your profile picture > Access Tokens > Create new token > Read > Create Token > copy token
 3. Store the token on the system running align:
 ```
 poetry run python
@@ -300,6 +300,20 @@ Add token as git credential? (Y/n) n
 [Developer environment setup](docs/developer_setup.md)
 
 [Integration testing](docs/integration_testing.md)
+
+## Citation
+
+If you use the ALIGN system in your research, please cite our paper:
+
+```bibtex
+@inproceedings{ravichandran2025align,
+  title={ALIGN: Prompt-based Attribute Alignment for Reliable, Responsible, and Personalized LLM-based Decision-Making},
+  author={Bharadwaj Ravichandran and David Joy and Paul Elliott and Brian H Hu and Jadie Adams and Christopher Funk and Emily Veenhuis and Anthony Hoogs and Arslan Basharat},
+  booktitle={ICML 2025 Workshop on Reliable and Responsible Foundation Models},
+  year={2025},
+  url={https://openreview.net/forum?id=iQptQH12zD}
+}
+```
 
 ## Acknowledgments
 

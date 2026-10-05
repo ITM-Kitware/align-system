@@ -11,8 +11,8 @@ interface:
 adm:
   instance:
     precision: half
-    sampler:
-      _target_: outlines.samplers.GreedySampler
+    generation_kwargs:
+      do_sample: false
   inference_kwargs:
     distribution_matching: cumulative_kde
     kde_norm: priornorm

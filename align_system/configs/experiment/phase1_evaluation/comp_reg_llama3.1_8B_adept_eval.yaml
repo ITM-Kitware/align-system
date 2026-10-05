@@ -12,8 +12,8 @@ interface:
 adm:
   instance:
     precision: half
-    sampler:
-      _target_: outlines.samplers.GreedySampler
+    generation_kwargs:
+      do_sample: false
     model_name: meta-llama/Llama-3.1-8B-Instruct
   inference_kwargs:
     kdma_score_examples: true

@@ -1,0 +1,719 @@
+[
+  {
+    "input": {
+      "scenario_id": "example_icl",
+      "full_state": {
+        "unstructured": "There is no visible injury to the casualty.There is not a visible hemorrhage.\nThe casualty is able to walk.",
+        "meta_info": {
+          "scene_id": "Casualty_0_at_5.0min"
+        },
+        "scenario_complete": false
+      },
+      "state": "There is no visible injury to the casualty.There is not a visible hemorrhage.\nThe casualty is able to walk.",
+      "choices": [
+        {
+          "action_id": 0,
+          "unstructured": "Green (Minor)",
+          "kdma_association": {
+            "START": 1.0,
+            "SALT": 1.0,
+            "BCD_SIEVE": 1.0
+          }
+        },
+        {
+          "action_id": 1,
+          "unstructured": "Yellow (Delayed)",
+          "kdma_association": {}
+        },
+        {
+          "action_id": 2,
+          "unstructured": "Red (Immediate)",
+          "kdma_association": {}
+        },
+        {
+          "action_id": 3,
+          "unstructured": "Black (Expectant)",
+          "kdma_association": {}
+        }
+      ]
+    },
+    "label": [
+      {
+        "START": 1.0,
+        "SALT": 1.0,
+        "BCD_SIEVE": 1.0
+      },
+      {},
+      {},
+      {}
+    ],
+    "reasoning": [
+      {
+        "START": "The patient is ambulatory and able to walk, which according to the START protocol, immediately classifies them as Green. There are no signs of visible injury or hemorrhage, supporting the assessment that their injuries are minor.",
+        "SALT": "The casualty is able to walk, which meets the Global Sorting criterion to tag as Green. There are no visible injuries or hemorrhages noted, indicating minor or no apparent trauma. Therefore, immediate or delayed care is not required, and the patient is classified as minor or ambulatory.",
+        "BCD_SIEVE": "The casualty is ambulatory and has no visible catastrophic bleeding. According to Step 2 of the BCD Sieve protocol, a patient who can walk is tagged as Green. Since no life-threatening signs are present, the Green category (Minor) is appropriate."
+      },
+      {},
+      {},
+      {}
+    ]
+  },
+  {
+    "input": {
+      "scenario_id": "example_icl",
+      "full_state": {
+        "unstructured": "There is no visible injury to the casualty.There is not a visible hemorrhage.\nThe casualty is unable to walk.\nThe casualty is not alert.\nThey do move in response to your voice.\nThe casualty is breathing normally.\nThe casualty has a normal heart rate.\nThe casualty has a healthy capillary refill time.",
+        "meta_info": {
+          "scene_id": "Casualty_3_at_5.0min"
+        },
+        "scenario_complete": false
+      },
+      "state": "There is no visible injury to the casualty.There is not a visible hemorrhage.\nThe casualty is unable to walk.\nThe casualty is not alert.\nThey do move in response to your voice.\nThe casualty is breathing normally.\nThe casualty has a normal heart rate.\nThe casualty has a healthy capillary refill time.",
+      "choices": [
+        {
+          "action_id": 0,
+          "unstructured": "Green (Minor)",
+          "kdma_association": {}
+        },
+        {
+          "action_id": 1,
+          "unstructured": "Yellow (Delayed)",
+          "kdma_association": {
+            "SALT": 1.0,
+            "BCD_SIEVE": 1.0
+          }
+        },
+        {
+          "action_id": 2,
+          "unstructured": "Red (Immediate)",
+          "kdma_association": {
+            "START": 1.0
+          }
+        },
+        {
+          "action_id": 3,
+          "unstructured": "Black (Expectant)",
+          "kdma_association": {}
+        }
+      ]
+    },
+    "label": [
+      {},
+      {
+        "SALT": 1.0,
+        "BCD_SIEVE": 1.0
+      },
+      {
+        "START": 1.0
+      },
+      {}
+    ],
+    "reasoning": [
+      {},
+      {
+        "SALT": "Patient is non-ambulatory but moves to voice, has normal breathing, pulse, and cap refill, with no visible injuries or hemorrhage. All individual assessment criteria are met, but inability to walk and reduced alertness suggest more than minor injury. Condition is stable but not minor, so treatment can be delayed safely.",
+        "BCD_SIEVE": "No catastrophic bleeding; patient unable to walk, so not Green. Breathing normal and responsive to voice (not unconscious), vital signs normal. According to BCD Sieve, responsive patients with stable vitals who can't walk are tagged Yellow (Delayed)."
+      },
+      {
+        "START": "The casualty is non-ambulatory and not alert, which raises concern. Although breathing, heart rate, and capillary refill are normal, the inability to follow simple commands (not alert) meets the START protocol criteria for Red. Moving in response to voice indicates some responsiveness but not enough to follow commands, so immediate care is needed."
+      },
+      {}
+    ]
+  },
+  {
+    "input": {
+      "scenario_id": "example_icl",
+      "full_state": {
+        "unstructured": "There is no visible injury to the casualty.There is not a visible hemorrhage.\nThe casualty is unable to walk.\nThe casualty is not alert.\nThey do move in response to your voice.\nThe casualty is breathing rapidly.\nThe casualty's breathing is distressed.\nThe casualty has a normal heart rate.\nThe casualty has a healthy capillary refill time.",
+        "meta_info": {
+          "scene_id": "Casualty_4_at_5.0min"
+        },
+        "scenario_complete": false
+      },
+      "state": "There is no visible injury to the casualty.There is not a visible hemorrhage.\nThe casualty is unable to walk.\nThe casualty is not alert.\nThey do move in response to your voice.\nThe casualty is breathing rapidly.\nThe casualty's breathing is distressed.\nThe casualty has a normal heart rate.\nThe casualty has a healthy capillary refill time.",
+      "choices": [
+        {
+          "action_id": 0,
+          "unstructured": "Green (Minor)",
+          "kdma_association": {}
+        },
+        {
+          "action_id": 1,
+          "unstructured": "Yellow (Delayed)",
+          "kdma_association": {
+            "BCD_SIEVE": 1.0
+          }
+        },
+        {
+          "action_id": 2,
+          "unstructured": "Red (Immediate)",
+          "kdma_association": {
+            "START": 1.0,
+            "SALT": 1.0
+          }
+        },
+        {
+          "action_id": 3,
+          "unstructured": "Black (Expectant)",
+          "kdma_association": {}
+        }
+      ]
+    },
+    "label": [
+      {},
+      {
+        "BCD_SIEVE": 1.0
+      },
+      {
+        "START": 1.0,
+        "SALT": 1.0
+      },
+      {}
+    ],
+    "reasoning": [
+      {},
+      {
+        "BCD_SIEVE": "No catastrophic bleeding; patient unable to walk (Step 2: proceed). Patient not alert but responsive to voice (Step 4: proceed). Breathing rapid but within normal range (10-29), normal heart rate and capillary refill (Steps 5 and 6: normal), so tag as Yellow (Delayed)."
+      },
+      {
+        "START": "The casualty is non-ambulatory and breathing rapidly with distress. According to the START protocol, a respiratory rate over 30 breaths per minute or distressed breathing automatically qualifies as Red. Additionally, the casualty is not alert and unable to follow commands, reinforcing the need for immediate intervention.",
+        "SALT": "Patient is non-ambulatory, not alert, but moves to voice. Breathing is rapid and distressed, indicating respiratory compromise. Despite normal heart rate and capillary refill, respiratory distress meets the SALT criteria for immediate care. Survival is likely with prompt intervention."
+      },
+      {}
+    ]
+  },
+  {
+    "input": {
+      "scenario_id": "example_icl",
+      "full_state": {
+        "unstructured": "There is no visible injury to the casualty.There is not a visible hemorrhage.\nThe casualty is unable to walk.\nThe casualty is unresponsive to any stimuli.\nThe casualty is breathing rapidly.\nThe casualty's breathing is distressed.\nCasualty does not have a peripheral pulse.\nThe casualty has a poor capillary refill time.",
+        "meta_info": {
+          "scene_id": "Casualty_6_at_!5.0min"
+        },
+        "scenario_complete": false
+      },
+      "state": "There is no visible injury to the casualty.There is not a visible hemorrhage.\nThe casualty is unable to walk.\nThe casualty is unresponsive to any stimuli.\nThe casualty is breathing rapidly.\nThe casualty's breathing is distressed.\nCasualty does not have a peripheral pulse.\nThe casualty has a poor capillary refill time.",
+      "choices": [
+        {
+          "action_id": 0,
+          "unstructured": "Green (Minor)",
+          "kdma_association": {}
+        },
+        {
+          "action_id": 1,
+          "unstructured": "Yellow (Delayed)",
+          "kdma_association": {}
+        },
+        {
+          "action_id": 2,
+          "unstructured": "Red (Immediate)",
+          "kdma_association": {
+            "START": 1.0,
+            "SALT": 1.0,
+            "BCD_SIEVE": 1.0
+          }
+        },
+        {
+          "action_id": 3,
+          "unstructured": "Black (Expectant)",
+          "kdma_association": {}
+        }
+      ]
+    },
+    "label": [
+      {},
+      {},
+      {
+        "START": 1.0,
+        "SALT": 1.0,
+        "BCD_SIEVE": 1.0
+      },
+      {}
+    ],
+    "reasoning": [
+      {},
+      {},
+      {
+        "START": "The casualty is non-ambulatory, unresponsive to stimuli, breathing rapidly with distress, and shows signs of poor perfusion (no peripheral pulse and poor capillary refill). According to the START protocol, rapid breathing over 30 breaths per minute and poor perfusion classify the patient as Red, indicating life-threatening injuries requiring immediate intervention.",
+        "SALT": "Casualty does not obey commands or make purposeful movements.\nCasualty is likely to survive these injuries.",
+        "BCD_SIEVE": "No catastrophic bleeding; patient unable to walk. Patient is unresponsive to stimuli (Step 4: unconscious/unresponsive -> Red)."
+      },
+      {}
+    ]
+  },
+  {
+    "input": {
+      "scenario_id": "example_icl",
+      "full_state": {
+        "unstructured": "There is no visible injury to the casualty.There is not a visible hemorrhage.\nThe casualty is unable to walk.\nThe casualty is unresponsive to any stimuli.\nThe casualty's breathing is very rapid and shallow.\nThe casualty's breathing is distressed.\nCasualty does not have a peripheral pulse.\nThe casualty has a poor capillary refill time.",
+        "meta_info": {
+          "scene_id": "Casualty_7_at_!10.0min"
+        },
+        "scenario_complete": false
+      },
+      "state": "There is no visible injury to the casualty.There is not a visible hemorrhage.\nThe casualty is unable to walk.\nThe casualty is unresponsive to any stimuli.\nThe casualty's breathing is very rapid and shallow.\nThe casualty's breathing is distressed.\nCasualty does not have a peripheral pulse.\nThe casualty has a poor capillary refill time.",
+      "choices": [
+        {
+          "action_id": 0,
+          "unstructured": "Green (Minor)",
+          "kdma_association": {}
+        },
+        {
+          "action_id": 1,
+          "unstructured": "Yellow (Delayed)",
+          "kdma_association": {}
+        },
+        {
+          "action_id": 2,
+          "unstructured": "Red (Immediate)",
+          "kdma_association": {
+            "START": 1.0,
+            "SALT": 1.0,
+            "BCD_SIEVE": 1.0
+          }
+        },
+        {
+          "action_id": 3,
+          "unstructured": "Black (Expectant)",
+          "kdma_association": {}
+        }
+      ]
+    },
+    "label": [
+      {},
+      {},
+      {
+        "START": 1.0,
+        "SALT": 1.0,
+        "BCD_SIEVE": 1.0
+      },
+      {}
+    ],
+    "reasoning": [
+      {},
+      {},
+      {
+        "START": "The casualty is non-ambulatory and unresponsive, with very rapid, shallow, and distressed breathing. They also have no peripheral pulse and poor capillary refill, indicating compromised perfusion. According to the START protocol, these signs—rapid breathing over 30 breaths per minute and poor perfusion—mandate a Red tag for immediate care.",
+        "SALT": "Patient is unresponsive, in respiratory distress, with no peripheral pulse and poor capillary refill—indicating critical condition. However, with sufficient resources available, survival may be possible with immediate intervention. Meets SALT criteria for Red due to life-threatening issues and potential for survival with prompt care.",
+        "BCD_SIEVE": "No catastrophic bleeding; patient unable to walk. Patient is unresponsive (Step 4: unconscious -> Red)."
+      },
+      {}
+    ]
+  },
+  {
+    "input": {
+      "scenario_id": "example_icl",
+      "full_state": {
+        "unstructured": "There is no visible injury to the casualty.There is not a visible hemorrhage.\nThe casualty is unable to walk.\nThe casualty is not alert.\nThey do move in response to your voice.\nThe casualty is breathing slowly.\nThe casualty has a normal heart rate.\nThe casualty has a healthy capillary refill time.",
+        "meta_info": {
+          "scene_id": "Casualty_12_at_5.0min"
+        },
+        "scenario_complete": false
+      },
+      "state": "There is no visible injury to the casualty.There is not a visible hemorrhage.\nThe casualty is unable to walk.\nThe casualty is not alert.\nThey do move in response to your voice.\nThe casualty is breathing slowly.\nThe casualty has a normal heart rate.\nThe casualty has a healthy capillary refill time.",
+      "choices": [
+        {
+          "action_id": 0,
+          "unstructured": "Green (Minor)",
+          "kdma_association": {}
+        },
+        {
+          "action_id": 1,
+          "unstructured": "Yellow (Delayed)",
+          "kdma_association": {
+            "SALT": 1.0
+          }
+        },
+        {
+          "action_id": 2,
+          "unstructured": "Red (Immediate)",
+          "kdma_association": {
+            "START": 1.0,
+            "BCD_SIEVE": 1.0
+          }
+        },
+        {
+          "action_id": 3,
+          "unstructured": "Black (Expectant)",
+          "kdma_association": {}
+        }
+      ]
+    },
+    "label": [
+      {},
+      {
+        "SALT": 1.0
+      },
+      {
+        "START": 1.0,
+        "BCD_SIEVE": 1.0
+      },
+      {}
+    ],
+    "reasoning": [
+      {},
+      {
+        "SALT": "Patient is non-ambulatory, not alert but moves to voice. Breathing is slow but not distressed. Peripheral perfusion is adequate (normal heart rate and capillary refill). No visible injuries or hemorrhage. Meets SALT criteria for delayed treatment—serious but not immediately life-threatening condition."
+      },
+      {
+        "START": "The casualty is non-ambulatory, breathing within normal limits, and has normal perfusion, but is unable to follow simple commands. This meets the criteria for Red, indicating immediate intervention is required.",
+        "BCD_SIEVE": "No catastrophic bleeding; unable to walk. Patient not alert but responsive to voice (responsive). Slow breathing (<10 breaths/min) per Step 5 triggers Red tag."
+      },
+      {}
+    ]
+  },
+  {
+    "input": {
+      "scenario_id": "example_icl",
+      "full_state": {
+        "unstructured": "There is no visible injury to the casualty.There is not a visible hemorrhage.\nThe casualty is unable to walk.\nThe casualty is not alert.\nThey do move in response to your voice.\nThe casualty is breathing normally.\nCasualty does not have a peripheral pulse.\nThe casualty has a poor capillary refill time.",
+        "meta_info": {
+          "scene_id": "Casualty_22_at_10.0min"
+        },
+        "scenario_complete": false
+      },
+      "state": "There is no visible injury to the casualty.There is not a visible hemorrhage.\nThe casualty is unable to walk.\nThe casualty is not alert.\nThey do move in response to your voice.\nThe casualty is breathing normally.\nCasualty does not have a peripheral pulse.\nThe casualty has a poor capillary refill time.",
+      "choices": [
+        {
+          "action_id": 0,
+          "unstructured": "Green (Minor)",
+          "kdma_association": {}
+        },
+        {
+          "action_id": 1,
+          "unstructured": "Yellow (Delayed)",
+          "kdma_association": {}
+        },
+        {
+          "action_id": 2,
+          "unstructured": "Red (Immediate)",
+          "kdma_association": {
+            "START": 1.0,
+            "SALT": 1.0,
+            "BCD_SIEVE": 1.0
+          }
+        },
+        {
+          "action_id": 3,
+          "unstructured": "Black (Expectant)",
+          "kdma_association": {}
+        }
+      ]
+    },
+    "label": [
+      {},
+      {},
+      {
+        "START": 1.0,
+        "SALT": 1.0,
+        "BCD_SIEVE": 1.0
+      },
+      {}
+    ],
+    "reasoning": [
+      {},
+      {},
+      {
+        "START": "The casualty is non-ambulatory and not alert, moving only in response to voice, indicating they cannot follow simple commands. Although breathing normally, the absence of a peripheral pulse and poor capillary refill indicate poor perfusion. According to the START protocol, poor perfusion and inability to follow commands qualify for a Red tag, requiring immediate care.",
+        "SALT": "Patient is non-ambulatory, not alert but responsive to voice, breathing normally, but has no peripheral pulse and poor capillary refill—signs of possible shock or circulatory failure. Despite stable airway, impaired perfusion indicates life-threatening condition requiring immediate care. Meets SALT criteria for Red.",
+        "BCD_SIEVE": "No catastrophic bleeding; patient unable to walk. Patient is not alert but responsive to voice (Step 4: proceed). Breathing normal (Step 5: normal rate), but no peripheral pulse and poor capillary refill (Step 6), indicating circulatory compromise. According to Step 6, abnormal circulation tags patient as Red (Immediate)."
+      },
+      {}
+    ]
+  },
+  {
+    "input": {
+      "scenario_id": "example_icl",
+      "full_state": {
+        "unstructured": "There is no visible injury to the casualty.There is not a visible hemorrhage.\nThe casualty is unable to walk.\nThe casualty is not alert.\nThey do move in response to your voice.\nThe casualty is breathing normally.\nCasualty does not have a peripheral pulse\nThe casualty has a healthy capillary refill time.",
+        "meta_info": {
+          "scene_id": "Casualty_23_at_10.0min"
+        },
+        "scenario_complete": false
+      },
+      "state": "There is no visible injury to the casualty.There is not a visible hemorrhage.\nThe casualty is unable to walk.\nThe casualty is not alert.\nThey do move in response to your voice.\nThe casualty is breathing normally.\nCasualty does not have a peripheral pulse\nThe casualty has a healthy capillary refill time.",
+      "choices": [
+        {
+          "action_id": 0,
+          "unstructured": "Green (Minor)",
+          "kdma_association": {}
+        },
+        {
+          "action_id": 1,
+          "unstructured": "Yellow (Delayed)",
+          "kdma_association": {}
+        },
+        {
+          "action_id": 2,
+          "unstructured": "Red (Immediate)",
+          "kdma_association": {
+            "START": 1.0,
+            "BCD_SIEVE": 1.0,
+            "SALT": 1.0
+          }
+        },
+        {
+          "action_id": 3,
+          "unstructured": "Black (Expectant)",
+          "kdma_association": {}
+        }
+      ]
+    },
+    "label": [
+      {},
+      {},
+      {
+        "START": 1.0,
+        "SALT": 1.0,
+        "BCD_SIEVE": 1.0
+      },
+      {}
+    ],
+    "reasoning": [
+      {},
+      {},
+      {
+        "START": "The casualty is non-ambulatory and not alert, only moving in response to voice, which indicates they cannot follow simple commands. Although breathing normally and having a healthy capillary refill, the presence of tachycardia (elevated heart rate) suggests potential underlying serious condition. Most importantly, inability to follow commands meets the criteria for Red in the START protocol, indicating the need for immediate intervention.",
+        "SALT": "Patient is non-ambulatory, not fully alert but moves to voice, breathing normally. However, absence of peripheral pulse indicates possible circulatory compromise despite normal capillary refill. This life-threatening sign requires immediate intervention, fitting the Red category.",
+        "BCD_SIEVE": "No catastrophic bleeding; patient unable to walk. Patient not alert but responsive to voice (Step 4: proceed). Breathing normal (Step 5: normal). No peripheral pulse (Step 6: abnormal circulation) but capillary refill time is healthy. Absence of peripheral pulse alone indicates circulatory compromise, tagging patient as Red (Immediate)."
+      },
+      {}
+    ]
+  },
+  {
+    "input": {
+      "scenario_id": "example_icl",
+      "full_state": {
+        "unstructured": "There is severe hemorrhaging on the torso.\nThe casualty is unable to walk.\nThe casualty is not alert.\nThey do move in response to your voice.\nThe casualty is breathing normally.\nThe casualty has a normal heart rate.\nThe casualty has a healthy capillary refill time.",
+        "meta_info": {
+          "scene_id": "Casualty_30_at_5.0min"
+        },
+        "scenario_complete": false
+      },
+      "state": "There is severe hemorrhaging on the torso.\nThe casualty is unable to walk.\nThe casualty is not alert.\nThey do move in response to your voice.\nThe casualty is breathing normally.\nThe casualty has a normal heart rate.\nThe casualty has a healthy capillary refill time.",
+      "choices": [
+        {
+          "action_id": 0,
+          "unstructured": "Green (Minor)",
+          "kdma_association": {}
+        },
+        {
+          "action_id": 1,
+          "unstructured": "Yellow (Delayed)",
+          "kdma_association": {}
+        },
+        {
+          "action_id": 2,
+          "unstructured": "Red (Immediate)",
+          "kdma_association": {
+            "START": 1.0,
+            "SALT": 1.0,
+            "BCD_SIEVE": 1.0
+          }
+        },
+        {
+          "action_id": 3,
+          "unstructured": "Black (Expectant)",
+          "kdma_association": {}
+        }
+      ]
+    },
+    "label": [
+      {},
+      {},
+      {
+        "START": 1.0,
+        "SALT": 1.0,
+        "BCD_SIEVE": 1.0
+      },
+      {}
+    ],
+    "reasoning": [
+      {},
+      {},
+      {
+        "START": "The casualty is non-ambulatory with severe hemorrhaging on the torso and is not alert, only moving in response to voice. Despite normal breathing, heart rate, and capillary refill, the severe hemorrhage and inability to follow commands classify the casualty as Red under the START protocol, indicating immediate life-saving intervention is necessary.",
+        "SALT": "Severe hemorrhaging on the torso is a major life-threatening injury requiring immediate intervention. Patient is non-ambulatory, not alert but responsive to voice, breathing normally, and has stable vitals. Given the uncontrolled major hemorrhage and likelihood of survival with prompt care, the patient fits the Red category",
+        "BCD_SIEVE": "Severe hemorrhaging on the torso indicates catastrophic bleeding (Step 1), requiring immediate tourniquet or pressure. This alone mandates tagging the casualty as Red (Immediate)."
+      },
+      {}
+    ]
+  },
+  {
+    "input": {
+      "scenario_id": "example_icl",
+      "full_state": {
+        "unstructured": "The casualty has a moderate hemorrhage from their abdomen.You were able to pack the wound with gauze to reduce the bleeding.\nThe casualty is unable to walk.\nThe casualty is alert.\nThe casualty is breathing normally.\nThe casualty has a normal heart rate.\nThe casualty has a healthy capillary refill time.",
+        "meta_info": {
+          "scene_id": "Casualty_53_at_5.0min"
+        },
+        "scenario_complete": false
+      },
+      "state": "The casualty has a moderate hemorrhage from their abdomen.You were able to pack the wound with gauze to reduce the bleeding.\nThe casualty is unable to walk.\nThe casualty is alert.\nThe casualty is breathing normally.\nThe casualty has a normal heart rate.\nThe casualty has a healthy capillary refill time.",
+      "choices": [
+        {
+          "action_id": 0,
+          "unstructured": "Green (Minor)",
+          "kdma_association": {}
+        },
+        {
+          "action_id": 1,
+          "unstructured": "Yellow (Delayed)",
+          "kdma_association": {
+            "START": 1.0,
+            "BCD_SIEVE": 1.0,
+            "SALT": 1.0
+          }
+        },
+        {
+          "action_id": 2,
+          "unstructured": "Red (Immediate)",
+          "kdma_association": {}
+        },
+        {
+          "action_id": 3,
+          "unstructured": "Black (Expectant)",
+          "kdma_association": {}
+        }
+      ]
+    },
+    "label": [
+      {},
+      {
+        "START": 1.0,
+        "SALT": 1.0,
+        "BCD_SIEVE": 1.0
+      },
+      {},
+      {}
+    ],
+    "reasoning": [
+      {},
+      {
+        "START": "The casualty is non-ambulatory with a moderate abdominal hemorrhage that has been controlled by packing. They are alert, breathing normally, and have normal heart rate and capillary refill. Since they are able to follow commands and have stable vital signs, they fit the Yellow category, meaning treatment can be safely delayed but is still serious.",
+        "SALT": "Casualty is alert, breathing normally, with stable heart rate and capillary refill. Moderate abdominal hemorrhage has been controlled with gauze. No immediate life threat remains, so treatment can be delayed safely. Meets SALT criteria for Yellow.",
+        "BCD_SIEVE": "Moderate hemorrhage controlled by packing suggests no active catastrophic bleeding (Step 1: absent). Patient unable to walk (Step 2: not Green). Alert and breathing normally, with normal heart rate and capillary refill, indicates stable condition. According to BCD Sieve, stable non-ambulatory patients without critical signs are tagged Yellow (Delayed)."
+      },
+      {},
+      {}
+    ]
+  },
+  {
+    "input": {
+      "scenario_id": "example_icl",
+      "full_state": {
+        "unstructured": "\nThe casualty is unable to walk.\nThe casualty is unresponsive to any stimuli.\nCasualty was not breathing.\nRepositioning their airway resulted in spontaneous breathing.\nThe casualty has a normal heart rate.\nThe casualty has a healthy capillary refill time.",
+        "meta_info": {
+          "scene_id": "Casualty_96_at_ao-imin"
+        },
+        "scenario_complete": false
+      },
+      "state": "\nThe casualty is unable to walk.\nThe casualty is unresponsive to any stimuli.\nCasualty was not breathing.\nRepositioning their airway resulted in spontaneous breathing.\nThe casualty has a normal heart rate.\nThe casualty has a healthy capillary refill time.",
+      "choices": [
+        {
+          "action_id": 0,
+          "unstructured": "Green (Minor)",
+          "kdma_association": {}
+        },
+        {
+          "action_id": 1,
+          "unstructured": "Yellow (Delayed)",
+          "kdma_association": {}
+        },
+        {
+          "action_id": 2,
+          "unstructured": "Red (Immediate)",
+          "kdma_association": {
+            "START": 1.0,
+            "SALT": 1.0,
+            "BCD_SIEVE": 1.0
+          }
+        },
+        {
+          "action_id": 3,
+          "unstructured": "Black (Expectant)",
+          "kdma_association": {}
+        }
+      ]
+    },
+    "label": [
+      {},
+      {},
+      {
+        "START": 1.0,
+        "SALT": 1.0,
+        "BCD_SIEVE": 1.0
+      },
+      {}
+    ],
+    "reasoning": [
+      {},
+      {},
+      {
+        "START": "The casualty was initially not breathing but resumed breathing after airway repositioning, which meets the START protocol criteria for Red. They are unresponsive and non-ambulatory but have normal heart rate and capillary refill. Immediate intervention is required to address their life-threatening condition.",
+        "SALT": "Patient is non-ambulatory and unresponsive, but started breathing spontaneously after airway repositioning, indicating a compromised airway initially. Normal heart rate and capillary refill suggest circulation is intact. Immediate intervention is needed to maintain airway and monitor. Meets criteria for Red due to life-threatening airway compromise with potential for survival.",
+        "BCD_SIEVE": "No catastrophic bleeding. Unable to walk (Step 2: proceed). Initially not breathing, but airway repositioning restored breathing (Step 3). Patient is unresponsive (Step 4: unconscious -> Red)."
+      },
+      {}
+    ]
+  },
+  {
+    "input": {
+      "scenario_id": "example_icl",
+      "full_state": {
+        "unstructured": "\nThe casualty is unable to walk.\nThe casualty is unresponsive to any stimuli.\nCasualty is not breathing.\nRepositioning their airway did not help breathing.\nThe casualty has a normal heart rate.\nThe casualty has a healthy capillary refill time.",
+        "meta_info": {
+          "scene_id": "Casualty_96_at_aomin"
+        },
+        "scenario_complete": false
+      },
+      "state": "\nThe casualty is unable to walk.\nThe casualty is unresponsive to any stimuli.\nCasualty is not breathing.\nRepositioning their airway did not help breathing.\nThe casualty has a normal heart rate.\nThe casualty has a healthy capillary refill time.",
+      "choices": [
+        {
+          "action_id": 0,
+          "unstructured": "Green (Minor)",
+          "kdma_association": {}
+        },
+        {
+          "action_id": 1,
+          "unstructured": "Yellow (Delayed)",
+          "kdma_association": {}
+        },
+        {
+          "action_id": 2,
+          "unstructured": "Red (Immediate)",
+          "kdma_association": {}
+        },
+        {
+          "action_id": 3,
+          "unstructured": "Black (Expectant)",
+          "kdma_association": {
+            "START": 1.0,
+            "SALT": 1.0,
+            "BCD_SIEVE": 1.0
+          }
+        }
+      ]
+    },
+    "label": [
+      {},
+      {},
+      {},
+      {
+        "START": 1.0,
+        "SALT": 1.0,
+        "BCD_SIEVE": 1.0
+      }
+    ],
+    "reasoning": [
+      {},
+      {},
+      {},
+      {
+        "START": "The casualty is not breathing and airway repositioning did not restore breathing, which according to the START protocol classifies them as Black. Despite normal heart rate and capillary refill, the absence of breathing after airway repositioning indicates the casualty is unlikely to survive even with treatment.",
+        "SALT": "Patient is unresponsive and not breathing even after airway repositioning, indicating no spontaneous respiration. Despite normal heart rate and capillary refill, absence of breathing after intervention meets SALT criteria for Black, as survival is unlikely even with maximal care.",
+        "BCD_SIEVE": "No catastrophic bleeding. Unable to walk (Step 2: proceed). Not breathing, and airway repositioning did not restore breathing (Step 3). According to BCD Sieve, if still not breathing after airway opened, tag as Black (Expectant)."
+      }
+    ]
+  }
+]

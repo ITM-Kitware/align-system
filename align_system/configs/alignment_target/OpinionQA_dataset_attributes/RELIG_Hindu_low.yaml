@@ -1,4 +1,4 @@
-_target_: swagger_client.models.AlignmentTarget
+_target_: align_system.data_models.compat.ta3_ph1_client_models.AlignmentTarget
 id: RELIG_Hindu_low
 kdma_values:
 - kdma: RELIG_Hindu

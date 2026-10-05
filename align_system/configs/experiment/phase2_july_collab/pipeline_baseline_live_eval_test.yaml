@@ -30,7 +30,8 @@ adm:
     - ${ref:adm.step_definitions.ensure_chosen_action}
     - ${ref:adm.step_definitions.populate_choice_info}
 
-apply_action_filtering: false
+driver:
+  apply_action_filtering: false
 
 force_determinism: true
 align_to_target: false
@@ -38,4 +39,4 @@ save_last_unstructured_state_per_scenario: true
 
 hydra:
   run:
-    dir: 'phase2_july_eval_live/baseline/${now:%Y-%m-%d__%H-%M-%S}'
+    dir: 'phase2_july_rq2_eval_live_test/baseline/${now:%Y-%m-%d__%H-%M-%S}'

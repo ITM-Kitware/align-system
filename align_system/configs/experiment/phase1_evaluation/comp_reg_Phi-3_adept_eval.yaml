@@ -12,8 +12,8 @@ interface:
 adm:
   instance:
     precision: half
-    sampler:
-      _target_: outlines.samplers.GreedySampler
+    generation_kwargs:
+      do_sample: false
     model_name: microsoft/Phi-3-medium-4k-instruct
   inference_kwargs:
     kdma_score_examples: true

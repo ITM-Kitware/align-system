@@ -1,0 +1,15 @@
+id: Jun2026-PS-7
+kdma_values:
+- kdma: personal_safety
+  value: null
+  kdes: null
+  parameters:
+  - name: intercept
+    value: 1.401365
+    type: single
+  - name: attr_weight
+    value: 1.301909
+    type: single
+  - name: medical_weight
+    value: 1.165163
+    type: single

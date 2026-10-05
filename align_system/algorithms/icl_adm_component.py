@@ -1,6 +1,10 @@
+import re
+import inspect
+import copy
 from functools import lru_cache
+from collections.abc import Mapping
 
-from swagger_client.models import AlignmentTarget
+import ubelt as ub
 
 from align_system.utils import logging, call_with_coerced_args
 from align_system.utils.alignment_utils import attributes_in_alignment_target
@@ -38,7 +42,8 @@ class ICLADMComponent(ADMComponent):
                  scenario_description_template,
                  prompt_template,
                  attributes=None,
-                 target_attribute_names_override=None):
+                 target_attribute_names_override=None,
+                 enable_caching=False):
         self.icl_generator_partial = icl_generator_partial
         self.scenario_description_template = scenario_description_template
 
@@ -50,8 +55,10 @@ class ICLADMComponent(ADMComponent):
 
         self.target_attribute_names_override = target_attribute_names_override
 
+        self.enable_caching = enable_caching
+
     def run_returns(self):
-        return 'icl_dialog_elements'
+        return ('icl_dialog_elements', 'icl_example_info')
 
     def run(self,
             scenario_state,
@@ -78,18 +85,46 @@ class ICLADMComponent(ADMComponent):
 
         target_attributes = [self.attributes[n] for n in target_attribute_names]
 
-        if isinstance(alignment_target, AlignmentTarget):
+        if self.enable_caching:
+            scenario_state_copy = copy.deepcopy(scenario_state)
+            if hasattr(scenario_state, 'elapsed_time'):
+                # Don't consider the elapsed_time of the state when caching
+                scenario_state_copy.elapsed_time = 0
+
+            depends = '\n'.join((
+                self.cache_repr(),
+                repr(scenario_state_copy),
+                repr(choices),
+                repr(target_attribute_names)))
+
+            cacher = ub.Cacher('icl_adm_component', depends, verbose=0)
+            log.debug(f'cacher.fpath={cacher.fpath}')
+
+            cached_output = cacher.tryload()
+            if cached_output is not None:
+                log.info("Cache hit for `icl_adm_component`"
+                         " returning cached output")
+                return cached_output
+            else:
+                log.info("Cache miss for `icl_adm_component` ..")
+
+        # Mapping covers `dict` and `omegaconf.dictconfig.DictConfig`
+        if not isinstance(alignment_target, Mapping):
             alignment_target_dict = alignment_target.to_dict()
         else:
             alignment_target_dict = alignment_target
 
         alignment_target_value_lookup = {
             kdma_values['kdma']: kdma_values['value']
-            for kdma_values in alignment_target_dict['kdma_values']}
+            for kdma_values in alignment_target_dict['kdma_values']
+            if 'value' in kdma_values}
 
         icl_dialog_elements = {}
+        icl_example_info = {}
+
         for attribute in target_attributes:
             icl_dialog_elements[attribute.kdma] = []
+            icl_example_info[attribute.kdma] = []
 
             # Not sure how much this value actually matters for ICL;
             # defaulting to `1.0` if not in the alignment target
@@ -133,13 +168,52 @@ class ICLADMComponent(ADMComponent):
 
             for icl_sample in selected_icl_examples:
                 icl_dialog_elements[attribute.kdma].append(DialogElement(role='user',
-                                                         content=icl_sample['prompt'],
-                                                         tags=['icl']))
+                                                         content=icl_sample['prompt']))
                 icl_dialog_elements[attribute.kdma].append(DialogElement(role='assistant',
-                                                         content=str(icl_sample['response']),
-                                                         tags=['icl']))
+                                                         content=str(icl_sample['response'])))
 
-        return icl_dialog_elements
+                # Capture ICL example info for choice_info
+                icl_info = {
+                    'similarity_score': icl_sample['similarity_score'],
+                    'prompt': icl_sample['prompt'],
+                    'response': icl_sample['response'],
+                }
+                icl_example_info[attribute.kdma].append(icl_info)
+
+        outputs = (icl_dialog_elements, icl_example_info)
+
+        if self.enable_caching:
+            cacher.save(outputs)
+
+        return outputs
+
+    def cache_repr(self):
+        '''
+        Return a string representation of this object for caching;
+        .i.e. if the return value of this function is the same for two
+        object instances, it's assumed that `run` output will be
+        the same if given the same parameters
+        '''
+
+        def _generic_object_repr(obj):
+            init_params = inspect.signature(obj.__class__.__init__).parameters
+            obj_vars = vars(obj)
+
+            return "{}.{}({})".format(
+                obj.__class__.__module__,
+                obj.__class__.__name__,
+                ", ".join([f"{p}={obj_vars[p]}" for p in init_params
+                           if p != 'self' and p != 'args' and p != 'kwargs']))
+
+        return re.sub(r'^\s+', '',
+                      f"""
+                       {self.__class__.__module__}.{self.__class__.__name__}(
+                       icl_generator_partial={self.icl_generator_partial},
+                       scenario_description_template={_generic_object_repr(self.scenario_description_template)},
+                       prompt_template={_generic_object_repr(self.prompt_template)},
+                       attributes={self.attributes},
+                       target_attribute_names_override={self.target_attribute_names_override},
+                       )""", flags=re.MULTILINE).strip()
 
 
 # ICL Engines dependent on alignment target, but that could change
@@ -226,7 +300,8 @@ class PromptBasedICLADMComponent(ADMComponent):
                  'choice_outcomes': {c: None for c in choices},
                  'attribute': attribute.name})
 
-        if isinstance(alignment_target, AlignmentTarget):
+        # Mapping covers `dict` and `omegaconf.dictconfig.DictConfig`
+        if not isinstance(alignment_target, Mapping):
             alignment_target_dict = alignment_target.to_dict()
         else:
             alignment_target_dict = alignment_target
@@ -252,12 +327,10 @@ class PromptBasedICLADMComponent(ADMComponent):
         for pos_icl_sample in pos_selected_icl_examples:
             pos_icl_dialog_elements.append(
                 DialogElement(role='user',
-                              content=pos_icl_sample['prompt'],
-                              tags=['icl']))
+                              content=pos_icl_sample['prompt']))
             pos_icl_dialog_elements.append(
                 DialogElement(role='assistant',
-                              content=str(pos_icl_sample['response']),
-                              tags=['icl']))
+                              content=str(pos_icl_sample['response'])))
 
         neg_selected_icl_examples = neg_icl_gen.select_icl_examples(
             sys_kdma_name=attribute.kdma,
@@ -269,11 +342,9 @@ class PromptBasedICLADMComponent(ADMComponent):
         for neg_icl_sample in neg_selected_icl_examples:
             neg_icl_dialog_elements.append(
                 DialogElement(role='user',
-                              content=neg_icl_sample['prompt'],
-                              tags=['icl']))
+                              content=neg_icl_sample['prompt']))
             neg_icl_dialog_elements.append(
                 DialogElement(role='assistant',
-                              content=str(neg_icl_sample['response']),
-                              tags=['icl']))
+                              content=str(neg_icl_sample['response'])))
 
         return pos_icl_dialog_elements, neg_icl_dialog_elements

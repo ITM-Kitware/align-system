@@ -1,4 +1,3 @@
-import argparse
 import json
 import math
 
@@ -19,6 +18,9 @@ class InputOutputFileInterface(Interface):
         elif state_hydration_domain == "p2triage":
             from align_system.utils.hydrate_state import p2triage_hydrate_scenario_state
             state_hydration_fn = p2triage_hydrate_scenario_state
+        elif state_hydration_domain == "minimal":
+            from align_system.utils.hydrate_state import minimal_hydrate_scenario_state
+            state_hydration_fn = minimal_hydrate_scenario_state
         else:
             raise RuntimeError(f"Unknown state_hydration_domain: {state_hydration_domain}")
 
@@ -140,28 +142,6 @@ class InputOutputFileInterface(Interface):
                 'measures': output_measures}
 
 
-    @classmethod
-    def cli_parser(cls, parser=None):
-        if parser is None:
-            parser = argparse.ArgumentParser(
-                description=cls.cli_parser_description())
-
-        parser.add_argument('-i', '--input-output-filepath',
-                            type=str,
-                            required=True,
-                            help='Path to input-output JSON file')
-
-        return parser
-
-    @classmethod
-    def cli_parser_description(cls):
-        return "Interface with an input-output JSON file"
-
-    @classmethod
-    def init_from_parsed_args(cls, parsed_args):
-        return cls(**vars(parsed_args))
-
-
 class InputOutputFileScenario(ActionBasedScenarioInterface):
     def __init__(self, scenario_id, scenario_records, action_taken_callback):
         self.scenario_id = scenario_id
@@ -193,7 +173,10 @@ class InputOutputFileScenario(ActionBasedScenarioInterface):
             self.current_state, self.current_actions = self.scenario_records.pop(0)
             return self.current_state
         else:
-            self.current_state.scenario_complete = True
+            if isinstance(self.current_state, tuple) and hasattr(self.current_state, "_replace"):
+                self.current_state = self.current_state._replace(scenario_complete=True)
+            else:
+                self.current_state.scenario_complete = True
             return self.current_state
 
     def intend_action(self, action):

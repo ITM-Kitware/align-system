@@ -1,0 +1,5 @@
+id: tagging-salt
+kdma_values:
+- kdes: null
+  kdma: SALT
+  value: 1.0

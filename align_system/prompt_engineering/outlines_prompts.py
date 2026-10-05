@@ -1,15 +1,16 @@
 import jinja2
-import outlines
 import json
+import re
 
+from align_system.prompt_engineering.compat.outlines.templates import prompt as compat_outlines_prompt
 from align_system.utils.outlines_prompts_utils import (
     get_unique_structured_character_info,
     new_get_relevant_structured_character_info)
-from align_system.data_models.local_ph1_ta3_enums import (
+from align_system.data_models.compat.ta3_ph1_client_models import (
     InjuryStatusEnum)
 
 
-@outlines.prompt
+@compat_outlines_prompt
 def llms_are_acds_system_prompt():
     """
       # DESCRIPTION
@@ -99,7 +100,7 @@ def llms_are_acds_system_prompt():
       - CRITICAL: A red agent has been detected on the host with a privileged escalation. This is a critical compromise. Can be addressed only with a Restore action.
     """
 
-@outlines.prompt
+@compat_outlines_prompt
 def hierarchical_llm_cage_prompt():
     """
       # DESCRIPTION
@@ -183,7 +184,7 @@ def hierarchical_llm_cage_prompt():
       - CRITICAL: A red agent has been detected on the host with a privileged escalation. This is a critical compromise. Can be addressed only with a Restore action.
     """
 
-@outlines.prompt
+@compat_outlines_prompt
 def cage_system_prompt():
     """
     # DESCRIPTION
@@ -212,7 +213,7 @@ def cage_system_prompt():
     """
 
 
-@outlines.prompt
+@compat_outlines_prompt
 def baseline_system_prompt():
     """
     You are an assistant specialized in answering multiple-choice \
@@ -226,7 +227,7 @@ def baseline_system_prompt():
     """
 
 
-@outlines.prompt
+@compat_outlines_prompt
 def high_moral_deservingness_system_prompt():
     """
     You are a specialized algorithm tasked with aiding medical triage \
@@ -246,7 +247,7 @@ def high_moral_deservingness_system_prompt():
     """
 
 
-@outlines.prompt
+@compat_outlines_prompt
 def low_moral_deservingness_system_prompt():
     """
     As an algorithm designed to support medical triage in a military \
@@ -264,7 +265,7 @@ def low_moral_deservingness_system_prompt():
     """
 
 
-@outlines.prompt
+@compat_outlines_prompt
 def high_maximization_system_prompt():
     """
     You are an assistant specialized in answering multiple-choice \
@@ -287,7 +288,7 @@ def high_maximization_system_prompt():
     """
 
 
-@outlines.prompt
+@compat_outlines_prompt
 def low_maximization_system_prompt():
     """
     You are an assistant specialized in answering multiple-choice \
@@ -307,7 +308,7 @@ def low_maximization_system_prompt():
     """
 
 
-@outlines.prompt
+@compat_outlines_prompt
 def high_protocol_focus_system_prompt():
     """
     You are a specialized algorithm built to assist in the decision-making process \
@@ -326,7 +327,7 @@ def high_protocol_focus_system_prompt():
     """
 
 
-@outlines.prompt
+@compat_outlines_prompt
 def low_protocol_focus_system_prompt():
     """
     You are a specialized algorithm built to assist in the decision-making process \
@@ -343,7 +344,7 @@ def low_protocol_focus_system_prompt():
     """
 
 
-@outlines.prompt
+@compat_outlines_prompt
 def high_fairness_system_prompt():
     """
     You are a specialized algorithm designed to help in the decision-making \
@@ -360,7 +361,7 @@ def high_fairness_system_prompt():
     """
 
 
-@outlines.prompt
+@compat_outlines_prompt
 def low_fairness_system_prompt():
     """
     You are a specialized algorithm built to assist in medical triage \
@@ -376,7 +377,7 @@ def low_fairness_system_prompt():
     """
 
 
-@outlines.prompt
+@compat_outlines_prompt
 def high_risk_aversion_system_prompt():
     """
     You are a specialized algorithm built to assist in the decision-making \
@@ -394,7 +395,7 @@ def high_risk_aversion_system_prompt():
     """
 
 
-@outlines.prompt
+@compat_outlines_prompt
 def low_risk_aversion_system_prompt():
     """
     You are a specialized algorithm built to assist in the decision-making process \
@@ -409,7 +410,7 @@ def low_risk_aversion_system_prompt():
     """
 
 
-@outlines.prompt
+@compat_outlines_prompt
 def high_continuing_care_system_prompt():
     """
     You are an algorithm programmed to assist with medical triage in a \
@@ -428,7 +429,7 @@ def high_continuing_care_system_prompt():
     """
 
 
-@outlines.prompt
+@compat_outlines_prompt
 def low_continuing_care_system_prompt():
     """
     As an algorithm purposed for supporting medical triage in a military \
@@ -446,7 +447,7 @@ def low_continuing_care_system_prompt():
     """
 
 
-@outlines.prompt
+@compat_outlines_prompt
 def high_utilitarianism_care_system_prompt():
     """
     You are a specialized algorithm designed to aid in the decision-making \
@@ -465,7 +466,7 @@ def high_utilitarianism_care_system_prompt():
     """
 
 
-@outlines.prompt
+@compat_outlines_prompt
 def low_utilitarianism_system_prompt():
     """
     You are a specialized algorithm designed to assist in decision-making \
@@ -484,7 +485,7 @@ def low_utilitarianism_system_prompt():
     """
 
 
-@outlines.prompt
+@compat_outlines_prompt
 def action_selection_prompt(situation, choices):
     """
     {{ situation }}
@@ -497,14 +498,14 @@ def action_selection_prompt(situation, choices):
     """
 
 
-@outlines.prompt
+@compat_outlines_prompt
 def detailed_unstructured_generic_action_text(action, character_id_to_name):
     """
     {{ action.unstructured }}{% if action.character_id is not none %} -- {{ character_id_to_name[action.character_id] }}{% endif %}{% if action.parameters is not none %} -- {{ action.parameters }}{% endif %} ({{ action.unstructured }})
     """
 
 
-@outlines.prompt
+@compat_outlines_prompt
 def detailed_unstructured_treatment_action_text(action, character_id_to_name):
     """
     {% if 'location' not in action.parameters or action.parameters['location'] == 'internal' -%}
@@ -513,7 +514,7 @@ def detailed_unstructured_treatment_action_text(action, character_id_to_name):
     """
 
 
-@outlines.prompt
+@compat_outlines_prompt
 def detailed_unstructured_tagging_action_text(action, character_id_to_name):
     """
     {% if action.character_id is none -%}
@@ -521,8 +522,13 @@ def detailed_unstructured_tagging_action_text(action, character_id_to_name):
     Tag {{ character_id_to_name[action.character_id] }} as {{ action.parameters['category'] }} ({{ action.unstructured }}){% endif -%}
     """
 
+@compat_outlines_prompt
+def scenario_state_unstructured(scenario_state):
+    """
+    {{ scenario_state.unstructured.rstrip() }}
+    """
 
-@outlines.prompt
+@compat_outlines_prompt
 def scenario_state_description_1(scenario_state):
     """
     CHARACTERS:
@@ -540,7 +546,7 @@ def scenario_state_description_1(scenario_state):
 
 # Alternative scenario state prompt that uses events when present
 # (untested / speculative)
-@outlines.prompt
+@compat_outlines_prompt
 def scenario_state_description_2(scenario_state):
     """
     CHARACTERS:
@@ -561,7 +567,7 @@ def scenario_state_description_2(scenario_state):
     {% endif %}
     """
 
-@outlines.prompt
+@compat_outlines_prompt
 def scenario_state_description_dre(scenario_state):
     """
     CHARACTERS:
@@ -585,7 +591,7 @@ def scenario_state_description_dre(scenario_state):
 # Prompt that includes provided relevant structured character info
 # characters is a list of dicts with keys: name, unstructured, relevant_structured
 # the relevant_structured field is expected to already be serialized to a string (JSON.stringify(strucutured_json))
-@outlines.prompt
+@compat_outlines_prompt
 def scenario_state_description_with_relevant_char_info(scenario_state, characters):
     """
     CHARACTERS:
@@ -600,7 +606,7 @@ def scenario_state_description_with_relevant_char_info(scenario_state, character
     {{ scenario_state.unstructured.rstrip() }}
     """
 
-@outlines.prompt
+@compat_outlines_prompt
 def followup_clarify_hostnames_cage(hostnames):
     """
     Please clarify which hostname to apply the action to 
@@ -611,7 +617,7 @@ def followup_clarify_hostnames_cage(hostnames):
     {% endfor %}
     """
 
-@outlines.prompt
+@compat_outlines_prompt
 def followup_clarify_character(characters):
     """
     Please clarify which character should receive the action.
@@ -626,7 +632,7 @@ def followup_clarify_character(characters):
     """
 
 
-@outlines.prompt
+@compat_outlines_prompt
 def followup_clarify_treatment(character,
                                supplies,
                                treated_value=InjuryStatusEnum.TREATED):
@@ -649,7 +655,7 @@ def followup_clarify_treatment(character,
     {% endfor %}
     """
 
-@outlines.prompt
+@compat_outlines_prompt
 def followup_clarify_treatment_from_list(character,
                                          supplies,
                                          options_list,
@@ -678,7 +684,7 @@ def followup_clarify_treatment_from_list(character,
     {% endfor %}
     """
 
-@outlines.prompt
+@compat_outlines_prompt
 def followup_clarify_tag(character,
                          treated_value=InjuryStatusEnum.TREATED):
     """
@@ -701,7 +707,7 @@ def followup_clarify_tag(character,
     {% endfor %}
     """
 
-@outlines.prompt
+@compat_outlines_prompt
 def followup_clarify_aid(character, available_aids):
     """
     Given the casualty description below, please clarify which aid option \
@@ -728,7 +734,7 @@ def followup_clarify_aid(character, available_aids):
     """
 
 
-@outlines.prompt
+@compat_outlines_prompt
 def action_choice_json_schema(choices_json_str, reasoning_max_length=512):
     '''
     {"$defs": {"ActionChoice": {"enum": {{ choices_json_str }},
@@ -745,7 +751,7 @@ def action_choice_json_schema(choices_json_str, reasoning_max_length=512):
      "type": "object"}
     '''
 
-@outlines.prompt
+@compat_outlines_prompt
 def actions_choice_json_schema(choices_json_str, reasoning_max_length=512, agent_list = None):
     '''
 {
@@ -792,7 +798,7 @@ def actions_choice_json_schema(choices_json_str, reasoning_max_length=512, agent
 }
     '''
 
-@outlines.prompt
+@compat_outlines_prompt
 def cage_hostname_choice_json_schema(choices_json_str):
     '''
     {"$defs": {"HostnameChoice": {"enum": {{ choices_json_str }},
@@ -806,7 +812,7 @@ def cage_hostname_choice_json_schema(choices_json_str):
      "type": "object"}
     '''
 
-@outlines.prompt
+@compat_outlines_prompt
 def character_choice_json_schema(choices_json_str):
     '''
     {"$defs": {"CharacterChoice": {"enum": {{ choices_json_str }},
@@ -821,21 +827,24 @@ def character_choice_json_schema(choices_json_str):
     '''
 
 
-@outlines.prompt
-def tag_choice_json_schema(tags_json_str):
+@compat_outlines_prompt
+def tag_choice_json_schema(tags_json_str, reasoning_max_length=512):
     '''
     {"$defs": {"TriageTag": {"enum": {{ tags_json_str }},
        "title": "TriageTag",
        "type": "string"}},
-     "properties": {"detailed_reasoning": {"title": "Detailed Reasoning",
-       "type": "string", "minLength": 1, "maxLength": 512},
+     "properties": {"detailed_reasoning": {
+       "title": "Detailed Reasoning",
+       "type": "string",
+       "minLength": 1{% if reasoning_max_length > 0 %}, "maxLength": {{ reasoning_max_length }}{% endif %}
+      },
       "triage_tag": {"$ref": "#/$defs/TriageTag"}},
      "required": ["detailed_reasoning", "triage_tag"],
      "title": "TagSelection",
      "type": "object"}
     '''
 
-@outlines.prompt
+@compat_outlines_prompt
 def aid_choice_json_schema(choices_json_str):
     '''
     {"$defs": {"AidChoice": {"enum": {{ choices_json_str }},
@@ -850,7 +859,7 @@ def aid_choice_json_schema(choices_json_str):
     '''
 
 
-@outlines.prompt
+@compat_outlines_prompt
 def treatment_choice_json_schema(supplies_json_str, locations_json_str):
     '''
     {"$defs": {"SupplyChoice": {"enum": {{ supplies_json_str }},
@@ -869,7 +878,7 @@ def treatment_choice_json_schema(supplies_json_str, locations_json_str):
     '''
 
 
-@outlines.prompt
+@compat_outlines_prompt
 def treatment_choice_from_list_json_schema(treatment_choices_json_str):
     '''
     {"$defs": {"TreatmentChoice": {"enum": {{ treatment_choices_json_str }},
@@ -884,7 +893,7 @@ def treatment_choice_from_list_json_schema(treatment_choices_json_str):
     '''
 
 
-@outlines.prompt
+@compat_outlines_prompt
 def outcomes_system_prompt():
     """
     In a clear and consice way describe the outcomes of answering the \
@@ -894,7 +903,7 @@ def outcomes_system_prompt():
     Limit your analysis to a single sentence.
     """
 
-@outlines.prompt
+@compat_outlines_prompt
 def comparative_outcomes_system_prompt():
     """
     In a clear and consice way describe the outcomes of answering the \
@@ -904,7 +913,7 @@ def comparative_outcomes_system_prompt():
     Limit your analysis to a single sentence per response.
     """
 
-@outlines.prompt
+@compat_outlines_prompt
 def relevance_classification_system_prompt(kdma, kdma_description, kdma_scale_factor):
     """
     You are a specialized algorithm tasked with considering medical triage decisions \
@@ -917,7 +926,7 @@ def relevance_classification_system_prompt(kdma, kdma_description, kdma_scale_fa
     yes or no, where yes means {{kdma}} is relevant and no means {{kdma}} is irrelevant.
     """
 
-@outlines.prompt
+@compat_outlines_prompt
 def outcome_prediction_prompt(situation, choices, choice):
     """
     Consider the following scenario:
@@ -932,7 +941,7 @@ def outcome_prediction_prompt(situation, choices, choice):
     {{ choice }}
     """
 
-@outlines.prompt
+@compat_outlines_prompt
 def comparative_outcome_prediction_prompt(situation, choices):
     """
     Consider the following scenario:
@@ -944,7 +953,7 @@ def comparative_outcome_prediction_prompt(situation, choices):
     {% endfor %}
     """
 
-@outlines.prompt
+@compat_outlines_prompt
 def outcome_prediction_json_schema():
     '''
     {"properties": {
@@ -982,7 +991,7 @@ def comparative_outcome_prediction_json_schema(choices):
     }
     return json.dumps(json_schema)
 
-@outlines.prompt
+@compat_outlines_prompt
 def kdma_score_prediction_system_prompt(kdma, kdma_description):
     """
     You are a specialized algorithm tasked with judging medical triage decisions \
@@ -999,7 +1008,7 @@ def kdma_score_prediction_system_prompt(kdma, kdma_description):
     Provide a score and one sentence of reasoning explaining your score.
     """
 
-@outlines.prompt
+@compat_outlines_prompt
 def comparative_kdma_score_prediction_system_prompt(kdma, kdma_description, kdma_scale_factor):
     """
     You are a specialized algorithm tasked with judging medical triage decisions \
@@ -1018,7 +1027,7 @@ def comparative_kdma_score_prediction_system_prompt(kdma, kdma_description, kdma
     For each response, provide a score and one sentence of reasoning explaining your score.
     """
 
-@outlines.prompt
+@compat_outlines_prompt
 def kdma_score_prediction_system_prompt_with_examples(kdma, kdma_description, kdma_score_examples):
     """
     You are a specialized algorithm tasked with judging medical triage decisions \
@@ -1038,7 +1047,7 @@ def kdma_score_prediction_system_prompt_with_examples(kdma, kdma_description, kd
     Provide a score and one sentence of reasoning explaining your score.
     """
 
-@outlines.prompt
+@compat_outlines_prompt
 def comparative_kdma_score_prediction_system_prompt_with_examples(
     kdma, kdma_description, kdma_score_examples, kdma_scale_factor
 ):
@@ -1062,7 +1071,7 @@ def comparative_kdma_score_prediction_system_prompt_with_examples(
     For each response, provide a score and one sentence of reasoning explaining your score.
     """
 
-@outlines.prompt
+@compat_outlines_prompt
 def kdma_score_prediction_prompt(situation, choices, choice, outcome, kdma):
     """
     Consider the following situation and selected response:
@@ -1086,7 +1095,7 @@ def kdma_score_prediction_prompt(situation, choices, choice, outcome, kdma):
     making behavior of someone who is acting with high {{kdma}} with one sentence of reasoning.
     """
 
-@outlines.prompt
+@compat_outlines_prompt
 def comparative_kdma_score_prediction_prompt(situation, choices, kdma):
     """
     Consider the following scenario and responses:
@@ -1104,7 +1113,7 @@ def comparative_kdma_score_prediction_prompt(situation, choices, kdma):
     behavior of someone who is acting with high {{kdma}} with one sentence of reasoning.
     """
 
-@outlines.prompt
+@compat_outlines_prompt
 def comparative_kdma_score_prediction_prompt_no_outcomes(situation, choices, kdma):
     """
     Consider the following scenario and responses:
@@ -1119,7 +1128,7 @@ def comparative_kdma_score_prediction_prompt_no_outcomes(situation, choices, kdm
     behavior of someone who is acting with high {{kdma}} with one sentence of reasoning.
     """
 
-@outlines.prompt
+@compat_outlines_prompt
 def relevance_classification_prompt(situation, choices, kdma):
     """
     Consider the following scenario and responses:
@@ -1134,7 +1143,7 @@ def relevance_classification_prompt(situation, choices, kdma):
     or no (irrelevant) and provide one sentence of reasoning.
     """
 
-@outlines.prompt
+@compat_outlines_prompt
 def kdma_score_prediction_json_schema():
     '''
     {"properties": {
@@ -1232,14 +1241,14 @@ def enum_comparative_kdma_score_prediction_json_schema(choices, valid_scores):
     return json.dumps(json_schema)
 
 
-@outlines.prompt
+@compat_outlines_prompt
 def scenario_description_hybrid_regression(scenario_state):
     """
     {{ scenario_state.unstructured.rstrip() }} {% for character in scenario_state.characters %}{{  character.name }} - {{ character.unstructured.rstrip()}} {% endfor %}
     """
 
 
-@outlines.prompt
+@compat_outlines_prompt
 def kaleido_default_itm_prompt(scenario_state,
                                choice,
                                other_choices):
@@ -1250,7 +1259,7 @@ def kaleido_default_itm_prompt(scenario_state,
     {% endfor %}
     """
 
-@outlines.prompt
+@compat_outlines_prompt
 def kaleido_default_itm_ph2_prompt(scenario_state,
                                    choice,
                                    other_choices):
@@ -1482,7 +1491,7 @@ class PromptBasedBinaryITMSystemPrompt():
             else:
                 return high_utilitarianism_care_system_prompt()
 
-@outlines.prompt
+@compat_outlines_prompt
 def cage_scenario_state_description(scenario_state):
     """
     {{ scenario_state.unstructured }}
@@ -1493,7 +1502,7 @@ class CAGEScenarioDescription():
     def __call__(self, scenario_state):
         return cage_scenario_state_description(scenario_state)
 
-@outlines.prompt
+@compat_outlines_prompt
 def phase2_scenario_state_description(scenario_state):
     """
     {{ scenario_state.unstructured.rstrip() }}
@@ -1505,7 +1514,23 @@ class Phase2ScenarioDescription():
         return phase2_scenario_state_description(scenario_state)
 
 
-@outlines.prompt
+@compat_outlines_prompt
+def phase2_scenario_state_description_w_casualty_info(scenario_state):
+    """
+    {{ scenario_state.unstructured.rstrip() }}
+
+    Casualties:
+    {% for c in scenario_state.characters %}
+    - {{ c.name }}: {{ c.unstructured }}
+    {% endfor %}
+    """
+
+class Phase2ScenarioDescriptionWCasualtyInfo():
+    def __call__(self, scenario_state):
+        return phase2_scenario_state_description_w_casualty_info(scenario_state)
+
+
+@compat_outlines_prompt
 def phase2_baseline_prompt(scenario_description, choices):
     """
     Scenario:
@@ -1523,7 +1548,7 @@ class Phase2BaselinePrompt():
         return phase2_baseline_prompt(scenario_description, choices)
 
 
-@outlines.prompt
+@compat_outlines_prompt
 def comparative_regression_system_prompt(
     kdma, kdma_description, kdma_scale_factor
 ):
@@ -1554,7 +1579,7 @@ class ComparativeRegressionSystemPrompt():
             target_attribute.factor)
 
 
-@outlines.prompt
+@compat_outlines_prompt
 def comparative_regression_system_prompt_with_examples(
     kdma, kdma_description, kdma_score_examples, kdma_scale_factor
 ):
@@ -1589,7 +1614,7 @@ class ComparativeRegressionSystemPromptWithTemplate():
             target_attribute.factor)
 
 
-@outlines.prompt
+@compat_outlines_prompt
 def comparative_regression_prompt(situation, choices, kdma):
     """
     Scenario:
@@ -1615,14 +1640,14 @@ class ComparativeRegressionPrompt():
             attribute)
 
 
-def comparative_regression_json_schema(choices, scale_factor=100):
+def comparative_regression_json_schema(choices, scale_factor=100, reasoning_max_length=512):
     json_schema = {
         "type": "object",
         "properties": {
             "reasoning": {
                 "type": "string",
                 "minLength": 1,
-                "maxLength": 512
+                **({"maxLength": reasoning_max_length} if reasoning_max_length > 0 else {})
             },
             **{
                 choice: {
@@ -1645,17 +1670,19 @@ def comparative_regression_json_schema(choices, scale_factor=100):
 
 
 class ComparativeRegressionSchema():
-    def __init__(self, factor_lookup, default_factor=None):
+    def __init__(self, factor_lookup, default_factor=None, reasoning_max_length=512):
         self.factor_lookup = factor_lookup
         self.default_factor = default_factor
+        self.reasoning_max_length = reasoning_max_length
 
     def __call__(self, choices, attribute):
         return comparative_regression_json_schema(
                 choices,
-                self.factor_lookup.get(attribute, self.default_factor))
+                self.factor_lookup.get(attribute, self.default_factor),
+                self.reasoning_max_length)
 
 
-@outlines.prompt
+@compat_outlines_prompt
 def probe_most_relevant_system_prompt(
     kdmas
 ):
@@ -1682,7 +1709,7 @@ class ProbeMostRelevantSystemPrompt():
             target_attributes)
 
 
-@outlines.prompt
+@compat_outlines_prompt
 def probe_most_relevant_prompt(situation, choices, kdmas):
     """
     Scenario:
@@ -1730,3 +1757,97 @@ class ProbeMostRelevantSchema():
     def __call__(self, target_attribute_names):
         return probe_most_relevant_json_schema(
                 target_attribute_names)
+
+class DirectRegressionSchemaTemplate:
+    def __init__(self,
+                 min_value=0,
+                 max_value=100,
+                 max_reasoning_length=512):
+        self.min_value = min_value
+        self.max_value = max_value
+        self.max_reasoning_length = max_reasoning_length
+
+    def __call__(self):
+        json_schema = {
+            "$schema": "http://json-schema.org/draft-07/schema#",
+            "type": "object",
+            "properties": {
+                "reasoning": {
+                    "type": "string",
+                    "maxLength": self.max_reasoning_length
+                },
+                "score": {
+                    "type": "integer",
+                    "minimum": self.min_value,
+                    "maximum": self.max_value
+                }
+            },
+            "required": ["reasoning", "score"],
+            "additionalProperties": False
+        }
+        return json.dumps(json_schema)
+
+
+class DirectRegressionPersonalSafetyTemplate:
+    def __call__(self, character, scenario_state):
+        full_state_unstructured = scenario_state['unstructured']
+        threat_unstructured = scenario_state['threat_state']['unstructured']
+        char_unstructured = character['unstructured']
+
+        pattern = "{}(.+?){}".format(
+            threat_unstructured.replace("\n", " "),
+            char_unstructured.replace("\n", " "))
+
+        if m := re.match(pattern, full_state_unstructured.replace("\n", " ")):
+            setup = m.group(1).strip()
+        else:
+            # FIXME: This case is needed specifically for
+            # multi-attribute targets (and single attribute scenarios)
+            # where we may need to run regression for Personal Safety
+            # on an Affiliation scenario (where the text structure is
+            # a bit different)
+            return f"  - {char_unstructured}"
+
+        return f"{setup}\n  - {char_unstructured}"
+
+
+def comparative_regression_regex(choices, scale_factor=100, reasoning_max_length=512):
+    assert scale_factor == 100
+
+    choice_regexes = []
+    for choice in choices:
+        choice_regexes.append(
+            rf'"{re.escape(choice)}":\s\{{"score":\s(\d|\d{{2}}|100)\}}')
+
+    return r'\{{"reasoning":\s"[^"]{{0,{}}}",\s{}\}}'.format(
+        reasoning_max_length, (r',\s'.join(choice_regexes)))
+
+
+class ComparativeRegressionRegex():
+    def __init__(self, factor_lookup, default_factor=None, reasoning_max_length=512):
+        self.factor_lookup = factor_lookup
+        self.default_factor = default_factor
+        self.reasoning_max_length = reasoning_max_length
+
+    def __call__(self, choices, attribute):
+        return comparative_regression_regex(
+                choices,
+                self.factor_lookup.get(attribute, self.default_factor),
+                self.reasoning_max_length)
+
+
+class DirectRegressionSchemaTemplateRegex:
+    def __init__(self,
+                 min_value=0,
+                 max_value=100,
+                 max_reasoning_length=512):
+        self.min_value = min_value
+        self.max_value = max_value
+        self.max_reasoning_length = max_reasoning_length
+
+    def __call__(self):
+        assert self.min_value == 0
+        assert self.max_value == 100
+
+        return r'\{{"reasoning":\s"[^"]{{0,{}}}",\s"score":\s(\d|\d{{2}}|100)\}}'.format(
+            self.max_reasoning_length)

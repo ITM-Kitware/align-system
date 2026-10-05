@@ -1,0 +1,40 @@
+# Kaleido value-assessment toolkit for the LangChain agent drivers:
+# adds an `assess_available_actions` tool that scores the currently
+# available actions against the alignment target's attributes.
+# Attach to a driver from an experiment config with
+#   - /driver/tools@driver.extra_tools.kaleido: kaleido
+_target_: align_system.agent_tools.kaleido.KaleidoToolkit
+
+kaleido_instance:
+  _target_: align_system.algorithms.lib.kaleido.KaleidoSys
+  model_name: 'tsor13/kaleido-large'
+  use_tqdm: false
+
+# Hand the agent an assessment of the available actions before every
+# decision (guarantees it is considered); with false the agent has to
+# call the assess_available_actions tool itself
+auto_assess: true
+
+# Also generate a short natural-language explanation per action /
+# attribute (noticeably slower)
+explain: false
+
+# Attribute name (as it appears in alignment targets) -> the value /
+# right / duty (vrd) and description Kaleido scores against
+attribute_descriptions:
+  merit:
+    name: Merit Focus
+    vrd: Value
+    description: Favoring victims or bystanders over those who are perpetrators or otherwise potentially blame-worthy
+  affiliation:
+    name: Affiliation Focus
+    vrd: Value
+    description: Favoring casualties who are members of your same group, such as family, military unit, coalition, nationality, or region of origin over those who are not part of your group
+  personal_safety:
+    name: Personal Safety
+    vrd: Value
+    description: Tendency to hold back from moving to treat a patient when that requires risking exposure to enemy fire, waiting rather than immediately moving to treat the patient
+  search:
+    name: Search or Stay
+    vrd: Value
+    description: Tendency to move on from their current patient in order to treat or search for another patient

@@ -402,7 +402,7 @@ class KaleidoSys():
         n_batches = math.ceil(len(actions) / batch_size)
         for i in self.tqdm(range(n_batches), desc='Generation'):
             batch_actions = actions[i*batch_size:(i+1)*batch_size]
-            encoded_batch = self.tokenizer.batch_encode_plus(
+            encoded_batch = self.tokenizer(
                 [self.gen_template(action) for action in batch_actions],
                 return_tensors='pt',
                 padding=True,
@@ -411,7 +411,7 @@ class KaleidoSys():
             with torch.no_grad():
                 gens = self.model.generate(encoded_batch, num_beams=n_gens, num_return_sequences=n_gens, max_new_tokens=30)
             # decode
-            gens = self.tokenizer.batch_decode(gens, skip_special_tokens=True)
+            gens = self.tokenizer(gens, skip_special_tokens=True)
             # add to list
             batch_gens.extend(gens)
         # reshape to (n_actions, n_gens)
@@ -447,7 +447,7 @@ class KaleidoSys():
             batch_vrds = vrds[i*batch_size:(i+1)*batch_size]
             batch_texts = texts[i*batch_size:(i+1)*batch_size]
             # get explanations
-            encoded_batch = self.tokenizer.batch_encode_plus(
+            encoded_batch = self.tokenizer(
                 [self.explanation_template(action, vrd, text) for action, vrd, text in zip(batch_actions, batch_vrds, batch_texts)],
                 return_tensors='pt',
                 padding=True,
@@ -463,7 +463,6 @@ class KaleidoSys():
         if is_single:
             batch_exps = batch_exps[0]
         return batch_exps
-
 
     def get_dummy(self, encoded_batch):
         # get dummy labels (0,0) * batch size
@@ -485,7 +484,7 @@ class KaleidoSys():
             for i in self.tqdm(range(n_batches+1), desc='Inference'):
                 # inds = list(range(i*batch_size, (i+1)*batch_size))
                 inds = list(range(i*batch_size, min((i+1)*batch_size, len(inputs))))
-                encoded_batch = self.tokenizer.batch_encode_plus(
+                encoded_batch = self.tokenizer(
                     inputs[inds].tolist(),
                     return_tensors='pt', padding=True, truncation=False, max_length=128,
                 ).to(self.device)

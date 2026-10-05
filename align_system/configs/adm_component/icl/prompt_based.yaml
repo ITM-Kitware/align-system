@@ -14,9 +14,9 @@ icl_generator_partial:
     sort_actions: true
     most_similar_first: false
     datasets:
-      MoralDesert: ${oc.env:ICL_DATABASE_DIR,/data/shared/samba/integrated_results_metrics_eval/captured_dataset_for_chris}/baseline_adept_high-1715105775-input-output.json
-      maximization: ${oc.env:ICL_DATABASE_DIR,/data/shared/samba/integrated_results_metrics_eval/captured_dataset_for_chris}/baseline_soartech_high-1716581856-input-output.json
-      Moral judgement: ${oc.env:ICL_DATABASE_DIR,/data/shared/samba/dry_run}/moral_judgement_20240826.json
-      Ingroup Bias: ${oc.env:ICL_DATABASE_DIR,/data/shared/samba/dry_run}/ingroup_bias_20240826.json
-      QualityOfLife: ${oc.env:ICL_DATABASE_DIR,/data/shared/samba/dry_run}/qol_20240826.json
-      PerceivedQuantityOfLivesSaved: ${oc.env:ICL_DATABASE_DIR,/data/shared/samba/dry_run}/vol_20240826.json
+      MoralDesert: align_system/resources/icl/dry_run/baseline_adept_high-1715105775-input-output.json
+      maximization: align_system/resources/icl/dry_run/baseline_soartech_high-1716581856-input-output.json
+      Moral judgement: align_system/resources/icl/dry_run/moral_judgement_20240826.json
+      Ingroup Bias: align_system/resources/icl/dry_run/ingroup_bias_20240826.json
+      QualityOfLife: align_system/resources/icl/dry_run/qol_20240826.json
+      PerceivedQuantityOfLivesSaved: align_system/resources/icl/dry_run/vol_20240826.json
