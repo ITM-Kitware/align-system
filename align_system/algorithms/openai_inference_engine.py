@@ -147,7 +147,15 @@ class OpenAIInferenceEngine(StructuredInferenceEngine):
         Returns:
             A list of parsed response dicts (one per prompt).
         """
-        return self._run_inference(prompts, schema)
+        output = self._run_inference(prompts, schema)
+
+        # API consistency hack; original outlines inference engine
+        # returns a single output element if only a single prompt is
+        # received
+        if isinstance(prompts, str):
+            return output[0]
+        else:
+            return output
 
     def run_inference_unstructured(self, prompts: Union[str, list[str]]) -> Union[str, List[str]]:
         """Run inference without structured output constraints.
@@ -181,7 +189,7 @@ class OpenAIInferenceEngine(StructuredInferenceEngine):
             return self._create_batches(json_prompts, text_kwargs)
         else:
             return self._create_responses(json_prompts, text_kwargs)
-  
+
 
     def _retry_api_call(self, func, *args, **kwargs):
         """Call *func* with retry on 408, 425, 429, and 5xx responses.
