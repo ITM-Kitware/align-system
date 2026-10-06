@@ -4,13 +4,33 @@
 
 ### System requirements
 
-It's recommended to run the system on a machine with at least 32GB of
-RAM and with a modern GPU with at least 12GB of memory.
+For local 7B–9B models in half precision, plan for at least 32GB of
+RAM and a modern GPU with 24GB of memory. Smaller or quantized models
+can use less memory; larger models may require multiple GPUs. See
+[System Requirements by Algorithm / Model](#system-requirements-by-algorithm--model)
+for model-specific estimates. Hosted API inference does not require a
+local GPU or model download.
 
 ### Installation
 
-It's generally recommended to set up a virtual Python environment to neatly manage dependencies (e.g. using `venv` or `conda`).  The `align-system` code can be installed as a Python module with `pip
-install git+https://github.com/ITM-Kitware/align-system.git`.
+We use [uv](https://docs.astral.sh/uv/) to manage dependencies and the
+project's virtual environment. Install uv using its
+[installation instructions](https://docs.astral.sh/uv/getting-started/installation/),
+then clone the repository and install the locked dependencies with Python 3.12
+(the project supports Python 3.10–3.12):
+
+```bash
+git clone https://github.com/ITM-Kitware/align-system.git
+cd align-system
+uv sync --locked --python 3.12
+source .venv/bin/activate
+```
+
+Run the commands below from the repository root with this environment
+activated. Alternatively, prefix them with `uv run`, for example
+`uv run run_align_system`. See
+[Developer environment setup](docs/developer_setup.md) for optional backend
+dependencies.
 
 ## Running the system
 
@@ -19,13 +39,12 @@ To run the default sytem configuration against included sample data, simply run:
 run_align_system
 ```
 
-*NOTE* - The first time you run the system it can take upwards of a
-half-hour to download the LLM model (which is roughly 25GB).
-Subsequent runs of the system should only take a few minutes as the
-model is cached.
+*NOTE* - The first run downloads the configured local model. The default
+Mistral-7B-Instruct-v0.2 checkpoint is roughly 14.5GB; download time
+depends on your connection. Subsequent runs reuse the cached model.
 
 
-Note that some huggingface models are 'gated' and require accepting terms and conditions (e.g. [Mistral-7B-Instruct-v0.2](https://huggingface.co/mistralai/Mistral-7B-Instruct-v0.2)). See [HuggingFace Token Setup](#huggingface-token-setup) for details.
+Note that some Hugging Face models are 'gated' and require accepting terms and conditions (e.g. [Llama-3.1-8B-Instruct](https://huggingface.co/meta-llama/Llama-3.1-8B-Instruct)). See [HuggingFace Token Setup](#huggingface-token-setup) for details.
 
 ### Hydra
 
@@ -36,22 +55,30 @@ sensible defaults for our configuration, while allowing additional
 configurations to build up and override existing configs, as well as
 override configuration values at runtime.
 
-The default configuration is (note that Hydra configuration files are `.yaml`):
-```
+The default configuration is defined in
+[align_system/configs/action_based.yaml](align_system/configs/action_based.yaml):
+
+```yaml
 name: action_based
 
 defaults:
+  - _self_
   - interface: input_output_file
-  - adm: single_kdma_baseline
+  - adm: outlines_transformers_structured_baseline
+  - driver: itm_phase1
   - override hydra/job_logging: custom
 
 loglevel: "EXPLAIN"
 
 save_log: true
+save_raw_log: true
 save_input_output: true
 save_scoring_output: true
+save_alignment_targets: false
+save_timing: true
+save_last_unstructured_state_per_scenario: false
 
-align_to_target: False
+align_to_target: false
 ```
 
 #### Overriding at runtime
@@ -257,26 +284,76 @@ adm=my_new_adm` (assuming you named your new ADM config file
 
 ## System Requirements by Algorithm / Model
 
-*Note: This table is a work-in-progress and will evolve as we add new
-algorithms / models*
+The models below are selected by the Hydra configs in
+[align_system/configs](align_system/configs), including experiment overrides
+and the open-world driver's chat models. Check the resolved Hydra config
+for the model and precision used by a particular run.
 
-|Algorithm|Model|RAM|GPU Memory|Disk Space|Hugging Face Link|Notes|
-|---------|-----|---|----------|----------|-----------------|-----|
-|llama_index|tiiuae/falcon-7b-instruct|>32GB|~18GB|~13GB|https://huggingface.co/tiiuae/falcon-7b-instruct||
-|llm_chat|Llama-2-7b-chat-hf|>32GB|~18GB|~13GB|https://huggingface.co/meta-llama/Llama-2-7b-chat-hf|Requires license agreement: https://ai.meta.com/llama/license/|
-|llm_chat|Llama-2-13b-chat-hf|>48GB|~28GB|~25GB|https://huggingface.co/meta-llama/Llama-2-13b-chat-hf|Requires license agreement: https://ai.meta.com/llama/license/|
+RAM and GPU figures are planning estimates, not measured minimums. Unless
+noted otherwise, local LLM estimates assume FP16/BF16 weights, a small batch,
+and a modest context length. The pipeline engines use `precision: half`;
+older ADM configs may leave the loading dtype unspecified. Explicit
+`precision: full` uses FP32 and doubles weight memory relative to FP16.
+Long contexts, parallel requests, and few-shot examples need additional
+GPU memory for the KV cache and activations. GPU figures assume the model
+fits entirely on GPU; CPU offloading requires additional RAM and is slower.
+
+Disk figures are rounded checkpoint sizes from the linked Hugging Face
+repositories (one Transformers weight format), or the linked Ollama tags.
+Allow extra space for dependencies, download staging, caches, and outputs;
+downloading multiple weight formats or revisions uses more disk. Sizes use
+decimal GB. Gated models require the token setup below; consult each model
+card for its license, including the base-model terms for fine-tunes.
+
+|Algorithm / configuration|Model / source|RAM (recommended)|GPU memory (planning estimate)|Disk (weights)|Notes|
+|---------|-----|---|----------|----------|-----|
+|Pipeline ADMs, tagging, demo and evaluation configs|[Mistral-7B-Instruct-v0.3](https://huggingface.co/mistralai/Mistral-7B-Instruct-v0.3)|32GB|18–24GB|~14.5GB|Default for greedy and multinomial pipeline engines; Apache 2.0, ungated.|
+|Outlines ADMs, including the default `action_based` ADM|[Mistral-7B-Instruct-v0.2](https://huggingface.co/mistralai/Mistral-7B-Instruct-v0.2)|32GB in half precision; 64GB in FP32|18–24GB in half precision; 32–48GB in FP32|~14.5GB|Older ADM configs do not all set precision; Apache 2.0, ungated.|
+|Decision-flow pipeline, vLLM endpoint, evaluation configs|[Llama-3.1-8B-Instruct](https://huggingface.co/meta-llama/Llama-3.1-8B-Instruct)|32GB|20–24GB|~16.1GB|Default constrained engine; gated, Llama 3.1 license.|
+|Phase 1 / multi-KDMA evaluation, integration tests, Phase 2 model comparisons|[Llama-3.2-3B-Instruct](https://huggingface.co/meta-llama/Llama-3.2-3B-Instruct)|16GB|8–12GB|~6.4GB|Gated, Llama 3.2 license.|
+|Phase 2 Spectrum experiments and Spectrum-tuned engine|[spectrum-Llama-3.1-8B-v1](https://huggingface.co/tsor13/spectrum-Llama-3.1-8B-v1)|32GB|20–24GB|~16.1GB|Fine-tuned Llama 3.1 8B; full checkpoint.|
+|Phase 2 Spectrum experiments|[spectrum-Qwen3-14B-v1](https://huggingface.co/tsor13/spectrum-Qwen3-14B-v1)|64GB|36–48GB|~29.5GB|Fine-tuned Qwen3 14B; full checkpoint.|
+|Phase 2 DeepSeek experiments|[DeepSeek-R1-Distill-Llama-8B](https://huggingface.co/deepseek-ai/DeepSeek-R1-Distill-Llama-8B)|32GB|20–24GB|~16.1GB|Distilled 8B model; allow extra cache for long reasoning outputs.|
+|Phase 2 June / July model comparisons|[DeepSeek-R1-Distill-Qwen-7B](https://huggingface.co/deepseek-ai/DeepSeek-R1-Distill-Qwen-7B)|32GB|20–24GB|~15.2GB|Distilled 7B model; allow extra cache for long reasoning outputs.|
+|Phase 2 June model comparisons, `persona` ADM config|[gemma-2-9b-it](https://huggingface.co/google/gemma-2-9b-it)|32–64GB|24–32GB|~18.5GB|Gated, Gemma terms.|
+|Phase 2 June model comparisons|[Llama-3.3-70B-Instruct](https://huggingface.co/meta-llama/Llama-3.3-70B-Instruct)|256GB|160GB+ total across GPUs|~141.1GB|Gated; requires model sharding in half precision.|
+|Open-world driver, `vllm_qwen25_15b`|[Qwen2.5-1.5B-Instruct](https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct)|16GB|6–8GB|~3.1GB|The config selects **1.5B**, despite its filename; start vLLM separately.|
+|Open-world driver, `vllm_qwen25_3b`|[Qwen2.5-3B-Instruct](https://huggingface.co/Qwen/Qwen2.5-3B-Instruct)|16GB|8–12GB|~6.2GB|Start vLLM separately; Qwen Research License.|
+|Open-world driver, `vllm_qwen25_7b`|[Qwen2.5-7B-Instruct](https://huggingface.co/Qwen/Qwen2.5-7B-Instruct)|32GB|20–24GB|~15.2GB|Start vLLM separately; Apache 2.0.|
+|Open-world driver, `vllm_qwen38_27b`|[Qwen3.8-27B-FP8](https://huggingface.co/Qwen/Qwen3.8-27B-FP8)|64GB|48GB|~30.9GB|FP8 checkpoint includes BF16 tensors. Config documents text-only serving with `--max-num-seqs 8`; BF16 instead needs an 80GB GPU or two 48GB GPUs.|
+|Open-world driver, Ollama|[qwen2.5:7b](https://ollama.com/library/qwen2.5:7b)|16GB|8–12GB|~4.7GB|Q4_K_M tag; [Hugging Face base](https://huggingface.co/Qwen/Qwen2.5-7B-Instruct).|
+|Open-world driver, Ollama (including ITM prompt variant)|[qwen2.5:32b](https://ollama.com/library/qwen2.5:32b)|32–64GB|24–32GB|~20GB|Q4_K_M tag; [Hugging Face base](https://huggingface.co/Qwen/Qwen2.5-32B-Instruct) is ~65.5GB in BF16.|
+|Open-world driver, Ollama|[qwen3:32b](https://ollama.com/library/qwen3:32b)|32–64GB|24–32GB|~20GB|Q4_K_M tag; [Hugging Face base](https://huggingface.co/Qwen/Qwen3-32B) is ~65.5GB in BF16.|
+|Open-world driver, Ollama|[llama3.1:latest](https://ollama.com/library/llama3.1:latest)|16GB|8–12GB|~4.9GB|Currently the 8B Q4_K_M tag; `latest` may change.|
+|Kaleido regression components, hybrid ADM, open-world tool|[tsor13/kaleido-large](https://huggingface.co/tsor13/kaleido-large) / [allenai/kaleido-large](https://huggingface.co/allenai/kaleido-large)|8GB additional|4–8GB additional|~3.1GB|The tsor13 repo redirects to allenai; gated. Loaded in FP32; add these resources to the main LLM's when used together.|
+|Older single-KDMA ADMs|[Llama-2-13b-chat-hf](https://huggingface.co/meta-llama/Llama-2-13b-chat-hf)|64GB|32–40GB|~26GB|Still configured by `single_kdma_baseline` / `single_kdma_aligned`; gated, Llama 2 license.|
+|Older examples and evaluation configs|[Meta-Llama-3-8B](https://huggingface.co/meta-llama/Meta-Llama-3-8B) / [Meta-Llama-3-8B-Instruct](https://huggingface.co/meta-llama/Meta-Llama-3-8B-Instruct)|32GB|20–24GB|~16.1GB each|Gated, Llama 3 license.|
+|Older Phase 1 model comparisons|[Phi-3-medium-4k-instruct](https://huggingface.co/microsoft/Phi-3-medium-4k-instruct)|64GB|36–48GB|~27.9GB|14B model, MIT license.|
+
+Hybrid regression also uses [bert-base-uncased](https://huggingface.co/google-bert/bert-base-uncased)
+(~0.44GB FP32 weights) plus local attribute checkpoints specified in its config.
+Budget their memory and disk in addition to the main LLM. Kaleido can also
+load [all-mpnet-base-v2](https://huggingface.co/sentence-transformers/all-mpnet-base-v2)
+for embedding-based deduplication.
+
+The hosted inference configs select `gpt-4o`, `gpt-5.2`,
+`claude-haiku-4-5`, `claude-sonnet-4-6`, and `claude-opus-4-6`.
+These require network access, provider credentials (`OPENAI_API_KEY` or
+`ANTHROPIC_API_KEY`), and API usage charges, but no local model weights
+or GPU. A local vLLM or Ollama endpoint still needs the server resources
+listed above, even when ALIGN connects through an API.
 
 ## HuggingFace Token Setup
 Some HuggingFace models are 'gated'. A gated model is indicated by errors like this:
 ```
-Cannot access gated repo for url https://huggingface.co/mistralai/Mistral-7B-Instruct-v0.3/resolve/main/config.json.
-Access to model mistralai/Mistral-7B-Instruct-v0.3 is restricted. You must have access to it and be authenticated to access it. Please log in.
+Cannot access gated repo for url https://huggingface.co/meta-llama/Llama-3.1-8B-Instruct/resolve/main/config.json.
+Access to model meta-llama/Llama-3.1-8B-Instruct is restricted. You must have access to it and be authenticated to access it. Please log in.
 ```
 1. Visit the model URL while logged in to huggingface to accept the terms and conditions.
 2. If not already done, create an access token on the HuggingFace website: click your profile picture > Access Tokens > Create new token > Read > Create Token > copy token
 3. Store the token on the system running align:
 ```
-poetry run python
+uv run python
 >>> from huggingface_hub import login
 >>> login()
 
