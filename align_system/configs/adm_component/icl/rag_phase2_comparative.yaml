@@ -1,0 +1,28 @@
+defaults:
+  - /retrieval@retrievers.medical: llama_index
+  - /retrieval@retrievers.affiliation: llama_index
+  - /retrieval@retrievers.merit: llama_index
+  - /retrieval@retrievers.personal_safety: llama_index
+  - /retrieval@retrievers.search: llama_index
+  - _self_
+
+_target_: align_system.algorithms.rag_icl_adm_component.RAGICLADMComponent
+
+attributes: ${ref:adm.attribute_definitions}
+always_include_attributes: [medical]
+example_formatter:
+  _target_: align_system.algorithms.rag_icl_adm_component.Phase2RegressionExampleFormatter
+  scenario_description_template: ${ref:adm.scenario_description_template}
+  prompt_template: ${ref:adm.prompt_template}
+
+retrievers:
+  medical:
+    dataset_files: [align_system/resources/icl/phase2/June2025-MU-train_20250602.json]
+  affiliation:
+    dataset_files: [align_system/resources/icl/phase2/June2025-AF-train_20250523.json]
+  merit:
+    dataset_files: [align_system/resources/icl/phase2/June2025-MF-train_20250523.json]
+  personal_safety:
+    dataset_files: [align_system/resources/icl/phase2/June2025-PS-train_20250602.json]
+  search:
+    dataset_files: [align_system/resources/icl/phase2/June2025-SS-train_20250527.json]

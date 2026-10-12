@@ -408,6 +408,51 @@ instance:
     - ${ref:adm.step_definitions.populate_choice_info}
 ```
 
+## LlamaIndex ICL retrieval
+
+`phase2_pipeline_rag_comparative_regression` is a separate Phase 2 pipeline
+using LlamaIndex retrieval. Existing ICL pipelines and experiment configs are
+unchanged. Install its optional dependencies with `uv sync --group rag`.
+For example:
+
+```bash
+uv run --group rag run_align_system \
+  adm=phase2_pipeline_rag_comparative_regression \
+  interface.input_output_filepath=example_data/input_output_files/phase2_june_collab/merit_focus_input_output.json \
+  +alignment_target=june2025/ADEPT-June2025-merit-0.8 \
+  align_to_target=true
+```
+
+The shared `adm.embedding_model` uses local Hugging Face embeddings and
+downloads its model on first use. Each attribute's retriever loads its JSON
+files and builds an in-memory index once during initialization. Each record
+is one complete retrieval item; labels and responses are kept outside the
+index. Calls return the original record, a source ID, and its retrieval score.
+
+`LlamaIndexExampleRetriever` takes four configurable pieces:
+
+- `example_template(record)` renders database records into searchable text.
+- `query_template(state)` renders queries; it is optional for string queries.
+- `embedding_model` supplies the embedding backend used by LlamaIndex's
+  vector index. Scores use embedding similarity rather than BERTScore.
+- `retriever_kwargs` and `postprocessors` configure LlamaIndex selection and
+  ordering. The default retrieves five nearest examples. Postprocessors are
+  instantiated LlamaIndex objects, such as `SimilarityPostprocessor`.
+
+These are exposed under
+`adm.step_definitions.regression_icl.retrievers.<attribute>`, using the
+`retrieval/llama_index` config. The embedding model is shared using `${ref:...}`.
+For example, override
+`adm.step_definitions.regression_icl.retrievers.merit.retriever_kwargs.similarity_top_k=10`
+to select ten merit examples.
+
+The Phase 2 adapter formats selected examples into validated regression
+responses and the existing `icl_dialog_elements` / `icl_example_info` outputs.
+It uses the pipeline's scenario and prompt templates. Target values do not
+affect indexing. This pipeline supports ordinary nearest-example retrieval;
+legacy normalization, random selection, leave-one-out, and matching boosts
+remain features of the original ICL component.
+
 ## Existing utility ADM components
 
 These are some ADM components that you may want to re-use for your

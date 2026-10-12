@@ -1,0 +1,11 @@
+_target_: align_system.utils.rag_examples.LlamaIndexExampleRetriever
+
+dataset_files: ???
+embedding_model: ${ref:adm.embedding_model}
+example_template:
+  _target_: align_system.algorithms.rag_icl_adm_component.Phase2ExampleText
+  scenario_description_template: ${ref:adm.scenario_description_template}
+query_template: ${ref:adm.scenario_description_template}
+retriever_kwargs:
+  similarity_top_k: 5
+postprocessors: []
