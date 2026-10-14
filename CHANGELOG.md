@@ -22,6 +22,10 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 * Added a new `adm_profile` option to `TA3CACIActionBasedServiceInterface`, corresponding to the server parameter of the
   same name.
 
+### Changed
+
+* Updated the direct regression template based on the new personal safety training and hold-out information
+
 ### Fixed
 
 * Fixed outdated `RandomEffectsModelAlignmentADMComponent` unit tests from previously changed z-scale values (from 2026-01-21)
