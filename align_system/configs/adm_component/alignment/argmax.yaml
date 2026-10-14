@@ -1,0 +1,3 @@
+_target_: align_system.algorithms.argmax_alignment_adm_component.ArgmaxAlignmentADMComponent
+
+attributes: ${ref:adm.attribute_definitions}
