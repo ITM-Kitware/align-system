@@ -1,5 +1,6 @@
 import json
 import math
+from copy import deepcopy
 
 from align_system.interfaces.abstracts import (
     Interface,
@@ -176,6 +177,10 @@ class InputOutputFileScenario(ActionBasedScenarioInterface):
             if isinstance(self.current_state, tuple) and hasattr(self.current_state, "_replace"):
                 self.current_state = self.current_state._replace(scenario_complete=True)
             else:
+                # Callers may retain this object as their pre-action state.
+                # Completion belongs to a new state, just as advancing to the
+                # next replay record does; do not mutate the retained snapshot.
+                self.current_state = deepcopy(self.current_state)
                 self.current_state.scenario_complete = True
             return self.current_state
 
