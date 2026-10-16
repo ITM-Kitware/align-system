@@ -1,13 +1,13 @@
 import atexit
 import os
 
-from rich.logging import RichHandler
 from rich.console import Console
 from rich.highlighter import JSONHighlighter
 import hydra
 from omegaconf import DictConfig
 
 from align_system.utils import logging
+from align_system.utils.logging import AgentPlainFormatter, AgentRichHandler
 from align_system.utils.hydra_utils import initialize_with_custom_references
 
 log = logging.getLogger(__name__)
@@ -41,14 +41,15 @@ def main(cfg: DictConfig) -> None:
         # Ensure the opened logfile is closed when the program exits
         atexit.register(logfile.close)
 
-        filehandler = RichHandler(
+        filehandler = AgentRichHandler(
             console=Console(file=logfile, color_system=None))
         root_logger.addHandler(filehandler)
 
     if raw_logfile_path is not None:
         # Using Python stdlib logging.FileHandler
         from logging import FileHandler
-        filehandler = FileHandler(raw_logfile_path)
+        filehandler = FileHandler(raw_logfile_path, mode='w')
+        filehandler.setFormatter(AgentPlainFormatter())
 
         root_logger.addHandler(filehandler)
 
