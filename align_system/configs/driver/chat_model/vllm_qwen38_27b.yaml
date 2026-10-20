@@ -21,8 +21,11 @@
 # With the reasoning parser the think phase comes back as
 # reasoning_content (logged by the driver) and message content stays
 # clean for tool calls.
-_target_: langchain_openai.ChatOpenAI
+_target_: align_system.utils.vllm_chat_model.VLLMChatOpenAI
 model: Qwen/Qwen3.8-27B-FP8
 base_url: http://localhost:8000/v1
 api_key: EMPTY
 temperature: 0.0
+# Includes reasoning tokens. The adapter reserves this space before generation.
+# Leave room for the actor to finish reasoning and emit a tool call after CR.
+max_tokens: 8192

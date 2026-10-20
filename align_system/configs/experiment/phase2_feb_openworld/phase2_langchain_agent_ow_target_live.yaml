@@ -1,0 +1,8 @@
+# @package _global_
+defaults:
+  - /experiment/phase2_feb_openworld/phase2_langchain_agent_ow_live
+  - /driver/target_context@driver.target_context: target
+  - _self_
+
+interface:
+  username: testrun-ALIGN-ADM-Ph2-LangChainAgent-TargetAware

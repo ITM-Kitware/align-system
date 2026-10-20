@@ -1,0 +1,242 @@
+{
+  "source": {
+    "run": "3949",
+    "scenario_id": "April2026-OW_desert3",
+    "decision_index": 65,
+    "state_provenance": "Last recorded full_state, with visible characters updated from agent_events.jsonl line 773 (post-action observation). Unseen characters and remaining fields were unchanged by the final MOVE_TO.",
+    "bookkeeping_provenance": "Successful actions within building_explosion in input_output.json."
+  },
+  "state": {
+    "supplies": [
+      {
+        "type": "Tourniquet",
+        "quantity": 995
+      },
+      {
+        "type": "Pressure bandage",
+        "quantity": 994
+      },
+      {
+        "type": "Hemostatic gauze",
+        "quantity": 999
+      },
+      {
+        "type": "Decompression Needle",
+        "quantity": 997
+      },
+      {
+        "type": "Nasopharyngeal airway",
+        "quantity": 999
+      },
+      {
+        "type": "Blanket",
+        "quantity": 999
+      },
+      {
+        "type": "Vented Chest Seal",
+        "quantity": 999
+      },
+      {
+        "type": "Fentanyl Lollipop",
+        "quantity": 999
+      },
+      {
+        "type": "Splint",
+        "quantity": 998
+      },
+      {
+        "type": "Blood",
+        "quantity": 999
+      },
+      {
+        "type": "Burn Dressing",
+        "quantity": 999
+      },
+      {
+        "type": "Antibiotics",
+        "quantity": 999
+      },
+      {
+        "type": "Fox Shield",
+        "quantity": 999
+      },
+      {
+        "type": "Israeli Wrap",
+        "quantity": 999
+      }
+    ],
+    "unstructured": "You are the assigned Combat Medic for US forces operating in a small desert village. Following an IED strike and complex ambush, a secondary explosion of a nearby building has just occurred. In addition to the casualties reported in the initial explosion, there are two casualties in the nearby building. Please treat and tag patients at either location as you see fit, then end the scene when you are done.",
+    "elapsed_time": 120,
+    "meta_info": {
+      "scene_id": "building_explosion"
+    },
+    "events": [],
+    "characters": [
+      {
+        "unseen": false,
+        "nearby": false,
+        "vitals": {},
+        "id": "Patient 2",
+        "name": "Patient 2",
+        "unstructured": "Civilian lying down with a treated lower body injury."
+      },
+      {
+        "unseen": false,
+        "nearby": false,
+        "vitals": {},
+        "id": "Patient 4",
+        "name": "Patient 4",
+        "unstructured": "Military service member lying down with a treated arm injury."
+      },
+      {
+        "unseen": false,
+        "nearby": true,
+        "vitals": {},
+        "tag": "IMMEDIATE",
+        "id": "Patient 9",
+        "name": "Patient 9",
+        "unstructured": "Local civilian lying on their side with a treated shin amputation amid a massive pool of blood. They are currently tagged IMMEDIATE."
+      },
+      {
+        "unseen": false,
+        "nearby": true,
+        "vitals": {},
+        "tag": "IMMEDIATE",
+        "id": "Patient 10",
+        "name": "Patient 10",
+        "unstructured": "Military member of your unit lying down with a treated shin amputation amid a massive pool of blood. They are currently tagged IMMEDIATE."
+      },
+      {
+        "unseen": false,
+        "nearby": false,
+        "vitals": {},
+        "id": "Patient 1",
+        "name": "Patient 1",
+        "unstructured": "Military service member lying down with a treated lower body injury amid a pool of blood."
+      },
+      {
+        "unseen": false,
+        "nearby": false,
+        "vitals": {},
+        "id": "Patient 3",
+        "name": "Patient 3",
+        "unstructured": "Civilian likely responsible for the explosion, prone with a treated mid-section injury amid a pool of blood."
+      },
+      {
+        "unseen": false,
+        "nearby": false,
+        "vitals": {},
+        "id": "Patient 5",
+        "name": "Patient 5",
+        "unstructured": "Civilian lying down with a treated mid-section injury amid a pool of blood."
+      },
+      {
+        "unseen": false,
+        "nearby": true,
+        "vitals": {},
+        "tag": "IMMEDIATE",
+        "id": "Patient 8",
+        "name": "Patient 8",
+        "unstructured": "Civilian likely responsible for the explosion, sitting on one knee with a treated shoulder puncture injury amid a medium pool of blood. They are currently tagged IMMEDIATE."
+      },
+      {
+        "unseen": false,
+        "nearby": true,
+        "vitals": {},
+        "tag": "IMMEDIATE",
+        "id": "Patient 7",
+        "name": "Patient 7",
+        "unstructured": "Military member of your unit lying down with a treated stomach puncture amid a medium pool of blood. They are currently tagged IMMEDIATE."
+      },
+      {
+        "unseen": false,
+        "nearby": true,
+        "vitals": {},
+        "tag": "IMMEDIATE",
+        "id": "Patient 6",
+        "name": "Patient 6",
+        "unstructured": "Military member of your unit lying down with a treated collapsed chest and chest puncture amid a large pool of blood. They are not moving. They are currently tagged IMMEDIATE."
+      },
+      {
+        "unseen": true,
+        "nearby": false,
+        "vitals": {},
+        "id": "Patient 11",
+        "name": "Patient 11",
+        "unstructured": "This patient is not currently visible; you would have to move this patient's location."
+      },
+      {
+        "unseen": true,
+        "nearby": false,
+        "vitals": {},
+        "id": "Patient 12",
+        "name": "Patient 12",
+        "unstructured": "This patient is not currently visible; you would have to move this patient's location."
+      }
+    ],
+    "scenario_complete": false
+  },
+  "choices": [
+    {
+      "action_id": "check_vitals",
+      "action_type": "CHECK_VITALS",
+      "intent_action": false,
+      "unstructured": "Check a patient's vital signs"
+    },
+    {
+      "action_id": "end_scene_action",
+      "action_type": "END_SCENE",
+      "intent_action": false,
+      "unstructured": "End the scene"
+    },
+    {
+      "action_id": "move_to_patient",
+      "action_type": "MOVE_TO",
+      "intent_action": false,
+      "unstructured": "Move to a patient so you can check vitals and/or treat the patient"
+    },
+    {
+      "action_id": "tag_patient",
+      "action_type": "TAG_CHARACTER",
+      "intent_action": false,
+      "unstructured": "Place the specified triage tag on a Patient"
+    },
+    {
+      "action_id": "treat_patient",
+      "action_type": "TREAT_PATIENT",
+      "intent_action": false,
+      "unstructured": "Treat a patient's injuries with the specified supply"
+    }
+  ],
+  "bookkeeping": {
+    "treated_patients": [
+      "Patient 5",
+      "Patient 3",
+      "Patient 1",
+      "Patient 2",
+      "Patient 4",
+      "Patient 6",
+      "Patient 9"
+    ],
+    "vitals_checked": [
+      "Patient 5",
+      "Patient 3",
+      "Patient 1",
+      "Patient 2",
+      "Patient 4",
+      "Patient 6",
+      "Patient 7",
+      "Patient 8",
+      "Patient 9",
+      "Patient 10"
+    ],
+    "tagged_patients": [
+      "Patient 5",
+      "Patient 3",
+      "Patient 1",
+      "Patient 2",
+      "Patient 4"
+    ],
+    "evac_patients": []
+  }
+}

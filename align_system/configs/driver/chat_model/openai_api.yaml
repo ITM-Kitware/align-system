@@ -1,0 +1,10 @@
+# Hosted agent and comparative-regression scorer. Credentials are read by
+# ChatOpenAI from OPENAI_API_KEY, never embedded in saved Hydra config.
+_target_: langchain_openai.ChatOpenAI
+model: ${oc.env:OPENAI_MODEL,gpt-4.1}
+base_url: https://api.openai.com/v1
+use_responses_api: true
+store: false
+max_tokens: 4096
+timeout: 180
+max_retries: 2
