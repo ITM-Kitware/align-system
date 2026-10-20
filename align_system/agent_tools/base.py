@@ -5,8 +5,10 @@ A toolkit is anything with a ``build_tools(session)`` method returning
 a list of LangChain tools; the driver calls it once per scenario with
 its per-scenario session object (the current environment state, the
 alignment target, and ``refresh_actions()`` for the currently
-available actions), and binds the returned tools to the chat model
-alongside its own.  An optional ``prompt_hint`` is appended to the
+available actions, plus ``record_assessment(name, assessment)`` to save
+structured evidence alongside the next executed action), and binds the
+returned tools to the chat model alongside its own. An optional
+``prompt_hint`` is appended to the
 agent's system prompt so the agent knows the extra tools exist and
 when to use them.
 

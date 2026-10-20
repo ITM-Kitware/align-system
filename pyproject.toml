@@ -27,7 +27,7 @@ dependencies = [
 ]
 
 [tool.uv.sources]
-swagger-client = { git = "https://github.com/NextCenturyCorporation/itm-evaluation-client.git" }
+swagger-client = { git = "https://github.com/NextCenturyCorporation/itm-evaluation-client.git", rev = "e8757ed0474447cf1ce8b8da7581c19a3227c0e4" }
 
 [dependency-groups]
 openai = [
