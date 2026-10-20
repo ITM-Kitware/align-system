@@ -1,0 +1,56 @@
+# @package _global_
+# LangChain agent driver with the comparative regression
+# value-assessment toolkit attached as an extra agent tool (see
+# configs/driver/tools/comparative_regression.yaml)
+defaults:
+  # Attach the toolkit under driver.extra_tools (must precede the
+  # overrides below; hydra requires overrides to come last)
+  - /driver/tools@driver.extra_tools.comparative_regression: comparative_regression
+  - /adm_component/icl@driver.extra_tools.comparative_regression.icl: phase2_comparative
+  - _self_
+  # The LangChain agent drives the scenario itself; no ADM is used
+  - override /adm: null
+  - override /interface: ta3
+  - override /driver: itm_phase2_ow_langchain
+  - override /driver/chat_model: ollama_qwen25_32b
+
+interface:
+#  api_endpoint: "https://darpaitm.caci.com"
+  api_endpoint: 'http://127.0.0.1:8081'
+  session_type: eval
+  training_session: null
+  username: "testrun-ALIGN-ADM-Ph2-LangChainAgent-CompRegression-Qwen2.5-32B-Instruct"
+  domain: "owtriage"
+  adm_profile: APRIL_OPENWORLD3
+
+force_determinism: true
+# The comparative regression tool scores actions against the
+# alignment target, so the target must be requested from the server
+align_to_target: true
+save_last_unstructured_state_per_scenario: true
+
+# Use the February ADM datasets and similarity selection with 20 examples per attribute.
+# Candidates still come from the live OW state, never from training actions.
+driver:
+  extra_tools:
+    comparative_regression:
+      icl:
+        attributes: ${driver.extra_tools.comparative_regression.attributes}
+        scenario_description_template:
+          _target_: align_system.prompt_engineering.outlines_prompts.Phase2ScenarioDescription
+        prompt_template: ${driver.extra_tools.comparative_regression.prompt_template}
+        icl_generator_partial:
+          # Construct one lazy scorer for this partial, shared by all attributes.
+          scorer:
+            _target_: align_system.utils.bert_scorer.BatchedBERTScorer
+            batch_size: 32
+            device: cuda
+          incontext_settings:
+            number: 20
+            leave_one_out_strategy: scenario_description
+            datasets:
+              medical: /data/shared/samba/phase2_icl/Feb2026-MU-train_20251218.json
+              affiliation: /data/shared/samba/phase2_icl/Feb2026-AF-train_20251218.json
+              merit: /data/shared/samba/phase2_icl/Feb2026-MF-train_20251218.json
+              personal_safety: /data/shared/samba/phase2_icl/Feb2026-PS-train_20251218.json
+              search: /data/shared/samba/phase2_icl/Feb2026-SS-train_20251218.json
