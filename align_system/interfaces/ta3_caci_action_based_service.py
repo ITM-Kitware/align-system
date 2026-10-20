@@ -1,4 +1,5 @@
 from uuid import uuid4
+import re
 
 import swagger_client
 from swagger_client.configuration import Configuration
@@ -14,6 +15,24 @@ from align_system.interfaces.abstracts import (
 log = logging.getLogger(__name__)
 
 PHASE2_DOMAINS = {"p2triage", "owtriage"}
+
+
+def _validate_session_id(response):
+    """Reject error pages that the generated string-response client accepts."""
+    if (isinstance(response, str) and response.strip()
+            and '<' not in response and '>' not in response
+            and not any(character.isspace() for character in response)):
+        return response
+    message = "TA3 startSession returned an invalid session ID."
+    if isinstance(response, str):
+        if 'rejected by the security policy' in response.lower():
+            message += " The server's security gateway rejected the request."
+        elif '<' in response:
+            message += " The server returned HTML instead of a session ID."
+        support_id = re.search(r'support\s+id\s+is:\s*(\d+)', response, re.IGNORECASE)
+        if support_id:
+            message += f" Support ID: {support_id.group(1)}."
+    raise RuntimeError(message + " No scenario request was sent.")
 
 
 class TA3CACIActionBasedServiceInterface(Interface):
@@ -37,6 +56,7 @@ class TA3CACIActionBasedServiceInterface(Interface):
             self.scenarios_specified = False
 
         self.training_session = training_session
+        self.session_type = session_type
 
         self.domain = domain
 
@@ -63,8 +83,8 @@ class TA3CACIActionBasedServiceInterface(Interface):
         if self.adm_profile is not None:
             start_session_params['adm_profile'] = self.adm_profile
 
-        self.session_id = self.connection.start_session(
-            **start_session_params)
+        self.session_id = _validate_session_id(
+            self.connection.start_session(**start_session_params))
 
     def start_scenario(self):
         log.info(f"*ADM Name*: {self.username}")

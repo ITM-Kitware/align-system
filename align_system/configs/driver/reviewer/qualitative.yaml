@@ -1,0 +1,7 @@
+defaults:
+  - weighted
+  - _self_
+
+# Keep the same advisory workflow without numerical switching guidance.
+# Inherits response_format: text; structured modes remain opt-in.
+weighting: null

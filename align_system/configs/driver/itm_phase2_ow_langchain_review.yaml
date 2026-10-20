@@ -1,0 +1,7 @@
+defaults:
+  - itm_phase2_ow_langchain
+  - _self_
+  - override reviewer: weighted
+
+# Compatibility profile: the original review experiments select weighted review.
+# Use driver/reviewer=qualitative or driver.reviewer.weighting=null to omit weights.
