@@ -36,6 +36,68 @@ def composed(result):
     return cfg
 
 
+def test_april_affiliation_launcher_uses_server_target_without_actor_override():
+    cfg = composed(dry_run(
+        launcher='phase2_ow_agent_qwen38_kaleido_april_affiliation0.sbatch'))
+    assert cfg.interface.adm_profile == 'APRIL_AFFILIATION_0'
+    assert cfg.interface.session_type == 'eval'
+    assert cfg.interface.training_session is None
+    assert list(cfg.interface.scenario_ids) == ['April2026-OW_desert3']
+    assert cfg.interface.api_endpoint == 'http://127.0.0.1:18081'
+    assert cfg.get('alignment_target') is None
+    assert cfg.driver.target_context is not None
+    assert not cfg.driver.extra_tools.kaleido.auto_assess
+
+
+def test_april_affiliation_launcher_rejects_conflicting_actor_target():
+    result = dry_run(
+        ['+alignment_target=june2025/ADEPT-June2025-merit-0.0'],
+        launcher='phase2_ow_agent_qwen38_kaleido_april_affiliation0.sbatch')
+    assert result.returncode == 2
+    assert 'no Hydra overrides' in result.stderr
+
+
+@pytest.mark.parametrize('launcher', [
+    'phase2_ow_agent_qwen38.sh', 'phase2_ow_agent_qwen38_kaleido.sh',
+    'phase2_ow_agent_qwen38_kaleido.sbatch', 'phase2_ow_agent_qwen38_live.sbatch',
+    'phase2_ow_agent_qwen38_smoke.sbatch', 'phase2_ow_agent_openai.sbatch',
+])
+def test_kaleido_launchers_instantiate_original_toolkit(launcher):
+    from hydra.utils import instantiate
+    from align_system.tests.test_agent_assessments import FakeKaleido
+
+    result = dry_run(launcher=launcher, TOOLKIT='kaleido',
+                     RUN_MODE='live' if launcher.endswith('_live.sbatch') else 'smoke')
+    cfg = composed(result)
+    toolkit = instantiate(cfg.driver.extra_tools.kaleido, kaleido_instance=FakeKaleido())
+    assert toolkit.auto_assess
+    assert not toolkit.explain
+    assert 'assessment_mode' not in cfg.driver.extra_tools.kaleido
+    assert '-Kaleido-Auto-' in cfg.interface.username
+
+
+def test_kaleido_original_options_can_be_overridden():
+    from hydra.utils import instantiate
+    from align_system.tests.test_agent_assessments import FakeKaleido
+
+    cfg = composed(dry_run(['driver.extra_tools.kaleido.explain=true'],
+                           TOOLKIT='kaleido', AUTO_ASSESS='false'))
+    toolkit = instantiate(cfg.driver.extra_tools.kaleido, kaleido_instance=FakeKaleido())
+    assert not toolkit.auto_assess
+    assert toolkit.explain
+    assert '-Kaleido-OnDemand-' in cfg.interface.username
+
+
+@pytest.mark.parametrize('overrides,settings', [
+    ([], {'ASSESSMENT_MODE': 'evidence'}),
+    (['driver.extra_tools.kaleido.assessment_mode=evidence'], {}),
+])
+def test_kaleido_does_not_accept_cr_assessment_modes(overrides, settings):
+    result = dry_run(overrides, TOOLKIT='kaleido', **settings)
+    assert result.returncode == 2
+    assert 'ASSESSMENT_MODE applies only to compreg' in result.stderr
+
+
 @pytest.mark.parametrize('settings', [
     {'TOOLKIT': 'baseline', 'TARGET_CONTEXT': 'true'},
     {'EXPERIMENT': 'phase2_langchain_agent_ow_target_live'},

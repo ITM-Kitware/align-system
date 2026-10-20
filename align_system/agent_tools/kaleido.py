@@ -20,9 +20,59 @@ from langchain_core.tools import tool
 from align_system.agent_tools.base import AgentToolProvider
 from align_system.drivers.itm_open_world_langchain import (
     TOOL_NAMES_BY_ACTION_TYPE)
-from align_system.prompt_engineering.ow_prompts import (
-    KaleidoAutoAssessHintPrompt, KaleidoToolHintPrompt)
+from align_system.prompt_engineering.compat.outlines.templates import prompt as compat_outlines_prompt
 from align_system.utils import logging
+from align_system.utils.agent_actions import assessment_cache_key, assessment_rows
+
+
+@compat_outlines_prompt
+def kaleido_auto_assess_hint():
+    """
+    Value alignment: your actions must align with the alignment target.
+    Before each decision you are given a value assessment of the currently
+    available actions: per action and target attribute, how relevant the
+    attribute is, whether the action supports or opposes it, and an
+    estimated attribute value alongside the target value.  Read it before
+    choosing: prefer the action whose estimates are closest to the target
+    (breaking ties on clinical grounds), and if you choose a different
+    action, say in your justification why the assessment does not apply.
+    You also have an assess_available_actions(justification) tool that
+    returns the same assessment again if you need to re-read it.
+    """
+
+
+class KaleidoAutoAssessHintPrompt:
+    """System prompt addition for the LangChain agent when the Kaleido
+    toolkit hands it an assessment before every decision
+    (auto_assess=True)."""
+    def __call__(self):
+        return kaleido_auto_assess_hint()
+
+
+@compat_outlines_prompt
+def kaleido_tool_hint():
+    """
+    You also have a value-assessment tool:
+
+    - assess_available_actions(justification): score every currently
+      available action against the attributes of your alignment target
+      using a value model.  It reports, per action and attribute, how
+      relevant the attribute is, whether the action supports or opposes
+      it, and an estimated attribute value alongside the target value.
+
+    Your actions must align with the alignment target, so before choosing
+    each environment action, call assess_available_actions and prefer the
+    action whose estimates are closest to the target (breaking ties on
+    clinical grounds).  Call it once per decision, then act; do not call
+    it repeatedly without taking an action in between.
+    """
+
+
+class KaleidoToolHintPrompt:
+    """System prompt addition for the LangChain agent when it has to
+    request a Kaleido assessment itself (auto_assess=False)."""
+    def __call__(self):
+        return kaleido_tool_hint()
 
 
 log = logging.getLogger(__name__)
@@ -76,7 +126,7 @@ class KaleidoToolkit(AgentToolProvider):
     string, or a prompt template object rendering to one when called
     with no arguments); when None it defaults to
     `KaleidoAutoAssessHintPrompt` or `KaleidoToolHintPrompt` (see
-    `align_system.prompt_engineering.ow_prompts`) depending on
+    `align_system.agent_tools.kaleido`) depending on
     `auto_assess`.
     """
 
@@ -106,10 +156,11 @@ class KaleidoToolkit(AgentToolProvider):
                             else prompt_hint)
 
         # Re-running the model for the same decision point would only
-        # repeat the answer, so assessments are cached on the number of
-        # actions taken so far; shared by the automatic assessment and
-        # the explicit tool, and reset per scenario (see build_tools)
+        # repeat the answer. Share assessments between the automatic
+        # context and explicit tool only for the same session, action
+        # count, offered actions, observed state, and target values.
         self._cache = {}
+        self._cache_session = None
 
     # -- Scoring --------------------------------------------------------
 
@@ -233,7 +284,8 @@ class KaleidoToolkit(AgentToolProvider):
                     "scenario, so there is nothing to assess against; "
                     "decide on clinical grounds instead.")
 
-        if not _target_values(session.alignment_target):
+        target_values = _target_values(session.alignment_target)
+        if not target_values:
             return ("The alignment target has no attribute values to "
                     "assess against; decide on clinical grounds instead.")
 
@@ -242,10 +294,23 @@ class KaleidoToolkit(AgentToolProvider):
         if not actions:
             return "No actions are currently available to assess."
 
-        cache_key = session.n_actions
+        # Guard the lookup itself: direct context calls and tools from
+        # another session must not depend on build_tools clearing the cache.
+        if self._cache_session is not session:
+            self._cache = {}
+            self._cache_session = session
+        state = session.current_state
+        state_data = state.to_dict() if hasattr(state, 'to_dict') else vars(state)
+        target_id = getattr(session.alignment_target, 'id', None)
+        if isinstance(session.alignment_target, Mapping):
+            target_id = session.alignment_target.get('id')
+        cache_key = (assessment_cache_key(session, actions), target_id,
+                     json.dumps(state_data, sort_keys=True, default=str))
         if cache_key in self._cache:
             log.debug("Returning cached Kaleido assessment")
-            return self._cache[cache_key]
+            text, record = self._cache[cache_key]
+            self._record_assessment(session, record, cache_hit=True)
+            return text
 
         log.info("[bold]*ASSESSING ACTIONS (KALEIDO)*[/bold]",
                  extra={"markup": True})
@@ -258,8 +323,25 @@ class KaleidoToolkit(AgentToolProvider):
              for r in rows],
             indent=2, default=str))
 
-        self._cache[cache_key] = text
+        record = {
+            'mode': 'ranked', 'auto_assess': self.auto_assess,
+            'alignment_target_id': target_id,
+            'targets': targets, 'rows': assessment_rows(rows),
+            'unscored': unscored, 'text': text,
+            'scoring_scope': 'offered_action_templates',
+            'model_name': getattr(self.kaleido, 'model_name', None),
+        }
+        self._record_assessment(session, record, cache_hit=False)
+        self._cache[cache_key] = (text, record)
         return text
+
+    @staticmethod
+    def _record_assessment(session, record, *, cache_hit):
+        session.record_assessment('kaleido', record)
+        session.record_event(
+            'kaleido_assessment', decision_index=session.n_actions,
+            alignment_target_id=record['alignment_target_id'],
+            targets=record['targets'], cache_hit=cache_hit, assessment=record)
 
     def decision_context(self, session):
         """Driver hook: the assessment handed to the agent before each
@@ -286,6 +368,7 @@ class KaleidoToolkit(AgentToolProvider):
         # Called once per scenario; cached assessments belong to the
         # previous scenario's decision points
         self._cache = {}
+        self._cache_session = session
         toolkit = self
 
         @tool

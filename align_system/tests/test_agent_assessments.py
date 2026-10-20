@@ -10,6 +10,7 @@ from hydra.utils import instantiate
 from omegaconf import OmegaConf
 from swagger_client.models import ActionTypeEnum, KDMAValue
 
+from align_system.agent_tools.kaleido import KaleidoToolkit
 from align_system.data_models.attribute import Attribute
 from align_system.drivers.itm_open_world_langchain import (
     ITMOpenWorldLangChainDriver, ScenarioSession)
@@ -73,6 +74,25 @@ def session_for(actions=None):
     target = Model(id='target', kdma_values=[{'kdma': 'affiliation', 'value': 0.8}])
     session = ScenarioSession(scenario, target, False, False, records.append)
     return session, records
+
+
+class FakeKaleido:
+    def __init__(self):
+        self.calls = 0
+        self.explanation_calls = 0
+        self.texts = []
+
+    def get_relevance(self, texts, *args, **kwargs):
+        self.calls += 1
+        self.texts = texts
+        return [[0.9, 0.1] for _ in texts]
+
+    def get_valence(self, texts, *args, **kwargs):
+        return [[0.8, 0.1, 0.1] for _ in texts]
+
+    def get_explanation(self, texts, *args, **kwargs):
+        self.explanation_calls += 1
+        return ['Evidence explanation' for _ in texts]
 
 
 def test_context_error_aborts_without_retry_or_fallback():
@@ -183,6 +203,42 @@ def test_shared_target_normalization(representation):
     assert alignment_target_values(None) == {}
 
 
+@pytest.mark.parametrize('auto', [True, False])
+@pytest.mark.parametrize('explain', [True, False])
+def test_kaleido_original_assessment_with_current_driver(auto, explain):
+    session, records = session_for([
+        action('a', unstructured='Check Alex', character_id='p1'),
+        action('b', unstructured='Check Jordan', character_id='p2')])
+    backend = FakeKaleido()
+    toolkit = KaleidoToolkit(backend, {'affiliation': {
+        'description': 'Favor patients in your group', 'vrd': 'Value'}},
+        auto_assess=auto, explain=explain)
+    driver = ITMOpenWorldLangChainDriver(
+        extra_tools={'kaleido': toolkit}, apply_action_filtering=False)
+    tools = {tool.name: tool for tool in driver._build_tools(session)}
+    context = toolkit.decision_context(session)
+    assert (context is not None) == auto
+    text = tools['assess_available_actions'].invoke({'justification': 'Assess choices'})
+    assert 'estimate 0.85 vs target 0.80 (distance 0.05)' in text
+    assert 'Closest to target overall:' in text
+    assert ('Evidence explanation' in text) == explain
+    assert backend.explanation_calls == int(explain)
+    assert 'Choosing to "Check Alex" instead of "Check Jordan".' in backend.texts[0]
+    assert 'action_id' not in backend.texts[0]
+    assert session.assessments['kaleido']['targets'] == {'affiliation': 0.8}
+    assert backend.calls == 1  # Automatic context and tool share the original cache.
+    tools['execute_available_action'].invoke({'action_id': 'b', 'justification': 'Choose Jordan'})
+    assert records[0]['output']['action']['action_id'] == 'b'
+    assert records[0]['choice_info']['assessments']['kaleido']['targets'] == {'affiliation': 0.8}
+    tools['assess_available_actions'].invoke({'justification': 'Assess next decision'})
+    assert backend.calls == 2
+
+
+def test_legacy_prompt_import_still_works():
+    from align_system.prompt_engineering.ow_prompts import KaleidoAutoAssessHintPrompt
+    assert 'closest' in KaleidoAutoAssessHintPrompt()()
+
+
 def test_forced_end_is_labeled():
     session, records = session_for([action('end', ActionTypeEnum.END_SCENE)])
     session.refresh_actions()
@@ -200,3 +256,122 @@ def test_existing_attribute_target_conversion_preserves_parameters():
     assert converted[0].value == 0.8
     assert converted[0].parameters == [{'offset': 1}]
     assert attributes_in_alignment_target(target) == ['affiliation']
+
+
+class TargetTrackingKaleido(FakeKaleido):
+    def __init__(self):
+        super().__init__()
+        self.descriptions = []
+
+    def get_relevance(self, texts, vrds, descriptions, **kwargs):
+        self.descriptions.append(list(descriptions))
+        return super().get_relevance(texts, vrds, descriptions, **kwargs)
+
+
+def target_tracking_kaleido(auto=True):
+    backend = TargetTrackingKaleido()
+    toolkit = KaleidoToolkit(backend, {
+        'merit': {'description': 'Favor victims over perpetrators'},
+        'affiliation': {'description': 'Favor patients in your group'},
+    }, auto_assess=auto)
+    return toolkit, backend
+
+
+def assert_kaleido_target(text, attribute, value):
+    assert f'Alignment target: {attribute}={value:.2f}' in text
+    assert (f'estimate 0.85 vs target {value:.2f} '
+            f'(distance {abs(0.85 - value):.2f})') in text
+
+
+def test_kaleido_invalidates_cache_when_target_value_changes_in_place():
+    toolkit, backend = target_tracking_kaleido()
+    session, _ = session_for()
+    entry = session.alignment_target.kdma_values[0]
+    entry.update(kdma='merit', value=0.0)
+    assert_kaleido_target(toolkit.assessment_text(session), 'merit', 0.0)
+
+    entry['value'] = 1.0  # Same target ID, session, and action count.
+    text = toolkit.assessment_text(session)
+    assert_kaleido_target(text, 'merit', 1.0)
+    assert backend.calls == 2
+    assert toolkit.assessment_text(session) == text
+    assert backend.calls == 2
+
+
+def test_kaleido_invalidates_cache_when_target_attribute_changes():
+    toolkit, backend = target_tracking_kaleido()
+    session, _ = session_for()
+    entry = session.alignment_target.kdma_values[0]
+    entry.update(kdma='merit', value=0.4)
+    assert_kaleido_target(toolkit.assessment_text(session), 'merit', 0.4)
+
+    entry['kdma'] = 'affiliation'  # The scalar target is unchanged.
+    assert_kaleido_target(toolkit.assessment_text(session), 'affiliation', 0.4)
+    assert backend.calls == 2
+    assert backend.descriptions == [
+        ['Favor victims over perpetrators'] * 2,
+        ['Favor patients in your group'] * 2,
+    ]
+
+
+@pytest.mark.parametrize('method', ['assessment_text', 'decision_context'])
+def test_kaleido_cache_isolated_for_sessions_without_build_tools(method):
+    toolkit, backend = target_tracking_kaleido()
+    first, _ = session_for()
+    second, _ = session_for()
+    assert first.scenario.id() == second.scenario.id()
+    assert first.n_actions == second.n_actions == 0
+    # Identical targets ensure isolation depends on the actual session.
+    assess = getattr(toolkit, method)
+    for index, session in enumerate((first, second), start=1):
+        text = assess(session)
+        assert_kaleido_target(text, 'affiliation', 0.8)
+        assert backend.calls == index
+        assert assess(session) == text
+        assert backend.calls == index
+
+
+def test_kaleido_interleaved_tool_closures_keep_their_session_targets():
+    toolkit, backend = target_tracking_kaleido()
+    first, _ = session_for()
+    second, _ = session_for()
+    first.alignment_target.kdma_values[0].update(kdma='merit', value=0.0)
+    second.alignment_target.kdma_values[0].update(kdma='affiliation', value=1.0)
+    first_tool = toolkit.build_tools(first)[0]
+    second_tool = toolkit.build_tools(second)[0]
+
+    for bound_tool, attribute, value in (
+            (first_tool, 'merit', 0.0),
+            (second_tool, 'affiliation', 1.0),
+            (first_tool, 'merit', 0.0)):
+        text = bound_tool.invoke({'justification': 'Assess this session'})
+        assert_kaleido_target(text, attribute, value)
+    assert backend.calls >= 2
+
+
+@pytest.mark.parametrize('auto', [True, False])
+def test_kaleido_driver_24_session_merit_affiliation_sweep(auto):
+    toolkit, backend = target_tracking_kaleido(auto)
+    driver = ITMOpenWorldLangChainDriver(
+        extra_tools={'kaleido': toolkit}, apply_action_filtering=False)
+    completed = 0
+    for scenario_id in ('desert', 'urban'):
+        for attribute in ('merit', 'affiliation'):
+            for value in (0.0, 0.2, 0.4, 0.6, 0.8, 1.0):
+                session, _ = session_for()
+                session.scenario.id = lambda name=scenario_id: name
+                session.alignment_target.kdma_values[0].update(
+                    kdma=attribute, value=value)
+                tools = {tool.name: tool for tool in driver._build_tools(session)}
+                context = toolkit.decision_context(session)
+                assert (context is not None) == auto
+                if auto:
+                    assert_kaleido_target(context, attribute, value)
+                text = tools['assess_available_actions'].invoke({
+                    'justification': 'Assess the current session target'})
+                assert_kaleido_target(text, attribute, value)
+                completed += 1
+                # Automatic and explicit assessments share one computation
+                # within each session, but never reuse a preceding session.
+                assert backend.calls == completed
+    assert completed == 24
