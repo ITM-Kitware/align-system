@@ -1,0 +1,68 @@
+# Comparative regression value-assessment toolkit for the LangChain
+# agent drivers: the agent-side counterpart of the ADM pipeline's
+# comparative regression step (see
+# adm/phase2_pipeline_zeroshot_comparative_regression.yaml), reusing
+# its prompt / schema templates and attribute definitions.  Adds a
+# `score_available_actions` tool that scores the currently available
+# actions against the alignment target's attributes.
+# Attach to a driver from an experiment config with
+#   - /driver/tools@driver.extra_tools.comparative_regression: comparative_regression
+defaults:
+  - /attribute@attributes.medical: medical_urgency
+  - /attribute@attributes.affiliation: affiliation_focus
+  - /attribute@attributes.merit: merit_focus
+  - /attribute@attributes.search: search_or_stay
+  - /attribute@attributes.personal_safety: personal_safety
+  # With casualty info: open world states carry little in their
+  # top-level description
+  - /template/scenario_description@scenario_description_template: phase2_w_casualty_info
+  - /template/prompt@prompt_template: phase2_comparative_regression
+  - /template/output_schema@score_schema_template: phase2_comparative_regression_choice
+  - _self_
+
+_target_: align_system.agent_tools.comparative_regression.ComparativeRegressionToolkit
+
+# LangChain chat model used for scoring; must support structured
+# (JSON schema) output.  Defaults to (a separate instance of) the
+# agent's own chat model so no second model has to be served; point
+# it at any other chat model config to score with a different LLM
+chat_model: ${driver.chat_model}
+
+# Per-request scorer options, independent of the actor's model defaults.
+# The Qwen launcher sets max_tokens=8192 and disables scorer thinking only.
+# Other backends may use different options (e.g. num_predict for Ollama).
+generation_kwargs: {}
+
+system_prompt_template:
+  _target_: align_system.prompt_engineering.outlines_prompts.ComparativeRegressionSystemPromptWithTemplate
+
+# As in the ADM: '*' is the target's attributes; medical urgency is
+# predicted for reference (no target value, so not in the distance)
+target_attribute_names_override: ['medical', '*']
+
+# Predictions averaged per action and attribute
+num_samples: 1
+
+# Retry failed/incomplete attribute scoring at most twice after the first call.
+# Scores still missing after retries are reported to the actor explicitly.
+max_retries: 2
+
+# CR is optional: the agent may request score_available_actions when useful.
+# Set true only for experiments that intentionally supply every assessment.
+auto_assess: false
+
+# Optional reminders at scene entry, after this many actions without a CR call,
+# and on repeated moves. Reminders never invoke the scorer; 0 disables them.
+reminder_interval: 5
+
+# ranked preserves target-distance recommendations. evidence provides
+# predictions and reasoning for the agent to interpret against its target.
+# Independent of auto_assess; evidence always includes scorer reasoning.
+assessment_mode: ranked
+
+# Include brief scorer explanations (always included in evidence mode).
+show_reasoning: true
+
+# Optional ICLADMComponent. The OW live experiment supplies the February
+# few-shot configuration; null explicitly selects zero-shot regression.
+icl: null

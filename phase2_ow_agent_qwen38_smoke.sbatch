@@ -9,8 +9,8 @@
 #SBATCH --output=slurm-%x-%j.out
 
 # Submit from the repo root, or set PROJECT_DIR to the checkout.
-# TOOLKIT=baseline|kaleido selects the toolkit on generic launchers.
-# AUTO_ASSESS=true|false controls automatic Kaleido assessments.
+# TOOLKIT=baseline|kaleido|compreg selects the toolkit on generic launchers.
+# ASSESSMENT_MODE=ranked|evidence applies to CR; AUTO_ASSESS=true|false applies to both toolkits.
 # All usernames start with testrun-, including live runs and custom names.
 # For a remote model, set VLLM_URL; use --gres=none if this job needs no GPU
 # (Kaleido still needs a GPU unless KALEIDO_DEVICE=cpu).

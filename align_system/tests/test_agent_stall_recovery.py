@@ -11,7 +11,7 @@ from swagger_client.models import ActionTypeEnum
 from align_system.drivers.itm_open_world_langchain import (
     ITMOpenWorldLangChainDriver, ScenarioSession)
 from align_system.exceptions import ScenarioStalledError
-from align_system.tests.test_agent_assessments import Model, Scenario, action
+from align_system.tests.test_agent_assessments import Model, Scenario, action, toolkit_for
 from align_system.tests.test_agent_controls_and_events import Actor
 from align_system.tests.test_agent_scoring import drive
 from align_system.utils.agent_events import AgentEventLog
@@ -108,6 +108,24 @@ def test_rejected_navigation_tries_another_concrete_patient():
     assert all(a.action_type == ActionTypeEnum.MOVE_TO for a in attempted)
     assert {a.character_id for a in attempted} == {'Patient 11', 'Patient 12'}
     assert selected.character_id == attempted[-1].character_id
+
+
+def test_successful_noop_navigation_is_not_repeated_or_scored_again():
+    session = replay_session()
+    session.alignment_target = Model(
+        id='target', kdma_values=[{'kdma': 'affiliation', 'value': 0.8}])
+    driver = ITMOpenWorldLangChainDriver()
+    first = driver._take_fallback_action(session)
+    assert first.character_id in session.blocked_moves
+    toolkit = toolkit_for('comparative_regression')
+    toolkit.decision_context(session)
+    rows = session.assessments['comparative_regression']['rows']
+    assert rows
+    assert all(row['action']['character_id'] != first.character_id
+               for row in rows if row['action']['action_type'] == ActionTypeEnum.MOVE_TO)
+    second = driver._take_fallback_action(session)
+    assert second.action_type == ActionTypeEnum.MOVE_TO
+    assert second.character_id != first.character_id
 
 
 def test_successful_treatment_allows_vitals_reassessment():

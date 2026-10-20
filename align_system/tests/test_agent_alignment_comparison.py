@@ -137,6 +137,42 @@ def test_cli_resolves_manifest_relative_paths_and_reproducible_intervals(tmp_pat
     assert result == compare_study(manifest, tmp_path, bootstrap_samples=100, seed=17)
 
 
+def test_three_variant_offline_driver_outputs_feed_comparison(tmp_path):
+    from langchain_core.messages import AIMessage
+    from align_system.drivers.itm_open_world_langchain import ITMOpenWorldLangChainDriver
+    from align_system.tests.test_agent_assessments import action_call, session_for, toolkit_for
+
+    class Agent:
+        def __init__(self):
+            self.calls = 0
+
+        def bind_tools(self, tools):
+            return self
+
+        def invoke(self, messages):
+            self.calls += 1
+            return AIMessage(content='', tool_calls=[action_call('a')])
+
+    runs = []
+    for variant in ('baseline', 'ranked', 'evidence'):
+        session, records = session_for()
+        extras = {} if variant == 'baseline' else {
+            'comparative_regression': toolkit_for(
+                'comparative_regression', 'ranked' if variant == 'ranked' else 'evidence')}
+        agent = Agent()
+        driver = ITMOpenWorldLangChainDriver(
+            chat_model=agent, extra_tools=extras,
+            apply_action_filtering=False, max_actions_per_scenario=1)
+        driver._run_agent_loop(session)
+        assert agent.calls == len(records) == 1
+        runs.append(save_run(tmp_path, variant, records))
+    report = compare_study({'reference': 'evidence', 'runs': runs}, tmp_path)
+    assert len(report['variants']) == 3
+    for comparison in report['paired_comparisons'].values():
+        assert comparison['matched_initial_episodes'] == 1
+        assert comparison['metrics']['preference_agreement']['mean_delta'] is None
+
+
 @pytest.mark.parametrize('manifest', [[], {}, {'runs': []}, {'runs': [{}]}])
 def test_malformed_manifests_fail_with_clear_errors(tmp_path, manifest):
     with pytest.raises(ValueError):

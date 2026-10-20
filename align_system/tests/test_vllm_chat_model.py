@@ -174,6 +174,119 @@ def test_structured_batch_is_budgeted(make_model):
     assert all(body['max_completion_tokens'] == 2048 for body in server.completions)
 
 
+class CRServer(Server):
+    """Reproduce a truncated CR completion through the real SDK parser."""
+
+    def handle(self, request):
+        response = super().handle(request)
+        if request.url.path != '/proxy/v1/chat/completions':
+            return response
+        body = json.loads(request.content)
+        if 'response_format' not in body:
+            return response
+        completion = response.json()
+        choice = completion['choices'][0]
+        if body['max_completion_tokens'] <= 2048:
+            choice['finish_reason'] = 'length'
+            choice['message']['content'] = '{"reasoning": "Incomplete'
+            completion['usage'] = {
+                'completion_tokens': 2048, 'prompt_tokens': 884, 'total_tokens': 2932}
+        else:
+            schema = body['response_format']['json_schema']['schema']
+            choice['message']['content'] = json.dumps({
+                key: {'score': 80,
+                      'explanation': 'The response favors the same group.'}
+                for key in schema['properties']})
+        return httpx.Response(200, json=completion)
+
+
+@pytest.mark.parametrize('budget,failed', [(None, True), (8192, False)])
+def test_cr_output_budget_handles_length_error_without_changing_actor(
+        make_model, caplog, budget, failed):
+    from align_system.tests.test_agent_assessments import session_for, toolkit_for
+
+    server = CRServer()
+    model = make_model(server)
+    toolkit = toolkit_for('comparative_regression', 'evidence',
+                          generation_kwargs={} if budget is None else {'max_tokens': budget})
+    toolkit.chat_model = model
+    session, _ = session_for()
+    toolkit.assessment_text(session)
+    record = session.assessments['comparative_regression']
+    assert bool(record['failed']) == failed
+    if failed:
+        assert 'length limit was reached' in caplog.text
+    else:
+        assert record['rows'][0]['scores']['affiliation']['predicted'] == 0.8
+        assert record['reasonings']['affiliation']
+    assert server.completions[0]['max_completion_tokens'] == (budget or 2048)
+    model.invoke('Continue the agent turn')
+    assert server.completions[-1]['max_completion_tokens'] == 2048
+
+
+def test_cr_output_override_reserves_context_before_request(make_model, caplog):
+    from align_system.tests.test_agent_assessments import session_for, toolkit_for
+
+    server = CRServer(count=lambda _: 884, limit=9000)
+    model = make_model(server)
+    toolkit = toolkit_for('comparative_regression', 'evidence',
+                          generation_kwargs={'max_tokens': 8192})
+    toolkit.chat_model = model
+    session, _ = session_for()
+    toolkit.assessment_text(session)
+    assert session.assessments['comparative_regression']['failed'] == ['affiliation']
+    assert '8192 output tokens' in caplog.text
+    assert not server.completions
+    model.invoke('Continue the agent turn')
+    assert len(server.completions) == 1
+
+
+@pytest.mark.parametrize('config_factory', [dict, OmegaConf.create], ids=['dict', 'hydra'])
+def test_cr_disables_thinking_for_scorer_without_changing_actor(make_model, config_factory):
+    from align_system.tests.test_agent_assessments import session_for, toolkit_for
+
+    server = CRServer()
+    model = make_model(server, extra_body={
+        'chat_template_kwargs': {'enable_thinking': True}})
+    generation_kwargs = config_factory({
+        'max_tokens': 8192,
+        'extra_body': {'chat_template_kwargs': {'enable_thinking': False}}})
+    toolkit = toolkit_for('comparative_regression', generation_kwargs=generation_kwargs)
+    toolkit.chat_model = model
+    session, _ = session_for()
+    toolkit.assessment_text(session)
+    assert not session.assessments['comparative_regression']['failed']
+    assert len(server.tokenizations) == len(server.completions) == 1
+    assert server.completions[-1]['chat_template_kwargs']['enable_thinking'] is False
+    assert server.tokenizations[-1]['chat_template_kwargs']['enable_thinking'] is False
+    model.invoke('Continue the agent turn')
+    assert server.completions[-1]['chat_template_kwargs']['enable_thinking'] is True
+    assert server.tokenizations[-1]['chat_template_kwargs']['enable_thinking'] is True
+    assert model.extra_body['chat_template_kwargs']['enable_thinking'] is True
+    assert generation_kwargs['extra_body']['chat_template_kwargs']['enable_thinking'] is False
+
+
+def test_cr_context_guard_preserves_all_selected_examples(make_model):
+    from align_system.tests.test_agent_assessments import session_for, toolkit_for
+    from align_system.tests.test_agent_compact_regression import TwentyExamples
+
+    examples = TwentyExamples()
+    server = CRServer(count=lambda body: 15000)
+    toolkit = toolkit_for('comparative_regression', icl=examples)
+    toolkit.chat_model = make_model(server)
+    session, _ = session_for()
+    text = toolkit.assessment_text(session)
+    record = session.assessments['comparative_regression']
+    assert record['failed'] == ['affiliation']
+    assert len(record['scoring_attempts']['affiliation']) == 1
+    assert len(server.tokenizations) == 1
+    assert not server.completions
+    assert [message['content'] for message in server.tokenizations[0]['messages'][1:-1]] == [
+        example.content for example in examples.dialog]
+    for example in examples.dialog:
+        assert example.content in text
+
+
 def test_async_and_stream_paths_are_budgeted(make_model):
     server = Server()
     model = make_model(server)

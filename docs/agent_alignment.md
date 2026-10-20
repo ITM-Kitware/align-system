@@ -1,7 +1,7 @@
 # Agent alignment experiments
 
-Compare baseline, target-aware, and Kaleido agents using the same scenarios
-and independently supplied alignment labels.
+Compare baseline, target-aware, ranked-assessment, and evidence-assessment
+agents using the same scenarios and independently supplied alignment labels.
 See the [README](../README.md#slurm-launchers) for April OpenWorld launch commands.
 
 ## PR #295 driver integration
@@ -9,7 +9,8 @@ See the [README](../README.md#slurm-launchers) for April OpenWorld launch comman
 The shared `ITMOpenWorldLangChainDriver` incorporates the workflow, grounded
 reviewer, history packing, request budgets, and logging from
 [PR #295](https://github.com/ITM-Kitware/align-system/pull/295), head
-`fda93690432d352d52d06ff4211a40686fa0fc5e`. The existing Kaleido toolkit, exact action-ID selection, patient safeguards, event
+`fda93690432d352d52d06ff4211a40686fa0fc5e`. The existing Kaleido and comparative
+regression toolkits, exact action-ID selection, patient safeguards, event
 journal, and score reporting remain integrated with this driver.
 
 The normal launchers use the updated driver. Advisory review remains optional,
@@ -186,6 +187,140 @@ trimmed. This performs no model calls and provides no action scores. Use it with
 are preserved. The direct Hydra experiment is
 `phase2_langchain_agent_ow_target_live`.
 
+## Concrete comparative-regression choices and examples
+
+The CR toolkit expands each patient-action template over visible patients before
+scoring. This follows the OW ADM's patient expansion. Treatment candidates use
+`apply_treatment.treatment_options`, the same injury/inventory helper used by the
+ADM parameter-completion component. Existing patient IDs and fixed parameters
+are preserved; incomplete treatments are filled only from observed injuries and
+in-stock supplies. Hidden/treated injuries cannot supply new treatment options.
+Unsupported or insufficiently observed treatments are reported as unscored,
+without falling back to generic template scores. Tag templates expand over tags.
+Patient-level action filtering is applied after expansion.
+
+Each candidate keeps its server action ID. To execute it, the agent passes that
+ID to `execute_available_action`, sets `character_name` to the candidate's
+`character_id`, and copies `treatment`/`location`/`category` into
+`treatment_supply`/`injury_location`/`triage_tag`. Assessment records contain the
+full candidate actions and omission reasons. Changes in scene information or
+inventory invalidate the assessment cache.
+
+The OW CR live experiment now uses the `ICLADMComponent` and dataset generator
+from `phase2_feb_collab/phase2_pipeline_fewshot_comparative_regression_random_effects`:
+20 examples per scored attribute, prompt BERT similarity, and the five
+`/data/shared/samba/phase2_icl/Feb2026-*-train_20251218.json` datasets. Its
+scenario-description leave-one-out setting and example ordering are preserved.
+Example selection uses the ADM's phase2 description so leave-one-out comparisons
+match the dataset descriptions; the final scoring query retains casualty info.
+The datasets provide labeled examples, never the live candidates or their scores.
+This does not change the agent's ranked/evidence decision policy to the ADM's
+random-effects alignment policy.
+
+The scorer receives example user/assistant messages before the concrete-action
+query. The actor receives the assessment and all 20 selected examples for each
+scored attribute, including the scenario/action text and labeled answers copied
+from the selected records. Training examples are clearly separated from the
+current scene; their patients and actions are not current scene facts. The same
+examples are saved under
+`choice_info.assessments.comparative_regression.icl_examples` for inspection.
+Missing configured datasets fail explicitly. Override
+`driver.extra_tools.comparative_regression.icl=null` for zero-shot scoring, or
+change `driver.extra_tools.comparative_regression.icl.icl_generator_partial.incontext_settings`
+to select dataset paths, example counts, and selection settings. BERT selection
+uses the same model dependency as the ADM, with one lazily loaded GPU model
+shared across attribute generators and an explicit scoring batch size of 32.
+The number of selected examples remains 20; scoring batch size is independent. More examples and concrete candidates
+increase the prompt size, so the configured context window must accommodate both.
+
+## Optional scoring, compact output, and retries
+
+The LangChain driver keeps a compact last-known tag memory for every variant,
+including baseline and CR. It records successful tagging actions and tags
+actually observed, with patient ID, tag, source, scene, and action count. Missing
+tags never erase that memory. Tags from previous scenes remain explicitly
+historical until observed again; memory does not overwrite the live state or
+change the action filters. A fresh memory block accompanies every actor request
+even when old conversation messages are trimmed. `patient_tag_memory` events and
+the same field in each action's `choice_info` make the memory auditable.
+The older pipeline ADM's internal treatment/evacuation bookkeeping and numeric
+choice history are separate; it does not receive this new patient-memory block.
+
+CR is optional by default in both the toolkit configuration and launchers:
+`auto_assess=false`. The actor may call `score_available_actions` when useful
+and remains free to act without it or disagree with its recommendations.
+`AUTO_ASSESS=true` explicitly enables automatic assessment for experiments.
+
+With optional CR, `reminder_interval=5` adds a reminder at scene entry and after
+five environment actions without a CR request or reminder. Four repeated moves
+between the same patients trigger an earlier, stronger reminder. A CR request,
+including a failed one, starts a five-action cooldown. Reminders include the
+current target, remain advisory, and never invoke CR. Set
+`driver.extra_tools.comparative_regression.reminder_interval=0` to disable them.
+The event log records `cr_reminder` entries and their trigger reason.
+
+The scorer uses short candidate IDs (`C01`, `C02`, and so on), a numeric score
+for every candidate, and a brief explanation. The actor's assessment maps the
+IDs to executable actions, reports available predictions and target distances,
+and includes the selected training examples. Ranked mode retains the existing
+distance-based recommendation policy.
+
+Every requested attribute is checked for complete, finite scores within its
+expected range. Failed or incomplete scoring is retried at most twice after
+the initial attempt (`driver.extra_tools.comparative_regression.max_retries=2`).
+Successful attributes are not rescored during those retries. Remaining missing
+scores are reported explicitly, and incomplete assessments do not prevent the
+actor from acting.
+
+The Qwen/vLLM launchers give CR scoring requests an 8,192-token output budget;
+the actor also defaults to 8,192 tokens, including reasoning and the final tool
+call. Override the actor budget with `driver.chat_model.max_tokens=16384` when
+needed. Scorer requests set
+`extra_body.chat_template_kwargs.enable_thinking=false`; the actor retains its
+own thinking setting. A warning that response parsing failed because the
+length limit was reached means the completion was cut off, even if the HTTP
+request returned 200.
+
+Override the scoring budget by appending
+`++driver.extra_tools.comparative_regression.generation_kwargs.max_tokens=16384`
+to the launcher command. Direct Qwen/vLLM Hydra runs also need
+`++driver.extra_tools.comparative_regression.generation_kwargs.extra_body.chat_template_kwargs.enable_thinking=false`
+to disable scorer thinking. Both overrides apply only to scoring requests.
+The vLLM context guard reserves the scoring budget before sending the request,
+so the prompt, output budget, and safety margin must fit the server's context
+window. It preserves all selected scoring examples and fails before generation
+if they do not fit, instead of silently dropping examples. The actor's guard
+also retains its newest tool result; verify that the complete assessment and
+all examples fit with the actor's instructions, tools, and observation before
+starting a full evaluation.
+Other backends retain their model defaults unless `generation_kwargs` is set;
+use the backend's parameter name (for example, `num_predict` for Ollama).
+
+## Check one real CR call before an evaluation
+
+On `itm`, with an existing vLLM server and a saved run containing an
+`episode_context` event, run:
+
+```bash
+python -m align_system.cli.check_comparative_regression \
+  --events /path/to/saved/run/agent_events.jsonl \
+  --output-dir /path/to/new/cr-check \
+  --base-url http://model-host:8000/v1 \
+  --bert-device cpu
+```
+
+Use `--scenario-id` to select a saved scene instead of the first one. Set
+`--bert-device cuda` when GPU memory is available; either device retains the
+shared BERT scorer and batch size 32. The check invokes the real CR tool once
+with its bounded retries, verifies complete scores and all 20 selected examples
+per attribute in the tool result, and counts the complete actor request against
+the server's context window. It creates no evaluation session and executes no
+environment action. The actor does not generate a decision.
+
+The new output directory contains `summary.json`, `assessment.json`,
+`tool_response.txt`, and `actor_request.json`. A nonzero exit means the checks
+failed; inspect those artifacts before proceeding with an evaluation.
+
 ## Server scores and missing-score diagnostics
 
 With `save_scoring_output=true` (the default), the driver creates `scores.json`
@@ -318,6 +453,57 @@ action, and failure event counts. Episode completion uses **all started
 episodes** in available journals as its denominator. Missing legacy journals are
 reported as unknown coverage, never as zero failures. Actor attempt counts
 exclude assessment-tool inference and are not a total compute measure.
+
+## Compare variants
+
+Use the same model, initial scenarios, target profiles, action/context limits,
+filtering, and sampling settings. Run multiple scenario/seed replicates.
+
+| Variant | Experiment / overrides |
+| --- | --- |
+| Existing baseline | `phase2_langchain_agent_ow_live` |
+| Target-aware baseline | `phase2_langchain_agent_ow_target_live` |
+| Ranked assessment | `phase2_langchain_agent_ow_comparative_regression_live`, `driver.extra_tools.comparative_regression.assessment_mode=ranked`, `driver.extra_tools.comparative_regression.auto_assess=false` |
+| Evidence assessment | Same assessment experiment, `assessment_mode=evidence`, `auto_assess=false` |
+
+Experiment names above are within `phase2_feb_openworld/`. Use distinct output
+directories and usernames. The existing baseline requests a target for scoring
+but does **not** expose it to the agent: it is an unconditioned baseline. The
+target-aware baseline makes that distinction measurable. Pin the same target
+context in all other conditions when studying assessment effects.
+
+Trajectories can diverge after different actions. Compare episode outcomes on
+matched initial scenarios, and obtain labels for each actual decision state.
+Use `scores.json` when server scoring is available. Report label coverage and
+per-target results. The comparison command below estimates uncertainty by
+resampling scenarios rather than treating every action as independent. These
+utilities do not compute clinical outcomes, robustness, or distributional
+alignment.
+
+To preview four variants against the same existing model server:
+
+```bash
+for variant in baseline target ranked evidence; do
+  toolkit=compreg; mode=evidence; target=true
+  case "$variant" in
+    baseline) toolkit=baseline; target=false ;;
+    target) toolkit=baseline ;;
+    ranked) mode=ranked ;;
+  esac
+  EXPERIMENT= DRY_RUN=1 RUN_MODE=smoke \
+    TOOLKIT="$toolkit" ASSESSMENT_MODE="$mode" AUTO_ASSESS=false \
+    TARGET_CONTEXT="$target" \
+    VLLM_URL=http://model-host:8000/v1 \
+    RUN_USERNAME="alignment-study-repeat-0-$variant" \
+    OUT_DIR="outputs/alignment-study/repeat-0/$variant" \
+    bash phase2_ow_agent_qwen38.sh
+done
+```
+
+Set the real model/TA3 endpoints, scenario selection, and target configuration
+before removing `DRY_RUN=1`. This runs locally in the current allocation; use the
+Slurm wrappers to request resources. Repeat identifiers organize the study; they
+do not configure random seeds. Keep and inspect each run's saved Hydra settings.
 
 ## Summarize a run
 

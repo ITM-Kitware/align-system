@@ -1,7 +1,8 @@
 #!/bin/bash
 # Shared interactive/Slurm runner. See README.md for smoke/live examples.
-# RUN_MODE=live|smoke, TOOLKIT=baseline|kaleido,
-# AUTO_ASSESS=true|false defaults to true for Kaleido.
+# RUN_MODE=live|smoke, TOOLKIT=baseline|kaleido|compreg,
+# ASSESSMENT_MODE=ranked|evidence selects CR behavior only.
+# AUTO_ASSESS=true|false defaults to true for Kaleido and false for CR.
 # TARGET_CONTEXT=true|false (default false) pins target definitions for the actor.
 # MODEL_BACKEND=vllm|openai (default vllm); openai uses OPENAI_API_KEY.
 # MODEL, TP, PORT, VLLM_URL, TA3_ENDPOINT, ADM_PROFILE, TRAINING_SESSION, SCENARIO_ID,
@@ -22,6 +23,7 @@ if [[ -n "${EXPERIMENT:-}" ]]; then
     phase2_langchain_agent_ow_target_live)
       toolkit=baseline; default_target_context=true ;;
     phase2_langchain_agent_ow_kaleido_live) toolkit=kaleido ;;
+    phase2_langchain_agent_ow_comparative_regression_live) toolkit=compreg ;;
     *) fail "Unsupported EXPERIMENT: ${EXPERIMENT}" ;;
   esac
 else
@@ -30,7 +32,12 @@ fi
 case "${toolkit}" in
   baseline) experiment=phase2_langchain_agent_ow_live; toolkit_key=; toolkit_label=Baseline ;;
   kaleido) experiment=phase2_langchain_agent_ow_kaleido_live; toolkit_key=kaleido; toolkit_label=Kaleido ;;
-  *) fail "TOOLKIT must be baseline or kaleido" ;;
+  compreg|comparative_regression)
+    toolkit=compreg
+    experiment=phase2_langchain_agent_ow_comparative_regression_live
+    toolkit_key=comparative_regression
+    toolkit_label=CompRegression ;;
+  *) fail "TOOLKIT must be baseline, kaleido, or compreg" ;;
 esac
 
 assessment_mode="${ASSESSMENT_MODE:-}"
@@ -101,7 +108,14 @@ case "${require_scores}" in
   true|false) ;;
   *) fail "REQUIRE_SCORES must be true or false" ;;
 esac
-if [[ "${toolkit}" == kaleido && -n "${assessment_mode}" ]]; then
+if [[ "${toolkit}" == compreg ]]; then
+  assessment_mode="${assessment_mode:-ranked}"
+  case "${assessment_mode}" in
+    evidence) assessment_label=Evidence ;;
+    ranked) assessment_label=Ranked ;;
+    *) fail "ASSESSMENT_MODE must be evidence or ranked" ;;
+  esac
+elif [[ "${toolkit}" == kaleido && -n "${assessment_mode}" ]]; then
   fail "ASSESSMENT_MODE applies only to compreg; Kaleido uses its original target-distance assessment"
 fi
 auto_assess="${auto_assess,,}"
@@ -120,6 +134,9 @@ adm_profile="${ADM_PROFILE:-APRIL_OPENWORLD3}"
 model_label="${model##*/}"
 model_label="${model_label//[^a-zA-Z0-9_.-]/-}"
 variant="${toolkit_label}"
+if [[ "${toolkit}" == compreg ]]; then
+  variant="${variant}-${assessment_label}"
+fi
 if [[ -n "${toolkit_key}" ]]; then
   variant="${variant}-${delivery_label}"
 fi
@@ -157,6 +174,14 @@ if [[ "${run_mode}" == smoke ]]; then
 fi
 if [[ -n "${SCENARIO_ID:-}" ]]; then
   run_args+=("interface.scenario_ids=[${SCENARIO_ID}]")
+fi
+if [[ "${toolkit}" == compreg ]]; then
+  run_args+=("driver.extra_tools.comparative_regression.assessment_mode=${assessment_mode}")
+  if [[ "${model_backend}" == vllm ]]; then
+    # Request compact scores without scorer thinking; actor settings stay intact.
+    run_args+=("++driver.extra_tools.comparative_regression.generation_kwargs.max_tokens=8192")
+    run_args+=("++driver.extra_tools.comparative_regression.generation_kwargs.extra_body.chat_template_kwargs.enable_thinking=false")
+  fi
 fi
 if [[ -n "${toolkit_key}" ]]; then
   run_args+=("driver.extra_tools.${toolkit_key}.auto_assess=${auto_assess}")
