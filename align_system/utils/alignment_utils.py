@@ -4,6 +4,7 @@ import math
 import random
 from enum import Enum
 
+from align_system.utils.alignment_targets import alignment_target_entries
 from align_system.utils import kde_utils
 from align_system.utils import logging
 from align_system.data_models.attribute import AttributeTarget
@@ -561,33 +562,13 @@ def infer_alignment_target_type(alignment_target):
 
 
 def attributes_in_alignment_target(alignment_target):
-    if isinstance(alignment_target, dict):
-        target_kdmas = alignment_target['kdma_values']
-    else:
-        target_kdmas = alignment_target.kdma_values
-
-    out_attributes = []
-    for t in target_kdmas:
-        if hasattr(t, "to_dict"):
-            t = t.to_dict()
-
-        out_attributes.append(t['kdma'])
-
-    return out_attributes
+    return [entry['kdma'] for entry in alignment_target_entries(alignment_target)]
 
 
 def alignment_target_to_attribute_targets(alignment_target,
                                           attribute_definitions):
-    if isinstance(alignment_target, dict):
-        target_kdmas = alignment_target['kdma_values']
-    else:
-        target_kdmas = alignment_target.kdma_values
-
     output_attribute_targets = []
-    for t in target_kdmas:
-        if hasattr(t, "to_dict"):
-            t = t.to_dict()
-
+    for t in alignment_target_entries(alignment_target):
         attribute = attribute_definitions[t['kdma']]
 
         output_attribute_targets.append(

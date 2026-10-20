@@ -1,6 +1,27 @@
 """Custom exceptions for the align-system."""
 
 
+class ContextWindowError(RuntimeError):
+    """The prompt cannot be safely budgeted; repeating it will not help."""
+
+
+class ScenarioStalledError(RuntimeError):
+    """No valid recovery action succeeded in the current scenario.
+
+    ``diagnostics`` contains replayable state and rejected action details.
+    A stalled scenario has no final score and must not silently advance a
+    server session that offers no explicit abort operation.
+    """
+
+    def __init__(self, message, diagnostics=None):
+        self.diagnostics = diagnostics if diagnostics is not None else {}
+        super().__init__(message)
+
+
+class ScenarioActionLimitError(ScenarioStalledError):
+    """The action budget ended with an active scenario; do not advance it."""
+
+
 class SceneSkipException(Exception):
     """
     Exception raised when a scene should be skipped and the system should move to the next scene.

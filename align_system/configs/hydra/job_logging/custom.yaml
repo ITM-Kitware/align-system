@@ -1,7 +1,7 @@
 version: 1
 handlers:
   console:
-    class: rich.logging.RichHandler
+    class: align_system.utils.AgentRichHandler
 root:
   handlers: [console]
 

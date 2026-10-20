@@ -1,0 +1,9 @@
+defaults:
+  - /attribute@attributes.medical: medical_urgency
+  - /attribute@attributes.affiliation: affiliation_focus
+  - /attribute@attributes.merit: merit_focus
+  - /attribute@attributes.search: search_or_stay
+  - /attribute@attributes.personal_safety: personal_safety
+  - _self_
+
+_target_: align_system.algorithms.target_context.TargetContext
