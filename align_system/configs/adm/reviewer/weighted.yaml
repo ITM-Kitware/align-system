@@ -1,0 +1,17 @@
+# Advisory review shares the ADM's per-action model-call budget.
+_target_: align_system.algorithms.agents.agent_review.ActionReviewer
+# Omitted model/prompt settings use constructor defaults; experiments can override them.
+# text is the default; opt into ollama_json_schema or vllm_json_schema
+# only with the corresponding unbound reviewer provider.
+response_format: text
+# Repair malformed output or invalid evidence once when the shared attempt
+# budget still reserves a final decision call. Set 0 for the original behavior.
+max_repair_attempts: 1
+weighting:
+  influence: 0.5
+  swap_threshold: 0.15
+
+response_contract: ${adm.instance.expected_response_contract}
+# Bounds on diagnostic feedback, independent of model tokens/call limits.
+max_diagnostic_errors: 20
+max_diagnostic_chars: 8192

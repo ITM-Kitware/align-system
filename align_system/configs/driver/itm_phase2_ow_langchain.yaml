@@ -16,16 +16,7 @@ defaults:
   # endpoint (see the docstring of
   # align_system.drivers.itm_open_world_langchain for why)
   - chat_model: ollama_llama31
-  # Shared KDMA definitions for aligned decision and reviewer prompts.
-  - /attribute@attribute_definitions.medical: medical_urgency
-  - /attribute@attribute_definitions.affiliation: affiliation_focus
-  - /attribute@attribute_definitions.merit: merit_focus
-  - /attribute@attribute_definitions.search: search_or_stay
-  - /attribute@attribute_definitions.personal_safety: personal_safety
   - _self_
-  # Keep this after _self_ so the selected group replaces reviewer: null.
-  # Enable with driver/reviewer=weighted (or qualitative).
-  - reviewer: null
 
 _target_: align_system.drivers.itm_open_world_langchain.ITMOpenWorldLangChainDriver
 
@@ -33,10 +24,6 @@ model: null
 
 apply_action_filtering: true
 sort_available_actions: false
-# auto lets aligned agents choose offered END_SCENE through the ordinary
-# decision/review cycle; unaligned runs retain legacy automatic completion.
-# Explicit options: auto | legacy | agent_decides.
-scene_end_policy: auto
 
 # Hard cap on environment actions per scenario (safety net against
 # agent loops); when hit, the driver ends the scene itself
@@ -45,23 +32,8 @@ max_actions_per_scenario: 100
 # driver takes the first available action on its behalf so a live
 # session can't stall
 max_llm_calls_between_actions: 8
-# Secondary history limit; token budgeting preserves complete tool exchanges.
+# Rolling window of conversation messages kept in the agent's context
 max_messages_in_context: 40
-
-# Applied before generation, after resolving the actual model. No model calls
-# occur during Hydra composition. Disable with driver.context_budget.enabled=false.
-# auto uses vLLM /tokenize where supported, otherwise a conservative estimate.
-# Unknown serving capacities require an explicit role-specific context_window.
-context_budget:
-  enabled: true
-  decision:
-    counter: auto
-    context_window: null
-    output_tokens: null
-  reviewer:
-    counter: auto
-    context_window: null
-    output_tokens: null
 
 # Optional toolkits (align_system.agent_tools) offering additional
 # tools to the agent, keyed by name.  Attach one from an experiment
@@ -70,7 +42,3 @@ context_budget:
 # (listed before any `override` entries in the defaults list)
 # (see configs/driver/tools/)
 extra_tools: {}
-
-# Optional advisory agent; omission preserves single-agent execution.
-# driver.reviewer=null also disables a selected reviewer profile.
-reviewer: null
