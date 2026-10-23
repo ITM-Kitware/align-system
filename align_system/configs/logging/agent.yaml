@@ -1,0 +1,10 @@
+# @package _global_
+defaults:
+  # Load this profile after the application's existing logging defaults.
+  - /hydra/job_logging/agent@hydra.job_logging
+  - _self_
+
+# Opt into correlated agent events in the console and both log files.
+agent_log_rendering: true
+# Keep only the current run when reusing an agent experiment output directory.
+raw_log_mode: w
