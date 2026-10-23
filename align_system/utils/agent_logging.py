@@ -2,7 +2,7 @@
 
 The annotation lives beside the original log message. In particular, diagnostic
 consumers can continue to parse ``Action review:`` records while humans see a
-short summary (or the complete visible exchange at DEBUG).
+short console summary and full visible exchanges in the opt-in transcript.
 """
 
 from contextlib import contextmanager
@@ -217,13 +217,29 @@ def message_payload(messages):
     return result
 
 
+def _detail_capture_handlers(logger, level):
+    """Find opted-in handlers along the same propagation path as normal logging."""
+    handlers = []
+    while logger is not None:
+        handlers.extend(
+            handler for handler in logger.handlers
+            if getattr(handler, 'capture_agent_details', False)
+            and not handler._closed and level >= handler.level)
+        if not logger.propagate:
+            break
+        logger = logger.parent
+    return handlers
+
+
 def agent_log_event(logger, role, direction, summary, *, payload=None,
                     level=logging.INFO, legacy_message=None, legacy_args=(),
                     **fields):
-    """Emit a compact event and optional DEBUG detail with the same identifiers.
+    """Emit a compact event and opt-in detail with the same identifiers.
 
-    A callable payload is evaluated only at DEBUG. Presentation never replaces
-    the underlying legacy message, so structured diagnostic readers keep working.
+    DEBUG broadcasts details normally. At INFO, transcript handlers can capture
+    details without sending them to the console or enabling transport debugging.
+    With neither enabled, callable payloads stay unevaluated. Presentation never
+    replaces the legacy message used by structured diagnostic readers.
     """
     metadata = {
         'role': role.upper(), 'direction': direction.upper(),
@@ -234,15 +250,40 @@ def agent_log_event(logger, role, direction, summary, *, payload=None,
         logger.log(level, metadata['summary'] if legacy_message is None else legacy_message,
                    *(legacy_args if legacy_message is not None else ()),
                    extra={'agent_event': metadata}, stacklevel=2)
-    if payload is not None and logger.isEnabledFor(logging.DEBUG):
-        try:
-            detail = _safe_payload(payload() if callable(payload) else payload)
-        except Exception as error:
-            # Diagnostics must not turn a successful model/tool call into failure.
-            detail = {'logging_detail': 'unavailable',
-                      'error_type': type(error).__name__}
-        logger.debug(metadata['summary'], extra={'agent_event': {
-            **metadata, 'payload': detail, 'detail': True}}, stacklevel=2)
+    if payload is None:
+        return
+    debug_enabled = logger.isEnabledFor(logging.DEBUG)
+    capture_handlers = []
+    if not debug_enabled:
+        if not logger.isEnabledFor(logging.INFO) or not logger.isEnabledFor(level):
+            return
+        capture_handlers = _detail_capture_handlers(logger, level)
+        if not capture_handlers:
+            return
+    try:
+        detail = _safe_payload(payload() if callable(payload) else payload)
+    except Exception as error:
+        # Diagnostics must not turn a successful model/tool call into failure.
+        detail = {'logging_detail': 'unavailable',
+                  'error_type': type(error).__name__}
+    extra = {'agent_event': {**metadata, 'payload': detail, 'detail': True}}
+    if debug_enabled:
+        logger.debug(metadata['summary'], extra=extra, stacklevel=2)
+    else:
+        # Keep a real record (including custom record factories and filters),
+        # but send it only to handlers explicitly requesting transcript detail.
+        pathname, lineno, func, _ = logger.findCaller(stacklevel=2)
+        record = logger.makeRecord(logger.name, level, pathname, lineno,
+                                   metadata['summary'], (), None, func=func,
+                                   extra=extra)
+        filtered = logger.filter(record)
+        if filtered:
+            # Python 3.12 filters can replace a record instead of just allowing it.
+            if isinstance(filtered, logging.LogRecord):
+                record = filtered
+            for handler in capture_handlers:
+                if record.levelno >= handler.level:
+                    handler.handle(record)
 
 
 def _event_heading(event):

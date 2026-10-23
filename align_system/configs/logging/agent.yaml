@@ -4,7 +4,10 @@ defaults:
   - /hydra/job_logging/agent@hydra.job_logging
   - _self_
 
-# Opt into correlated agent events in the console and both log files.
+# Opt into correlated agent events in the console and log files.
 agent_log_rendering: true
+# Readable interaction transcript with full model/tool outputs at INFO or DEBUG,
+# and source-line links to request payloads captured in the raw log.
+save_agent_transcript: true
 # Keep only the current run when reusing an agent experiment output directory.
 raw_log_mode: w
