@@ -1,0 +1,9 @@
+_target_: align_system.drivers.itm_open_world_agentic.ITMOpenWorldAgenticDriver
+
+apply_action_filtering: true
+sort_available_actions: false
+max_actions_per_scenario: 100
+# auto allows aligned agents to select offered scene endings; unaligned runs
+# retain automatic legacy completion. Explicit: legacy | agent_decides.
+scene_end_policy: auto
+extra_tools: {}

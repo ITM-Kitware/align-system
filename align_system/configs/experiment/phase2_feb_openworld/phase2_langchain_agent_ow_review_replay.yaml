@@ -1,0 +1,18 @@
+# @package _global_
+# Decision agent plus one advisory reviewer; the decision agent selects
+# the final action on a fresh model turn after review.
+# Local smoke test for the LangChain agent driver: replays recorded
+# scenario states from a file instead of hitting a live TA3 server, so
+# the agent's observe -> decide -> act loop can be exercised offline
+defaults:
+  - /logging: agent
+  - override /adm: langchain_agentic
+  - override /interface: input_output_file
+  - override /driver: itm_phase2_ow_agentic
+  - override /adm/reviewer@adm.instance.reviewer: weighted
+
+interface:
+  input_output_filepath: 'example_data/input_output_files/openworld_smoke_input_output.json'
+  state_hydration_domain: p2triage
+
+align_to_target: false
