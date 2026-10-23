@@ -1,7 +1,11 @@
-"""Per-request context limits without mutating shared LangChain models.
+"""Per-request token capacity checks without mutating shared LangChain models.
 
 Counting is deliberately separate from invoking: preflights are not model attempts.
 Provider discovery is lazy, and errors never include prompt or credential contents.
+Long scenarios accumulate messages, patient history, tool schemas, and review
+evidence. Reserve output capacity before generation, and let the caller discard
+only optional conversation history when the complete request would not fit.
+This token capacity is independent of the workflow's model-call limit.
 """
 
 from collections.abc import Mapping
@@ -325,10 +329,29 @@ class RequestBudget:
 
 
 def is_context_overflow(error):
-    """Recognize capacity errors narrowly; malformed tool JSON is not overflow."""
+    """Prefer provider error codes; use text only when no specific code exists.
+
+Some local OpenAI-compatible servers expose only an error message, so the
+bounded patterns remain a compatibility fallback. An explicit unrelated code
+or non-capacity HTTP status must not trigger context shrinking and a retry.
+"""
     status = getattr(error, 'status_code', None)
     if status is not None and status not in (400, 413, 422):
         return False
+    code = getattr(error, 'code', None)
+    body = getattr(error, 'body', None)
+    # vLLM may repeat the HTTP status as its code; prefer a nested semantic code.
+    if ((code is None or type(code) is int and code in (400, 413, 422))
+            and isinstance(body, Mapping)):
+        detail = body.get('error', body)
+        if isinstance(detail, Mapping):
+            code = detail.get('code')
+    if type(code) is int and code in (400, 413, 422):
+        code = None
+    if code is not None:
+        return isinstance(code, str) and code in {
+            'context_length_exceeded', 'context_window_exceeded',
+            'max_context_length_exceeded'}
     text = str(error).lower()
     return bool(re.search(
         r'context[_ ]length[_ ]exceeded|maximum context length|'

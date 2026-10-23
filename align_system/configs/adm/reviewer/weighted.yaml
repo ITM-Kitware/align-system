@@ -1,0 +1,28 @@
+# Advisory review shares the ADM's per-action model-call budget.
+_target_: align_system.algorithms.agents.agent_review.ActionReviewer
+# null reuses the resolved, unbound decision-agent model.
+chat_model: null
+system_prompt: null
+# text is the default; opt into ollama_json_schema or vllm_json_schema
+# only with the corresponding unbound reviewer provider.
+response_format: text
+# Repair malformed output or invalid evidence once when the shared attempt
+# budget still reserves a final decision call. Set 0 for the original behavior.
+max_repair_attempts: 1
+weighting:
+  influence: 0.5
+  swap_threshold: 0.15
+
+# Prompt overrides replace the corresponding built-in defaults.
+response_contract: ${adm.instance.expected_response_contract}
+qualitative_output_contract: null
+weighted_output_contract: null
+alignment_guidance: null
+alignment_review_guidance: null
+patient_history_guidance: null
+scene_end_guidance: null
+repair_guidance: null
+location_guidance: null
+# Bounds on diagnostic feedback, independent of model tokens/call limits.
+max_diagnostic_errors: 20
+max_diagnostic_chars: 8192

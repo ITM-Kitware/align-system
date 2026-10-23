@@ -53,58 +53,6 @@ TOOL_NAMES_BY_ACTION_TYPE = {
 NATIVE_ACTION_TOOLS = frozenset(TOOL_NAMES_BY_ACTION_TYPE.values())
 
 
-def review_action_tool_schemas(schemas):
-    """Copy native JSON schemas, exposing resolver locations only to reviewers.
-
-    Native tools retain their existing signatures and normalization behavior.
-    Restrict enrichment to an unconstrained string property: custom constraints
-    and references must remain intact rather than be widened or reinterpreted.
-    """
-    result = deepcopy(schemas)
-    treatment = result.get('treat_patient')
-    if not isinstance(treatment, dict):
-        return result
-    properties = treatment.get('properties')
-    if not isinstance(properties, dict):
-        return result
-    location = properties.get('injury_location')
-    annotations = {'type', 'title', 'description', 'default', 'examples'}
-    if (not isinstance(location, dict) or location.get('type') != 'string'
-            or not set(location) <= annotations):
-        return result
-    location['enum'] = ['', *INJURY_LOCATIONS]
-    guidance = (
-        'Select a listed canonical location; use "unspecified" when the location '
-        'or laterality is unclear. Omitting this argument or passing an empty '
-        'string uses the offered action location, otherwise "unspecified".')
-    location['description'] = ' '.join(filter(None, (
-        location.get('description'), guidance)))
-    return result
-
-
-def compact_action_catalog(schemas):
-    """Remove titles only at known schema nodes, never in literal JSON data."""
-    def compact(schema):
-        result = deepcopy(schema)
-        if not isinstance(result, dict):
-            return result
-        result.pop('title', None)
-        for key in ('properties', 'patternProperties', '$defs', 'definitions', 'dependentSchemas'):
-            if isinstance(result.get(key), dict):
-                result[key] = {name: compact(value) for name, value in result[key].items()}
-        for key in ('allOf', 'anyOf', 'oneOf', 'prefixItems'):
-            if isinstance(result.get(key), list):
-                result[key] = [compact(value) for value in result[key]]
-        for key in ('items', 'additionalProperties', 'additionalItems', 'contains',
-                    'propertyNames', 'not', 'if', 'then', 'else'):
-            if isinstance(result.get(key), dict):
-                result[key] = compact(result[key])
-        # Unknown keywords, dependencies, and literal defaults/enum/const/examples
-        # retain their exact values; they are not assumed to be schema nodes.
-        return result
-    return {name: compact(schema) for name, schema in schemas.items()}
-
-
 @dataclass(frozen=True)
 class ActionResolutionSnapshot:
     """Copied resolver inputs with no reference to an executable session.
@@ -478,3 +426,11 @@ def resolve_typed_action(snapshot, action_type, justification,
     # The current agent's explanation must replace any offered default.
     action_to_take.justification = justification
     return action_to_take, None
+
+
+def resolve_scene_end_policy(policy, aligned):
+    if not isinstance(policy, str) or policy not in {'auto', 'legacy', 'agent_decides'}:
+        raise ValueError('scene_end_policy must be auto, legacy, or agent_decides')
+    if policy == 'auto':
+        return 'agent_decides' if aligned else 'legacy'
+    return policy

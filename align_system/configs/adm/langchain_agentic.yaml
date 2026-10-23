@@ -1,0 +1,37 @@
+name: langchain_agentic
+
+defaults:
+  - /driver/chat_model@instance.chat_model: ollama_llama31
+  - /attribute@instance.attribute_definitions.medical: medical_urgency
+  - /attribute@instance.attribute_definitions.affiliation: affiliation_focus
+  - /attribute@instance.attribute_definitions.merit: merit_focus
+  - /attribute@instance.attribute_definitions.search: search_or_stay
+  - /attribute@instance.attribute_definitions.personal_safety: personal_safety
+  - _self_
+  - reviewer@instance.reviewer: null
+
+instance:
+  _target_: align_system.algorithms.agents.langchain_agentic_adm.LangChainAgenticADM
+  model: null
+  system_prompt: null
+  alignment_guidance: null
+  patient_history_guidance: null
+  scene_end_guidance: null
+  review_guidance: null
+  citation_guidance: null
+  opening_prompt: null
+  expected_response_contract: grounded_v2
+  max_llm_calls_between_actions: 8
+  max_messages_in_context: 40
+  reviewer: null
+  # Per-request token capacity; independent of the model-call limit above.
+  context_budget:
+    enabled: true
+    decision:
+      counter: auto
+      context_window: null
+      output_tokens: null
+    reviewer:
+      counter: auto
+      context_window: null
+      output_tokens: null

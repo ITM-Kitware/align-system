@@ -10,26 +10,6 @@ from copy import deepcopy
 from enum import Enum
 
 
-PATIENT_HISTORY_GUIDANCE = """\
-patient_history contains exact descriptions previously observed for the same
-patient IDs and the last known triage tag, with scene and action provenance.
-Use that history when a current description omits previously observed identity
-or affiliation information, or when a previously observed tag is omitted. A
-shorter description or an omitted field does not retract an earlier fact.
-Do not confuse different patients with the same name or merge their histories.
-
-Historical descriptions can also contain old injuries, vitals, or proximity.
-They are historical evidence, not a claim that those conditions remain current.
-Use current observations for present clinical status and the newest explicit
-observation when facts conflict; state uncertainty if the conflict cannot be
-resolved. last_known_tag records a past observation or successful tag assignment,
-not a guarantee that the tag is still current. History does not change current
-action eligibility, inventory, or scene-specific handled-patient bookkeeping.
-Ground references to earlier facts in patient_history and its provenance rather
-than claiming that omitted information appears in the current observation.
-"""
-
-
 def _field(value, name, default=None):
     return value.get(name, default) if isinstance(value, Mapping) else getattr(
         value, name, default)
@@ -56,7 +36,7 @@ class PatientObservationHistory:
 
     Descriptions are kept in first-seen order and deduplicated exactly. Growth
     depends on distinct observed descriptions, not model calls. No observations
-    are silently truncated or evicted; the driver's mandatory context budget
+    are silently truncated or evicted; the ADM's mandatory context budget
     decides whether the complete history can be presented. Create a fresh
     instance for each scenario, including repeated evaluations of the same ID.
     """

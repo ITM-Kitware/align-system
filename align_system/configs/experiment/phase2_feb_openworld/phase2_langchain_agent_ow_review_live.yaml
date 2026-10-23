@@ -2,21 +2,25 @@
 # February scenarios with the current Qwen/vLLM weighted reviewer setup.
 # The decision agent selects the final action on a fresh turn after review.
 defaults:
-  # The LangChain agent drives the scenario itself; no ADM is used
-  - override /adm: null
+  - /logging: agent
+  - override /adm: langchain_agentic
   - override /interface: ta3
-  - override /driver: itm_phase2_ow_langchain_review
+  - override /driver: itm_phase2_ow_agentic
+  - override /adm/reviewer@adm.instance.reviewer: weighted
   # The review driver selects weighted advice. Both agents share the
   # separately served Qwen model; see this model preset for launch settings.
-  - override /driver/chat_model: vllm_qwen38_27b
+  - override /driver/chat_model@adm.instance.chat_model: vllm_qwen38_27b
 
 driver:
-  chat_model:
-    base_url: http://127.0.0.1:8000/v1
   scene_end_policy: auto
-  reviewer:
-    response_format: vllm_json_schema
-    max_repair_attempts: 1
+
+adm:
+  instance:
+    chat_model:
+      base_url: http://127.0.0.1:8000/v1
+    reviewer:
+      response_format: vllm_json_schema
+      max_repair_attempts: 1
 
 interface:
   api_endpoint: https://darpaitm.caci.com
