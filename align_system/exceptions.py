@@ -25,3 +25,7 @@ class SceneSkipException(Exception):
         if self.component_name:
             return f"[{self.component_name}] {self.message}"
         return self.message
+
+
+class ActionRejectedException(Exception):
+    """A recoverable action rejection reported by an environment harness."""

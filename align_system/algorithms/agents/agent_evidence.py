@@ -1,6 +1,8 @@
 """Bounded structured evidence checks against explicitly visible JSON data.
 
-These checks establish that cited facts exist and match their recorded values.
+Evidence means an exact JSON Pointer and value copied from visible scenario,
+proposal, history, or alignment data. These checks establish that cited facts
+exist and match the recorded snapshot; they are not retrieved medical knowledge.
 They do not judge whether a fact supports the model's clinical reasoning.
 """
 
