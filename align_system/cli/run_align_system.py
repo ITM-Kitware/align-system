@@ -53,7 +53,13 @@ def main(cfg: DictConfig) -> None:
     if raw_logfile_path is not None:
         # Using Python stdlib logging.FileHandler
         from logging import FileHandler
-        filehandler = FileHandler(raw_logfile_path, mode=cfg.get('raw_log_mode', 'a'))
+        if agent_log_rendering and cfg.get('save_agent_transcript', False):
+            from align_system.utils.agent_transcript import AgentTranscriptFileHandler
+            filehandler = AgentTranscriptFileHandler(
+                raw_logfile_path, os.path.join(output_dir, 'agent_interactions.log'),
+                mode=cfg.get('raw_log_mode', 'a'))
+        else:
+            filehandler = FileHandler(raw_logfile_path, mode=cfg.get('raw_log_mode', 'a'))
         if agent_log_rendering:
             filehandler.setFormatter(AgentPlainFormatter())
 
