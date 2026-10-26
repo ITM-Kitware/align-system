@@ -98,39 +98,37 @@ precedence for a changing fact.
 """
 
 
-DECISION_ALIGNMENT_GUIDANCE = ALIGNMENT_GUIDANCE + (
-    '\nUse the supplied alignment context from your first proposal '
-    'onward. Apply its medical–KDMA tradeoff when prioritizing eligible '
-    'actions, and explain relevant tradeoffs in your justification. '
-    'Consider all relevant target KDMAs and explain any conflicts. '
-    'When reviewer advice is available, explain why you accept or '
-    'disagree with its alignment reasoning in review_response. '
-    'You retain final authority over the action.')
+DECISION_ALIGNMENT_GUIDANCE = ALIGNMENT_GUIDANCE + """
+Use the supplied alignment context from your first proposal onward. Apply its
+medical–KDMA tradeoff when prioritizing eligible actions, and explain relevant
+tradeoffs in your justification. Consider all relevant target KDMAs and explain
+any conflicts. When reviewer advice is available, explain why you accept or
+disagree with its alignment reasoning in review_response. You retain final
+authority over the action."""
 
-CITATION_GUIDANCE = (
-    'The citation_guide maps patient IDs to actual JSON paths. '
-    'Patient names and numbers are not casualty-array positions. '
-    'Cite exact source values, not the guide itself.')
+CITATION_GUIDANCE = """\
+The citation_guide maps patient IDs to actual JSON paths. Patient names and
+numbers are not casualty-array positions. Cite exact source values, not the
+guide itself."""
 
-DEFAULT_AGENT_OPENING_PROMPT = (
-    'A new scenario has started. Use the supplied current context to '
-    'choose actions until the scenario is complete.')
+DEFAULT_AGENT_OPENING_PROMPT = """\
+A new scenario has started. Use the supplied current context to choose actions
+until the scenario is complete."""
 
 
 SCENE_END_GUIDANCE = {
-    'legacy': (
-        'Scene ending policy: legacy. With action filtering enabled, END_SCENE '
-        'is withheld until all patients are tagged and treated or no other '
-        'filtered actions remain. The driver may close a completed scene automatically.'),
-    'agent_decides': (
-        'Scene ending policy: agent_decides. When the environment offers END_SCENE, '
-        'you may choose it even if casualties remain untreated or untagged. '
-        'The driver does not require treating everyone and does not routinely '
-        'close the scene for you. This policy takes precedence over generic '
-        'instructions to finish all care before ending. Consider unfinished care '
-        'and justify ending or continuing using observed facts and any supplied '
-        'alignment target. Review early ending through the same advisory process '
-        'as other actions; the decision agent retains final authority.'),
+    'legacy': """\
+Scene ending policy: legacy. With action filtering enabled, END_SCENE is withheld
+until all patients are tagged and treated or no other filtered actions remain.
+The driver may close a completed scene automatically.""",
+    'agent_decides': """\
+Scene ending policy: agent_decides. When the environment offers END_SCENE, you may
+choose it even if casualties remain untreated or untagged. The driver does not
+require treating everyone and does not routinely close the scene for you. This
+policy takes precedence over generic instructions to finish all care before
+ending. Consider unfinished care and justify ending or continuing using observed
+facts and any supplied alignment target. Review early ending through the same
+advisory process as other actions; the decision agent retains final authority.""",
 }
 
 

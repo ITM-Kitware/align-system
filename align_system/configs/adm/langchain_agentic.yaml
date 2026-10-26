@@ -12,7 +12,8 @@ defaults:
 
 instance:
   _target_: align_system.algorithms.agents.langchain_agentic_adm.LangChainAgenticADM
-  expected_response_contract: grounded_v2
+  expected_response_contract:
+    _target_: align_system.algorithms.agents.agent_review.GroundedReviewContract
   max_llm_calls_between_actions: 8
   max_messages_in_context: 40
   # Per-request token capacity; independent of the model-call limit above.

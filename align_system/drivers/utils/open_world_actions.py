@@ -334,26 +334,28 @@ def fill_tag_parameters(action, tool_name, triage_tag):
     return None
 
 
-def fill_treatment_parameters(snapshot, action, tool_name,
-                              treatment_supply, injury_location):
-    """Complete parameters without treating unknown inventory as empty.
+def normalize_treatment_parameters(
+        scenario_state, offered_parameters, tool_name, treatment_supply,
+        injury_location) -> tuple[dict | None, str | None]:
+    """Return validated parameters without changing the supplied values.
 
     Explicit arguments override offered defaults. Validate location even
     when inventory is unknown; inventory availability is checked only when
-    supplies are reported. Commit parameters only after validation passes.
+    supplies are reported. Return (parameters, None) on success or (None, error).
+    Treatment selection belongs to the agent; no supply is chosen here.
     """
-    parameters = dict(action.parameters or {})
+    parameters = dict(offered_parameters or {})
     treatment = (treatment_supply if treatment_supply
                  else parameters.get('treatment'))
     if not isinstance(treatment, str) or not treatment.strip():
-        return (f"Treating requires choosing a supply; call {tool_name} "
-                "again with a nonempty treatment_supply.")
+        return None, (f"Treating requires choosing a supply; call {tool_name} "
+                      "again with a nonempty treatment_supply.")
     treatment = treatment.strip()
     if treatment.casefold() in TREATMENT_PLACEHOLDERS:
-        return (f"Invalid treatment_supply '{treatment}': this is a missing-value "
-                f"placeholder, not a treatment name. Call {tool_name} with a "
-                "concrete supply name, or choose another available action. "
-                "Unknown inventory does not make a placeholder valid.")
+        return None, (f"Invalid treatment_supply '{treatment}': this is a missing-value "
+                      f"placeholder, not a treatment name. Call {tool_name} with a "
+                      "concrete supply name, or choose another available action. "
+                      "Unknown inventory does not make a placeholder valid.")
     location = (injury_location if injury_location
                 else parameters.get('location') or 'unspecified')
     matched_location = next(
@@ -361,23 +363,22 @@ def fill_treatment_parameters(snapshot, action, tool_name,
          if isinstance(location, str) and loc.lower() == location.strip().lower()),
         None)
     if matched_location is None:
-        return (f"Unknown injury_location '{location}'; valid locations are: "
-                f"{', '.join(INJURY_LOCATIONS)}")
+        return None, (f"Unknown injury_location '{location}'; valid locations are: "
+                      f"{', '.join(INJURY_LOCATIONS)}")
 
-    if getattr(snapshot.current_state, 'supplies', None) is not None:
+    if getattr(scenario_state, 'supplies', None) is not None:
         supply_names = [str(enum_value(s.type))
-                        for s in in_stock_supplies(snapshot.current_state)]
+                        for s in in_stock_supplies(scenario_state)]
         matched_supply = next(
             (name for name in supply_names if name.lower() == treatment.lower()),
             None)
         if matched_supply is None:
-            return (f"Unknown or out-of-stock treatment_supply '{treatment}'; "
-                    f"available supplies are: {', '.join(supply_names) or 'none'}")
+            return None, (f"Unknown or out-of-stock treatment_supply '{treatment}'; "
+                          f"available supplies are: {', '.join(supply_names) or 'none'}")
         treatment = matched_supply
 
     parameters.update(treatment=treatment, location=matched_location)
-    action.parameters = parameters
-    return None
+    return parameters, None
 
 
 def resolve_typed_action(snapshot, action_type, justification,
@@ -417,11 +418,12 @@ def resolve_typed_action(snapshot, action_type, justification,
             return None, error
 
     if action_to_take.action_type == ActionTypeEnum.TREAT_PATIENT:
-        error = fill_treatment_parameters(
-            snapshot, action_to_take, tool_name,
+        parameters, error = normalize_treatment_parameters(
+            snapshot.current_state, action_to_take.parameters, tool_name,
             treatment_supply, injury_location)
         if error is not None:
             return None, error
+        action_to_take.parameters = parameters
 
     # The current agent's explanation must replace any offered default.
     action_to_take.justification = justification

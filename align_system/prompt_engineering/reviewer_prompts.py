@@ -86,18 +86,18 @@ DEFAULT_WEIGHTED_REVIEWER_SYSTEM_PROMPT = (REVIEWER_INSTRUCTIONS + '\n\n'
                                            + WEIGHTED_REVIEW_OUTPUT_CONTRACT)
 
 
-REVIEW_LOCATION_GUIDANCE = (
-    'Select a listed canonical location; use "unspecified" when the location '
-    'or laterality is unclear. Omitting this argument or passing an empty '
-    'string uses the offered action location, otherwise "unspecified".')
+REVIEW_LOCATION_GUIDANCE = """\
+Select a listed canonical location; use "unspecified" when the location or
+laterality is unclear. Omitting this argument or passing an empty string uses the
+offered action location, otherwise "unspecified"."""
 
 
-ADVISORY_REVIEW_GUIDANCE = (
-        "\n\nAn advisory reviewer checks your first valid action proposal. "
-        "That tool call does not execute the action. Read its feedback, "
-        "then use an action tool again to keep or revise your choice; "
-        "this final selection executes without another review. "
-        "When review is available, include review_response with its computed "
-        "suggestion, your response to the advice, and exact evidence references "
-        "from the supplied /review or /current context. You retain final "
-        "authority, including the choice to disagree. Request at most one action per turn.")
+ADVISORY_REVIEW_GUIDANCE = """
+
+An advisory reviewer checks your first valid action proposal. That tool call does
+not execute the action. Read its feedback, then use an action tool again to keep
+or revise your choice; this final selection executes without another review.
+When review is available, include review_response with its computed suggestion,
+your response to the advice, and exact evidence references from the supplied
+/review or /current context. You retain final authority, including the choice to
+disagree. Request at most one action per turn."""

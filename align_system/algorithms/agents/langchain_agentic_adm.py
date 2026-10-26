@@ -22,9 +22,9 @@ from align_system.algorithms.agents.agent_context_budget import (
     ContextBudgetError, ContextBudgetManager, is_context_overflow,
 )
 from align_system.algorithms.agents.agent_history import pack_history
-from align_system.algorithms.agents.agent_evidence import FinalReviewResponse, build_citation_guide
+from align_system.algorithms.agents.agent_evidence import build_citation_guide
 from align_system.algorithms.agents.agent_review import (
-    ActionReviewer, REVIEW_RESPONSE_CONTRACT, validate_reviewer_contract,
+    ActionReviewer, validate_reviewer_contract,
 )
 from align_system.algorithms.agents.agent_workflow import AdvisoryReviewWorkflow, ImmediateActionWorkflow
 from align_system.exceptions import ActionRejectedException
@@ -75,7 +75,7 @@ class LangChainAgenticADM:
                  reviewer=None, context_budget=None, attribute_definitions=None,
                  alignment_guidance=None, scene_end_guidance=None,
                  patient_history_guidance=None, review_guidance=None,
-                 expected_response_contract=REVIEW_RESPONSE_CONTRACT,
+                 expected_response_contract=None,
                  citation_guidance=None, opening_prompt=None):
         self._chat_model = chat_model
         self._model = model
@@ -98,8 +98,8 @@ class LangChainAgenticADM:
                                   else citation_guidance)
         self.opening_prompt = (DEFAULT_AGENT_OPENING_PROMPT if opening_prompt is None
                                else opening_prompt)
-        self.expected_response_contract = expected_response_contract
-        validate_reviewer_contract(self.reviewer, self.expected_response_contract)
+        self.expected_response_contract = validate_reviewer_contract(
+            self.reviewer, expected_response_contract)
         if reviewer is not None and max_llm_calls_between_actions < 1:
             raise ValueError("Reviewer mode requires a positive model-call budget")
         self._parameter_completer = OWRandomParameterCompletionADMComponent()
@@ -177,7 +177,8 @@ class LangChainAgenticADM:
             # qwen3_xml needs an object property rather than anyOf(object, null).
             schema = create_model(
                 schema.__name__ + 'Reviewed', __base__=schema,
-                review_response=(FinalReviewResponse | SkipJsonSchema[None], Field(
+                review_response=(self.expected_response_contract.final_response_model
+                                 | SkipJsonSchema[None], Field(
                     default=None,
                     description="Required on final choices after usable review; omit on proposals.")))
 
@@ -370,10 +371,11 @@ class LangChainAgenticADM:
                 supplies = session.in_stock_supplies(session.current_state)
                 if supplies and not (fallback_action.parameters or {}).get(
                         'treatment'):
-                    session.fill_treatment_parameters(
-                        session, fallback_action,
-                        session.action_types[ActionTypeEnum.TREAT_PATIENT],
-                        str(session.enum_value(supplies[0].type)), 'unspecified')
+                    parameters = dict(fallback_action.parameters or {})
+                    parameters.update(
+                        treatment=str(session.enum_value(supplies[0].type)),
+                        location='unspecified')
+                    fallback_action.parameters = parameters
 
             try:
                 self._execute_agent_action(
@@ -558,8 +560,8 @@ class LangChainAgenticADM:
         missing = []
         invalid = []
         received_arguments = deepcopy(arguments) if isinstance(arguments, dict) else arguments
-        # Final response text is never echoed back through argument-repair
-        # feedback. Immediate-mode diagnostics retain their existing form.
+        # Argument-repair feedback masks the final review response while
+        # leaving the native tool arguments visible.
         if 'review_response' in schema.model_fields and isinstance(received_arguments, dict):
             if 'review_response' in received_arguments:
                 received_arguments['review_response'] = '<supply a fresh structured review response>'
@@ -764,8 +766,8 @@ class LangChainAgenticADM:
             if session.n_actions != context_n_actions:
                 context_n_actions = session.n_actions
                 self._add_decision_context(session, messages)
-            # Providers keep their existing refresh order. Fetch only if none
-            # supplied offers for this action boundary, including a new scene.
+            # Fetch offers only if no provider supplied them for this action
+            # boundary, including a new scene.
             if session.actions_observed_at != session.n_actions:
                 session.refresh_actions()
             if recovery_n_actions != session.n_actions:

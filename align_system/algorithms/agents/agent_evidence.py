@@ -224,7 +224,7 @@ def validate_evidence(evidence, context, allowed_roots=REVIEW_EVIDENCE_ROOTS):
         raise EvidenceValidationError(errors)
 
 
-def validate_review_assessment(assessment, context):
+def validate_review_assessment(assessment, context, *, allowed_roots=REVIEW_EVIDENCE_ROOTS):
     """Validate the grounded evidence shape and exact cited visible facts."""
     from pydantic import ValidationError
 
@@ -235,4 +235,4 @@ def validate_review_assessment(assessment, context):
     except ValidationError:
         raise EvidenceValidationError([_error(
             ('assessment',), 'assessment_shape', 'Assessment has an invalid shape or exceeds a limit.')]) from None
-    validate_evidence(assessment.evidence, context, REVIEW_EVIDENCE_ROOTS)
+    validate_evidence(assessment.evidence, context, allowed_roots)
