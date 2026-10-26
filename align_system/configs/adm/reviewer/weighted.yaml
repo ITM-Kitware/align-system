@@ -5,7 +5,7 @@ _target_: align_system.algorithms.agents.agent_review.ActionReviewer
 # only with the corresponding unbound reviewer provider.
 response_format: text
 # Repair malformed output or invalid evidence once when the shared attempt
-# budget still reserves a final decision call. Set 0 for the original behavior.
+# budget still reserves a final decision call. Set 0 to disable repair.
 max_repair_attempts: 1
 weighting:
   influence: 0.5

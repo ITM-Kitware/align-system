@@ -13,8 +13,8 @@ from langchain_core.tools import tool
 from omegaconf import DictConfig, ListConfig, OmegaConf
 from swagger_client.models import ActionTypeEnum
 
-from align_system.drivers import open_world_actions as actions
-from align_system.drivers.open_world_actions import (
+from align_system.drivers.utils import open_world_actions as actions
+from align_system.drivers.utils.open_world_actions import (
     ActionResolutionSnapshot, TOOL_NAMES_BY_ACTION_TYPE,
     as_dict as _as_dict, enum_value as _enum_value,
     filter_available_actions as _filter_available_actions,
@@ -22,7 +22,7 @@ from align_system.drivers.open_world_actions import (
     format_available_actions as _format_available_actions,
     resolve_scene_end_policy,
 )
-from align_system.drivers.open_world_patient_history import PatientObservationHistory
+from align_system.drivers.utils.open_world_patient_history import PatientObservationHistory
 from align_system.exceptions import ActionRejectedException
 from align_system.utils import logging
 from align_system.utils.agent_logging import agent_log_event, agent_log_private, preview
@@ -90,7 +90,6 @@ class ScenarioSession:
     resolve_typed_action = staticmethod(actions.resolve_typed_action)
     enum_value = staticmethod(actions.enum_value)
     in_stock_supplies = staticmethod(actions.in_stock_supplies)
-    fill_treatment_parameters = staticmethod(actions.fill_treatment_parameters)
 
     def snapshot(self):
         """Copy current offers and resolver state without observing again."""

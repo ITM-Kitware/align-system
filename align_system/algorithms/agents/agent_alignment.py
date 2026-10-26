@@ -50,8 +50,8 @@ def _definition_view(kdma, definitions):
     if examples is not None:
         if not isinstance(examples, str):
             raise ValueError(f'Score examples for {kdma!r} must be text')
-        # Legacy attribute groups contain Jinja expressions using this factor.
-        # Keep their rendering confined to the configured numerical scale.
+        # Configured attribute definitions can contain Jinja expressions using
+        # this factor. Keep rendering confined to the configured numerical scale.
         environment = SandboxedEnvironment(undefined=StrictUndefined, autoescape=False)
         try:
             examples = environment.from_string(examples).render(kdma_scale_factor=factor)

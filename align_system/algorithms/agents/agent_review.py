@@ -12,7 +12,9 @@ from pydantic import (
 from pydantic.json_schema import GenerateJsonSchema
 
 from align_system.algorithms.agents.agent_evidence import (
-    EvidenceValidationError, ReviewAssessment,
+    EvidenceValidationError, REVIEW_EVIDENCE_ROOTS,
+    FinalReviewResponse, ReviewAssessment, validate_evidence,
+    validate_review_assessment,
 )
 from align_system.prompt_engineering.agentic_prompts import (
     ALIGNMENT_GUIDANCE, PATIENT_HISTORY_GUIDANCE, SCENE_END_GUIDANCE,
@@ -28,21 +30,6 @@ from align_system.utils.agent_logging import agent_log_event, message_payload, p
 
 
 log = logging.getLogger(__name__)
-
-
-REVIEW_RESPONSE_CONTRACT = 'grounded_v2'
-
-
-def validate_reviewer_contract(reviewer, expected_contract=REVIEW_RESPONSE_CONTRACT):
-    """Fail before generation for adapters that have not migrated their evidence."""
-    if expected_contract != REVIEW_RESPONSE_CONTRACT:
-        raise ValueError("The supported review response contract is 'grounded_v2'.")
-    if reviewer is not None and getattr(reviewer, 'response_contract', None) != expected_contract:
-        raise ValueError(
-            "Reviewers require response_contract='grounded_v2'. Migrate the adapter "
-            "to declare that contract and return assessment={'evidence': [...]} "
-            "with exact visible-context citations; remove missing_arguments. "
-            "The review(context, default_chat_model) interface is unchanged.")
 
 
 class ReviewAdvice(BaseModel):
@@ -339,6 +326,65 @@ def _review_json_schema(weighted, action_models):
         schema_generator=_ReviewJsonSchema)
 
 
+class GroundedReviewContract:
+    """Schemas and evidence validation for advisory action review.
+
+    Defines keep/reconsider advice, optional ratings and alternative actions,
+    and the decision agent's response to that advice. Evidence references pair
+    a JSON pointer with an exact value from the visible context; validation
+    checks those references without evaluating clinical reasoning.
+
+    Instances are stateless and configurable through Hydra. The contract name
+    identifies the format in reviewer declarations and recorded review metadata.
+    """
+
+    name = 'visible_fact_review'
+    review_evidence_roots = REVIEW_EVIDENCE_ROOTS
+    final_response_model = FinalReviewResponse
+
+    def advice_model(self, weighted=False):
+        return WeightedReviewAdvice if weighted else ReviewAdvice
+
+    def response_schema(self, weighted, action_models):
+        return _review_json_schema(weighted, action_models)
+
+    def validate_assessment(self, assessment, context):
+        validate_review_assessment(
+            assessment, context, allowed_roots=self.review_evidence_roots)
+
+    def validate_final_evidence(self, evidence, context):
+        final_roots = tuple(
+            prefix + root for prefix in ('/review', '/current')
+            for root in self.review_evidence_roots)
+        validate_evidence(evidence, context, final_roots)
+
+
+def resolve_review_contract(value=None):
+    """Use the default contract for None, or accept a configured instance."""
+    if value is None:
+        return GroundedReviewContract()
+    if isinstance(value, GroundedReviewContract):
+        return value
+    raise TypeError(
+        'Review response contract must be a GroundedReviewContract instance '
+        'or None. Use Hydra _target_ to configure a contract instance.')
+
+
+def validate_reviewer_contract(reviewer, expected_contract=None):
+    """Resolve the contract and reject mismatched adapters before generation."""
+    contract = resolve_review_contract(expected_contract)
+    if reviewer is not None:
+        declared = getattr(reviewer, 'response_contract', None)
+        if isinstance(declared, GroundedReviewContract):
+            declared = declared.name
+        if not isinstance(declared, str) or declared != contract.name:
+            raise ValueError(
+                f'Reviewers must declare response_contract={contract.name!r}. '
+                'review(context, default_chat_model) must return advice containing '
+                "assessment={'evidence': [...]} with exact visible-context citations.")
+    return contract
+
+
 def _vllm_review_kwargs(chat_model, schema):
     """Build per-call vLLM constraints without changing the shared model.
 
@@ -384,7 +430,7 @@ class ActionReviewer:
     """
 
     def __init__(self, chat_model=None, system_prompt=None, weighting=None,
-                 response_format='text', response_contract=REVIEW_RESPONSE_CONTRACT,
+                 response_format='text', response_contract=None,
                  max_repair_attempts=1, max_diagnostic_errors=20,
                  max_diagnostic_chars=8192, qualitative_output_contract=None,
                  weighted_output_contract=None, alignment_guidance=None,
@@ -399,8 +445,8 @@ class ActionReviewer:
         if response_format not in ('text', 'ollama_json_schema', 'vllm_json_schema'):
             raise ValueError(
                 'response_format must be text, ollama_json_schema, or vllm_json_schema.')
-        self.response_contract = response_contract
-        validate_reviewer_contract(self, response_contract)
+        self.contract = resolve_review_contract(response_contract)
+        self.response_contract = self.contract.name
         self.response_format = response_format
         self.chat_model = chat_model
         self.weighting = (
@@ -444,7 +490,7 @@ class ActionReviewer:
         if key not in self._transport_schemas:
             if len(self._transport_schemas) >= 32:
                 self._transport_schemas.clear()
-            self._transport_schemas[key] = _review_json_schema(
+            self._transport_schemas[key] = self.contract.response_schema(
                 self.weighting is not None, action_models)
         return deepcopy(self._transport_schemas[key])
 
@@ -461,8 +507,7 @@ class ActionReviewer:
             attempt_metadata.clear()
         chat_model = (self.chat_model if self.chat_model is not None
                       else default_chat_model)
-        advice_type = (ReviewAdvice if self.weighting is None
-                       else WeightedReviewAdvice)
+        advice_type = self.contract.advice_model(self.weighting is not None)
         invoke_kwargs = {}
         if self.response_format == 'ollama_json_schema':
             # Import lazily so text mode keeps its existing optional-dependency

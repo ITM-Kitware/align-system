@@ -13,12 +13,11 @@ from types import MappingProxyType
 from pydantic import BaseModel, ValidationError
 
 from align_system.algorithms.agents.agent_review import (
-    ActionReviewer, ReviewAdvice, WeightedReviewAdvice, review_diagnostics,
-    validate_reviewer_contract, REVIEW_RESPONSE_CONTRACT, review_action_tool_models,
+    ActionReviewer, review_diagnostics,
+    validate_reviewer_contract, review_action_tool_models,
 )
 from align_system.algorithms.agents.agent_evidence import (
-    EvidenceValidationError, FINAL_EVIDENCE_ROOTS, REVIEW_EVIDENCE_ROOTS, FinalReviewResponse,
-    build_citation_guide, validate_evidence, validate_review_assessment,
+    EvidenceValidationError, build_citation_guide,
 )
 from align_system.prompt_engineering.reviewer_prompts import ADVISORY_REVIEW_GUIDANCE
 from align_system.utils import logging
@@ -67,7 +66,7 @@ class _ReviewCycle:
 
 
 class ImmediateActionWorkflow:
-    """Execute valid actions immediately, retaining legacy per-response attempt counts."""
+    """Execute valid actions immediately and count model attempts per response."""
 
     single_action_per_response = False
     system_prompt_suffix = ''
@@ -81,7 +80,7 @@ class ImmediateActionWorkflow:
         """Only reviewed workflows need the read-only native schema catalog."""
 
     def begin_decision_attempt(self):
-        """Legacy accounting completes after all tools in a response run."""
+        """Count the attempt after all tools in the response have run."""
 
     def prepare_decision_context(self, context):
         """Immediate mode does not retain reviewer evidence snapshots."""
@@ -101,7 +100,7 @@ class ImmediateActionWorkflow:
         return None
 
     def action_succeeded(self, driver_override=None):
-        # Legacy no-progress accounting spans automatic scene transitions.
+        # The no-progress count spans automatic scene transitions.
         # Model-selected actions and explicit budget fallback reset it.
         if driver_override not in {'scene_complete', 'action_cap'}:
             self.calls_since_action = 0
@@ -122,12 +121,12 @@ class AdvisoryReviewWorkflow(ImmediateActionWorkflow):
 
     def __init__(self, reviewer, default_chat_model, max_llm_calls_between_actions=8,
                  *, actions, review_request_budget=None,
-                 expected_response_contract=REVIEW_RESPONSE_CONTRACT,
+                 expected_response_contract=None,
                  system_prompt_suffix=None):
         if max_llm_calls_between_actions < 1:
             raise ValueError("Reviewer mode requires a positive model-call budget")
-        validate_reviewer_contract(reviewer, expected_response_contract)
-        self.expected_response_contract = expected_response_contract
+        self.expected_response_contract = validate_reviewer_contract(
+            reviewer, expected_response_contract)
         self.actions = actions
         self.system_prompt_suffix = (ADVISORY_REVIEW_GUIDANCE if system_prompt_suffix is None
                                      else system_prompt_suffix)
@@ -253,8 +252,7 @@ class AdvisoryReviewWorkflow(ImmediateActionWorkflow):
                         else 'keep'))
         return guidance
 
-    @staticmethod
-    def _evidence_context_view(context):
+    def _evidence_context_view(self, context):
         """Display only citeable roots, preserving their original JSON paths.
 
         The complete snapshot remains private workflow state and is recorded in
@@ -264,7 +262,7 @@ class AdvisoryReviewWorkflow(ImmediateActionWorkflow):
         if context is None:
             return None
         view = {}
-        for path in REVIEW_EVIDENCE_ROOTS:
+        for path in self.expected_response_contract.review_evidence_roots:
             parts = path.lstrip('/').split('/')
             value = context
             for part in parts:
@@ -280,8 +278,7 @@ class AdvisoryReviewWorkflow(ImmediateActionWorkflow):
             view['proposal_tool'] = deepcopy(context['proposal_tool'])
         return view
 
-    @staticmethod
-    def _review_reminder(cycle):
+    def _review_reminder(self, cycle):
         weighting = cycle.weighting
         suggestion = ((weighting or {}).get('suggestion') or 'none')
         guidance = f"Computed suggestion: {suggestion}. "
@@ -343,8 +340,8 @@ class AdvisoryReviewWorkflow(ImmediateActionWorkflow):
                 ensure_ascii=False, separators=(',', ':'))
             + '\nEvidence namespaces frozen for this decision-model invocation:\n'
             + json.dumps({
-                'review': AdvisoryReviewWorkflow._evidence_context_view(cycle.review_context),
-                'current': AdvisoryReviewWorkflow._evidence_context_view(cycle.current_context)},
+                'review': self._evidence_context_view(cycle.review_context),
+                'current': self._evidence_context_view(cycle.current_context)},
                 ensure_ascii=False, separators=(',', ':')))
 
     @staticmethod
@@ -390,10 +387,11 @@ class AdvisoryReviewWorkflow(ImmediateActionWorkflow):
             return None
         suggestion = ((cycle.weighting or {}).get('suggestion') or 'none')
         stage = 'schema_validation'
+        response_model = self.expected_response_contract.final_response_model
         try:
             if isinstance(review_response, BaseModel):
                 review_response = review_response.model_dump(mode='python')
-            response = FinalReviewResponse.model_validate(review_response, strict=True)
+            response = response_model.model_validate(review_response, strict=True)
             if response.acknowledged_suggestion != suggestion:
                 cycle.final_review_response_validation = self._validation_result('invalid', {
                     'validation_errors': [{
@@ -404,7 +402,8 @@ class AdvisoryReviewWorkflow(ImmediateActionWorkflow):
                 stage = 'evidence_validation'
                 evidence_context = {
                     'review': cycle.review_context, 'current': cycle.current_context}
-                validate_evidence(response.evidence, evidence_context, FINAL_EVIDENCE_ROOTS)
+                self.expected_response_contract.validate_final_evidence(
+                    response.evidence, evidence_context)
                 cycle.final_review_response = response.model_dump(mode='json')
                 cycle.final_review_response_validation = self._validation_result('verified')
                 cycle.final_review_context = deepcopy(evidence_context)
@@ -416,7 +415,7 @@ class AdvisoryReviewWorkflow(ImmediateActionWorkflow):
                 return None
         except (ValidationError, EvidenceValidationError) as error:
             diagnostics = review_diagnostics(
-                error, expected_schema='FinalReviewResponse', stage=stage,
+                error, expected_schema=response_model.__name__, stage=stage,
                 max_diagnostic_errors=self.max_diagnostic_errors,
                 max_diagnostic_chars=self.max_diagnostic_chars)
             cycle.final_review_response_validation = self._validation_result('invalid', diagnostics)
@@ -450,11 +449,12 @@ class AdvisoryReviewWorkflow(ImmediateActionWorkflow):
         builtin = (isinstance(self.reviewer, ActionReviewer)
                    and getattr(self.reviewer.review, '__func__', None) is ActionReviewer.review)
         max_repairs = self.reviewer.max_repair_attempts if builtin else 0
-        schema = ReviewAdvice if cycle.weighting is None else WeightedReviewAdvice
+        schema = self.expected_response_contract.advice_model(
+            weighted=cycle.weighting is not None)
         repair_feedback = None
         for attempt in range(1 + max_repairs):
             with agent_log_call(review_attempt=attempt + 1, tool_call_id=None) as call_id:
-                # Preflight/configuration failures consume an attempt just as before.
+                # Preflight/configuration failures consume an attempt.
                 cycle.reviewer_calls += 1
                 generation = {}
                 failure_stage = 'invocation'
@@ -494,7 +494,8 @@ class AdvisoryReviewWorkflow(ImmediateActionWorkflow):
                             payload=lambda: {'advice': advice})
                     advice = schema.model_validate(advice, strict=True)
                     failure_stage = 'evidence_validation'
-                    validate_review_assessment(advice.assessment, cycle.review_context)
+                    self.expected_response_contract.validate_assessment(
+                        advice.assessment, cycle.review_context)
                     cycle.review_assessment_validation = self._validation_result('verified')
                     cycle.advice = advice.model_dump(mode='json')
                     cycle.status = 'reviewed'
@@ -656,7 +657,7 @@ class AdvisoryReviewWorkflow(ImmediateActionWorkflow):
             'proposal_validation': deepcopy(cycle.proposal_validation),
             'proposal_summary': (self._proposal_summary(
                 cycle.proposal_tool, cycle.proposal_validation) if cycle.proposal_tool else None),
-            'review_response_contract': self.expected_response_contract,
+            'review_response_contract': self.expected_response_contract.name,
             'review_status': 'bypassed' if driver_override else cycle.status,
             'advice': deepcopy(cycle.advice), 'review_error': cycle.error,
             'review_diagnostics': deepcopy(cycle.review_diagnostics),
