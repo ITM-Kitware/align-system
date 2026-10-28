@@ -189,6 +189,15 @@ class OutlinesTransformersInferenceEngine(StructuredInferenceEngine):
 
 
 class SpectrumTunedInferenceEngine(OutlinesTransformersInferenceEngine):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        # Extra model EOS tokens can be allowed inside JSON strings by Outlines.
+        self.generation_kwargs = {
+            "eos_token_id": self.model.tokenizer.eos_token_id,
+            **self.generation_kwargs,
+        }
+
     def dialog_to_prompt(self, dialog):
         tokenizer = self.model.tokenizer.tokenizer
 
@@ -205,7 +214,9 @@ class SpectrumTunedInferenceEngine(OutlinesTransformersInferenceEngine):
                 raise RuntimeError(f"{element.role} dialog element unrecognized.")
 
         try:
-            encoded_dialog = tokenizer.apply_chat_template(dialog)
+            encoded_dialog = tokenizer.apply_chat_template(
+                dialog, add_generation_prompt=True
+            )
         except jinja2.exceptions.TemplateError:
             # Assume that the tokenizer chat template doesn't accept
             # system messages; combine system message first user
@@ -219,6 +230,8 @@ class SpectrumTunedInferenceEngine(OutlinesTransformersInferenceEngine):
 
             dialog = [{'role': 'user', 'content': updated_content}, *rest]
 
-            encoded_dialog = tokenizer.apply_chat_template(dialog)
+            encoded_dialog = tokenizer.apply_chat_template(
+                dialog, add_generation_prompt=True
+            )
 
         return tokenizer.decode(encoded_dialog)
