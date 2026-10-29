@@ -1,0 +1,4 @@
+_target_: align_system.algorithms.open_world_components.OWFormatChoicesADMComponent
+
+choice_template:
+  _target_: align_system.prompt_engineering.ow_prompts.OWPart3CharacterDescriptionWVitals

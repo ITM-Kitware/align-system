@@ -20,7 +20,7 @@ from align_system.prompt_engineering.ow_prompts import (
     FollowupClarifyCharacterPrompt,
     FollowupClarifyTagPrompt,
     FollowupClarifyTreatmentPrompt,
-    OWPart3CharacterDescriptionWVitals
+    OWCharacterDescription
 )
 from align_system.utils import call_with_coerced_args, logging, get_swagger_class_enum_values
 
@@ -29,8 +29,12 @@ JSON_HIGHLIGHTER = JSONHighlighter()
 
 
 class OWFormatChoicesADMComponent(ADMComponent):
-    def __init__(self, replace_newlines=False):
-        self.choice_template = OWPart3CharacterDescriptionWVitals()
+    def __init__(self, replace_newlines=False, choice_template=None):
+        if choice_template is None:
+            self.choice_template = OWCharacterDescription()
+        else:
+            self.choice_template = choice_template
+
         # ChatGPT API doesn't accept newlines in JSON schemas
         self.replace_newlines = replace_newlines
 
@@ -134,11 +138,13 @@ class OWActionParameterCompletionADMComponent(ADMComponent):
         self,
         structured_inference_engine,
         scenario_description_template,
+        treatment_required=False,
         system_prompt=None,
         enable_caching=False,
     ):
         self.structured_inference_engine = structured_inference_engine
         self.scenario_description_template = scenario_description_template
+        self.treatment_required= treatment_required
         self.system_prompt = system_prompt
         self.enable_caching = enable_caching
 
@@ -266,8 +272,9 @@ class OWActionParameterCompletionADMComponent(ADMComponent):
 
                 action_parameter_completion_dialog["tag"] = dialog
 
-        # Treatment requires a selected treatment supply
-        if chosen_action.action_type == ActionTypeEnum.TREAT_PATIENT:
+        # Treatment requires a selected treatment supply.  Treatment
+        # parameters are not required for part 2 OW
+        if chosen_action.action_type == ActionTypeEnum.TREAT_PATIENT and self.treatment_required:
             dialog = []
             if self.system_prompt is not None:
                 dialog.append(DialogElement(role='system', content=self.system_prompt()))
