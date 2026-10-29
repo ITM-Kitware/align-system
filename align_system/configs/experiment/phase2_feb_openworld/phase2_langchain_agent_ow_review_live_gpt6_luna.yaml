@@ -1,7 +1,7 @@
 # @package _global_
 # February live evaluation with GPT-6 Luna shared by decision and review.
 defaults:
-  - /experiment/phase2_feb_openworld/phase2_langchain_agent_ow_review_live
+  - /experiment/phase2_feb_openworld/phase2_agentic_adm_ow_review_live
   - _self_
   - override /driver/chat_model@adm.instance.chat_model: openai_gpt6_luna
 
