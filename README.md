@@ -70,6 +70,10 @@ defaults:
 
 loglevel: "EXPLAIN"
 
+agent_log_rendering: true
+save_agent_transcript: false
+raw_log_mode: w
+
 save_log: true
 save_raw_log: true
 save_input_output: true
