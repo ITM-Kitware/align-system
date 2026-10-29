@@ -3,10 +3,10 @@ defaults:
   - /adm_component/misc@adm.step_definitions.world_state_tracker: world_state_tracker
   - override /adm: pipeline_baseline
   - override /inference_engine@adm.structured_inference_engine: outlines_structured_greedy
-  - override /adm_component/misc@adm.step_definitions.format_choices: ow_format_choices
+  - override /adm_component/misc@adm.step_definitions.format_choices: ow_format_choices_part3
   - override /adm_component/misc@adm.step_definitions.action_parameter_completion: ow_action_parameter_completion
   - override /interface: ta3
-  - override /driver: itm_phase2_ow
+  - override /driver: itm_phase2_ow_part3
 
 interface:
   api_endpoint: "https://darpaitm.caci.com"
@@ -32,6 +32,7 @@ adm:
       enable_caching: true
 
     action_parameter_completion:
+      treatment_required: true
       scenario_description_template:
         _target_: align_system.prompt_engineering.outlines_prompts.OWPart3ScenarioDescriptionWVitals
       enable_caching: true
