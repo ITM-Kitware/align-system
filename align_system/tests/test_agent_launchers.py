@@ -70,10 +70,10 @@ def test_kaleido_launchers_instantiate_original_toolkit(launcher):
                      RUN_MODE='live' if launcher.endswith('_live.sbatch') else 'smoke')
     cfg = composed(result)
     toolkit = instantiate(cfg.driver.extra_tools.kaleido, kaleido_instance=FakeKaleido())
-    assert toolkit.auto_assess
+    assert not toolkit.auto_assess
     assert not toolkit.explain
     assert 'assessment_mode' not in cfg.driver.extra_tools.kaleido
-    assert '-Kaleido-Auto-' in cfg.interface.username
+    assert '-Kaleido-OnDemand-' in cfg.interface.username
 
 
 def test_kaleido_original_options_can_be_overridden():
@@ -81,11 +81,11 @@ def test_kaleido_original_options_can_be_overridden():
     from align_system.tests.test_agent_assessments import FakeKaleido
 
     cfg = composed(dry_run(['driver.extra_tools.kaleido.explain=true'],
-                           TOOLKIT='kaleido', AUTO_ASSESS='false'))
+                           TOOLKIT='kaleido', AUTO_ASSESS='true'))
     toolkit = instantiate(cfg.driver.extra_tools.kaleido, kaleido_instance=FakeKaleido())
-    assert not toolkit.auto_assess
+    assert toolkit.auto_assess
     assert toolkit.explain
-    assert '-Kaleido-OnDemand-' in cfg.interface.username
+    assert '-Kaleido-Auto-' in cfg.interface.username
 
 
 @pytest.mark.parametrize('overrides,settings', [

@@ -38,11 +38,11 @@ def target_session(attribute='merit', value=0.0):
     return session, records, events
 
 
-def toolkit():
+def toolkit(*, auto_assess=False):
     return KaleidoToolkit(FixedPredictions(), {
         'merit': {'description': 'Favor victims over perpetrators'},
         'affiliation': {'description': 'Favor members of your group'},
-    }, assessment_subject='actions')
+    }, assessment_subject='actions', auto_assess=auto_assess)
 
 
 @pytest.mark.parametrize('attribute', ['merit', 'affiliation'])
@@ -112,7 +112,7 @@ def test_cached_evidence_is_restored_and_detached_from_later_actions():
 
 
 def test_two_episode_execution_records_and_events_use_each_current_target():
-    provider = toolkit()
+    provider = toolkit(auto_assess=True)
     actor_contexts = []
 
     class Actor:
@@ -160,7 +160,7 @@ def test_two_episode_execution_records_and_events_use_each_current_target():
 
 def test_pinned_actor_target_refreshes_even_without_a_successful_action():
     session, records, events = target_session()
-    provider = toolkit()
+    provider = toolkit(auto_assess=True)
     contexts = []
 
     class Actor:

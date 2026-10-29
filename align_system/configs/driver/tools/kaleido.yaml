@@ -10,15 +10,19 @@ kaleido_instance:
   model_name: 'tsor13/kaleido-large'
   use_tqdm: false
 
-# Hand the agent an assessment of the available actions before every
-# decision (guarantees it is considered); with false the agent has to
-# call the assess_available_actions tool itself
-auto_assess: true
+# Assess on demand when the agent calls assess_patients or
+# assess_available_actions. Set true to deliver assessments automatically.
+auto_assess: false
 
 # Automatic assessments compare patients, including when evacuation is the
 # only offered action template. Use actions to retain the earlier behavior.
 assessment_subject: patients
 patient_explain: true
+
+# full: original JSON evidence and history; compact: shorter deterministic
+# prose with all eligible patients and deduplicated, labeled historical facts.
+# Changes patient-assessment inputs only; the Kaleido model stays the same.
+patient_prompt_format: full
 
 # Also generate a short natural-language explanation per action /
 # attribute (noticeably slower)

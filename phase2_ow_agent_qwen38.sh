@@ -1,7 +1,7 @@
 #!/bin/bash
 # Shared interactive/Slurm runner. See README.md for smoke/live examples.
 # RUN_MODE=live|smoke, TOOLKIT=baseline|kaleido,
-# AUTO_ASSESS=true|false defaults to true for Kaleido.
+# AUTO_ASSESS=true|false defaults to false (on-demand assessment).
 # TARGET_CONTEXT=true|false (default false) pins target definitions for the actor.
 # MODEL_BACKEND=vllm|openai (default vllm); openai uses OPENAI_API_KEY.
 # MODEL, TP, PORT, VLLM_URL, TA3_ENDPOINT, ADM_PROFILE, TRAINING_SESSION, SCENARIO_ID,
@@ -34,9 +34,7 @@ case "${toolkit}" in
 esac
 
 assessment_mode="${ASSESSMENT_MODE:-}"
-default_auto_assess=false
-if [[ "${toolkit}" == kaleido ]]; then default_auto_assess=true; fi
-auto_assess="${AUTO_ASSESS:-${default_auto_assess}}"
+auto_assess="${AUTO_ASSESS:-false}"
 target_context="${TARGET_CONTEXT:-${default_target_context}}"
 requested_username="${RUN_USERNAME:-}"
 session_type="${SESSION_TYPE:-}"

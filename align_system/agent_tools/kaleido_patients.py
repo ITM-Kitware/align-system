@@ -1,5 +1,6 @@
 """Observed patient choices for Kaleido; never execute or infer hidden facts."""
 import json
+import re
 
 from align_system.utils.agent_action_eligibility import eligible_characters
 from align_system.utils.patient_observation_history import PATIENT_HISTORY_GUIDANCE
@@ -78,8 +79,89 @@ def patient_choices(session, actions, decision):
     return rows
 
 
-def patient_query(state, rows, index, decision):
+def _fact_text(value):
+    """Render observed structured fields without JSON syntax or null entries."""
+    if isinstance(value, dict):
+        return '; '.join(f"{key.replace('_', ' ')}: {text}"
+                         for key, item in value.items()
+                         if (text := _fact_text(item)))
+    if isinstance(value, list):
+        return '; '.join(text for item in value if (text := _fact_text(item)))
+    if value is None:
+        return ''
+    return ' '.join(str(value).split())
+
+
+def _description_parts(text):
+    # Keep the source wording (including uncertainty). This is exact-text
+    # deduplication, not a model-generated or semantic summary.
+    return re.split(r'(?<=[.!?])\s+', ' '.join((text or '').split()))
+
+
+def _compact_patient(row):
+    observed = row['observed']
+    lines = [str(row['patient_id'])]
+    for field, label in (
+            ('name', 'Name'), ('unstructured', 'Description'),
+            ('demographics', 'Demographics'), ('injuries', 'Injuries'),
+            ('vitals', 'Vitals'), ('tag', 'Tag')):
+        text = _fact_text(observed.get(field))
+        if text:
+            lines.append(f'{label}: {text}')
+    nearby = observed.get('nearby')
+    lines.append('Proximity: ' + ('nearby' if nearby is True else
+                                 'distant' if nearby is False else 'unknown'))
+    if observed.get('unseen'):
+        lines.append('Currently unseen; current clinical details unknown.')
+    elif not _fact_text(observed.get('vitals')):
+        lines.append('Vitals: unknown')
+    care = row['care_this_scene']
+    lines.append('Care this scene: ' + '; '.join(
+        f"{key.replace('_', ' ')}: {'recorded' if value else 'not recorded'}"
+        for key, value in care.items()))
+
+    # Newest observations first; omit sentences already present in the current
+    # description or a more recent history entry. Keep other wording verbatim
+    # and labeled as potentially stale rather than guessing which facts matter.
+    seen = set(_description_parts(observed.get('unstructured')))
+    history = sorted(row['history'].get('descriptions', []),
+                     key=lambda entry: entry.get('last_seen', {}).get('after_action', -1),
+                     reverse=True)
+    for entry in history:
+        missing = []
+        for part in _description_parts(entry.get('value')):
+            if part and part not in seen:
+                missing.append(part)
+                seen.add(part)
+        if missing:
+            lines.append('Historical (may be stale): ' + ' '.join(missing))
+    return '\n'.join(lines)
+
+
+def _compact_patient_query(state, rows, index, decision):
+    choice = ('evacuation' if decision == 'evacuate' else 'care')
+    alternatives = '\n\n'.join(_compact_patient(row)
+                                 for i, row in enumerate(rows) if i != index)
+    return (
+        f"Action: Prioritize patient {rows[index]['patient_id']} for {choice} next "
+        "ahead of the other eligible patients.\n\n"
+        f"Situation: {state.unstructured or 'unknown'}\n\n"
+        f"Selected patient:\n{_compact_patient(rows[index])}\n\n"
+        f"Other eligible patients:\n{alternatives or 'None'}\n\n"
+        "Care priority includes moving or assessing first if needed. "
+        "Evaluate the value expressed by this choice, not the patient's worth "
+        "or clinical urgency. Missing facts remain unknown; do not infer "
+        "affiliation from names. Current observations take precedence over "
+        "history; history is listed newest first and does not establish current "
+        "care status or action eligibility.")
+
+
+def patient_query(state, rows, index, decision, prompt_format='full'):
     """Put the selected patient first; include alternatives as factual context."""
+    if prompt_format == 'compact':
+        return _compact_patient_query(state, rows, index, decision)
+    if prompt_format != 'full':
+        raise ValueError("patient_prompt_format must be 'full' or 'compact'")
     selected = rows[index]
     alternatives = [row for i, row in enumerate(rows) if i != index]
     choice = ('evacuate next' if decision == 'evacuate'

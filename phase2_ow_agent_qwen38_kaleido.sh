@@ -1,6 +1,6 @@
 #!/bin/bash
 # Interactive kaleido launcher; all shared runner settings apply.
-# RUN_MODE=smoke|live AUTO_ASSESS=true|false (default true).
+# RUN_MODE=smoke|live AUTO_ASSESS=true|false (default false).
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")"
 export TOOLKIT=kaleido
