@@ -1,7 +1,6 @@
 """Kaleido value-assessment toolkit for the LangChain agent drivers.
 
-Exposes a single `assess_available_actions` tool that scores each
-currently available environment action against the attributes in the
+Exposes patient-priority and available-action assessments against the
 scenario's alignment target using the Kaleido value model
 (``align_system.algorithms.lib.kaleido.KaleidoSys``): how relevant the
 attribute is to the action, whether the action supports or opposes it,
@@ -14,10 +13,13 @@ without touching either.
 """
 import json
 from collections.abc import Mapping
+from typing import Literal
 
 from langchain_core.tools import tool
 
 from align_system.agent_tools.base import AgentToolProvider
+from align_system.agent_tools.kaleido_patients import (
+    patient_choices, patient_query, format_patient_assessment)
 from align_system.drivers.itm_open_world_langchain import (
     TOOL_NAMES_BY_ACTION_TYPE)
 from align_system.prompt_engineering.compat.outlines.templates import prompt as compat_outlines_prompt
@@ -75,6 +77,34 @@ class KaleidoToolHintPrompt:
         return kaleido_tool_hint()
 
 
+class KaleidoPatientHintPrompt:
+    """Patient-specific value evidence, interpreted alongside clinical facts."""
+    def __init__(self, auto_assess=False):
+        self.auto_assess = auto_assess
+
+    def __call__(self):
+        delivery = (
+            "Before decisions with patient choices you receive a patient assessment."
+            if self.auto_assess else
+            "Before selecting a patient, request a patient assessment when useful.")
+        return (
+            delivery + " Use assess_patients(decision='treat' or 'evacuate', "
+            "justification=...) to compare prioritizing individual patients. "
+            "'treat' means prioritizing care, including moving or assessing first; "
+            "'evacuate' compares the next evacuation slot. The tool uses observed "
+            "facts and labeled prior observations and returns value relevance, "
+            "support/opposition, and model explanations. These are advisory value "
+            "signals, not clinical urgency or official alignment scores. Interpret "
+            "the target using the driver's alignment guidance, not by equating "
+            "the target with Kaleido support probabilities. Use current clinical "
+            "facts for urgency; historical descriptions may be stale. Do not infer "
+            "affiliation from names or missing facts. Then choose an available "
+            "action with the patient's exact ID and valid parameters. "
+            "assess_available_actions(justification) remains available for action "
+            "type comparisons; generic action scores do not distinguish patients. "
+            "Avoid repeated assessment calls without acting.")
+
+
 log = logging.getLogger(__name__)
 
 
@@ -124,10 +154,15 @@ class KaleidoToolkit(AgentToolProvider):
 
     `prompt_hint` is the text appended to the agent's system prompt (a
     string, or a prompt template object rendering to one when called
-    with no arguments); when None it defaults to
-    `KaleidoAutoAssessHintPrompt` or `KaleidoToolHintPrompt` (see
-    `align_system.agent_tools.kaleido`) depending on
-    `auto_assess`.
+    with no arguments); when None it defaults to `KaleidoPatientHintPrompt`
+    for patient assessments, or `KaleidoAutoAssessHintPrompt` /
+    `KaleidoToolHintPrompt` for action assessments depending on `auto_assess`.
+    These prompts are defined in `align_system.agent_tools.kaleido`.
+
+    `assessment_subject` selects patient priorities (default) or legacy action
+    comparisons for automatic delivery. Both tools remain callable.
+    `patient_explain` enables model explanations for patient choices separately
+    from the action tool's `explain` setting.
     """
 
     def __init__(self,
@@ -136,7 +171,9 @@ class KaleidoToolkit(AgentToolProvider):
                  auto_assess=True,
                  explain=False,
                  batch_size=None,
-                 prompt_hint=None):
+                 prompt_hint=None,
+                 assessment_subject='patients',
+                 patient_explain=True):
         # Model loading is deferred by KaleidoSys itself until the
         # first scoring call
         self.kaleido = kaleido_instance
@@ -148,10 +185,17 @@ class KaleidoToolkit(AgentToolProvider):
         self.auto_assess = auto_assess
         self.explain = explain
         self.batch_size = batch_size
+        if assessment_subject not in {'patients', 'actions'}:
+            raise ValueError("assessment_subject must be 'patients' or 'actions'")
+        self.assessment_subject = assessment_subject
+        self.patient_explain = patient_explain
 
         if prompt_hint is None:
-            prompt_hint = (KaleidoAutoAssessHintPrompt() if auto_assess
-                           else KaleidoToolHintPrompt())
+            if assessment_subject == 'patients':
+                prompt_hint = KaleidoPatientHintPrompt(auto_assess)
+            else:
+                prompt_hint = (KaleidoAutoAssessHintPrompt() if auto_assess
+                               else KaleidoToolHintPrompt())
         self.prompt_hint = (prompt_hint() if callable(prompt_hint)
                             else prompt_hint)
 
@@ -161,6 +205,7 @@ class KaleidoToolkit(AgentToolProvider):
         # count, offered actions, observed state, and target values.
         self._cache = {}
         self._cache_session = None
+        self._patient_cache = {}
 
     # -- Scoring --------------------------------------------------------
 
@@ -197,6 +242,11 @@ class KaleidoToolkit(AgentToolProvider):
                  'scores': {}}
                 for a in actions]
 
+        self._score_queries(queries, rows, targets, explain=self.explain)
+        return targets, rows, unscored
+
+    def _score_queries(self, queries, rows, targets, *, explain):
+        """Apply the same value model to action or patient-choice texts."""
         if queries:
             texts = [q[2] for q in queries]
             vrds = [q[3] for q in queries]
@@ -209,7 +259,10 @@ class KaleidoToolkit(AgentToolProvider):
             explanations = (
                 self.kaleido.get_explanation(
                     texts, vrds, descriptions, batch_size=self.batch_size)
-                if self.explain else [None] * len(queries))
+                if explain else [None] * len(queries))
+            if any(len(result) != len(queries)
+                   for result in (relevance, valence, explanations)):
+                raise ValueError("Kaleido returned an incomplete assessment batch")
 
             for (action_idx, attribute, *_), rel, val, expl in zip(
                     queries, relevance, valence, explanations):
@@ -233,8 +286,6 @@ class KaleidoToolkit(AgentToolProvider):
             distances = [s['distance'] for s in row['scores'].values()]
             row['avg_distance'] = (sum(distances) / len(distances)
                                    if distances else None)
-
-        return targets, rows, unscored
 
     @staticmethod
     def format_assessment(targets, rows, unscored):
@@ -343,16 +394,63 @@ class KaleidoToolkit(AgentToolProvider):
             alignment_target_id=record['alignment_target_id'],
             targets=record['targets'], cache_hit=cache_hit, assessment=record)
 
+    def patient_assessment_text(self, session, decision, actions=None):
+        """Assess current patient choices without changing scenario state."""
+        targets = _target_values(session.alignment_target)
+        if not targets:
+            return "No scalar alignment target is configured; no patient value assessment."
+        if actions is None:
+            actions = session.refresh_actions()
+        rows = patient_choices(session, actions, decision)
+        if not rows:
+            return f"No eligible patient choices for '{decision}' in the currently offered actions."
+        scored = [a for a in targets if a in self.attribute_descriptions]
+        unscored = [a for a in targets if a not in scored]
+        # Include observations and history: refreshes can change evidence without
+        # advancing the successful-action count.
+        key = json.dumps(
+            [decision, session.n_actions, session.current_state.unstructured,
+             rows, targets], sort_keys=True, default=str)
+        if key not in self._patient_cache:
+            queries = []
+            for index in range(len(rows)):
+                text = patient_query(session.current_state, rows, index, decision)
+                for attribute in scored:
+                    desc = self.attribute_descriptions[attribute]
+                    queries.append((index, attribute, text,
+                                    desc.get('vrd', 'Value'), desc['description']))
+            for row in rows:
+                row['scores'] = {}
+            self._score_queries(queries, rows, targets, explain=self.patient_explain)
+            # Patient value evidence is not a calibrated target-distance ranking.
+            for row in rows:
+                row.pop('avg_distance')
+                for score in row['scores'].values():
+                    score.pop('distance')
+            record = {'decision': decision, 'targets': targets, 'rows': rows,
+                      'unscored': unscored}
+            text = format_patient_assessment(decision, targets, rows, unscored)
+            self._patient_cache = {key: (text, record)}
+        text, record = self._patient_cache[key]
+        session.record_assessment('kaleido_patients', record)
+        return text
+
     def decision_context(self, session):
         """Driver hook: the assessment handed to the agent before each
-        decision when `auto_assess` is on.  Skipped when there is no
-        choice to make (fewer than two available actions)."""
+        decision when `auto_assess` is on. Patient choices can exist even
+        when the server offers only one generic action template."""
         if not self.auto_assess:
             return None
 
         # One fetch from the environment per decision point, shared
         # with the assessment below
         actions = session.refresh_actions()
+        if self.assessment_subject == 'patients':
+            decision = ('evacuate' if any(a.action_type == 'MOVE_TO_EVAC'
+                                         for a in actions) else 'treat')
+            if patient_choices(session, actions, decision):
+                return self.patient_assessment_text(session, decision, actions)
+            return None
         if len(actions) < 2:
             log.info(f"Kaleido assessment skipped: {len(actions)} "
                      "available action(s), nothing to choose between")
@@ -369,7 +467,25 @@ class KaleidoToolkit(AgentToolProvider):
         # previous scenario's decision points
         self._cache = {}
         self._cache_session = session
+        self._patient_cache = {}
         toolkit = self
+
+        @tool
+        def assess_patients(
+                decision: Literal['treat', 'evacuate'],
+                justification: str = '') -> str:
+            """Compare prioritizing individual patients using Kaleido value evidence.
+
+            Use 'treat' for care priority (including moving/assessing first), or
+            'evacuate' for the next evacuation slot. Uses observed patient facts
+            and labeled history, and respects currently offered patient choices.
+            Returns value relevance, support/opposition, and model explanations;
+            not clinical urgency or official alignment scores. Does not act.
+            Call once per decision, then choose a valid action and patient ID.
+            """
+            text = toolkit.patient_assessment_text(session, decision)
+            log.info(text)
+            return text
 
         @tool
         def assess_available_actions(justification: str) -> str:
@@ -390,4 +506,4 @@ class KaleidoToolkit(AgentToolProvider):
             log.info(text)
             return text
 
-        return [assess_available_actions]
+        return [assess_available_actions, assess_patients]

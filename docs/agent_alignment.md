@@ -46,6 +46,44 @@ a completion/score; failed readback or an unconfirmed HTTP 500 aborts explicitly
 
 ## Experimental controls
 
+### Kaleido patient assessments
+
+Kaleido now defaults to `assessment_subject: patients`. The agent can call
+`assess_patients(decision="treat"|"evacuate", justification="...")`.
+It compares prioritizing individual patient IDs using current observed
+descriptions, injuries, vitals, demographics, tags, current-scene care tracking,
+and labeled descriptions from earlier observations. Unknown current details
+remain unknown; hidden KDMA labels are excluded. Previously observed descriptions
+may contain stale clinical facts and are explicitly labeled as history.
+
+`treat` means prioritizing care: a visible casualty may need navigation or
+assessment first. It does not assert that a specific treatment is executable.
+`evacuate` compares patients permitted by the offered evacuation action, excluding
+already evacuated patients. Fixed server patient constraints are preserved.
+An unseen evacuation candidate includes only identity and any previously observed
+description, without exposing hidden current clinical fields.
+
+With `auto_assess=true`, patient evidence is delivered before decisions, including
+when a single evacuation template represents multiple patient choices. With
+`auto_assess=false`, the agent can request it on demand. The tool does not act;
+its structured evidence is recorded under `kaleido_patients` alongside the next
+executed action. Repeated calls reuse scores only while evidence, target, and
+eligible choices remain unchanged.
+
+Each row contains relevance, support/opposition/indifference probabilities,
+`supports + 0.5 * either` as a support estimate, and a model explanation.
+These are advisory value signals, **not** clinical urgency scores, calibrated
+TA1 scores, or a target-distance ranking. The driver's alignment guidance
+determines how the target weights medical urgency versus the KDMA.
+Patient explanations add inference cost; set
+`driver.extra_tools.kaleido.patient_explain=false` to disable them.
+
+The existing `assess_available_actions` tool remains available. Set
+`driver.extra_tools.kaleido.assessment_subject=actions` to restore its automatic
+assessment and prompt behavior. No TA3 configuration or model retraining is
+required for the patient tool. Improvements in decision quality still require
+evaluation; offline tests validate evidence handling and integration only.
+
 ### Reset awareness and navigation (run 3965)
 
 Run 3965's saved observations confirm a mismatch between treatment descriptions

@@ -1,7 +1,3 @@
-import jinja2
-import json
-import re
-
 from align_system.prompt_engineering.compat.outlines.templates import prompt as compat_outlines_prompt
 
 
@@ -129,6 +125,7 @@ class OWCharacterDescription:
 def __getattr__(name):
     if name in {
         'KaleidoAutoAssessHintPrompt', 'KaleidoToolHintPrompt',
+        'KaleidoPatientHintPrompt',
         'kaleido_auto_assess_hint', 'kaleido_tool_hint',
     }:
         from align_system.agent_tools import kaleido

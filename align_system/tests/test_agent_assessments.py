@@ -212,7 +212,7 @@ def test_kaleido_original_assessment_with_current_driver(auto, explain):
     backend = FakeKaleido()
     toolkit = KaleidoToolkit(backend, {'affiliation': {
         'description': 'Favor patients in your group', 'vrd': 'Value'}},
-        auto_assess=auto, explain=explain)
+        auto_assess=auto, explain=explain, assessment_subject='actions')
     driver = ITMOpenWorldLangChainDriver(
         extra_tools={'kaleido': toolkit}, apply_action_filtering=False)
     tools = {tool.name: tool for tool in driver._build_tools(session)}
@@ -273,7 +273,7 @@ def target_tracking_kaleido(auto=True):
     toolkit = KaleidoToolkit(backend, {
         'merit': {'description': 'Favor victims over perpetrators'},
         'affiliation': {'description': 'Favor patients in your group'},
-    }, auto_assess=auto)
+    }, auto_assess=auto, assessment_subject='actions')
     return toolkit, backend
 
 
