@@ -3,11 +3,11 @@ import os
 
 from rich.console import Console
 from rich.highlighter import JSONHighlighter
+from rich.logging import RichHandler
 import hydra
 from omegaconf import DictConfig
 
 from align_system.utils import logging
-from align_system.utils.logging import AgentPlainFormatter, AgentRichHandler
 from align_system.utils.hydra_utils import initialize_with_custom_references
 
 log = logging.getLogger(__name__)
@@ -36,20 +36,32 @@ def main(cfg: DictConfig) -> None:
     root_logger = logging.getLogger()
     root_logger.setLevel(cfg.loglevel)
 
+    agent_log_rendering = cfg.get('agent_log_rendering', False)
+    if agent_log_rendering:
+        from align_system.utils.agent_logging import AgentPlainFormatter, AgentRichHandler
+
     if logfile_path is not None:
         logfile = open(logfile_path, 'w')
         # Ensure the opened logfile is closed when the program exits
         atexit.register(logfile.close)
 
-        filehandler = AgentRichHandler(
+        handler_class = AgentRichHandler if agent_log_rendering else RichHandler
+        filehandler = handler_class(
             console=Console(file=logfile, color_system=None))
         root_logger.addHandler(filehandler)
 
     if raw_logfile_path is not None:
         # Using Python stdlib logging.FileHandler
         from logging import FileHandler
-        filehandler = FileHandler(raw_logfile_path, mode='w')
-        filehandler.setFormatter(AgentPlainFormatter())
+        if agent_log_rendering and cfg.get('save_agent_transcript', False):
+            from align_system.utils.agent_transcript import AgentTranscriptFileHandler
+            filehandler = AgentTranscriptFileHandler(
+                raw_logfile_path, os.path.join(output_dir, 'agent_interactions.log'),
+                mode=cfg.get('raw_log_mode', 'a'))
+        else:
+            filehandler = FileHandler(raw_logfile_path, mode=cfg.get('raw_log_mode', 'a'))
+        if agent_log_rendering:
+            filehandler.setFormatter(AgentPlainFormatter())
 
         root_logger.addHandler(filehandler)
 

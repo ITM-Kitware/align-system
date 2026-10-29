@@ -1,0 +1,7 @@
+defaults:
+  - custom
+  - _self_
+
+handlers:
+  console:
+    class: align_system.utils.agent_logging.AgentRichHandler
