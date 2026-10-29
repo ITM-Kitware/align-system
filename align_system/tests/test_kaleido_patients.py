@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 
 from align_system.agent_tools.kaleido import KaleidoToolkit
-from align_system.agent_tools.kaleido_patients import patient_choices
+from align_system.agent_tools.kaleido_patients import patient_choices, patient_query
 from align_system.drivers.itm_open_world_langchain import ITMOpenWorldLangChainDriver
 from align_system.tests.test_agent_assessments import Model, action, session_for
 
@@ -214,7 +214,100 @@ def test_hydra_kaleido_defaults_enable_patient_assessment():
         cfg = compose(config_name='action_based', overrides=[
             '+experiment=phase2_feb_openworld/phase2_langchain_agent_ow_kaleido_live'])
     assert cfg.driver.extra_tools.kaleido.assessment_subject == 'patients'
+    assert not cfg.driver.extra_tools.kaleido.auto_assess
     assert cfg.driver.extra_tools.kaleido.patient_explain
+    assert cfg.driver.extra_tools.kaleido.patient_prompt_format == 'full'
+
+
+def test_hydra_compact_patient_prompt_override():
+    root = Path(__file__).resolve().parents[1] / 'configs'
+    with initialize_config_dir(version_base=None, config_dir=str(root)):
+        cfg = compose(config_name='action_based', overrides=[
+            '+experiment=phase2_feb_openworld/phase2_langchain_agent_ow_kaleido_live',
+            'driver.extra_tools.kaleido.patient_prompt_format=compact'])
+    assert cfg.driver.extra_tools.kaleido.patient_prompt_format == 'compact'
+    assert not cfg.driver.extra_tools.kaleido.auto_assess
+
+
+@pytest.mark.parametrize('decision', ['treat', 'evacuate'])
+def test_compact_prompt_preserves_candidates_facts_and_value_definition(decision):
+    session, _ = evacuation_session()
+    session.current_state.characters[0].unstructured = (
+        'Civilian likely responsible for the explosion; intent unknown.')
+    session.current_state.characters[1].nearby = False
+    session.current_state.characters[1].vitals = None
+    session.treated_patients.add('p1')
+    actions = [action('evac', 'MOVE_TO_EVAC'), action('move', 'MOVE_TO'),
+               action('check', 'CHECK_VITALS')]
+    rows = patient_choices(session, actions, decision)
+    before = deepcopy(rows)
+    compact = patient_query(session.current_state, rows, 0, decision, 'compact')
+    full = patient_query(session.current_state, rows, 0, decision)
+    assert len(compact) < len(full)
+    assert 'Selected patient:\np1' in compact
+    assert 'Other eligible patients:\np2' in compact
+    assert 'Civilian likely responsible for the explosion; intent unknown.' in compact
+    assert 'Proximity: distant' in compact and 'Vitals: unknown' in compact
+    assert 'treated: recorded' in compact
+    assert 'treated: not recorded' in compact
+    assert 'Tag: IMMEDIATE' in compact and 'Laceration' in compact
+    assert 'HIDDEN_GROUND_TRUTH' not in compact
+    assert 'offered_actions' not in compact and 'first_seen' not in compact
+    assert rows == before
+
+    provider = toolkit(patient_prompt_format='compact')
+    captured = []
+    provider.kaleido.get_valence = lambda texts, vrds, descriptions, **kwargs: (
+        captured.append((texts, vrds, descriptions)) or [[.7, .1, .2] for _ in texts])
+    provider.patient_assessment_text(session, decision, actions)
+    assert captured[0][0][0] == compact
+    assert captured[0][1] == ['Value', 'Value']
+    assert captured[0][2] == ['Favoring your own group'] * 2
+    assert session.assessments['kaleido_patients']['patient_prompt_format'] == 'compact'
+
+
+def test_compact_history_deduplicates_and_preserves_missing_facts_as_history():
+    session, _ = evacuation_session()
+    p1 = session.current_state.characters[0]
+    p1.unstructured = 'Own-unit member. Leg wound.'
+    session.patient_history.observe(session.current_state, action_count=1)
+    p1.unstructured = 'Own-unit member. Leg wound. Bandage applied.'
+    session.patient_history.observe(session.current_state, action_count=2)
+    p1.unstructured = 'Leg wound. Bandage applied.'
+    rows = patient_choices(session, session.refresh_actions(), 'evacuate')
+    text = patient_query(session.current_state, rows, 0, 'evacuate', 'compact')
+    assert text.count('Leg wound.') == 1
+    assert text.count('Bandage applied.') == 1
+    assert text.count('Own-unit member.') == 1
+    assert 'Historical (may be stale): Own-unit member.' in text
+    assert 'Current observations take precedence' in text
+
+
+def test_compact_unseen_candidate_does_not_expose_hidden_current_facts():
+    session, _ = evacuation_session()
+    session.current_state.characters[0].unseen = True
+    session.current_state.characters[0].unstructured = 'SECRET'
+    session.current_state.characters[0].vitals = {'mental_status': 'SECRET'}
+    provider = toolkit(patient_prompt_format='compact')
+    provider.patient_assessment_text(session, 'evacuate')
+    text = provider.kaleido.calls[0][0]
+    assert 'SECRET' not in text and 'HIDDEN_GROUND_TRUTH' not in text
+    assert 'Currently unseen; current clinical details unknown.' in text
+    assert 'Historical (may be stale): Soldier in your unit, leg wound.' in text
+
+
+def test_prompt_format_validation_and_cache_separation():
+    with pytest.raises(ValueError, match='patient_prompt_format'):
+        toolkit(patient_prompt_format='invalid')
+    session, _ = evacuation_session()
+    provider = toolkit()
+    provider.patient_assessment_text(session, 'evacuate')
+    provider.patient_prompt_format = 'compact'
+    provider.patient_assessment_text(session, 'evacuate')
+    provider.patient_assessment_text(session, 'evacuate')
+    assert len(provider.kaleido.calls) == 2
+    assert provider.kaleido.calls[0][0].startswith('Choosing patient')
+    assert provider.kaleido.calls[1][0].startswith('Action: Prioritize patient')
 
 
 def test_patient_prompt_compatibility_import_uses_toolkit_definition():

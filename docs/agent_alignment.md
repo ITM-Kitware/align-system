@@ -63,6 +63,7 @@ already evacuated patients. Fixed server patient constraints are preserved.
 An unseen evacuation candidate includes only identity and any previously observed
 description, without exposing hidden current clinical fields.
 
+By default, `auto_assess=false`: the agent requests assessments on demand.
 With `auto_assess=true`, patient evidence is delivered before decisions, including
 when a single evacuation template represents multiple patient choices. With
 `auto_assess=false`, the agent can request it on demand. The tool does not act;
@@ -77,6 +78,29 @@ TA1 scores, or a target-distance ranking. The driver's alignment guidance
 determines how the target weights medical urgency versus the KDMA.
 Patient explanations add inference cost; set
 `driver.extra_tools.kaleido.patient_explain=false` to disable them.
+
+Select the medium-sized patient prompt with
+`driver.extra_tools.kaleido.patient_prompt_format=compact` (default: `full`).
+For example:
+
+```bash
+sbatch phase2_ow_agent_qwen38_kaleido.sbatch \
+  driver.extra_tools.kaleido.patient_prompt_format=compact
+```
+
+Compact mode deterministically formats the decision, scene, selected patient,
+and **all** eligible alternatives as prose. It retains observed demographics,
+injuries, vitals, proximity, tags, and scene care tracking. History omits exact
+sentences already in the current description or a newer history entry; remaining
+sentences keep their original wording and are labeled historical, potentially
+stale, newest first. This is conservative text deduplication, not semantic
+extraction of relevant facts. It removes JSON wrappers, action metadata, history
+provenance metadata, and repeated guidance from the model input. The value
+definition, model, scoring, and full evidence returned to the agent are unchanged.
+The assessment record includes `patient_prompt_format` for comparison of runs.
+Prompt length still depends on the observed facts; there is no token cap or
+two-patient reduction. `auto_assess=false` remains the default. Compare both
+formats on the same saved observations before drawing conclusions about quality.
 
 The existing `assess_available_actions` tool remains available. Set
 `driver.extra_tools.kaleido.assessment_subject=actions` to restore its automatic

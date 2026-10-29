@@ -163,17 +163,20 @@ class KaleidoToolkit(AgentToolProvider):
     comparisons for automatic delivery. Both tools remain callable.
     `patient_explain` enables model explanations for patient choices separately
     from the action tool's `explain` setting.
+    `patient_prompt_format` selects the original `full` evidence prompt or a
+    deterministic `compact` prompt retaining all eligible patients.
     """
 
     def __init__(self,
                  kaleido_instance,
                  attribute_descriptions,
-                 auto_assess=True,
+                 auto_assess=False,
                  explain=False,
                  batch_size=None,
                  prompt_hint=None,
                  assessment_subject='patients',
-                 patient_explain=True):
+                 patient_explain=True,
+                 patient_prompt_format='full'):
         # Model loading is deferred by KaleidoSys itself until the
         # first scoring call
         self.kaleido = kaleido_instance
@@ -189,6 +192,9 @@ class KaleidoToolkit(AgentToolProvider):
             raise ValueError("assessment_subject must be 'patients' or 'actions'")
         self.assessment_subject = assessment_subject
         self.patient_explain = patient_explain
+        if patient_prompt_format not in {'full', 'compact'}:
+            raise ValueError("patient_prompt_format must be 'full' or 'compact'")
+        self.patient_prompt_format = patient_prompt_format
 
         if prompt_hint is None:
             if assessment_subject == 'patients':
@@ -409,12 +415,14 @@ class KaleidoToolkit(AgentToolProvider):
         # Include observations and history: refreshes can change evidence without
         # advancing the successful-action count.
         key = json.dumps(
-            [decision, session.n_actions, session.current_state.unstructured,
+            [self.patient_prompt_format, decision, session.n_actions,
+             session.current_state.unstructured,
              rows, targets], sort_keys=True, default=str)
         if key not in self._patient_cache:
             queries = []
             for index in range(len(rows)):
-                text = patient_query(session.current_state, rows, index, decision)
+                text = patient_query(session.current_state, rows, index, decision,
+                                     self.patient_prompt_format)
                 for attribute in scored:
                     desc = self.attribute_descriptions[attribute]
                     queries.append((index, attribute, text,
@@ -428,7 +436,8 @@ class KaleidoToolkit(AgentToolProvider):
                 for score in row['scores'].values():
                     score.pop('distance')
             record = {'decision': decision, 'targets': targets, 'rows': rows,
-                      'unscored': unscored}
+                      'unscored': unscored,
+                      'patient_prompt_format': self.patient_prompt_format}
             text = format_patient_assessment(decision, targets, rows, unscored)
             self._patient_cache = {key: (text, record)}
         text, record = self._patient_cache[key]
