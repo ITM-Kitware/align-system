@@ -146,6 +146,36 @@ captured in a new configuration file.  We manage these experiments in
 delivered ADMs for the Metrics Evaluation (both to run on training
 data, and eval data).
 
+#### Open-world reviewer architectures
+
+The existing `phase2_langchain_agent_ow_review_live` and
+`phase2_langchain_agent_ow_review_replay` experiments retain the LangChain
+driver, with model and reviewer options under `driver.chat_model` and
+`driver.reviewer`. Existing Kaleido launchers continue to use that driver.
+
+The separate agentic ADM introduced in PR #295 is available as
+`phase2_agentic_adm_ow_review_live` and `phase2_agentic_adm_ow_review_replay`
+in the same `phase2_feb_openworld` experiment group. Its model and reviewer
+options live under `adm.instance.chat_model` and `adm.instance.reviewer`.
+For example, inspect the new configuration without starting a run:
+
+```bash
+run_align_system \
+    +experiment=phase2_feb_openworld/phase2_agentic_adm_ow_review_live \
+    --cfg job
+```
+
+Both architectures share agent log formatting. Existing experiments keep
+their overwrite behavior for raw logs; the new ADM experiments also enable
+`agent_interactions.log` with complete visible model/tool outputs at INFO.
+To enable this transcript on an existing agent experiment, pass
+`save_agent_transcript=true loglevel=INFO` (and keep `save_raw_log=true`).
+
+The new ADM experiments remain separate from the Kaleido launchers: their
+driver does not yet implement the local toolkit's assessment-recording hooks,
+completion recovery, or `scoring_status.json` / `agent_events.jsonl` outputs.
+Use the existing driver for those capabilities.
+
 ## Phase 1 Evaluation ADM Invocations
 
 We've specified Hydra experiments for the Phase 1 Evaluation ADMs.

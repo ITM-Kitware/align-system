@@ -1,0 +1,25 @@
+name: langchain_agentic
+
+defaults:
+  - /driver/chat_model@instance.chat_model: ollama_llama31
+  - /attribute@instance.attribute_definitions.medical: medical_urgency
+  - /attribute@instance.attribute_definitions.affiliation: affiliation_focus
+  - /attribute@instance.attribute_definitions.merit: merit_focus
+  - /attribute@instance.attribute_definitions.search: search_or_stay
+  - /attribute@instance.attribute_definitions.personal_safety: personal_safety
+  - _self_
+  - reviewer@instance.reviewer: null  # Optional reviewer config group.
+
+instance:
+  _target_: align_system.algorithms.agents.langchain_agentic_adm.LangChainAgenticADM
+  expected_response_contract:
+    _target_: align_system.algorithms.agents.agent_review.GroundedReviewContract
+  max_llm_calls_between_actions: 8
+  max_messages_in_context: 40
+  # Per-request token capacity; independent of the model-call limit above.
+  context_budget:
+    enabled: true
+    decision:
+      counter: auto
+    reviewer:
+      counter: auto
