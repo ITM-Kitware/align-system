@@ -1,6 +1,6 @@
 # Kaleido value-assessment toolkit for the LangChain agent drivers:
-# adds an `assess_available_actions` tool that scores the currently
-# available actions against the alignment target's attributes.
+# adds `assess_patients` for patient priority and `assess_available_actions`
+# for action-type comparisons.
 # Attach to a driver from an experiment config with
 #   - /driver/tools@driver.extra_tools.kaleido: kaleido
 _target_: align_system.agent_tools.kaleido.KaleidoToolkit
@@ -14,6 +14,11 @@ kaleido_instance:
 # decision (guarantees it is considered); with false the agent has to
 # call the assess_available_actions tool itself
 auto_assess: true
+
+# Automatic assessments compare patients, including when evacuation is the
+# only offered action template. Use actions to retain the earlier behavior.
+assessment_subject: patients
+patient_explain: true
 
 # Also generate a short natural-language explanation per action /
 # attribute (noticeably slower)

@@ -42,7 +42,7 @@ def toolkit():
     return KaleidoToolkit(FixedPredictions(), {
         'merit': {'description': 'Favor victims over perpetrators'},
         'affiliation': {'description': 'Favor members of your group'},
-    })
+    }, assessment_subject='actions')
 
 
 @pytest.mark.parametrize('attribute', ['merit', 'affiliation'])
