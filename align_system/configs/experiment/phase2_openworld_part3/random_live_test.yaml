@@ -1,8 +1,9 @@
 # @package _global_
 defaults:
   - override /adm: pipeline_random
+  - override /adm_component/misc@adm.step_definitions.format_choices: ow_format_choices_part3
   - override /interface: ta3
-  - override /driver: itm_phase2_ow
+  - override /driver: itm_phase2_ow_part3
   - override /adm_component/misc@adm.step_definitions.random_action_parameter_completion: ow_random_action_parameter_completion
 
 interface:

@@ -5,10 +5,10 @@ defaults:
   - /adm_component/misc@adm.step_definitions.tagging_adjustment: ow_tagging_adjustment
   - override /adm: phase2_pipeline_direct_regression
   - override /interface: ta3
-  - override /adm_component/misc@adm.step_definitions.format_choices: ow_format_choices
+  - override /adm_component/misc@adm.step_definitions.format_choices: ow_format_choices_part3
   - override /adm_component/alignment@adm.step_definitions.scalar_alignment: multinomial_medical_urgency_weighted_scalar
   - override /adm_component/misc@adm.step_definitions.ensure_chosen_action: ow_choice_to_action
-  - override /driver: itm_phase2_ow
+  - override /driver: itm_phase2_ow_part3
 
 interface:
   # api_endpoint: 'http://127.0.0.1:8081'
@@ -53,6 +53,7 @@ adm:
         _target_: align_system.prompt_engineering.outlines_prompts.OWPart3ScenarioDescriptionWVitals
       enable_caching: true
     action_parameter_completion:
+      treatment_required: true
       scenario_description_template:
         _target_: align_system.prompt_engineering.outlines_prompts.OWPart3ScenarioDescriptionWVitals
       enable_caching: true
