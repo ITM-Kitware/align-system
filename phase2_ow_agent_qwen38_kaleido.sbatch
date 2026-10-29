@@ -4,7 +4,7 @@
 #SBATCH --gres=gpu:1
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=96G
-#SBATCH --time=12:00:00
+#SBATCH --time=7-00:00:00
 #SBATCH --job-name=ow_agent_qwen38_kaleido
 #SBATCH --output=slurm-%x-%j.out
 
