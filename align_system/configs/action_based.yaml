@@ -29,4 +29,8 @@ save_model_requests: false
 benchmark_model_revision: null
 model_server_manifest: null
 
+# Replay a previous LangChain Kaleido/CR run into a fresh TA3 session.
+resume_from: null
+save_agent_checkpoint: true
+
 align_to_target: false
