@@ -507,3 +507,63 @@ The tests exercise these conditions with mocked models and environments. They
 establish implementation behavior, not empirical alignment improvement. A live
 pilot still requires scenario runs and independent annotations; this repository
 does not generate expert labels from its own assessment scores.
+
+## Recovering a run after TA3 loses its session
+
+The LangChain Kaleido/CR driver accepts `resume_from=/absolute/path/to/old/run`.
+It starts a fresh TA3 session, replays the source episodes in their recorded
+order, and resumes model decisions at the end of the last unfinished episode.
+Completed episodes use their recorded actions without actor or toolkit inference.
+Keep the same scenario profile, alignment settings, model, and toolkit. The
+server must reproduce the same scenario/target sequence and environment states.
+Recovery stops on a mismatched target, unavailable action, or changed state.
+
+First inspect the source without contacting TA3:
+
+```bash
+python -m align_system.cli.inspect_agent_resume /absolute/path/to/old/run
+```
+
+To recover using the source's saved configuration and an already running model
+server, use a **new** output directory:
+
+```bash
+run_align_system \
+  --config-path /absolute/path/to/old/run/.hydra --config-name config \
+  ++resume_from=/absolute/path/to/old/run \
+  driver.chat_model.base_url=http://127.0.0.1:8000/v1 \
+  hydra.run.dir=/absolute/path/to/recovered/run
+```
+
+The shared Qwen launcher also accepts `RESUME_FROM=/absolute/path/to/old/run`;
+keep its other experiment settings identical to the source. `DRY_RUN=1` only
+prints the launcher commands. The inspector validates the actual source files.
+Starting recovery submits actions to a **fresh** TA3 session; it does not attach
+to the old session. The original files remain untouched. The new journal and
+action records identify the source run, episode, and action sequence.
+If replay itself is interrupted, restart recovery from the same original source
+into another new output directory.
+
+Both `agent_events.jsonl` and `input_output.json` are required. The journal is
+essential: final evacuations can return HTTP 500 while a subsequent read confirms
+scenario completion. Such terminal attempts are replayed and completion is
+checked; they are not silently dropped because they are absent from the success
+trace. Other unconfirmed attempts are not automatically replayed. The new session
+stops at the validated successful prefix and the agent decides what to do next.
+A truncated final journal line is tolerated; earlier corruption is rejected.
+
+New runs save `agent_checkpoint.json` before model invocations by default
+(`save_agent_checkpoint=false` disables it). At the same action boundary,
+recovery restores its conversation and cached assessment context. If no current
+checkpoint exists, it reconstructs complete assistant/tool exchanges from the
+journal, adds a recovery explanation, and regenerates current state and patient
+tracking through the normal action handler. Missing assistant prose is not
+invented. This is a usable continuation, not a guarantee of identical future
+model outputs. A legacy last action needs a complete saved tool observation to
+validate its result; newer journals also save raw pre/post-action states.
+
+Recovery currently supports the LangChain driver without an advisory reviewer,
+including Kaleido and comparative regression. It does not restore reviewer
+cycles or resume the separate agentic ADM. Replay time is not counted as new
+model decision time. Replaying a fully completed source reconstructs all its
+episodes; it is not an offline inspection command.

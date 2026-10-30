@@ -30,6 +30,7 @@ import json
 import os
 from copy import deepcopy
 from enum import Enum
+from pathlib import Path
 from timeit import default_timer as timer
 
 import hydra
@@ -51,6 +52,10 @@ from align_system.drivers.agent_context_budget import (
     ContextBudgetError, ContextBudgetManager, is_context_overflow,
 )
 from align_system.drivers.agent_history import pack_history
+from align_system.drivers.agent_resume import (
+    replay_episode, restore_conversation, save_conversation,
+)
+from align_system.drivers.agent_resume_trace import RecoveryError, ReplayPlan
 from align_system.drivers.agent_evidence import FinalReviewResponse, build_citation_guide
 from align_system.drivers.agent_review import ActionReviewer, validate_reviewer_contract
 from align_system.drivers.agent_recovery import (
@@ -375,6 +380,11 @@ class ScenarioSession:
         self.assessments = {}
         self.times_s = []
         self.decision_start = timer()
+        self.resume_plan = None
+        self.resume_episode = None
+        self.checkpoint_path = None
+        self.checkpoint_identity = {}
+        self.episode_context_recorded = False
 
     def log_context(self):
         """Read correlation identifiers without observing or changing state."""
@@ -510,6 +520,8 @@ class ScenarioSession:
 
         self.record_event('action_attempted', decision_index=self.n_actions,
                           action=action_identity(action_to_take),
+                          full_action=_as_dict(action_to_take),
+                          pre_action_state=_as_dict(self.current_state),
                           decision_source=(choice_info or {}).get(
                               'langchain_agent', {}).get('decision_source'))
         try:
@@ -551,7 +563,8 @@ class ScenarioSession:
                 raise
 
         self.record_event('action_succeeded', decision_index=self.n_actions,
-                          action=action_identity(action_to_take))
+                          action=action_identity(action_to_take),
+                          full_state=_as_dict(current_state))
         previous_scene = self.current_state.meta_info.scene_id
         previous_treated = set(self.treated_patients)
         # Only successfully executed actions are recorded
@@ -1674,15 +1687,23 @@ class ITMOpenWorldLangChainDriver:
 
     def drive(self, cfg):
         output_dir = hydra.core.hydra_config.HydraConfig.get().runtime.output_dir
+        source = cfg.get('resume_from')
+        if source and self.reviewer is not None:
+            raise RecoveryError('Replay recovery currently supports Kaleido/CR without a reviewer')
+        resume = ReplayPlan(source) if source else None
+        if resume is not None:
+            destination = Path(output_dir).resolve()
+            if destination == resume.directory or resume.directory in destination.parents:
+                raise RecoveryError('Recovery requires a new output directory outside the source run')
         with AgentEventLog(os.path.join(output_dir, 'agent_events.jsonl')) as events:
             # Even model initialization failures leave an inspectable empty trace.
             if cfg.save_input_output:
                 write_json_atomic(os.path.join(output_dir, 'input_output.json'), [])
             scoring = AgentScoreRecorder(output_dir, cfg.interface, events,
                                          enabled=cfg.save_scoring_output)
-            self._drive(cfg, events, scoring)
+            self._drive(cfg, events, scoring, resume=resume)
 
-    def _drive(self, cfg, events, scoring):
+    def _drive(self, cfg, events, scoring, resume=None):
         interface = cfg.interface
 
         # Resolve the chat model up front so a missing/misconfigured
@@ -1726,6 +1747,9 @@ class ITMOpenWorldLangChainDriver:
         # Write version sidecar once at the start of the run
         meta = {"version": get_version(), "driver": "langchain_agent",
                 "run_id": events.run_id, "event_log": "agent_events.jsonl"}
+        if resume is not None:
+            meta['resume'] = {'source_run_id': resume.run_id, 'source_directory': str(resume.directory)}
+            events.emit('run_resumed', **meta['resume'])
         if self.reviewer is not None:
             meta['architecture'] = 'decision_agent_reviewer'
         username = getattr(interface, 'username', None)
@@ -1775,9 +1799,22 @@ class ITMOpenWorldLangChainDriver:
                     record_event=record_event,
                     reset_awareness=self.reset_awareness,
                     navigation_safeguards=self.navigation_safeguards)
+                session.checkpoint_identity = {'run_id': events.run_id,
+                                               'episode_id': events.episode_id}
+                if cfg.get('save_agent_checkpoint', True):
+                    session.checkpoint_path = os.path.join(output_dir, 'agent_checkpoint.json')
 
                 try:
-                    self._run_agent_loop(session, align_to_target=cfg.align_to_target)
+                    episode = (resume.next_episode(scenario.id(), getattr(session.alignment_target, 'id', None))
+                               if resume is not None else None)
+                    if episode is not None:
+                        self._prepare_session(session, cfg.align_to_target)
+                        self._record_episode_context(session)
+                        replay_episode(resume, episode, session, self._observation_text)
+                        session.resume_plan = resume
+                        session.resume_episode = episode
+                    if not session.scenario_complete:
+                        self._run_agent_loop(session, align_to_target=cfg.align_to_target)
                     if (not session.scenario_complete
                             and session.n_actions >= self.max_actions_per_scenario):
                         diagnostics = {
@@ -1839,6 +1876,8 @@ class ITMOpenWorldLangChainDriver:
                              stop_reason=('scenario_complete' if session.scenario_complete
                                           else 'action_limit_or_unfinished'))
 
+        if resume is not None:
+            resume.assert_consumed()
         if save_timing_to_path is not None:
             all_times = []
             for sce in action_times["scenarios"]:
@@ -2136,7 +2175,9 @@ class ITMOpenWorldLangChainDriver:
             self.scene_end_policy, session.alignment_context)
 
 
-    def _run_agent_loop_impl(self, session):
+    def _record_episode_context(self, session):
+        if session.episode_context_recorded:
+            return
         session.refresh_actions()
         session.record_event(
             'episode_context', scenario_id=session.scenario.id(),
@@ -2146,6 +2187,11 @@ class ITMOpenWorldLangChainDriver:
             reset_awareness=session.reset_awareness,
             navigation_safeguards=session.navigation_safeguards,
             choices=[action_identity(a) for a in session.available_actions])
+        session.episode_context_recorded = True
+
+
+    def _run_agent_loop_impl(self, session):
+        self._record_episode_context(session)
         decision_model = self._resolve_chat_model()
         review_budget = None
         if isinstance(self.reviewer, ActionReviewer):
@@ -2203,6 +2249,13 @@ class ITMOpenWorldLangChainDriver:
         # Decision point (action count) the toolkits last provided
         # context for
         context_key = None
+        if session.resume_episode is not None:
+            messages, restored_key, source = restore_conversation(
+                session.resume_plan, session.resume_episode, session, messages[0])
+            context_key = tuple(restored_key) if restored_key is not None else None
+            session.record_event('conversation_restored', source=source,
+                                 decision_index=session.n_actions, messages=len(messages))
+            save_conversation(session.checkpoint_path, session, messages, context_key)
         recovery_n_actions = None
         overflow_recovery_used = False
         failed_input_tokens = None
@@ -2226,6 +2279,7 @@ class ITMOpenWorldLangChainDriver:
                 session.refresh_actions()
             if session.scenario_complete:
                 break
+            save_conversation(session.checkpoint_path, session, messages, context_key)
             tag_context = session.tag_memory.context(session.current_state)
             target_context = (self.target_context.render(session.alignment_target)
                               if self.target_context is not None else '')
