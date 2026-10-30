@@ -166,6 +166,9 @@ run_args=(
   "interface.adm_profile=${adm_profile}"
   "hydra.run.dir=${out_dir}"
 )
+if [[ -n "${RESUME_FROM:-}" ]]; then
+  run_args+=("resume_from=${RESUME_FROM}")
+fi
 if [[ "${model_backend}" == vllm ]]; then
   run_args+=("driver.max_messages_in_context=12")
 fi
