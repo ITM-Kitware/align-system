@@ -18,6 +18,9 @@ JSON_HIGHLIGHTER = JSONHighlighter()
             config_path="../configs",
             config_name="action_based")
 def main(cfg: DictConfig) -> None:
+    if cfg.get('resume_from'):
+        from align_system.drivers.agent_resume import preflight_resume
+        preflight_resume(cfg, hydra.core.hydra_config.HydraConfig.get().runtime.output_dir)
     cfg = initialize_with_custom_references(cfg)
 
     # Using the hydra generated output directory for the run

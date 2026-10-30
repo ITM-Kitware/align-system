@@ -16,7 +16,7 @@ def dry_run(overrides=(), launcher='phase2_ow_agent_qwen38.sh', **settings):
     for name in ('EXPERIMENT', 'TOOLKIT', 'ASSESSMENT_MODE', 'AUTO_ASSESS', 'TARGET_CONTEXT',
                  'RUN_USERNAME', 'OUT_DIR', 'SESSION_TYPE', 'SCENARIO_ID', 'MODEL',
                  'PROJECT_DIR', 'OPENAI_MODEL', 'TA3_ENDPOINT', 'REQUIRE_SCORES',
-                 'ADM_PROFILE', 'SLURM_ARRAY_TASK_ID'):
+                 'ADM_PROFILE', 'SLURM_ARRAY_TASK_ID', 'RESUME_FROM'):
         env.pop(name, None)
     env.update(DRY_RUN='1', RUN_MODE='smoke', MODEL_BACKEND='vllm',
                VLLM_URL='http://model.example:8000/v1', SLURM_JOB_ID='42',
@@ -34,6 +34,11 @@ def composed(result):
     with initialize_config_dir(version_base=None, config_dir=str(ROOT / 'align_system/configs')):
         cfg = compose(config_name='action_based', overrides=overrides, return_hydra_config=True)
     return cfg
+
+
+def test_resume_source_is_forwarded_to_driver():
+    cfg = composed(dry_run(RESUME_FROM='/tmp/prior-run'))
+    assert cfg.resume_from == '/tmp/prior-run'
 
 
 def test_april_affiliation_launcher_uses_server_target_without_actor_override():

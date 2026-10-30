@@ -23,4 +23,8 @@ save_alignment_targets: false
 save_timing: true
 save_last_unstructured_state_per_scenario: false
 
+# Replay a previous LangChain Kaleido/CR run into a fresh TA3 session.
+resume_from: null
+save_agent_checkpoint: true
+
 align_to_target: false
