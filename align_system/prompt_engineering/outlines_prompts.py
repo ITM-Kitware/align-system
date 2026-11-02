@@ -101,6 +101,7 @@ def llms_are_acds_system_prompt():
     """
 
 
+
 @outlines.prompt
 def llms_for_red_agent_classification_prompt():
     """
@@ -108,17 +109,16 @@ def llms_for_red_agent_classification_prompt():
 
       You are an expert in cyber security defending an enterprise network. Analyze the network states and choose the correct red agent from the list of possible red agents based on their description.
 
-      You will receive under `# OBSERVATIONS` the last 10 observations of the network. Each observation will follow the format described under `# OBSERVATION STRUCTURE`.
-      
-      Your task is to analyze the network state based on these observations, and choose the correct red agent that is attacking the network from the list of possible red agents based on their description.
-     
-      Respond EXACTLY with one action: ONLY ONE action from `## AVAILABLE ACTIONS`. 
+      You will receive an observation under `# OBSERVATION` that will describe the last 10 observations of the network. The observation will follow the format described under `# OBSERVATION STRUCTURE`.
+
+      Your task is to analyze the network state based on this observation, and choose the correct red agent from the list of possible red agents based on their description.
+
+      Respond EXACTLY with one action: ONLY ONE action from `## AVAILABLE ACTIONS`.
 
        ## AVAILABLE ACTIONS
 	  - Sleep: This agent takes no actions, resulting in no activity or compromised network state. 
       - Meander: This agent has a scan activity in Obsevation 0 and Observation 1.
       - B-line: This agent has a scan activity in Observation 0 and an exploit activity in Observation 1.
-
       # ENVIRONMENT RULES
       ## NETWORK STRUCTURE:
       - 3 subnets: User subnetwork, Enterprise subnet w/ servers and the Defender host, and Operational subnet with Database, Front, and Auth Servers & Operational Hosts 
@@ -145,6 +145,129 @@ def llms_for_red_agent_classification_prompt():
       - 1 Network Defender in the Enterprise subnet:
       - Red team starts in User subnet
       - Red maintains constant presence in User subnet
+    """
+
+
+@outlines.prompt
+def llms_for_resilience_red_agent_classification_prompt():
+    """
+    # DESCRIPTION
+
+    You are an expert in cyber security defending an enterprise network. Analyze the network observations and choose the correct red agent from the list of possible red agents based on their description.
+
+    Under # OBSERVATIONS, you will receive a sequence of network observations or trajectory actions, ordered from oldest to newest. Classify the attacker using the supplied evidence.
+
+    # RED AGENT ATTACKERS
+
+    ## RESILIENCE-TARGETING ATTACKER BEHAVIORS
+
+    The six CIA classes use two strategies, described below:
+
+    B-line strategy: Follows a staged sequence of discovery, service scanning, exploitation, and privilege escalation through intermediate hosts before attacking a CIA-associated target. Once it reaches the Impact stage, it repeatedly impacts the same target while those actions succeed. Following a target-stage failure, it can select another known eligible target, preferring a different host when available.
+    Meander strategy: Explores available subnets and hosts, with randomized ordering of host-level reconnaissance and compromise attempts. Impact takes priority over further exploration whenever an eligible CIA-associated host is already recorded as privilege-escalated. For each Impact decision, it randomly selects among the currently eligible escalated hosts.
+
+    ## RED-AGENT CLASSES
+
+    - B-line-C: Uses the B-line strategy to reach and repeatedly impact Confidentiality-associated hosts whose names begin with Auth or Database.
+    - B-line-I: Uses the B-line strategy to reach and repeatedly impact Integrity-associated hosts whose names begin with Auth or Front.
+    - B-line-A: Uses the B-line strategy to reach and repeatedly impact Availability-associated hosts whose names begin with Auth, Front, or Database.
+    - Meander-C: Uses the Meander strategy, prioritizing Impact on already escalated Confidentiality-associated hosts whose names begin with Auth or Database.
+    - Meander-I: Uses the Meander strategy, prioritizing Impact on already escalated Integrity-associated hosts whose names begin with Auth or Front.
+    - Meander-A: Uses the Meander strategy, prioritizing Impact on already escalated Availability-associated hosts whose names begin with Auth, Front, or Database.
+
+    # ENVIRONMENT RULES
+
+    ## NETWORK STRUCTURE
+    - 3 subnets: User subnetwork, Enterprise subnet with servers and the Defender host, and Operational subnet with Database, Front, and Auth servers and Operational Hosts.
+    - Hostnames include User0-User4, Enterprise0-Enterprise2, Defender, Op_Host0-Op_Host2, Auth, Database, and Front. Service hostnames may have numbered suffixes, such as Auth0.
+
+    ## DEFENSE SETUP
+    - 1 Network Defender in the Enterprise subnet.
+    - Red team starts in the User subnet and maintains a foothold there.
+
+    # OBSERVATION STRUCTURE
+
+    Defender tables report detected Activity (Scan, Exploit, or None) and Compromised status (No, Unknown, User, or Privileged) for each host. Existing compromise may persist across observations.
+
+    Trajectory logs list Blue and/or Red actions, their target host or subnet, and success status at each step. Blue actions describe the defender; Red actions describe the attacker. Failed Red actions still provide evidence about attempted behavior.
+
+    Consider the sequence and target choices together. A short or quiet sequence may be inconclusive. The C/I/A target sets overlap, so one target alone may not distinguish the subclasses; note uncertainty when needed.
+
+    # OUTPUT FORMAT
+
+    Return a JSON object matching the supplied output schema:
+    - "detailed_reasoning": a concise explanation based on the observed sequence, noting uncertainty when appropriate.
+    - "action_choice": exactly one of "B-line-C", "B-line-I", "B-line-A", "Meander-C", "Meander-I", or "Meander-A".
+
+    Return only the JSON object, without Markdown or additional text.
+    """
+
+
+# Keep the existing hybrid policy-selector prompt independent of classifier edits.
+@outlines.prompt
+def llms_for_hybrid_red_agent_classification_prompt():
+    """
+    # TASK
+
+    You are a cyber-defense analyst identifying the red agent currently attacking an enterprise network.
+
+    You will receive recent defender observations, ordered from oldest to newest. Choose the red-agent label that best explains the observed sequence. Your task is to classify the attacker, not to choose a defensive action.
+
+    # ENVIRONMENT RULES
+    ## NETWORK STRUCTURE:
+    - 3 subnets: User subnetwork, Enterprise subnet w/ servers and the Defender host, and Operational subnet with Database, Front, and Auth Servers & Operational Hosts
+    - Each zone has 0-3 servers and 1-6 user hosts
+
+    ## HOSTNAMES
+    - Auth
+    - Database
+    - Defender
+    - Enterprise0
+    - Enterprise1
+    - Enterprise2
+    - Front
+    - Op_Host0
+    - Op_Host1
+    - Op_Host2
+    - User0
+    - User1
+    - User2
+    - User3
+    - User4
+
+    ## DEFENSE SETUP:
+    - 1 Network Defender in the Enterprise subnet:
+    - Red team starts in User subnet
+    - Red maintains constant presence in User subnet
+
+    # RED-AGENT CLASSES
+
+    - Sleep: Takes no offensive actions. Existing compromise or background network activity may still be present. A quiet observation window alone does not conclusively identify Sleep.
+
+    - Meander: Explores the network broadly, discovering and attempting to compromise multiple hosts within a subnet before progressing to other subnets. Look for evidence of distributed reconnaissance and compromise across hosts.
+
+    - B-line: Uses prior knowledge of the network to follow a directed attack path toward its designated operational target. Look for focused progression through intermediate hosts toward that target.
+
+    These descriptions characterize strategies; individual observations may be consistent with more than one class.
+
+    # CLASSIFICATION GUIDELINES
+
+    - Consider the full observation sequence, including the order, location, and progression of detected activity.
+    - Distinguish newly observed events from persistent indicators of earlier compromise.
+    - Treat observations as partial evidence. Do not assume that an unobserved action did not occur.
+    - Account for benign activity and defender interventions when these are described in the supplied context.
+    - Do not classify an attacker as Sleep solely because activity is absent in one or more observations.
+    - Do not identify Meander or B-line from one scan or exploit alone; consider the surrounding sequence and affected hosts.
+    - Window positions are not episode timesteps. Apply any episode-start signature only when the supplied timestep information establishes that the relevant opening observations are present.
+    - If the evidence is ambiguous, select the best-supported class from the three available labels. Do not automatically use Sleep as the fallback.
+
+    # OUTPUT FORMAT
+
+    Return a JSON object matching the supplied output schema:
+    - "detailed_reasoning": a concise explanation based on the observed sequence.
+    - "action_choice": exactly one of "Sleep", "Meander", or "B-line".
+
+    Return only the JSON object, without Markdown or additional text.
     """
 
 
@@ -1352,7 +1475,17 @@ class CAGEACDSystemPrompt():
     
 class CAGERedAgentSystemPrompt():
     def __call__(self):
+        return llms_for_hybrid_red_agent_classification_prompt()
+
+
+class CAGERedAgentClassificationSystemPrompt():
+    def __call__(self):
         return llms_for_red_agent_classification_prompt()
+
+
+class CAGEResilienceRedAgentClassificationSystemPrompt():
+    def __call__(self):
+        return llms_for_resilience_red_agent_classification_prompt()
 
 class PromptBasedBinaryITMSystemPrompt():
     def __call__(self, target_kdma, target_value):
@@ -1407,7 +1540,26 @@ def cage_scenario_state_description(scenario_state):
 class CAGEScenarioDescription():
     def __call__(self, scenario_state):
         return cage_scenario_state_description(scenario_state)
-    
+
+
+@outlines.prompt
+def cage_red_agent_classification_prompt(scenario_description, choices):
+    """
+    # OBSERVATIONS
+    {{ scenario_description }}
+
+    # AVAILABLE LABELS
+    {% for choice in choices %}
+    - {{ choice }}
+    {% endfor %}
+
+    Classify the Red agent using the supplied sequence. Return the required JSON object with detailed_reasoning and action_choice, selecting one of the available labels.
+    """
+
+
+class CAGERedAgentClassificationPrompt():
+    def __call__(self, scenario_description, choices):
+        return cage_red_agent_classification_prompt(scenario_description, choices)
 
 @outlines.prompt
 def phase2_scenario_state_description(scenario_state):
