@@ -163,17 +163,18 @@ def llms_for_resilience_red_agent_classification_prompt():
 
     The six CIA classes use two strategies, described below:
 
-    B-line strategy: Follows a staged sequence of discovery, service scanning, exploitation, and privilege escalation through intermediate hosts before attacking a CIA-associated target. Once it reaches the Impact stage, it repeatedly impacts the same target while those actions succeed. Following a target-stage failure, it can select another known eligible target, preferring a different host when available.
-    Meander strategy: Explores available subnets and hosts, with randomized ordering of host-level reconnaissance and compromise attempts. Impact takes priority over further exploration whenever an eligible CIA-associated host is already recorded as privilege-escalated. For each Impact decision, it randomly selects among the currently eligible escalated hosts.
+    B-line strategy: Follows a staged sequence of discovery, service scanning, exploitation, and privilege escalation through intermediate hosts before attacking a CIA-associated target. It may repeatedly impact the same target before moving to another eligible host. Changing targets repeats the attack kill chain for the new host. Failed actions can lead to retries through earlier attack stages or selection of another eligible target.
+
+    Meander strategy: Explores available subnets and hosts broadly, with randomized ordering of host-level reconnaissance and compromise attempts. After reaching an eligible privilege-escalated asset, it may repeatedly impact that target. It can then pursue another eligible host, resuming broad exploration until that target is ready. Service discovery, exploitation, and privilege escalation on the chosen target may be interspersed with actions on other hosts. While pursuing that target, it defers Impact on other hosts. Exploration can scan or compromise intermediate hosts outside its eligible CIA Impact target set.
 
     ## RED-AGENT CLASSES
 
     - B-line-C: Uses the B-line strategy to reach and repeatedly impact Confidentiality-associated hosts whose names begin with Auth or Database.
     - B-line-I: Uses the B-line strategy to reach and repeatedly impact Integrity-associated hosts whose names begin with Auth or Front.
     - B-line-A: Uses the B-line strategy to reach and repeatedly impact Availability-associated hosts whose names begin with Auth, Front, or Database.
-    - Meander-C: Uses the Meander strategy, prioritizing Impact on already escalated Confidentiality-associated hosts whose names begin with Auth or Database.
-    - Meander-I: Uses the Meander strategy, prioritizing Impact on already escalated Integrity-associated hosts whose names begin with Auth or Front.
-    - Meander-A: Uses the Meander strategy, prioritizing Impact on already escalated Availability-associated hosts whose names begin with Auth, Front, or Database.
+    - Meander-C: Uses the Meander strategy to impact Confidentiality-associated hosts whose names begin with Auth or Database.
+    - Meander-I: Uses the Meander strategy to impact Integrity-associated hosts whose names begin with Auth or Front.
+    - Meander-A: Uses the Meander strategy to impact Availability-associated hosts whose names begin with Auth, Front, or Database.
 
     # ENVIRONMENT RULES
 
@@ -191,19 +192,20 @@ def llms_for_resilience_red_agent_classification_prompt():
 
     Trajectory logs list Blue and/or Red actions, their target host or subnet, and success status at each step. Blue actions describe the defender; Red actions describe the attacker. Failed Red actions still provide evidence about attempted behavior.
 
-    Consider the sequence and target choices together. A short or quiet sequence may be inconclusive. The C/I/A target sets overlap, so one target alone may not distinguish the subclasses; note uncertainty when needed.
+    Consider the sequence and target choices together. Repeated Impact on one host is compatible with both B-line and Meander; it does not demonstrate randomized exploration. Infer the family from the observed attack progression, without inventing earlier actions that are absent from the window.
+
+    The CIA Impact target sets overlap: Auth is eligible for C, I, and A; Front for I and A; Database for C and A. Auth alone cannot identify C, and a scan or exploit on an intermediate host does not establish the CIA target set. A short or quiet sequence may be inconclusive; select the best-supported available class even when the evidence is ambiguous.
 
     # OUTPUT FORMAT
 
     Return a JSON object matching the supplied output schema:
-    - "detailed_reasoning": a concise explanation based on the observed sequence, noting uncertainty when appropriate.
     - "action_choice": exactly one of "B-line-C", "B-line-I", "B-line-A", "Meander-C", "Meander-I", or "Meander-A".
 
-    Return only the JSON object, without Markdown or additional text.
+    Return only this single-field JSON object, without reasoning, explanations, Markdown, or additional fields.
     """
 
 
-# Keep the existing hybrid policy-selector prompt independent of classifier edits.
+# Keep the hybrid policy-selector prompt independent of classifier edits.
 @outlines.prompt
 def llms_for_hybrid_red_agent_classification_prompt():
     """
@@ -219,13 +221,14 @@ def llms_for_hybrid_red_agent_classification_prompt():
     - Each zone has 0-3 servers and 1-6 user hosts
 
     ## HOSTNAMES
-    - Auth
-    - Database
+    - Auth0
+    - Database0
     - Defender
     - Enterprise0
     - Enterprise1
     - Enterprise2
-    - Front
+    - Front0
+    - Op_Server0
     - Op_Host0
     - Op_Host1
     - Op_Host2
@@ -244,11 +247,19 @@ def llms_for_hybrid_red_agent_classification_prompt():
 
     - Sleep: Takes no offensive actions. Existing compromise or background network activity may still be present. A quiet observation window alone does not conclusively identify Sleep.
 
-    - Meander: Explores the network broadly, discovering and attempting to compromise multiple hosts within a subnet before progressing to other subnets. Look for evidence of distributed reconnaissance and compromise across hosts.
+    - Meander: Explores subnets and hosts, attempting reconnaissance and compromise broadly. The generic resilience variant prioritizes Impact on escalated CIA hosts, checking Auth, then Front, then Database.
 
-    - B-line: Uses prior knowledge of the network to follow a directed attack path toward its designated operational target. Look for focused progression through intermediate hosts toward that target.
+    - B-line: Follows a staged discovery, scanning, exploitation, and privilege-escalation path toward a CIA target. The generic resilience variant chooses a target prefix from Auth, Database, and Front and repeatedly impacts its target.
 
-    These descriptions characterize strategies; individual observations may be consistent with more than one class.
+    - B-line-C: Uses the staged B-line strategy to repeatedly impact Confidentiality-associated Auth or Database hosts. After a target-stage failure it can retarget to another known eligible host.
+    - B-line-I: Uses the same multi-target B-line strategy against Integrity-associated Auth or Front hosts.
+    - B-line-A: Uses the same multi-target B-line strategy against Availability-associated Auth, Front, or Database hosts.
+
+    - Meander-C: Explores broadly and prioritizes Impact whenever an eligible Confidentiality-associated Auth or Database host is already escalated. Randomly chooses among eligible escalated hosts for each Impact.
+    - Meander-I: Uses the same multi-target Meander strategy against Integrity-associated Auth or Front hosts.
+    - Meander-A: Uses the same multi-target Meander strategy against Availability-associated Auth, Front, or Database hosts.
+
+    Host names can have numeric suffixes (for example, Auth0). These descriptions characterize strategies; individual observations may be consistent with more than one class. CIA target sets overlap, so observing Auth alone cannot distinguish C, I, and A. Generic agents may also resemble a CIA-specific variant in a short window.
 
     # CLASSIFICATION GUIDELINES
 
@@ -259,13 +270,14 @@ def llms_for_hybrid_red_agent_classification_prompt():
     - Do not classify an attacker as Sleep solely because activity is absent in one or more observations.
     - Do not identify Meander or B-line from one scan or exploit alone; consider the surrounding sequence and affected hosts.
     - Window positions are not episode timesteps. Apply any episode-start signature only when the supplied timestep information establishes that the relevant opening observations are present.
-    - If the evidence is ambiguous, select the best-supported class from the three available labels. Do not automatically use Sleep as the fallback.
+    - Use attack progression to infer the family and observed target patterns to infer the CIA variant. Explain uncertainty when the window is too early or too short to distinguish variants.
+    - If the evidence is ambiguous, select the best-supported class from the supplied available labels. Do not automatically use Sleep as the fallback.
 
     # OUTPUT FORMAT
 
     Return a JSON object matching the supplied output schema:
     - "detailed_reasoning": a concise explanation based on the observed sequence.
-    - "action_choice": exactly one of "Sleep", "Meander", or "B-line".
+    - "action_choice": exactly one of the supplied available labels. Supported labels are "Sleep", "Meander", "B-line", "B-line-C", "B-line-I", "B-line-A", "Meander-C", "Meander-I", and "Meander-A"; an experiment may supply a subset.
 
     Return only the JSON object, without Markdown or additional text.
     """
@@ -1461,6 +1473,22 @@ class DefaultChoiceSelectionSchema():
             json.dumps(choices), reasoning_max_length)
 
 
+class CAGERedAgentClassificationSchema():
+    def __call__(self, choices):
+        return json.dumps({
+            "type": "object",
+            "properties": {
+                "action_choice": {
+                    "type": "string",
+                    "enum": list(choices),
+                    "maxLength": max(map(len, choices)),
+                },
+            },
+            "required": ["action_choice"],
+            "additionalProperties": False,
+        })
+
+
 class DefaultITMBaselineSystemPrompt():
     def __call__(self):
         return baseline_system_prompt()
@@ -1553,7 +1581,7 @@ def cage_red_agent_classification_prompt(scenario_description, choices):
     - {{ choice }}
     {% endfor %}
 
-    Classify the Red agent using the supplied sequence. Return the required JSON object with detailed_reasoning and action_choice, selecting one of the available labels.
+    Classify the Red agent using the supplied sequence. Return only a JSON object with one key, "action_choice", selecting one of the available labels. Do not include reasoning, an explanation, or additional fields.
     """
 
 
