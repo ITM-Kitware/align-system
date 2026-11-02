@@ -1,0 +1,22 @@
+name: phase2_openworld_oracle
+
+defaults:
+  - /attribute@mu: medical_urgency
+  - /attribute@af: affiliation_focus
+  - /attribute@mf: merit_focus
+  - /attribute@ss: search_or_stay
+  - /attribute@ps: personal_safety
+  - /adm_component/alignment@alignment: multinomial_medical_urgency_weighted_scalar
+  - _self_
+
+attribute_definitions:
+  medical: ${adm.mu}
+  affiliation: ${adm.af}
+  merit: ${adm.mf}
+  search: ${adm.ss}
+  personal_safety: ${adm.ps}
+
+instance:
+  _target_: align_system.algorithms.open_world_oracle_adm.OpenWorldOracleADM
+  alignment: ${ref:adm.alignment}
+  check_vitals: false
