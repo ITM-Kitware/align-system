@@ -189,6 +189,8 @@ class ITMOpenWorldDriverPart3:
             checked_patients = set()
 
             while not scenario_complete:
+                tagged_patients.update(c.id for c in current_state.characters if c.tag is not None)
+                treated_patients.update(c.id for c in current_state.characters if c.treated)
                 current_scene_id = current_state.meta_info.scene_id
                 if last_scene_id != current_scene_id:
                     log.info(f"[bold]*CHANGED SCENE TO*: {current_scene_id}[/bold]",

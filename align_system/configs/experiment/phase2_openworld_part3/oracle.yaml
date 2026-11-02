@@ -1,0 +1,27 @@
+# @package _global_
+defaults:
+  - override /adm: phase2_openworld_oracle
+  - override /interface: ta3
+  - override /driver: itm_phase2_ow_part3
+
+interface:
+  # api_endpoint: "https://darpaitm.caci.com"
+  api_endpoint: 'http://127.0.0.1:8081'
+  session_type: adept
+  training_session: full
+  username: "testrun-ALIGN-ADM-Oracle"
+  domain: "owtriage"
+  adm_profile: TRAINING
+
+driver:
+  expand_actions: true
+  expand_tagging: false
+  apply_action_filtering: true
+
+force_determinism: true
+align_to_target: true
+save_last_unstructured_state_per_scenario: true
+
+hydra:
+  run:
+    dir: 'ow_part3_live/oracle/${now:%Y-%m-%d__%H-%M-%S}'
