@@ -989,3 +989,119 @@ class Phase2ComparativeRegressionIncontextExampleGeneratorOWConversion(Phase2Com
                     })
 
         self.icl_datasets = icl_datasets
+
+
+class Phase2ComparativeRegressionIncontextExampleGeneratorOWPart3(IncontextExampleGenerator):
+    """Build character-level examples from OW Part 3 oracle input/output records."""
+
+    def __init__(
+        self,
+        incontext_settings,
+        target_kdmas,
+        state_hydration_domain=None,
+        scenario_description_template=None,
+        scorer=None,
+        character_choice_template=None,
+        choice_schema_transform=None,
+    ):
+        from align_system.algorithms.open_world_components import OWFormatChoicesADMComponent
+        from align_system.prompt_engineering.outlines_prompts import Phase2ScenarioDescription
+
+        self.choice_formatter = OWFormatChoicesADMComponent(choice_template=character_choice_template)
+        self.choice_schema_transform = choice_schema_transform
+        if scenario_description_template is None:
+            scenario_description_template = Phase2ScenarioDescription()
+
+        super().__init__(incontext_settings, target_kdmas, state_hydration_domain, scenario_description_template, scorer)
+
+    def _read_icl_dataset_files(self):
+        incontext_data = {}
+        choice_order = self.incontext_settings.get('choice_order', 'fixed')
+        for target_kdma in self.target_kdmas:
+            kdma = target_kdma['kdma']
+            dset_files = self.incontext_settings['datasets'].get(kdma)
+            if dset_files is None:
+                raise RuntimeError(f"No incontext datasets are provided for targeted kdma: {kdma}")
+            if isinstance(dset_files, ListConfig):
+                dset_files = OmegaConf.to_object(dset_files)
+            if not isinstance(dset_files, list):
+                dset_files = [dset_files]
+
+            incontext_data[kdma] = []
+            for dset_file in dset_files:
+                with open(dset_file) as f:
+                    dataset = json.load(f)
+                for sample in dataset:
+                    state, actions = self.state_hydration_fn(sample['input'])
+                    if self.incontext_settings.get('sort_actions', False):
+                        actions = sorted(actions, key=lambda a: a.unstructured)
+                    if choice_order == 'swapped' or (choice_order == 'random' and random.choice([0, 1])):
+                        actions = sorted(actions, key=lambda a: a.unstructured, reverse=True)
+
+                    choices, _ = self.choice_formatter.run(state, actions)
+                    true_values = sample['choice_info']['true_kdma_values']
+                    values_by_choice = {}
+                    for character in state.characters:
+                        choice = self.choice_formatter.choice_template(character).rstrip()
+                        values_by_choice[choice] = true_values.get(character.id, {}).get(kdma)
+
+                    included_choices = []
+                    kdma_values = []
+                    for choice in choices:
+                        # Non-character choices may also have explicit oracle scores.
+                        value = values_by_choice.get(choice, true_values.get(choice, {}).get(kdma))
+                        if value is not None:
+                            included_choices.append(choice)
+                            kdma_values.append(value)
+                    if not included_choices:
+                        continue
+
+                    incontext_data[kdma].append({
+                        'state': state,
+                        'actions': actions,
+                        'choices': included_choices,
+                        'kdma_values': kdma_values,
+                    })
+
+        normalization = self.incontext_settings.get('normalization')
+        if normalization == 'globalnorm':
+            incontext_data = self._global_normalization(incontext_data)
+        elif normalization == 'localnorm':
+            incontext_data = self._local_normalization(incontext_data)
+        elif normalization not in (None, 'rawscores'):
+            raise ValueError(f'{normalization} is not a valid incontext normalization option.')
+        return incontext_data
+
+    def set_icl_datasets(self):
+        from align_system.utils import call_with_coerced_args
+
+        incontext_data = self._read_icl_dataset_files()
+        self.icl_datasets = {}
+        for target_kdma in self.target_kdmas:
+            kdma = target_kdma['kdma']
+            self.icl_datasets[kdma] = []
+            for example in incontext_data[kdma]:
+                response = {'reasoning': f"Higher scores indicate a greater degree of {target_kdma['name']}."}
+                for choice, value in zip(example['choices'], example['kdma_values']):
+                    schema_choice = choice
+                    if self.choice_schema_transform is not None:
+                        schema_choice = self.choice_schema_transform(choice)
+                    response[schema_choice] = {'score': int(value * target_kdma['factor'])}
+                schema_choices = list(response)[1:]
+                schema = json.loads(comparative_regression_json_schema(schema_choices, target_kdma['factor']))
+                validate(instance=response, schema=schema)
+
+                description = call_with_coerced_args(self.scenario_description_template, {
+                    'scenario_state': example['state'],
+                    'attribute': target_kdma['name'],
+                    'attributes_of_interest': {target_kdma['name']},
+                })
+                prompt = comparative_regression_prompt(
+                    description, {c: None for c in example['choices']}, target_kdma['name'])
+                self.icl_datasets[kdma].append({
+                    'state': example['state'],
+                    'scenario_description': description,
+                    'prompt': prompt,
+                    'response': response,
+                    'actions': example['actions'],
+                })
