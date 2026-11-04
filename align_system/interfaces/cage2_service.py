@@ -1,45 +1,44 @@
-import argparse 
-from uuid import uuid4
 import inspect
+from pathlib import Path
+
+from hydra.utils import to_absolute_path
 
 from align_system.utils import logging
 from align_system.interfaces.abstracts import (
     Interface,
     ActionBasedScenarioInterface)
 
-from swagger_client.models import (
-    State,
-    Action,
-    Character,
-    Supplies,
-    Injury,
-    Environment,
-    DecisionEnvironment,
-    Aid,
-    SimEnvironment, MetaInfo,
-)
-
-import numpy as np
-import random
 from CybORG import CybORG
-# from CybORG.Agents import B_lineAgent, SleepAgent
-# import CybORG.Agents 
-# print(dir(CybORG.Agents))
-from CybORG.Agents.SimpleAgents.B_line_resilience import B_lineAgent_Resilience
-from CybORG.Agents.SimpleAgents.B_line_resilience import B_lineAgent_Resilience_C
-from CybORG.Agents.SimpleAgents.B_line_resilience import B_lineAgent_Resilience_I
-from CybORG.Agents.SimpleAgents.B_line_resilience import B_lineAgent_Resilience_A
-# from CybORG.Agents import B_lineAgent_Resilience
-from CybORG.Agents.SimpleAgents.BaseAgent import BaseAgent
+from CybORG.Agents.SimpleAgents.B_line_resilience import (
+    B_lineAgent_Resilience,
+    B_lineAgent_Resilience_C_multiTarget,
+    B_lineAgent_Resilience_I_multiTarget,
+    B_lineAgent_Resilience_A_multiTarget,
+)
 from CybORG.Agents.SimpleAgents.SleepAgent import SleepAgent
-from CybORG.Agents.SimpleAgents.BlueLoadAgent import BlueLoadAgent
-from CybORG.Agents.SimpleAgents.BlueReactAgent import BlueReactRemoveAgent
-from CybORG.Agents.SimpleAgents.Meander_Resilience import RedMeanderAgent_Resilience
+from CybORG.Agents.SimpleAgents.Meander_Resilience import (
+    RedMeanderAgent_Resilience,
+    RedMeanderAgent_Combination_multiTarget_C,
+    RedMeanderAgent_Combination_multiTarget_I,
+    RedMeanderAgent_Combination_multiTarget_A,
+)
 from CybORG.Agents.Wrappers import BlueTableWrapper
 
 from CybORG.AlignmentMetric.resilience_measure import ResilienceMetric
 
 log = logging.getLogger(__name__)
+
+RED_AGENTS = {
+    'Sleep': SleepAgent,
+    'Meander': RedMeanderAgent_Resilience,
+    'B-line': B_lineAgent_Resilience,
+    'B-line-C': B_lineAgent_Resilience_C_multiTarget,
+    'B-line-I': B_lineAgent_Resilience_I_multiTarget,
+    'B-line-A': B_lineAgent_Resilience_A_multiTarget,
+    'Meander-C': RedMeanderAgent_Combination_multiTarget_C,
+    'Meander-I': RedMeanderAgent_Combination_multiTarget_I,
+    'Meander-A': RedMeanderAgent_Combination_multiTarget_A,
+}
 
 
 class CAGEActionBasedServiceInterface(Interface):
@@ -50,31 +49,44 @@ class CAGEActionBasedServiceInterface(Interface):
     # scenario = 'Scenario1b'
     def __init__(self,
             n_rollouts:int = 100,
+            scenario_path:str = None,
+            red_agent:str = 'Meander',
+            red_agent_labels=None,
                  ):
         self.n_rollouts = n_rollouts
         self.current_rollout = 0
         self.wrapped_cyborg = None
-        self.red_agent = None
-        self.rng = np.random.default_rng()
+        self.red_agent_labels = list(RED_AGENTS if red_agent_labels is None else red_agent_labels)
+        unknown_labels = set(self.red_agent_labels) - RED_AGENTS.keys()
+        if unknown_labels or not self.red_agent_labels:
+            raise ValueError(f"red_agent_labels must be a non-empty subset of {list(RED_AGENTS)}")
+        if red_agent not in self.red_agent_labels:
+            raise ValueError(f"red_agent {red_agent!r} must be one of red_agent_labels")
+        self.red_agent_label = red_agent
+        self.red_agent = RED_AGENTS[red_agent]
+        if scenario_path is None:
+            self.scenario_path = (
+                Path(inspect.getfile(CybORG)).parent
+                / 'Shared/Scenarios/scalability_experiments/base.yaml'
+            )
+        else:
+            # Resolve against Hydra's original working directory, not its run directory.
+            self.scenario_path = Path(to_absolute_path(scenario_path))
+        if not self.scenario_path.is_file():
+            raise FileNotFoundError(f"CAGE2 scenario not found: {self.scenario_path}")
 
     def start_scenario(self):
-        # self.red_agent = self.rng.choice([SleepAgent, RedMeanderAgent_Resilience, B_lineAgent_Resilience])
-        # self.red_agent = SleepAgent
-        self.red_agent = RedMeanderAgent_Resilience
-        # self.red_agent = B_lineAgent_Resilience
-        self.current_rollout += 1
-        # log.info("Starting CAGE Scenario") #f"*ADM Name*: {self.username}")
-        if self.current_rollout > self.n_rollouts:
+        if self.current_rollout >= self.n_rollouts:
             log.info("Reached max # of CAGE rollouts")
-            self.current_rollout = ""
+            return None
+        self.current_rollout += 1
 
-        path = str(inspect.getfile(CybORG))
-        path = path[:-10] + '/Shared/Scenarios/scalability_experiments/base.yaml'
-
-        cyborg = CybORG(path, 'sim', agents={'Red': self.red_agent})
+        cyborg = CybORG(str(self.scenario_path), 'sim', agents={'Red': self.red_agent})
         self.wrapped_cyborg = BlueTableWrapper(cyborg, output_mode = 'table')
 
-        return CAGEActionBasedScenario(self.wrapped_cyborg, episode_length=self.EPISODE_LENGTH, episode_number = self.current_rollout)
+        return CAGEActionBasedScenario(
+            self.wrapped_cyborg, episode_length=self.EPISODE_LENGTH,
+            episode_number=self.current_rollout, red_agent_labels=self.red_agent_labels)
 
     def get_session_alignment(self, alignment_target):
         if self.wrapped_cyborg is not None:
@@ -149,8 +161,10 @@ class RedAgentAction:
 
 class CAGEActionBasedScenario(ActionBasedScenarioInterface):
     agent_name = 'Blue'
-    def __init__(self, cyborg_sim, episode_length = 500, episode_number = 0):
+    def __init__(self, cyborg_sim, episode_length = 500, episode_number = 0,
+                 red_agent_labels=None):
         self.done = False
+        self.red_agent_labels = list(RED_AGENTS if red_agent_labels is None else red_agent_labels)
         self.hostnames =[]
         self.episode_number = episode_number
         self.episode_length = episode_length
@@ -192,8 +206,11 @@ class CAGEActionBasedScenario(ActionBasedScenarioInterface):
         return [CAGEAction(k) for k in cage_act_space['action']]
     
     def get_available_Red_actions(self):
-        available_actions = ['Sleep', 'Meander', 'B-line']
-        return [RedAgentAction(k) for k in available_actions]
+        return [RedAgentAction(k) for k in self.red_agent_labels]
+
+    def get_policy_observation(self):
+        # Match the BlueTableWrapper encoding used by ChallengeWrapper during PPO training.
+        return self.cyborg_sim._create_vector(success=None)
 
     def _take_or_intend_action(self, align_system_action):
         # Convert to proper 'Action' object prior to submission

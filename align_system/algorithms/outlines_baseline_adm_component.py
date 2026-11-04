@@ -115,7 +115,7 @@ class OutlinesBaselineADMComponent(ADMComponent):
         top_choice_justification = ""
         for response in responses:
             if response['action_choice'] == top_choice:
-                top_choice_justification = response['detailed_reasoning']
+                top_choice_justification = response.get('detailed_reasoning', '')
                 break
 
         outputs = (top_choice, top_choice_justification, dialog)

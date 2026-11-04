@@ -3,10 +3,10 @@ from copy import deepcopy
 import atexit
 import os
 import inspect
+from pathlib import Path
 from rich.logging import RichHandler
 from rich.console import Console
 from rich.highlighter import JSONHighlighter
-from swagger_client.models import ActionTypeEnum
 import hydra
 from omegaconf import DictConfig, OmegaConf
 from timeit import default_timer as timer
@@ -24,8 +24,6 @@ import random
 import torch
 
 from CybORG.Agents.SimpleAgents.SleepAgent import SleepAgent
-from CybORG.Agents.SimpleAgents.Meander_Resilience import RedMeanderAgent_Resilience
-from CybORG.Agents.SimpleAgents.B_line_resilience import B_lineAgent_Resilience
 
 
 def save_rng_state():
@@ -40,6 +38,42 @@ def restore_rng_state(state):
     random.setstate(state["py"])
     np.random.set_state(state["np"])
     torch.set_rng_state(state["torch"])
+
+
+def load_blue_policies(policy_paths, red_agent_labels):
+    """Load one configured PPO policy per selectable attacker label."""
+    missing = [label for label in red_agent_labels if not policy_paths.get(label)]
+    if missing:
+        raise ValueError(
+            f"Set blue_policy_paths in the hybrid experiment YAML for: {', '.join(missing)}")
+
+    resolved_paths = {}
+    for label in red_agent_labels:
+        path = Path(hydra.utils.to_absolute_path(policy_paths[label]))
+        if not path.is_file() and not Path(str(path) + '.zip').is_file():
+            raise FileNotFoundError(f"Blue PPO checkpoint for {label!r} not found: {path}")
+        resolved_paths[label] = str(path)
+
+    rng_state = save_rng_state()
+    try:
+        return {label: PPOAgent(model_file=path) for label, path in resolved_paths.items()}
+    finally:
+        restore_rng_state(rng_state)
+
+
+def validate_blue_policies(policies, observation, action_count):
+    """Reject checkpoints whose spaces do not match the configured scenario."""
+    for label, agent in policies.items():
+        model = agent.model
+        if (model.observation_space.shape != observation.shape
+                or model.action_space.n != action_count):
+            raise ValueError(
+                f"Blue PPO checkpoint for {label!r} is incompatible with the configured scenario: "
+                f"checkpoint expects observations {model.observation_space.shape} and "
+                f"{model.action_space.n} actions; scenario provides observations "
+                f"{observation.shape} and {action_count} actions. "
+                "Update blue_policy_paths to checkpoints trained for this scenario.")
+
 
 def plot_mean_with_smoothing(ax, runs, color, label, window=5, no_bounds=False):
     runs = np.array(runs)
@@ -184,15 +218,10 @@ def main(cfg: DictConfig) -> None:
     #     np.random.seed(numpy_random_seed)
 
 
+    blue_policies = load_blue_policies(cfg.blue_policy_paths, interface.red_agent_labels)
+
     if algorithm == 'LLM + RL' and hasattr(adm, 'load_model'):
         adm.load_model()
-
-    rng_state = save_rng_state()
-    blue_sleep = PPOAgent(model_file = "./data_models/PPO_base_0_seed1_SleepAgent")
-    blue_meander = PPOAgent(model_file = "./data_models/PPO_base_0_seed5_RedMeanderAgent_Resilience")
-    blue_b_line = PPOAgent(model_file = "./data_models/PPO_base_0_seed5_B_lineAgent_Resilience")
-    blue_robust = PPOAgent(model_file = "./data_models/PPO_base_0_seed5_B_lineAgent_Resilience_C")
-    restore_rng_state(rng_state)
 
     rewards, confidentiality, integrity, availability, resiliences = [], [], [], [], []
     returns = []
@@ -205,13 +234,7 @@ def main(cfg: DictConfig) -> None:
 
         # rng_state = save_rng_state()
         if algorithm == 'Oracle':
-        # blue_agent = PPOAgent(model_file = "./data_models/PPO_base_0_seed1_SleepAgent", seed = None)
-            if interface.red_agent.__name__ == 'SleepAgent':
-                blue_agent = blue_sleep
-            elif interface.red_agent.__name__ == 'RedMeanderAgent_Resilience':
-                blue_agent = blue_meander
-            else:
-                blue_agent = blue_b_line
+            blue_agent = blue_policies[interface.red_agent_label]
         elif algorithm == 'LLM + RL':
             # Reset any decision or chat history for a new scenario
             if hasattr(adm, 'reset_history'):
@@ -220,12 +243,11 @@ def main(cfg: DictConfig) -> None:
             blue_agent = SleepAgent()
             collected_observations = deque(maxlen = 2)
         else:
-            blue_agent = blue_robust
-            # blue_agent = blue_meander
-            # blue_agent = blue_b_line
+            blue_agent = blue_policies['B-line-C']
         # restore_rng_state(rng_state)
 
         possible_action = action_space_change({}, interface.wrapped_cyborg.get_action_space(agent = 'Blue'))
+        validate_blue_policies(blue_policies, scenario.get_policy_observation(), len(possible_action))
 
         current_state = scenario.get_state()
         scenario_complete = current_state.scenario_complete
@@ -269,18 +291,12 @@ def main(cfg: DictConfig) -> None:
                     log.info(json.dumps(action_to_take.to_dict(), indent=4), extra={"highlighter": JSON_HIGHLIGHTER})
 
 
-                if action_to_take.name == 'Sleep':
-                    blue_agent = blue_sleep
-                elif action_to_take.name == 'Meander':
-                    blue_agent = blue_meander
-                elif action_to_take.name == 'B-line':   
-                    blue_agent = blue_b_line
-                # 
+                blue_agent = blue_policies[action_to_take.name]
 
             if algorithm != 'LLM + RL':
-                a = blue_agent.get_action(interface.wrapped_cyborg.vector_representation, None)
+                a = blue_agent.get_action(scenario.get_policy_observation(), None)
                 action_to_take = possible_action[a]
-                scenario.step(action_to_take)
+                current_state = scenario.step(action_to_take)
             else:
                 if s < 4:
                     available_actions = scenario.get_available_actions()
@@ -294,9 +310,9 @@ def main(cfg: DictConfig) -> None:
                         log.info(action_to_take)
                         raise e
                 else:
-                    a = blue_agent.get_action(interface.wrapped_cyborg.vector_representation, None)
+                    a = blue_agent.get_action(scenario.get_policy_observation(), None)
                     action_to_take = possible_action[a]
-                    scenario.step(action_to_take)
+                    current_state = scenario.step(action_to_take)
             s += 1
             sum_rewards += scenario.reward
             ep_rewards.append(scenario.reward)

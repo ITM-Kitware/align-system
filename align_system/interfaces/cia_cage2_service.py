@@ -1,6 +1,11 @@
-import argparse 
+import argparse
 from uuid import uuid4
 import inspect
+import itertools
+import json
+from pathlib import Path
+
+from hydra.utils import to_absolute_path
 
 from align_system.utils import logging
 from align_system.interfaces.abstracts import (
@@ -23,20 +28,71 @@ from CybORG.AlignmentMetric.resilience_measure import ResilienceMetric
 
 log = logging.getLogger(__name__)
 
+RED_AGENT_LABELS = ['Sleep', 'Meander', 'B-line']
+
+TRAJECTORY_FIELDS = {'blue_actions': 'Blue', 'red_actions': 'Red'}
+
 
 class CAGEActionBasedServiceInterface(Interface):
-    EPISODE_LENGTH=4
     seed = None
     cyborg_version = '2.1'
     scenario = 'base'
     def __init__(self,
             n_rollouts:int = 10,
+            episode_length:int = 4,
+            trajectory_dir:str = None,
+            observation_fields = ('blue_actions', 'red_actions'),
+            red_agent_labels = None,
+            start_step:int = 0,
+            window_size:int = None,
+            window_stride:int = 1,
                  ):
         self.n_rollouts = n_rollouts
+        self.episode_length = episode_length
         self.current_rollout = 0
         self.wrapped_cyborg = None
+        self.red_agent_labels = list(RED_AGENT_LABELS if red_agent_labels is None else red_agent_labels)
+        # Zero-based first step included in trajectory replay observations.
+        self.start_step = start_step
+        self.window_size = window_size
+        self.window_stride = window_stride
+
+        # When set, replay trajectory JSONs exported by CAGE2's
+        # test_experiment.py instead of simulating episodes
+        self.trajectory_dir = None
+        self.observation_fields = list(observation_fields)
+        if trajectory_dir is not None:
+            if type(start_step) is not int or start_step < 0:
+                raise ValueError('start_step must be a non-negative integer')
+            if type(episode_length) is not int or episode_length <= start_step:
+                raise ValueError('episode_length must be an integer greater than start_step')
+            if window_size is not None and (type(window_size) is not int or window_size < 1):
+                raise ValueError('window_size must be a positive integer or null')
+            if type(window_stride) is not int or window_stride < 1:
+                raise ValueError('window_stride must be a positive integer')
+            # Hydra changes the working directory, so resolve relative
+            # paths against the directory the CLI was run from
+            self.trajectory_dir = Path(to_absolute_path(trajectory_dir))
+
+            unknown_fields = set(self.observation_fields) - TRAJECTORY_FIELDS.keys()
+            if unknown_fields or not self.observation_fields:
+                raise ValueError(
+                    f"observation_fields must be a non-empty subset of "
+                    f"{list(TRAJECTORY_FIELDS)}, got {self.observation_fields}")
+
+            trajectory_paths = sorted(self.trajectory_dir.rglob('*.json'))
+            if not trajectory_paths:
+                raise ValueError(f"No trajectory JSON files found under {self.trajectory_dir}")
+            if n_rollouts > len(trajectory_paths):
+                log.warning(f"n_rollouts={n_rollouts} but only {len(trajectory_paths)} "
+                            f"trajectories found under {self.trajectory_dir}, replaying all of them")
+            self.trajectory_paths = trajectory_paths[:n_rollouts]
+            self._trajectory_scenarios = self._iter_trajectory_scenarios()
 
     def start_scenario(self):
+        if self.trajectory_dir is not None:
+            return self._start_trajectory_scenario()
+
         self.current_rollout += 1
         log.info("Starting CAGE Scenario") #f"*ADM Name*: {self.username}")
         if self.current_rollout > self.n_rollouts:
@@ -57,7 +113,43 @@ class CAGEActionBasedServiceInterface(Interface):
         # cyborg = CybORG(path, 'sim', agents={'Red': B_lineAgent_Resilience_C})
         self.wrapped_cyborg = BlueTableWrapper(cyborg, output_mode = 'table')
 
-        return CAGEActionBasedScenario(self.wrapped_cyborg, episode_length=self.EPISODE_LENGTH, episode_number = self.current_rollout)
+        return CAGEActionBasedScenario(self.wrapped_cyborg, episode_length=self.episode_length,
+                                      episode_number=self.current_rollout,
+                                      red_agent_labels=self.red_agent_labels)
+
+    def _start_trajectory_scenario(self):
+        scenario = next(self._trajectory_scenarios, None)
+        if scenario is None:
+            log.info("Replayed all CAGE trajectories")
+        return scenario
+
+    def _iter_trajectory_scenarios(self):
+        # n_rollouts counts input trajectories, not the windows emitted below.
+        for trajectory_path in self.trajectory_paths:
+            self.current_rollout += 1
+            log.info(f"Replaying CAGE trajectory {trajectory_path}")
+            with trajectory_path.open() as stream:
+                trajectory = json.load(stream)
+            trajectory_id = str(trajectory_path.relative_to(self.trajectory_dir))
+            episode_end = min(self.episode_length, *(len(trajectory[field])
+                              for field in self.observation_fields))
+            if self.window_size is None:
+                windows = [(None, self.start_step, episode_end)]
+            else:
+                if episode_end - self.start_step < self.window_size:
+                    raise ValueError(
+                        f'No complete {self.window_size}-step window in '
+                        f'[{self.start_step}, {episode_end}) for {trajectory_id}')
+                windows = ((index, start, start + self.window_size)
+                           for index, start in enumerate(range(
+                               self.start_step, episode_end - self.window_size + 1,
+                               self.window_stride)))
+            for index, start, end in windows:
+                yield CAGETrajectoryScenario(
+                    trajectory_path, scenario_id=trajectory_id,
+                    episode_length=end, observation_fields=self.observation_fields,
+                    red_agent_labels=self.red_agent_labels, start_step=start,
+                    trajectory_data=trajectory, window_index=index)
 
     def get_session_alignment(self, alignment_target):
         if self.wrapped_cyborg is not None:
@@ -99,6 +191,9 @@ class CAGEState:
                 'hostnames': self.hostnames,
                 'scenario_complete': self.scenario_complete}
 
+    def __repr__(self):
+        return repr(self.to_dict())
+
 
 class CAGEAction:
     def __init__(self, cage_class):
@@ -132,8 +227,10 @@ class RedAgentAction:
 
 class CAGEActionBasedScenario(ActionBasedScenarioInterface):
     agent_name = 'Blue'
-    def __init__(self, cyborg_sim, episode_length = 500, episode_number = 0):
+    def __init__(self, cyborg_sim, episode_length = 500, episode_number = 0,
+                 red_agent_labels=None):
         self.done = False
+        self.red_agent_labels = list(RED_AGENT_LABELS if red_agent_labels is None else red_agent_labels)
         self.hostnames =[]
         self.episode_number = episode_number
         self.episode_length = episode_length
@@ -175,8 +272,7 @@ class CAGEActionBasedScenario(ActionBasedScenarioInterface):
         return [CAGEAction(k) for k in cage_act_space['action']]
     
     def get_available_Red_actions(self):
-        available_actions = ['Sleep', 'Meander', 'B-line']
-        return [RedAgentAction(k) for k in available_actions]
+        return [RedAgentAction(k) for k in self.red_agent_labels]
 
     def _take_or_intend_action(self, align_system_action):
         # Convert to proper 'Action' object prior to submission
@@ -231,3 +327,106 @@ class CAGEActionBasedScenario(ActionBasedScenarioInterface):
         self.enrich_obs()
         return self.obs #swagger_state
 
+
+def _format_trajectory_action(action):
+    # AgentTrajectory records the action name as the 'Host' of
+    # untargeted actions (e.g. Monitor)
+    text = action['Action']
+    if 'Subnet' in action:
+        text += f" on subnet {action['Subnet']}"
+    elif action.get('Host') not in (None, action['Action']):
+        text += f" on {action['Host']}"
+    return f"{text} (success: {action['Status']})"
+
+
+class CAGETrajectoryScenario(ActionBasedScenarioInterface):
+    # Replays a trajectory JSON exported by CAGE2's AgentTrajectory.
+    # Nothing is simulated, so the scenario starts complete with the
+    # formatted trajectory as its state
+    def __init__(self, trajectory_path, scenario_id, episode_length, observation_fields,
+                 red_agent_labels=None, start_step=0, trajectory_data=None, window_index=None):
+        if trajectory_data is None:
+            with open(trajectory_path) as f:
+                trajectory_data = json.load(f)
+        self.trajectory = trajectory_data
+        self.trajectory_id = scenario_id
+        self.window_index = window_index
+        self.window_start = start_step if window_index is not None else None
+        # Exclusive end: [10, 15) contains steps 10, 11, 12, 13, 14.
+        self.window_end = episode_length if window_index is not None else None
+        self.window_size = episode_length - start_step if window_index is not None else None
+        self.scenario_id = (f'{scenario_id}#steps={start_step}:{episode_length}'
+                            if window_index is not None else scenario_id)
+        self.red_agent_name = self.trajectory['red_agent_name']
+        self.red_agent_labels = list(RED_AGENT_LABELS if red_agent_labels is None else red_agent_labels)
+        if not isinstance(start_step, int) or start_step < 0:
+            raise ValueError('start_step must be a non-negative integer')
+        self.start_step = start_step
+
+        self.obs = CAGEState(self.format_trajectory(episode_length, observation_fields),
+                             list(self.trajectory['network_topology'].keys()),
+                             self.scenario_id)
+        self.obs.scenario_complete = True
+
+    def format_trajectory(self, episode_length, observation_fields):
+        steps = zip(*(self.trajectory[field] for field in observation_fields))
+        lines = []
+        # episode_length remains the exclusive episode endpoint, not a window size.
+        # Keep the original timestep labels after skipping the opening steps.
+        for step, actions in enumerate(
+                itertools.islice(steps, self.start_step, episode_length),
+                start=self.start_step):
+            lines.append(f'Step {step}:')
+            for field, action in zip(observation_fields, actions):
+                lines.append(f'  {TRAJECTORY_FIELDS[field]}: {_format_trajectory_action(action)}')
+        if not lines:
+            raise ValueError(
+                f'No trajectory observations in [{self.start_step}, {episode_length}) '
+                f'for {self.scenario_id}; check start_step and episode_length')
+        return '\n'.join(lines)
+
+    def get_red_agent_label(self):
+        # Preserve family-only scoring for the default classifier, and use
+        # C/I/A subclasses when those labels are enabled for resilience runs.
+        if 'B_line' in self.red_agent_name or self.red_agent_name.split('_')[0] == 'BlineJumping':
+            family = 'B-line'
+        elif 'Meander' in self.red_agent_name:
+            family = 'Meander'
+        elif 'Sleep' in self.red_agent_name:
+            family = 'Sleep'
+        else:
+            return None
+
+        # Match whole tokens: Combination_CIA must not be mistaken for C.
+        for dimension in ('C', 'I', 'A'):
+            label = f'{family}-{dimension}'
+            if dimension in self.red_agent_name.split('_') and label in self.red_agent_labels:
+                return label
+        return family if family in self.red_agent_labels else None
+
+    def id(self):
+        return self.scenario_id
+
+    def get_alignment_target(self):
+        pass
+
+    def to_dict(self):
+        return self.trajectory
+
+    def data(self):
+        return self.trajectory
+
+    def get_available_actions(self):
+        return []
+
+    def get_available_Red_actions(self):
+        return [RedAgentAction(k) for k in self.red_agent_labels]
+
+    def intend_action(self, action):
+        raise RuntimeError("Trajectory replays can't take actions")
+
+    def take_action(self, action):
+        raise RuntimeError("Trajectory replays can't take actions")
+
+    def get_state(self):
+        return self.obs
