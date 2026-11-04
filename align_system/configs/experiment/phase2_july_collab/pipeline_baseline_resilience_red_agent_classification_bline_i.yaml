@@ -1,0 +1,11 @@
+# @package _global_
+defaults:
+  - /experiment/phase2_july_collab/pipeline_baseline_resilience_red_agent_classification
+  - _self_
+
+interface:
+  # First 20 trajectories in sorted path order from the seeded dataset.
+  n_rollouts: 20
+  episode_length: 100
+  trajectory_dir: ../CAGE2/CybORG/results/red_classifier_jumping_seeds_100_150/bline_i/trajectories
+  observation_fields: [blue_actions, red_actions]

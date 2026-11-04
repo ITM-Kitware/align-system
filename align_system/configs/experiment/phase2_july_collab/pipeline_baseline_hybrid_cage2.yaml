@@ -4,6 +4,29 @@ defaults:
   - override /inference_engine@adm.structured_inference_engine: outlines_structured_greedy
   - override /interface: hybrid_cage2
 
+interface:
+  # Paths are relative to the directory from which you launch the experiment.
+  scenario_path: ../CAGE2/CybORG/CybORG/Shared/Scenarios/scalability_experiments/base_with_resilience_tied.yaml
+  red_agent: Meander-C
+  red_agent_labels: [Sleep, Meander, B-line, B-line-C, B-line-I, B-line-A, Meander-C, Meander-I, Meander-A]
+
+# Change this directory in YAML or override blue_policy_dir on the command line.
+blue_policy_dir: /data/shared/aaai_aics2026/rl_checkpoints
+
+# Map each LLM label to its trained blue PPO checkpoint (.zip is optional).
+# Filenames below default to <label>.zip; edit them to match your actual files.
+# Use checkpoints trained for the resilience-tied scenario's 178 actions.
+blue_policy_paths:
+  Sleep: ${blue_policy_dir}/Sleep.zip
+  Meander: ${blue_policy_dir}/Meander.zip
+  B-line: ${blue_policy_dir}/B-line.zip
+  B-line-C: ${blue_policy_dir}/B-line-C.zip
+  B-line-I: ${blue_policy_dir}/B-line-I.zip
+  B-line-A: ${blue_policy_dir}/B-line-A.zip
+  Meander-C: ${blue_policy_dir}/Meander-C.zip
+  Meander-I: ${blue_policy_dir}/Meander-I.zip
+  Meander-A: ${blue_policy_dir}/Meander-A.zip
+
 
 adm:
   structured_inference_engine:

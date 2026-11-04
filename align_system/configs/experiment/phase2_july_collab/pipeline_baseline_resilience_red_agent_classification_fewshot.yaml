@@ -1,0 +1,13 @@
+# @package _global_
+defaults:
+  - /experiment/phase2_july_collab/pipeline_baseline_resilience_red_agent_classification
+  - _self_
+
+adm:
+  # Same settings as the baseline recipe, with one labeled example per CIA class.
+  step_definitions:
+    outlines_baseline:
+      system_prompt_template:
+        _target_: align_system.prompt_engineering.outlines_prompts.CAGEResilienceRedAgentClassificationFewshotSystemPrompt
+        # Render examples with the same number of steps as each classified window.
+        window_size: ${interface.window_size}

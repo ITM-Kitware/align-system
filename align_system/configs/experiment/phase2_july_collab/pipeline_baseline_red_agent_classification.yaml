@@ -1,27 +1,44 @@
 # @package _global_
 defaults:
   - override /adm: pipeline_baseline
-  - override /inference_engine@adm.structured_inference_engine: outlines_structured_greedy
+  - override /inference_engine@adm.structured_inference_engine: huggingface
   - override /interface: cage_cia
+
+interface:
+  # Number of episodes to classify
+  n_rollouts: 10
+  # Episode step limit; exclusive ending timestep for trajectory replays
+  episode_length: 4
+  # First trajectory timestep included (zero-based, inclusive; replay only)
+  start_step: 0
+  # Folder of trajectory JSONs exported by CAGE2
+  trajectory_dir: null
+  # Trajectory fields shown per step
+  observation_fields: [blue_actions, red_actions]
 
 
 adm:
   structured_inference_engine:
-    # model_name: TinyLlama/TinyLlama-1.1B-Chat-v1.0
-    model_name: fdtn-ai/Foundation-Sec-8B-Instruct
-    # model_name: mistralai/Mistral-7B-Instruct-v0.3
+    # Only {"action_choice": "Meander-C"} is generated.
+    max_tokens: 32
   step_definitions:
     format_choices:
       _target_: align_system.algorithms.misc_itm_adm_components.CAGERedAgentADMComponent
     outlines_baseline:
       scenario_description_template:
         _target_: align_system.prompt_engineering.outlines_prompts.CAGEScenarioDescription
+      # Standalone classifier prompts, independent of the CAGE 2 defender
+      # and the hybrid policy-selector prompts.
       prompt_template:
-        _target_: align_system.prompt_engineering.outlines_prompts.Phase2BaselinePrompt
+        _target_: align_system.prompt_engineering.outlines_prompts.CAGERedAgentClassificationPrompt
       system_prompt_template:
-        _target_: align_system.prompt_engineering.outlines_prompts.CAGERedAgentSystemPrompt
+        _target_: align_system.prompt_engineering.outlines_prompts.CAGERedAgentClassificationSystemPrompt
+      output_schema_template:
+        _target_: align_system.prompt_engineering.outlines_prompts.CAGERedAgentClassificationSchema
 
-      enable_caching: true
+      # The cache key doesn't include the prompt text, so prompt edits
+      # would return stale cached labels
+      enable_caching: false
 
     action_parameter_completion:
       _target_: align_system.algorithms.cage_action_parameter_completion_adm_component.CAGERedAgentParameterCompletionADMComponent
@@ -38,5 +55,12 @@ apply_action_filtering: false
 save_scoring_output: true
 
 force_determinism: true
+# The API seed and local RNGs follow this single experiment seed. Trajectory
+# seeds (100-150 in the CIA replays) are separate, fixed dataset inputs.
+random_seed: 0
+numpy_random_seed: ${random_seed}
+torch_random_seed: ${random_seed}
+torch_use_deterministic_algorithms: true
 align_to_target: false
 sort_available_actions: false
+resume: true

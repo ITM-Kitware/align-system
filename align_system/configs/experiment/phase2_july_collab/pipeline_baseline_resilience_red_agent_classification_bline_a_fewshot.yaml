@@ -1,0 +1,13 @@
+# @package _global_
+defaults:
+  # Reuse the baseline trajectories so both prompts classify identical windows.
+  - /experiment/phase2_july_collab/pipeline_baseline_resilience_red_agent_classification_bline_a
+  - _self_
+
+adm:
+  step_definitions:
+    outlines_baseline:
+      system_prompt_template:
+        _target_: align_system.prompt_engineering.outlines_prompts.CAGEResilienceRedAgentClassificationFewshotSystemPrompt
+        # Render examples with the same number of steps as each classified window.
+        window_size: ${interface.window_size}
