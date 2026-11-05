@@ -12,8 +12,8 @@ defaults:
   - override /driver: itm_phase2_ow_part3
 
 interface:
-  api_endpoint: 'http://127.0.0.1:8081'
-  #api_endpoint: "https://darpaitm.caci.com"
+  # api_endpoint: 'http://127.0.0.1:8081'
+  api_endpoint: "https://darpaitm.caci.com"
   session_type: eval
   training_session: null
   username: "testrun-ALIGN-ADM-Ph2-ComparativeRegression-Mistral-7B-Instruct-v0.3"
@@ -28,9 +28,9 @@ adm:
         incontext_settings:
           number: 20
           datasets:
-            medical: new_icl_database_format.json
-            affiliation: new_icl_database_format.json
-            merit: new_icl_database_format.json
+            medical: /data/shared/samba/phase2_ow_part3_icl/Feb2026-MU-train-20261102.json
+            affiliation: /data/shared/samba/phase2_ow_part3_icl/Feb2026-AF-train-20261102.json
+            merit: /data/shared/samba/phase2_ow_part3_icl/Feb2026-MF-train-20261102.json
             # The supplied OW Part 3 database has no personal_safety or search scores.
             personal_safety: null
             search: null
@@ -79,3 +79,7 @@ align_to_target: true
 save_last_unstructured_state_per_scenario: true
 # CACI security policy flags our justifications for Feb/April scenarios
 remove_justifications: true
+
+hydra:
+  run:
+    dir: 'ow_part3_live_test/comp-reg-fewshot-ow-icl/${now:%Y-%m-%d__%H-%M-%S}'
