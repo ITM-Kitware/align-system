@@ -62,7 +62,14 @@ def build_citation_guide(context, prefix=''):
         kdmas.append({'kdma': entry['kdma'], 'identifier_path': base + '/kdma',
                       'value_path': base + '/value', 'name_path': base + '/definition/name',
                       'examples_path': base + '/definition/score_examples'})
-    return {'casualties': patients, 'kdmas': kdmas}
+    proposal_arguments = []
+    for name in ((context.get('proposal_tool') or {}).get('arguments') or {}):
+        escaped = name.replace('~', '~0').replace('/', '~1')
+        proposal_arguments.append({
+            'argument': name,
+            'value_path': f'{prefix}/proposal_tool/arguments/{escaped}'})
+    return {'casualties': patients, 'kdmas': kdmas,
+            'proposal_arguments': proposal_arguments}
 
 
 def _bounded_value(value, depth=0):
