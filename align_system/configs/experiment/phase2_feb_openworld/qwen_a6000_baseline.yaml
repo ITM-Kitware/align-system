@@ -1,0 +1,30 @@
+# @package _global_
+# Opt-in matched benchmark, requiring the served checkpoint's immutable revision.
+defaults:
+  - /experiment/phase2_feb_openworld/phase2_langchain_agent_ow_review_live
+  - /driver/chat_model@adm.instance.reviewer.chat_model: vllm_qwen38_27b_a6000_xhigh
+  - _self_
+  - override /driver/chat_model@adm.instance.chat_model: vllm_qwen38_27b_a6000_xhigh
+
+benchmark_model_revision: ${oc.env:QWEN_MODEL_REVISION}
+save_model_telemetry: true
+save_model_requests: true
+
+adm:
+  instance:
+    reviewer:
+      response_format: json_schema
+      provider: vllm
+      api: chat_completions
+    context_budget:
+      decision:
+        context_window: 65536
+      reviewer:
+        context_window: 65536
+
+interface:
+  username: testrun-ALIGN-Qwen-A6000-baseline
+
+hydra:
+  run:
+    dir: outputs/qwen_a6000/baseline/${now:%Y%m%d_%H%M%S_%f}
