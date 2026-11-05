@@ -27,6 +27,7 @@ from align_system.utils.voting import (
     filter_votes_to_responses,
 )
 from align_system.algorithms.abstracts import ActionBasedADM
+from align_system.algorithms.outlines_compat import from_transformers
 from align_system.prompt_engineering.outlines_prompts import (
     baseline_system_prompt,
     high_moral_deservingness_system_prompt,
@@ -89,7 +90,7 @@ class OutlinesTransformersADM(ActionBasedADM):
 
             model_kwargs['dtype'] = torch_dtype
 
-        self.model = outlines.from_transformers(
+        self.model = from_transformers(
             transformers.AutoModelForCausalLM.from_pretrained(model_name, **model_kwargs, device_map=device),
             transformers.AutoTokenizer.from_pretrained(model_name, **kwargs.get('tokenizer_kwargs', {})),
             **({'device_dtype': model_kwargs['dtype']} if 'dtype' in model_kwargs else {}))

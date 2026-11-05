@@ -16,6 +16,7 @@ from align_system.utils import outlines_prompts_utils
 from align_system.utils import alignment_utils
 from align_system.utils import incontext_utils
 from align_system.algorithms.outlines_adm import OutlinesTransformersADM
+from align_system.algorithms.outlines_compat import from_transformers
 from align_system.prompt_engineering.outlines_prompts import (
     scenario_state_description_with_relevant_char_info,
     comparative_outcomes_system_prompt,
@@ -63,7 +64,7 @@ class OutlinesTransformersComparativeRegressionADM(OutlinesTransformersADM):
 
             model_kwargs['dtype'] = torch_dtype
 
-        self.model = outlines.from_transformers(
+        self.model = from_transformers(
             transformers.AutoModelForCausalLM.from_pretrained(model_name, **model_kwargs, device_map=device),
             transformers.AutoTokenizer.from_pretrained(model_name, **kwargs.get('tokenizer_kwargs', {})),
             device_dtype=torch_dtype)

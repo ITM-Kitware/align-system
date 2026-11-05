@@ -1,4 +1,5 @@
 import pandas as pd
+from importlib.metadata import version
 import torch
 from torch.utils.data import Dataset, DataLoader
 from transformers import AutoTokenizer, AutoModelForSeq2SeqLM, AutoModel
@@ -41,11 +42,15 @@ class KaleidoSys():
         Load Kaleido model and initialize templates
         '''
         # print('Loading model...')
-        self.model = AutoModelForSeq2SeqLM.from_pretrained(self.model_name)
-        if torch.cuda.device_count() > 1:
-            self.model.parallelize()
-            # self device is model device
-            self.device = self.model.device
+        multiple_gpus = torch.cuda.device_count() > 1
+        # Transformers 5 removed T5.parallelize(); load with Accelerate's
+        # device map instead. Keep the established mapping on the legacy stack.
+        automatic_map = multiple_gpus and int(version('transformers').split('.')[0]) >= 5
+        model_kwargs = {'device_map': 'auto'} if automatic_map else {}
+        self.model = AutoModelForSeq2SeqLM.from_pretrained(self.model_name, **model_kwargs)
+        if multiple_gpus:
+            if not automatic_map:
+                self.model.parallelize()
         else:
             self.model = self.model.to(self.device)
 
