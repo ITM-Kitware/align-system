@@ -12,8 +12,8 @@ defaults:
   - override /driver: itm_phase2_ow_part3
 
 interface:
-  api_endpoint: 'http://127.0.0.1:8081'
-  #api_endpoint: "https://darpaitm.caci.com"
+  # api_endpoint: 'http://127.0.0.1:8081'
+  api_endpoint: "https://darpaitm.caci.com"
   session_type: eval
   training_session: null
   username: "testrun-ALIGN-ADM-Ph2-ComparativeRegression-Mistral-7B-Instruct-v0.3"
@@ -77,3 +77,7 @@ align_to_target: true
 save_last_unstructured_state_per_scenario: true
 # CACI security policy flags our justifications for Feb/April scenarios
 remove_justifications: true
+
+hydra:
+  run:
+    dir: 'ow_part3_live_test/comp-reg-fewshot/${now:%Y-%m-%d__%H-%M-%S}'
