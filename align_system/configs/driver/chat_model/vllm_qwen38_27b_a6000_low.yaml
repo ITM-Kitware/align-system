@@ -1,0 +1,7 @@
+defaults:
+  - vllm_qwen38_27b_a6000_xhigh
+  - _self_
+
+extra_body:
+  chat_template_kwargs:
+    reasoning_effort: low
