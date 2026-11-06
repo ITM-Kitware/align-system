@@ -148,61 +148,10 @@ def llms_for_red_agent_classification_prompt():
     """
 
 
-@outlines.prompt
 def llms_for_resilience_red_agent_classification_prompt():
-    """
-    # DESCRIPTION
-
-    You are an expert in cyber security defending an enterprise network. Analyze the network observations and choose the correct red agent from the list of possible red agents based on their description.
-
-    Under # OBSERVATIONS, you will receive a sequence of network observations or trajectory actions, ordered from oldest to newest. Classify the attacker using the supplied evidence.
-
-    # RED AGENT ATTACKERS
-
-    ## RESILIENCE-TARGETING ATTACKER BEHAVIORS
-
-    The six CIA classes use two strategies, described below:
-
-    B-line strategy: Follows a staged sequence of discovery, service scanning, exploitation, and privilege escalation through intermediate hosts before attacking a CIA-associated target. It may repeatedly impact the same target before moving to another eligible host. Changing targets repeats the attack kill chain for the new host. Failed actions can lead to retries through earlier attack stages or selection of another eligible target.
-
-    Meander strategy: Explores available subnets and hosts broadly, with randomized ordering of host-level reconnaissance and compromise attempts. After reaching an eligible privilege-escalated asset, it may repeatedly impact that target. It can then pursue another eligible host, resuming broad exploration until that target is ready. Service discovery, exploitation, and privilege escalation on the chosen target may be interspersed with actions on other hosts. While pursuing that target, it defers Impact on other hosts. Exploration can scan or compromise intermediate hosts outside its eligible CIA Impact target set.
-
-    ## RED-AGENT CLASSES
-
-    - B-line-C: Uses the B-line strategy to reach and repeatedly impact Confidentiality-associated hosts whose names begin with Auth or Database.
-    - B-line-I: Uses the B-line strategy to reach and repeatedly impact Integrity-associated hosts whose names begin with Auth or Front.
-    - B-line-A: Uses the B-line strategy to reach and repeatedly impact Availability-associated hosts whose names begin with Auth, Front, or Database.
-    - Meander-C: Uses the Meander strategy to impact Confidentiality-associated hosts whose names begin with Auth or Database.
-    - Meander-I: Uses the Meander strategy to impact Integrity-associated hosts whose names begin with Auth or Front.
-    - Meander-A: Uses the Meander strategy to impact Availability-associated hosts whose names begin with Auth, Front, or Database.
-
-    # ENVIRONMENT RULES
-
-    ## NETWORK STRUCTURE
-    - 3 subnets: User subnetwork, Enterprise subnet with servers and the Defender host, and Operational subnet with Database, Front, and Auth servers and Operational Hosts.
-    - Hostnames include User0-User4, Enterprise0-Enterprise2, Defender, Op_Host0-Op_Host2, Auth, Database, and Front. Service hostnames may have numbered suffixes, such as Auth0.
-
-    ## DEFENSE SETUP
-    - 1 Network Defender in the Enterprise subnet.
-    - Red team starts in the User subnet and maintains a foothold there.
-
-    # OBSERVATION STRUCTURE
-
-    Defender tables report detected Activity (Scan, Exploit, or None) and Compromised status (No, Unknown, User, or Privileged) for each host. Existing compromise may persist across observations.
-
-    Trajectory logs list Blue and/or Red actions, their target host or subnet, and success status at each step. Blue actions describe the defender; Red actions describe the attacker. Failed Red actions still provide evidence about attempted behavior.
-
-    Consider the sequence and target choices together. Repeated Impact on one host is compatible with both B-line and Meander; it does not demonstrate randomized exploration. Infer the family from the observed attack progression, without inventing earlier actions that are absent from the window.
-
-    The CIA Impact target sets overlap: Auth is eligible for C, I, and A; Front for I and A; Database for C and A. Auth alone cannot identify C, and a scan or exploit on an intermediate host does not establish the CIA target set. A short or quiet sequence may be inconclusive; select the best-supported available class even when the evidence is ambiguous.
-
-    # OUTPUT FORMAT
-
-    Return a JSON object matching the supplied output schema:
-    - "action_choice": exactly one of "B-line-C", "B-line-I", "B-line-A", "Meander-C", "Meander-I", or "Meander-A".
-
-    Return only this single-field JSON object, without reasoning, explanations, Markdown, or additional fields.
-    """
+    """Use the same classifier instructions as few-shot, without examples."""
+    return llms_for_resilience_red_agent_classification_fewshot_prompt(
+        window_size=None, examples="")
 
 
 # Examples added from generated trajectories after seeded ones
@@ -332,9 +281,9 @@ def llms_for_resilience_red_agent_classification_fewshot_prompt(window_size, exa
 
     The six CIA classes use two strategies, described below:
 
-    B-line strategy: Follows one direct route to its CIA targets. It works on one host at a time, in order (DiscoverNetworkServices, then ExploitRemoteService, then PrivilegeEscalate), without mixing in actions on other hosts. It passes through each intermediate host once, by step 10, and never returns to User or Enterprise hosts afterwards. The first time it attacks a CIA target, it runs that chain on the target and then impacts it; it finishes these first attacks early in the episode (by about step 35). It keeps its access afterwards: when it switches to a target it has already escalated, its next action is Impact on that target, with no new discovery, exploitation, or escalation. After its first few targets, a B-line attacker does almost nothing but Impact, often moving from one target host to another on consecutive steps.
+    B-line strategy: Follows one direct route to its CIA targets. It works on one host at a time, in order (DiscoverNetworkServices, then ExploitRemoteService, then PrivilegeEscalate), without mixing in actions on other hosts. It progresses through intermediate hosts toward its targets. The first time it attacks a CIA target, it runs that chain on the target and then impacts it. It keeps its access afterwards: when it switches to a target it has already escalated, its next action is Impact on that target, with no new discovery, exploitation, or escalation. Once access to its targets is established, a B-line attacker focuses on Impact, often moving from one target host to another on consecutive actions.
 
-    Meander strategy: Explores the network broadly in random order. It exploits and escalates many hosts outside its CIA target set, including User, Enterprise, Op_Host, and Op_Server hosts, and it returns to hosts it has already compromised. Some of its exploits fail with target None. After escalating an eligible target, it may impact that target one or more times. Before it impacts a different target, it rebuilds access to that target (service discovery, exploitation, and escalation), even when it compromised the host earlier, and it usually exploits other hosts in between. Impact is a small share of its actions; most of its steps are ExploitRemoteService and PrivilegeEscalate.
+    Meander strategy: Explores the network broadly in random order. It exploits and escalates many hosts outside its CIA target set, including User, Enterprise, Op_Host, and Op_Server hosts, and it returns to hosts it has already compromised. Some of its exploits fail with target None. After escalating an eligible target, it may impact that target one or more times. Before it impacts a different target, it rebuilds access to that target (service discovery, exploitation, and escalation), even when it compromised the host earlier, and it usually exploits other hosts in between. Impact is a small share of its actions; most of its actions are ExploitRemoteService and PrivilegeEscalate.
 
     ## RED-AGENT CLASSES
 
@@ -348,9 +297,6 @@ def llms_for_resilience_red_agent_classification_fewshot_prompt(window_size, exa
     ## TELLING B-LINE FROM MEANDER
 
     - Impact on one host followed directly by Impact on a different host indicates B-line. Meander never does this, because it rebuilds access before impacting a new target.
-    - A window made up mostly of Impact actions indicates B-line. Most Meander windows contain few or no Impacts.
-    - Any action on a User, Enterprise, Op_Host, or Op_Server host after step 10, or a failed exploit on None, indicates Meander.
-    - Discovery, exploitation, or escalation of an Auth, Database, or Front host after about step 35 indicates Meander, because B-line has finished its first attack on each target by then.
     - Exploitation and escalation that move between several different hosts, or that are mixed in before an Impact, indicate Meander. B-line finishes one host before starting the next.
     - Repeated Impact on a single host, or a single discover-exploit-escalate-Impact chain on one target, fits both strategies. Decide from the other actions in the window.
 
@@ -380,12 +326,14 @@ def llms_for_resilience_red_agent_classification_fewshot_prompt(window_size, exa
 
     Consider the sequence and target choices together. Infer the strategy from the actions in the window, without inventing earlier actions that are absent from it.
 
+    {% if examples %}
     # EXAMPLES
 
     Each example is a {{ window_size }}-step window in the same format as # OBSERVATIONS, followed by its correct label.
 
     {{ examples }}
 
+    {% endif %}
     # OUTPUT FORMAT
 
     Return a JSON object matching the supplied output schema:
