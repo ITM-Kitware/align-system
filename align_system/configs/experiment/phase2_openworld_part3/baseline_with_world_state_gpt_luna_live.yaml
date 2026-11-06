@@ -15,7 +15,7 @@ interface:
   training_session: null
   username: "testrun-ALIGN-ADM-OutlinesBaseline-GPT6Luna"
   domain: "owtriage"
-  adm_profile: APRIL_OPENWORLD3
+  adm_profile: FEB_OPENWORLD3
 
 adm:
   step_definitions:
