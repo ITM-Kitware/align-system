@@ -39,6 +39,7 @@ from align_system.utils.agent_logging import (
     message_payload, preview, visible_text,
 )
 from align_system.utils.text_tool_calls import parse_text_tool_calls
+from align_system.utils.model_telemetry import invoke_with_telemetry
 
 log = logging.getLogger(__name__)
 MAX_SERIALIZED_REVIEW_RESPONSE_CHARS = 256 * 1024
@@ -782,6 +783,8 @@ class LangChainAgenticADM:
                        else self._current_context_message(current_context)]
             invoke_kwargs = {}
             measurement = None
+            tokenization_start = (getattr(decision_budget, 'tokenization_elapsed_s', 0.0)
+                                  if decision_budget is not None else None)
             if decision_budget is None:
                 packed = pack_history(
                     messages, max_messages=self.max_messages_in_context,
@@ -813,7 +816,11 @@ class LangChainAgenticADM:
                     f'phase={phase}',
                     payload=lambda: _decision_log_payload(request_messages, llm_with_tools, tools))
                 try:
-                    ai_message = llm_with_tools.invoke(request_messages, **invoke_kwargs)
+                    ai_message = invoke_with_telemetry(
+                        llm_with_tools, request_messages, invoke_kwargs, phase=phase,
+                        tokenization_elapsed_s=(
+                            decision_budget.tokenization_elapsed_s - tokenization_start
+                            if decision_budget is not None else None))
                     consecutive_llm_failures = 0
                 except Exception as e:
                     if decision_budget is not None and is_context_overflow(e):

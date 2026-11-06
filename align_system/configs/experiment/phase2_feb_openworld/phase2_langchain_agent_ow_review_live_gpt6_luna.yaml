@@ -1,0 +1,32 @@
+# @package _global_
+# February live evaluation with GPT-6 Luna shared by decision and review.
+defaults:
+  - /experiment/phase2_feb_openworld/phase2_langchain_agent_ow_review_live
+  - _self_
+  - override /driver/chat_model@adm.instance.chat_model: openai_gpt6_luna
+
+adm:
+  instance:
+    chat_model:
+      # The base experiment sets localhost independently of its model preset.
+      base_url: https://api.openai.com/v1
+    reviewer:
+      # Native schema constraints followed by local advice/evidence validation.
+      response_format: openai_json_schema
+    context_budget:
+      # Explicit capacity for models missing from LangChain's model profiles.
+      # A conservative budget below full capacity avoids long-context requests;
+      # estimated counting also reserves input headroom and the output allowance.
+      decision:
+        context_window: 272000
+      reviewer:
+        context_window: 272000
+
+interface:
+  username: "testrun-ALIGN-ADM-Ph2-Feb2026-LangChainAgent-ReviewerWeighted-Live-GPT-6-Luna"
+
+hydra:
+  run:
+    dir: outputs/reviewer_weighted_openai/gpt6_luna_ta3_feb2026/${now:%Y%m%d_%H%M%S_%f}
+
+loglevel: INFO

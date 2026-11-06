@@ -39,6 +39,12 @@ _FIELD_LABELS = {
 }
 
 
+def agent_log_context():
+    """Return correlation identifiers for sibling run artifacts."""
+    return {key: value for key, value in (_EVENT_CONTEXT.get() or {}).items()
+            if key in _FIELD_LABELS and isinstance(value, (str, int, type(None)))}
+
+
 @contextmanager
 def agent_log_scope(*, reset_calls=False, **fields):
     """Add correlation fields without leaking them into another scenario/task."""

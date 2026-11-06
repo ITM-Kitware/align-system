@@ -16,5 +16,11 @@ save_scoring_output: true
 save_alignment_targets: false
 save_timing: true
 save_last_unstructured_state_per_scenario: false
+# Optional agentic-driver telemetry; other drivers ignore these settings.
+save_model_telemetry: false
+# Exact model requests are opt-in for local benchmark replay.
+save_model_requests: false
+benchmark_model_revision: null
+model_server_manifest: null
 
 align_to_target: false

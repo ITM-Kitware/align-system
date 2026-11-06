@@ -18,6 +18,7 @@ JSON_HIGHLIGHTER = JSONHighlighter()
             config_path="../configs",
             config_name="action_based")
 def main(cfg: DictConfig) -> None:
+    source_cfg = cfg
     cfg = initialize_with_custom_references(cfg)
 
     # Using the hydra generated output directory for the run
@@ -94,6 +95,10 @@ def main(cfg: DictConfig) -> None:
         np.random.seed(numpy_random_seed)
 
     driver = cfg.driver
+    # Optional driver setup can inspect settings before targets were instantiated.
+    configure_run = getattr(driver, 'configure_run', None)
+    if callable(configure_run):
+        configure_run(source_cfg)
     driver.drive(cfg)
 
 

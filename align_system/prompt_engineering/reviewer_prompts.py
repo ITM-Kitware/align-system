@@ -25,10 +25,8 @@ names, never null or placeholders. Unknown inventory is not proof of no stock:
 supplies:null means unknown; supplies:[] means reported empty.
 """
 
-GROUNDED_REVIEW_OUTPUT_CONTRACT = """\
-Return only one raw JSON object, without prose, Markdown, code fences, or tool
-calls. assessment contains exactly evidence: 1–20 {"path":...,"value":...}
-references, normally 2–4 decisive facts. Cite absolute JSON Pointers rooted in
+REVIEW_EVIDENCE_GUIDANCE = """\
+Cite absolute JSON Pointers rooted in
 /observation, /proposal_tool/arguments, /proposal_validation, /handled_patients,
 /provider_context, /patient_history, or /alignment_context. Copy values exactly,
 including JSON types (true is not 1). Escape ~ as ~0 and / as ~1 in path segments.
@@ -39,6 +37,11 @@ evaluation labels, hidden reasoning, or repair_feedback. Paths are limited to
 all numbers must be finite. References verify facts, not the reasoning drawn
 from them. No extra fields are allowed.
 """
+
+GROUNDED_REVIEW_OUTPUT_CONTRACT = """\
+Return only one raw JSON object, without prose, Markdown, code fences, or tool
+calls. assessment contains exactly evidence: 1–20 {"path":...,"value":...}
+references, normally 2–4 decisive facts. """ + REVIEW_EVIDENCE_GUIDANCE
 
 QUALITATIVE_REVIEW_OUTPUT_CONTRACT = """\
 Return exactly recommendation ("keep" or "reconsider"), reason (brief, nonempty),
@@ -58,10 +61,7 @@ only when supplied; do not invent scores or claim that they validate the
 completed parameters.
 """
 
-WEIGHTED_REVIEW_OUTPUT_CONTRACT = """\
-Return exactly recommendation ("keep" or "reconsider"), reason (brief, nonempty),
-alternative, confidence, estimated_improvement, and assessment. This mandatory
-contract supersedes conflicting format instructions.
+WEIGHTED_REVIEW_COMPARISON_GUIDANCE = """\
 For keep, or reconsider without a concrete alternative, alternative, confidence,
 and estimated_improvement must all be null. Otherwise alternative contains
 exactly tool_name and arguments matching an offered native action in action_tools,
@@ -76,7 +76,40 @@ Estimated_improvement rates next-action suitability (0 none, 0.25 slight, 0.5
 moderate, 0.75 large, 1 strongest supported improvement). These are heuristic
 ratings, not probabilities, clinical outcomes, KDMA scores, or measured utility.
 The workflow computes advisory strength and threshold; you cannot compel a switch.
-""" + GROUNDED_REVIEW_OUTPUT_CONTRACT
+"""
+
+WEIGHTED_REVIEW_OUTPUT_CONTRACT = """\
+Return exactly recommendation ("keep" or "reconsider"), reason (brief, nonempty),
+alternative, confidence, estimated_improvement, and assessment. This mandatory
+contract supersedes conflicting format instructions.
+""" + WEIGHTED_REVIEW_COMPARISON_GUIDANCE + GROUNDED_REVIEW_OUTPUT_CONTRACT
+
+OPENAI_GROUNDED_REVIEW_OUTPUT_CONTRACT = """\
+Return only one raw JSON object with exactly one root field, advice, without
+prose, Markdown, code fences, or tool calls. This mandatory transport contract
+supersedes conflicting format instructions. Inside advice, assessment contains
+exactly evidence: 1–20 objects with exactly path and value_json. value_json is a
+string encoding the exact cited value as JSON, not an explanation. For a boolean
+true use "value_json":"true"; for the string true use
+"value_json":"\\\"true\\\"". The decoded value must preserve its original JSON type.
+All fields required by the supplied schema must be present. For native action
+arguments with an advertised default, supply that default explicitly when no
+other value is intended; do not replace a non-null default with null.
+Repair feedback may show either this transport format or normalized advice with
+{path,value} evidence. Always return a complete replacement advice wrapper using
+{path,value_json} evidence, even when repairing normalized advice.
+Cite normally 2–4 decisive facts.
+""" + REVIEW_EVIDENCE_GUIDANCE
+
+OPENAI_QUALITATIVE_REVIEW_OUTPUT_CONTRACT = """\
+Inside advice return exactly recommendation ("keep" or "reconsider"), reason
+(brief, nonempty), and assessment.
+""" + OPENAI_GROUNDED_REVIEW_OUTPUT_CONTRACT
+
+OPENAI_WEIGHTED_REVIEW_OUTPUT_CONTRACT = """\
+Inside advice return exactly recommendation ("keep" or "reconsider"), reason
+(brief, nonempty), alternative, confidence, estimated_improvement, and assessment.
+""" + WEIGHTED_REVIEW_COMPARISON_GUIDANCE + OPENAI_GROUNDED_REVIEW_OUTPUT_CONTRACT
 
 DEFAULT_REVIEWER_SYSTEM_PROMPT = (REVIEWER_INSTRUCTIONS + '\n\n'
                                   + COMPLETED_ACTION_REVIEW_GUIDANCE
