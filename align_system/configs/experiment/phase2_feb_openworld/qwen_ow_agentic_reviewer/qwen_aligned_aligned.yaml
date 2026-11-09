@@ -1,0 +1,29 @@
+# @package _global_
+# Role alignment comparison; both models retain the same low reasoning effort.
+# Baseline roles omit direct target/rubric context but still exchange advice.
+defaults:
+  - /experiment/phase2_feb_openworld/qwen_ow_agentic_reviewer/qwen_both_low
+  - _self_
+
+# Retain the target for scoring/telemetry, even when both role flags are false.
+align_to_target: true
+
+driver:
+  scene_end_policy: agent_decides
+
+adm:
+  instance:
+    align_decision_to_target: true
+    align_reviewer_to_target: true
+    chat_model:
+      _convert_: all
+    reviewer:
+      chat_model:
+        _convert_: all
+
+interface:
+  username: testrun-ALIGN-Qwen-OW-Agentic-Reviewer-aligned-aligned
+
+hydra:
+  run:
+    dir: outputs/qwen_ow_agentic_reviewer/aligned_aligned/${now:%Y%m%d_%H%M%S_%f}

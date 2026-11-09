@@ -77,7 +77,8 @@ class LangChainAgenticADM:
                  alignment_guidance=None, scene_end_guidance=None,
                  patient_history_guidance=None, review_guidance=None,
                  expected_response_contract=None,
-                 citation_guidance=None, opening_prompt=None):
+                 citation_guidance=None, opening_prompt=None,
+                 align_decision_to_target=True, align_reviewer_to_target=True):
         self._chat_model = chat_model
         self._model = model
         self.system_prompt = (DEFAULT_LANGCHAIN_AGENT_SYSTEM_PROMPT
@@ -85,6 +86,9 @@ class LangChainAgenticADM:
         self.max_llm_calls_between_actions = max_llm_calls_between_actions
         self.max_messages_in_context = max_messages_in_context
         self.reviewer = reviewer
+        # These flags control supplied target context, not cross-agent messages.
+        self.align_decision_to_target = align_decision_to_target
+        self.align_reviewer_to_target = align_reviewer_to_target
         self.context_budget = ContextBudgetManager(context_budget)
         self.attribute_definitions = dict(attribute_definitions or {})
         self.alignment_guidance = (DECISION_ALIGNMENT_GUIDANCE if alignment_guidance is None
@@ -150,7 +154,8 @@ class LangChainAgenticADM:
                 self.reviewer, decision_model, self.max_llm_calls_between_actions,
                 actions=session, review_request_budget=review_budget,
                 expected_response_contract=self.expected_response_contract,
-                system_prompt_suffix=self.review_guidance))
+                system_prompt_suffix=self.review_guidance,
+                include_alignment_context=self.align_decision_to_target))
         return decision_model, self._configure_tools(session, tools)
 
     def _configure_tools(self, session, tools):
@@ -272,7 +277,8 @@ class LangChainAgenticADM:
         context = {}
         if self._state.workflow.needs_proposal_context:
             context = self._decision_review_context(
-                session, state=snapshot.current_state, include_guide=False)
+                session, state=snapshot.current_state, include_guide=False,
+                include_alignment_context=self.align_reviewer_to_target)
         review_feedback = self._state.workflow.before_action(
             snapshot, action_to_take, justification, context=context,
             review_response=review_response)
@@ -391,7 +397,8 @@ class LangChainAgenticADM:
 
         raise RuntimeError("No fallback action could be executed")
 
-    def _decision_review_context(self, session, *, state=None, include_guide=True):
+    def _decision_review_context(self, session, *, state=None, include_guide=True,
+                                 include_alignment_context=None):
         """Visible local facts only; capture without fetching or scoring again."""
         context = {
             'scenario_id': session.scenario.id(),
@@ -407,7 +414,9 @@ class LangChainAgenticADM:
                 'tagged': sorted(session.tagged_patients)},
             'provider_context': deepcopy(self._state.context_provider_results),
         }
-        if self._state.alignment_context is not None:
+        if include_alignment_context is None:
+            include_alignment_context = self.align_decision_to_target
+        if include_alignment_context and self._state.alignment_context is not None:
             context['alignment_context'] = deepcopy(self._state.alignment_context)
         if include_guide:
             context['citation_guide'] = build_citation_guide(context)
@@ -726,7 +735,9 @@ class LangChainAgenticADM:
 
     def _prepare_session(self, session):
         validate_reviewer_contract(self.reviewer, self.expected_response_contract)
-        if session.align_to_target:
+        uses_alignment = (self.align_decision_to_target
+                          or (self.reviewer is not None and self.align_reviewer_to_target))
+        if session.align_to_target and uses_alignment:
             self._state.alignment_context = build_alignment_context(
                 session.alignment_target, self.attribute_definitions)
 
@@ -743,11 +754,11 @@ class LangChainAgenticADM:
         system_prompt += '\n\n' + self.scene_end_guidance[session.scene_end_policy]
         system_prompt += '\n\n' + self.patient_history_guidance
         system_prompt += '\n' + self.citation_guidance
-        if self._state.alignment_context is not None:
+        if self.align_decision_to_target and self._state.alignment_context is not None:
             system_prompt += '\n\n' + self.alignment_guidance
         system_message = SystemMessage(content=system_prompt)
         opening_prompt = self.opening_prompt
-        if self._state.alignment_context is not None:
+        if self.align_decision_to_target and self._state.alignment_context is not None:
             # The opening message is pinned by both history-packing paths.
             opening_prompt += '\n\nAlignment context:\n' + json.dumps(
                 {'alignment_context': self._state.alignment_context},

@@ -122,7 +122,7 @@ class AdvisoryReviewWorkflow(ImmediateActionWorkflow):
     def __init__(self, reviewer, default_chat_model, max_llm_calls_between_actions=8,
                  *, actions, review_request_budget=None,
                  expected_response_contract=None,
-                 system_prompt_suffix=None):
+                 system_prompt_suffix=None, include_alignment_context=True):
         if max_llm_calls_between_actions < 1:
             raise ValueError("Reviewer mode requires a positive model-call budget")
         self.expected_response_contract = validate_reviewer_contract(
@@ -130,6 +130,7 @@ class AdvisoryReviewWorkflow(ImmediateActionWorkflow):
         self.actions = actions
         self.system_prompt_suffix = (ADVISORY_REVIEW_GUIDANCE if system_prompt_suffix is None
                                      else system_prompt_suffix)
+        self.include_alignment_context = include_alignment_context
         self.reviewer = reviewer
         self.default_chat_model = default_chat_model
         self.max_llm_calls_between_actions = max_llm_calls_between_actions
@@ -258,12 +259,15 @@ class AdvisoryReviewWorkflow(ImmediateActionWorkflow):
         The complete snapshot remains private workflow state and is recorded in
         metadata. In particular, native schemas and available-action catalogs
         need not be repeated in every final-choice reminder.
+        Baseline decisions also omit the supplied alignment context from this view.
         """
         if context is None:
             return None
         view = {}
         for path in self.expected_response_contract.review_evidence_roots:
             parts = path.lstrip('/').split('/')
+            if not self.include_alignment_context and parts[0] == 'alignment_context':
+                continue
             value = context
             for part in parts:
                 if not isinstance(value, dict) or part not in value:
@@ -345,8 +349,12 @@ class AdvisoryReviewWorkflow(ImmediateActionWorkflow):
             }, ensure_ascii=False, separators=(',', ':'))
             + '\nCitation guides (path lookup only; not evidence):\n'
             + json.dumps({
-                'review': AdvisoryReviewWorkflow._prefixed_guide(cycle.review_context, '/review'),
-                'current': AdvisoryReviewWorkflow._prefixed_guide(cycle.current_context, '/current')},
+                'review': self._prefixed_guide(
+                    cycle.review_context, '/review',
+                    include_alignment_context=self.include_alignment_context),
+                'current': self._prefixed_guide(
+                    cycle.current_context, '/current',
+                    include_alignment_context=self.include_alignment_context)},
                 ensure_ascii=False, separators=(',', ':'))
             + '\nEvidence namespaces frozen for this decision-model invocation:\n'
             + json.dumps({
@@ -355,11 +363,12 @@ class AdvisoryReviewWorkflow(ImmediateActionWorkflow):
                 ensure_ascii=False, separators=(',', ':')))
 
     @staticmethod
-    def _prefixed_guide(context, prefix):
+    def _prefixed_guide(context, prefix, *, include_alignment_context=True):
         guide = (context or {}).get('citation_guide') or {}
         return {group: [{key: prefix + value if key.endswith('_path') else value
                         for key, value in entry.items()} for entry in entries]
-                for group, entries in guide.items()}
+                for group, entries in guide.items()
+                if include_alignment_context or group != 'kdmas'}
 
     @staticmethod
     def _proposal_summary(proposal_tool, validation):
