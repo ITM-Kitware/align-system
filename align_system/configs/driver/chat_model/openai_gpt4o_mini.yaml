@@ -1,0 +1,9 @@
+# ChatOpenAI reads OPENAI_API_KEY from the process environment.
+# Keep credentials out of Hydra overrides and saved configurations.
+_target_: langchain_openai.ChatOpenAI
+model: gpt-4o-mini
+temperature: 0.0
+timeout: 60
+max_tokens: 4096
+# The driver accounts for retries in its model-call budget.
+max_retries: 0

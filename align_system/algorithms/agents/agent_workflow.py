@@ -279,6 +279,14 @@ class AdvisoryReviewWorkflow(ImmediateActionWorkflow):
         return view
 
     def _review_reminder(self, cycle):
+        # Reviewer citations are relative to its snapshot. Display them in the
+        # final response's namespace without modifying accepted advice/artifacts.
+        advice = (deepcopy({key: cycle.advice[key] for key in
+                            ('recommendation', 'reason', 'assessment')})
+                  if cycle.advice is not None else None)
+        if advice is not None:
+            for reference in advice['assessment']['evidence']:
+                reference['path'] = '/review' + reference['path']
         weighting = cycle.weighting
         suggestion = ((weighting or {}).get('suggestion') or 'none')
         guidance = f"Computed suggestion: {suggestion}. "
@@ -311,6 +319,10 @@ class AdvisoryReviewWorkflow(ImmediateActionWorkflow):
             "/review or /current context exactly. Cite observation, "
             "proposal_tool/arguments, proposal_validation, handled_patients, or "
             "provider_context, patient_history, or alignment_context within those namespaces. "
+            "Displayed reviewer evidence already uses /review and can be copied exactly; "
+            "for example, /proposal_tool/arguments/injury_location in the reviewer "
+            "snapshot becomes /review/proposal_tool/arguments/injury_location in "
+            "review_response. Bare reviewer paths are not valid final citations. "
             "You may disagree with "
             "the suggestion; acknowledge it accurately and explain your choice.\n"
             if cycle.status == 'reviewed' else
@@ -324,9 +336,7 @@ class AdvisoryReviewWorkflow(ImmediateActionWorkflow):
             + failure_hint + acknowledgment
             + 'Reviewer concern (advisory; separate from computed guidance):\n'
             + json.dumps({
-                'advice': ({key: cycle.advice[key] for key in
-                            ('recommendation', 'reason', 'assessment')}
-                           if cycle.advice is not None else None),
+                'advice': advice,
                 'review_assessment_validation': {'status': assessment_status},
                 'review_status': cycle.status, 'review_error': cycle.error,
                 **({'proposal_tool': cycle.proposal_tool} if cycle.review_context is None else {}),
@@ -419,11 +429,12 @@ class AdvisoryReviewWorkflow(ImmediateActionWorkflow):
                 max_diagnostic_errors=self.max_diagnostic_errors,
                 max_diagnostic_chars=self.max_diagnostic_chars)
             cycle.final_review_response_validation = self._validation_result('invalid', diagnostics)
+        feedback = self._final_validation_feedback()
         agent_log_event(
             log, 'WORKFLOW/ENVIRONMENT', 'FINAL CORRECTION',
             'Final review response rejected; a fresh action-tool call is required. '
             'The action has not executed and no new review will occur.',
-            payload=lambda: cycle.final_review_response_validation)
+            payload=lambda: {'status': 'invalid', **feedback})
         return (
             "The final review_response could not be verified. This action has NOT executed. "
             f"Supply review_response with acknowledged_suggestion='{suggestion}', a nonempty "
@@ -431,7 +442,42 @@ class AdvisoryReviewWorkflow(ImmediateActionWorkflow):
             "from the supplied /review or /current context. You may still choose any "
             "eligible action and disagree with the advice. Correct the acknowledgment "
             "on a new action-tool call; no additional review will occur. Use only the "
-            "documented fields, and check the cited paths and values against that context.")
+            "documented fields, and check the cited paths and values against that context. "
+            "Reviewer snapshot paths require the /review prefix in review_response; "
+            "for example, use /review/proposal_tool/arguments/injury_location, not "
+            "/proposal_tool/arguments/injury_location.\n"
+            "Validation diagnostics (loc identifies the field or evidence index to correct):\n"
+            + json.dumps(feedback, ensure_ascii=False,
+                         separators=(',', ':')))
+
+    def _final_validation_feedback(self):
+        """Expose safe validation details, bounded across all error entries."""
+        validation = self.cycle.final_review_response_validation
+        feedback = {'validation_errors': [],
+                    'validation_errors_truncated': validation['validation_errors_truncated']}
+        fields = set(self.expected_response_contract.final_response_model.model_fields)
+        fields.update(('path', 'value'))
+        for error in validation['validation_errors'][:self.max_diagnostic_errors]:
+            error = deepcopy(error)
+            location = []
+            for part in error['loc']:
+                if isinstance(part, int) or part in fields:
+                    location.append(part)
+                else:
+                    location.append('<unknown field>')
+                    break
+                # JsonValue validation paths can contain rejected object keys.
+                if part == 'value':
+                    break
+            error['loc'] = location
+            candidate = [*feedback['validation_errors'], error]
+            if len(json.dumps(candidate, ensure_ascii=False)) > self.max_diagnostic_chars:
+                feedback['validation_errors_truncated'] = True
+                break
+            feedback['validation_errors'].append(deepcopy(error))
+        if len(feedback['validation_errors']) < len(validation['validation_errors']):
+            feedback['validation_errors_truncated'] = True
+        return feedback
 
     def _repair_feedback(self, diagnostics):
         """Bounded feedback goes only to the reviewer, never to decision history."""

@@ -11,13 +11,19 @@ This token capacity is independent of the workflow's model-call limit.
 from collections.abc import Mapping
 from copy import deepcopy
 from dataclasses import dataclass
+import json
 import math
 import re
+from time import perf_counter
 from urllib.parse import urlsplit, urlunsplit
 from typing import Any, Dict
 
 from langchain_core.messages.utils import count_tokens_approximately
 from langchain_core.runnables import RunnableBinding
+
+from align_system.algorithms.agents.chat_transport import (
+    chat_model_kind, effective_request_payload,
+)
 
 
 class ContextBudgetError(RuntimeError):
@@ -89,45 +95,19 @@ class RequestBudget:
         self.counter = self.config.get('counter', 'auto')
         self._tokenizer_supported = None
         self._serving_window = None
+        self.tokenization_elapsed_s = 0.0
 
     def _error(self, reason, **diagnostics):
-        return ContextBudgetError(reason, {'role': self.role, **diagnostics})
+        return ContextBudgetError(reason, {
+            'role': self.role, 'tokenization_elapsed_s': self.tokenization_elapsed_s,
+            **diagnostics})
 
     def _kind(self):
-        # Local imports keep unrelated provider integrations optional.
-        try:
-            from langchain_openai import ChatOpenAI
-        except ImportError:
-            pass
-        else:
-            if isinstance(self.model, ChatOpenAI):
-                return 'openai'
-        try:
-            from langchain_ollama import ChatOllama
-        except ImportError:
-            pass
-        else:
-            if isinstance(self.model, ChatOllama):
-                return 'ollama'
-        return 'generic'
+        return chat_model_kind(self.model)
 
     def _payload(self, messages, kwargs, kind):
         try:
-            if kind == 'openai':
-                payload = deepcopy(self.model._get_request_payload(messages, **kwargs))
-                extra = payload.pop('extra_body', None) or {}
-                if not isinstance(extra, Mapping):
-                    raise self._error('extra_body must be a mapping')
-                payload.update(extra)
-                return payload
-            if kind == 'ollama':
-                return deepcopy(self.model._chat_params(messages, **deepcopy(kwargs)))
-            defaults = {}
-            for name in ('max_tokens', 'max_completion_tokens', 'max_output_tokens'):
-                value = getattr(self.model, name, None)
-                if value is not None:
-                    defaults[name] = value
-            return {'messages': messages, **defaults, **deepcopy(kwargs)}
+            return effective_request_payload(self.model, messages, kwargs, kind=kind)
         except ContextBudgetError:
             raise
         except Exception as exc:
@@ -163,12 +143,16 @@ class RequestBudget:
                 template[name] = deepcopy(value)
         if template:
             body['chat_template_kwargs'] = template
+        started = perf_counter()
         try:
-            result = root_client.with_options(timeout=10, max_retries=0).post(
-                endpoint, cast_to=Dict[str, Any], body=body,
-                options={'follow_redirects': False,
-                         **({'headers': payload['extra_headers']}
-                            if payload.get('extra_headers') else {})})
+            try:
+                result = root_client.with_options(timeout=10, max_retries=0).post(
+                    endpoint, cast_to=Dict[str, Any], body=body,
+                    options={'follow_redirects': False,
+                             **({'headers': payload['extra_headers']}
+                                if payload.get('extra_headers') else {})})
+            finally:
+                self.tokenization_elapsed_s += perf_counter() - started
         except Exception as exc:
             status = getattr(exc, 'status_code', None)
             if (self.counter == 'auto' and self._tokenizer_supported is None
@@ -190,6 +174,7 @@ class RequestBudget:
 
     def measure(self, messages, invoke_kwargs=None):
         """Count a complete request and return its per-invocation output cap."""
+        tokenization_before = self.tokenization_elapsed_s
         messages = list(messages)
         original_kwargs = dict(invoke_kwargs or {})
         effective_kwargs = {**self.bound_kwargs, **original_kwargs}
@@ -232,12 +217,25 @@ class RequestBudget:
                 messages, tools=payload.get('tools'), chars_per_token=3,
                 extra_tokens_per_message=12)
             # Template inputs are additional prompt data, not generation controls.
-            import json
             extras = {name: payload[name] for name in
                       ('chat_template', 'chat_template_kwargs', 'documents')
                       if payload.get(name) is not None}
             if extras:
                 count += math.ceil(len(json.dumps(extras, ensure_ascii=False)) / 3)
+            # Structured output schemas are also prompt input. Read the effective
+            # provider payload so Responses and Chat Completions count it once.
+            text_format = payload.get('text')
+            text_format = (text_format.get('format')
+                           if isinstance(text_format, Mapping) else None)
+            schema_format = text_format
+            if not isinstance(schema_format, Mapping):
+                response_format = payload.get('response_format')
+                schema_format = (response_format.get('json_schema')
+                                 if isinstance(response_format, Mapping) else None)
+            schema = (schema_format.get('schema')
+                      if isinstance(schema_format, Mapping) else None)
+            if isinstance(schema, Mapping):
+                count += math.ceil(len(json.dumps(schema, ensure_ascii=False)) / 3)
 
         profile = getattr(self.model, 'profile', None) or {}
         profile = profile if isinstance(profile, Mapping) else {}
@@ -315,7 +313,9 @@ class RequestBudget:
             invocation[cap_key] = output
         diagnostics = dict(role=self.role, method=method, context_window=window,
                            input_tokens=count, output_tokens=output, headroom=headroom,
-                           input_limit=input_limit)
+                           input_limit=input_limit,
+                           tokenization_elapsed_s=(self.tokenization_elapsed_s
+                                                   - tokenization_before))
         return BudgetMeasurement(count, window, output, headroom, input_limit,
                                  method, invocation, diagnostics)
 

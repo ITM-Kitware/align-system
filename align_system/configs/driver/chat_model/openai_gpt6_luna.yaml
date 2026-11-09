@@ -1,0 +1,14 @@
+# ChatOpenAI reads OPENAI_API_KEY from the process environment.
+# Keep credentials out of Hydra overrides and saved configurations.
+_target_: langchain_openai.ChatOpenAI
+model: gpt-6-luna
+base_url: https://api.openai.com/v1
+# Reasoning with tool calls uses Responses; omit sampling temperature.
+use_responses_api: true
+reasoning_effort: low
+temperature: null
+# Includes reasoning and visible output tokens, per model call.
+max_tokens: 8192
+timeout: 600
+# The agent workflow accounts for retries in its shared model-call budget.
+max_retries: 0

@@ -7,10 +7,12 @@ run artifacts. The ADM owns model calls, treatment selection and review policy.
 import json
 import os
 from timeit import default_timer as timer
+from typing import Annotated
 
 import hydra
 from langchain_core.tools import tool
 from omegaconf import DictConfig, ListConfig, OmegaConf
+from pydantic import WithJsonSchema
 from swagger_client.models import ActionTypeEnum
 
 from align_system.drivers.utils import open_world_actions as actions
@@ -348,6 +350,7 @@ class ITMOpenWorldAgenticDriver:
         self.extra_tools = dict(extra_tools) if extra_tools else {}
         resolve_scene_end_policy(scene_end_policy, False)
         self.scene_end_policy = scene_end_policy
+        self._telemetry_configuration = None
 
     def _observation_text(self, current_state):
         return json.dumps(_observation_view(current_state), indent=2)
@@ -403,7 +406,9 @@ class ITMOpenWorldAgenticDriver:
         @tool
         def treat_patient(character_name: str, justification: str,
                           treatment_supply: str = "",
-                          injury_location: str = "") -> str:
+                          injury_location: Annotated[str, WithJsonSchema({
+                              'type': 'string',
+                              'enum': ['', *actions.INJURY_LOCATIONS]})] = "") -> str:
             """Treat a casualty's injuries with a supply from your
             inventory.
 
@@ -533,7 +538,36 @@ class ITMOpenWorldAgenticDriver:
 
         return alignment_target
 
+    def configure_run(self, source_cfg):
+        """Capture original Hydra settings only for opted-in agentic telemetry."""
+        self._telemetry_configuration = (
+            OmegaConf.to_container(source_cfg, resolve=False)
+            if source_cfg.get('save_model_telemetry', False) else None)
+
     def drive(self, cfg):
+        enabled = cfg.get('save_model_telemetry', False)
+        capture_requests = cfg.get('save_model_requests', False)
+        if capture_requests and not enabled:
+            raise ValueError('save_model_requests requires save_model_telemetry')
+        if not enabled:
+            return self._drive(cfg)
+        if self._telemetry_configuration is None:
+            raise ValueError(
+                'Agentic telemetry requires the original run configuration; '
+                'call configure_run(source_cfg) before drive().')
+
+        from align_system.utils.model_telemetry import model_telemetry_scope
+
+        output_dir = hydra.core.hydra_config.HydraConfig.get().runtime.output_dir
+        with model_telemetry_scope(
+                output_dir, capture_requests=capture_requests,
+                adm=cfg.adm.instance,
+                model_revision=cfg.get('benchmark_model_revision'),
+                server_manifest=cfg.get('model_server_manifest'),
+                configuration=self._telemetry_configuration):
+            return self._drive(cfg)
+
+    def _drive(self, cfg):
         interface = cfg.interface
 
         adm = cfg.adm.instance
