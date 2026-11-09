@@ -1,0 +1,15 @@
+# @package _global_
+defaults:
+  - /experiment/phase2_feb_openworld/qwen_ow_agentic_reviewer/qwen_aligned_no_reviewer
+  - _self_
+
+adm:
+  instance:
+    align_decision_to_target: false
+
+interface:
+  username: testrun-ALIGN-Qwen-OW-Agentic-Reviewer-baseline-no-reviewer
+
+hydra:
+  run:
+    dir: outputs/qwen_ow_agentic_reviewer/baseline_no_reviewer/${now:%Y%m%d_%H%M%S_%f}
