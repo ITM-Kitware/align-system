@@ -1,0 +1,15 @@
+# Explicit benchmark profile; legacy vllm_qwen38_27b stays unchanged.
+_target_: align_system.algorithms.agents.chat_transport.CompatibleChatOpenAI
+model: Qwen/Qwen3.8-27B-FP8
+base_url: http://127.0.0.1:8000/v1
+api_key: EMPTY
+use_responses_api: false
+temperature: 0.0
+max_tokens: 8192
+timeout: 600
+max_retries: 0
+extra_body:
+  chat_template_kwargs:
+    enable_thinking: true
+    reasoning_effort: xhigh
+    preserve_thinking: true

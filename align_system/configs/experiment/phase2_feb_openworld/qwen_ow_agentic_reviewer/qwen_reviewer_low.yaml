@@ -1,0 +1,12 @@
+# @package _global_
+defaults:
+  - /experiment/phase2_feb_openworld/qwen_ow_agentic_reviewer/qwen_both_xhigh
+  - _self_
+  - override /driver/chat_model@adm.instance.reviewer.chat_model: vllm_qwen38_27b_low
+
+interface:
+  username: testrun-ALIGN-Qwen-OW-Agentic-Reviewer-reviewer-low
+
+hydra:
+  run:
+    dir: outputs/qwen_ow_agentic_reviewer/reviewer_low/${now:%Y%m%d_%H%M%S_%f}

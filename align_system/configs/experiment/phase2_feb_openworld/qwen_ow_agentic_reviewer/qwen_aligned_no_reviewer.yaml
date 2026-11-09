@@ -1,0 +1,19 @@
+# @package _global_
+# Keep the matched decision settings, but execute actions without review.
+defaults:
+  - /experiment/phase2_feb_openworld/qwen_ow_agentic_reviewer/qwen_aligned_aligned
+  - _self_
+
+adm:
+  instance:
+    align_reviewer_to_target: false
+    reviewer: null
+
+save_scoring_output: true
+
+interface:
+  username: testrun-ALIGN-Qwen-OW-Agentic-Reviewer-aligned-no-reviewer
+
+hydra:
+  run:
+    dir: outputs/qwen_ow_agentic_reviewer/aligned_no_reviewer/${now:%Y%m%d_%H%M%S_%f}
