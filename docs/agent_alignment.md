@@ -10,7 +10,7 @@ The shared `ITMOpenWorldLangChainDriver` incorporates the workflow, grounded
 reviewer, history packing, request budgets, and logging from
 [PR #295](https://github.com/ITM-Kitware/align-system/pull/295), head
 `fda93690432d352d52d06ff4211a40686fa0fc5e`. The existing Kaleido toolkit, exact action-ID selection, patient safeguards, event
-journal, and score reporting remain integrated with this driver.
+journal, and score recording remain integrated with this driver.
 
 The normal launchers use the updated driver. Advisory review remains optional,
 as in the PR. Enable it on the existing Kaleido launcher with:
@@ -319,13 +319,10 @@ Retrieval exceptions are logged with a traceback and retained in diagnostics.
 
 The OpenWorld profiles (`FEB_OPENWORLD3`, `APRIL_OPENWORLD3`) have no training
 scenarios, so `training_session=full` does not apply to them: their scores come
-only from live eval sessions whose TA3 server can reach TA1. After each run the
-launchers write `alignment_summary.json` and report every scenario's score or
-the reason it is missing; a live run exits non-zero when a scenario finished
-without a score unless `REQUIRE_SCORES=false`. Inspect a run with:
+only from live eval sessions whose TA3 server can reach TA1. Inspect the saved
+score diagnostics with:
 
 ```bash
-python -m align_system.cli.report_agent_scores /path/to/run
 python -m json.tool /path/to/run/scoring_status.json
 ```
 
@@ -346,149 +343,10 @@ is not currently measured.
 
 Aborted episodes are recorded even when no action succeeds. A graceful run finish
 does not imply every scenario completed: action-limit exits remain unfinished.
-A killed process leaves missing terminal events; a truncated final JSONL line is
-flagged while its valid prefix remains readable. Corruption in earlier lines is
-rejected. There is no automatic resume. Reusing an output directory containing a
+A killed process can leave missing terminal events or a truncated final JSONL
+line. There is no automatic resume. Reusing an output directory containing a
 journal is rejected so runs cannot be mixed.
 
 With `save_input_output=true`, an empty action trace exists even if model setup
 fails. Successful traces are replaced atomically. Their `choice_info.event_log`
-identifiers connect each action to its journal, and the reporting tools check
-those bindings and action identities. If execution succeeded but trace saving
-was interrupted, `successful_actions_missing_from_trace` makes that gap visible.
-
-The summarizer and study comparison automatically discover an adjacent journal.
-Use `--events path/to/agent_events.jsonl` for a single run or an `events` path on
-a study manifest entry if it is stored elsewhere. Reliability reports include
-run/episode outcomes, zero-action episodes, decisions without an executed
-action, and failure event counts. Episode completion uses **all started
-episodes** in available journals as its denominator. Missing legacy journals are
-reported as unknown coverage, never as zero failures. Actor attempt counts
-exclude assessment-tool inference and are not a total compute measure.
-
-## Summarize a run
-
-```bash
-python -m align_system.cli.summarize_agent_alignment /path/to/run/input_output.json
-```
-
-The JSON report contains overall and per-target counts, fallback/forced-end
-rates, and mean decision latency. Timing includes assessment inference and
-agent tool calls before submitting the action, but excludes server execution.
-
-- Fallback and forced-end rates use executed actions whose source is recorded
-  as agent, fallback, or forced end as denominator. Unknown/legacy sources are
-  counted separately; no known sources yields `null`.
-- Timing means use only decisions with the corresponding timing field. Older
-  records without timing produce `null`, with a zero timed-decision count.
-- Preference agreement and regret remain `null` without external labels. Labels
-  can cover a subset of decisions; the report gives each metric's labeled count.
-
-## Supply independent labels
-
-Obtain labels from held-out experts or a separately validated evaluator using
-the recorded pre-action state and target. Assessment-tool scores do not
-constitute independent validation.
-
-```bash
-sha256sum /path/to/run/input_output.json
-python -m align_system.cli.summarize_agent_alignment \
-  /path/to/run/input_output.json --labels /path/to/independent_labels.json
-```
-
-The label file uses zero-based record indices and the exact input file's SHA-256
-digest. A different or subsequently extended run file is rejected. Example
-structure (replace the digest, source, actions, and example utilities with real
-annotations):
-
-```json
-{
-  "input_sha256": "SHA256_OF_INPUT_OUTPUT_JSON",
-  "source": "Held-out expert panel; annotation batch identifier",
-  "decisions": [
-    {
-      "record_index": 0,
-      "preferred_actions": [
-        {"action_id": "b", "action_type": "SEARCH", "character_id": null, "parameters": {}}
-      ],
-      "action_utilities": [
-        {"action": {"action_id": "a", "action_type": "SEARCH", "character_id": null, "parameters": {}}, "utility": 0.2},
-        {"action": {"action_id": "b", "action_type": "SEARCH", "character_id": null, "parameters": {}}, "utility": 0.8}
-      ]
-    }
-  ]
-}
-```
-
-Either `preferred_actions` or `action_utilities`, or both, may be supplied per
-decision. Preferred actions allow ties. Include exact patient/parameter
-completions, and `intent_action: true` for intent actions; omitted intent flags
-mean false. Justifications and prose do not affect matching.
-
-Preference agreement is the fraction of labeled decisions whose executed action
-is in the preferred set. Annotated regret is `max(annotated utilities) - executed
-action utility`, averaged over utility-labeled decisions; the executed action
-must have a utility. Higher utility means better alignment to that decision's
-target. Use a consistent scale across decisions. Regret is relative to the
-annotated alternatives, not an oracle over unlabeled possibilities. The report
-also identifies the lowest preference agreement among targets with labels; it
-does not impute scores for targets without labels.
-
-## Compare a complete study
-
-Create a manifest describing the run files. Paths are relative to the manifest,
-and `reference` selects the variant against which the others are compared:
-
-```json
-{
-  "reference": "evidence",
-  "runs": [
-    {"variant": "baseline", "replicate": "repeat-0", "input_output": "outputs/alignment-study/repeat-0/baseline/input_output.json"},
-    {"variant": "target", "replicate": "repeat-0", "input_output": "outputs/alignment-study/repeat-0/target/input_output.json"},
-    {"variant": "ranked", "replicate": "repeat-0", "input_output": "outputs/alignment-study/repeat-0/ranked/input_output.json"},
-    {"variant": "evidence", "replicate": "repeat-0", "input_output": "outputs/alignment-study/repeat-0/evidence/input_output.json"}
-  ]
-}
-```
-
-Add a `"labels": "path/to/labels.json"` field to each run that has independent
-labels. Each label file must match that run's SHA-256. Add further entries with
-distinct replicate identifiers for repeated runs. Then run:
-
-```bash
-python -m align_system.cli.compare_agent_alignment study.json \
-  --bootstrap-samples 2000 --seed 0 > comparison.json
-```
-
-The report gives each variant's overall/per-target summaries and paired
-comparisons. Pairs must have the same scenario ID, target identity, and replicate
-identifier. Their initial full state, target contents, and offered action
-identities must match, and their first recorded action index must be zero.
-Option order alone is ignored for matching. Different or unverifiable starting
-conditions are counted and excluded from paired estimates. Duplicate run paths
-or repeated scenario/target/replicate episodes are rejected. A repeat identifier
-is supplied by the researcher; the comparison cannot validate sampling settings
-or model/TA3 seeds from that identifier.
-
-Each paired episode contributes its mean metric. Differences are averaged over
-target profiles and replicates within a scenario, then equally over scenarios.
-Long episodes therefore do not dominate the paired estimate. The overall
-single-run summaries remain action-weighted and can differ from these estimates.
-For uncertainty, the command resamples whole scenario averages and reports 95%
-percentile bootstrap intervals. Intervals are `null` with fewer than two matched
-scenarios; the seed controls bootstrap reproducibility, not model generation.
-
-All deltas are **variant minus reference**: positive agreement deltas favor the
-variant, while negative regret, time, or fallback-rate deltas favor it. Metrics
-missing on either side of a pair are excluded and counted. No external labels
-means agreement/regret deltas remain `null`; partial annotation coverage remains
-visible in the per-variant summaries and must be considered when interpreting
-differences. Paired alignment deltas still use successful recorded actions;
-zero-action episodes contribute to each variant's reliability report, not those
-deltas. Keep failed run entries in the manifest and report completion/attrition
-alongside alignment: the paired estimates do not correct for selective failures.
-
-Earlier checks exercised these conditions with mocked models and environments.
-They established implementation behavior, not empirical alignment improvement.
-A live pilot still requires scenario runs and independent annotations; this repository
-does not generate expert labels from its own assessment scores.
+identifiers connect each action to its journal.
