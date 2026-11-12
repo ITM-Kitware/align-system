@@ -166,20 +166,6 @@ is not controlled. Exact environment-seed pairing requires server support.
 Live multi-seed results are still pending; offline replay does not fill the
 retest cells.
 
-Measure saved runs, including failures, with:
-
-```bash
-python -m align_system.cli.report_reset_progress /path/to/run [/path/to/other/run ...]
-```
-
-The report retains every started episode, reports completion from the journal,
-and gives per-scene distinct-treatment coverage, movement/total action counts,
-longest movement sequence, and the revisit proxy above. Missing successful
-trace rows are flagged: their action metrics are lower bounds. Coverage is an
-action measure, not a claim about recovery or persisting credit after later
-clinical changes. Compare outcomes by target, condition, and paired seed;
-never drop action-limit failures from the completion denominator.
-
 `TARGET_CONTEXT=true` adds the requested target and its attribute definitions to
 the actor's opening message, which remains pinned when conversation history is
 trimmed. This performs no model calls and provides no action scores. Use it with
@@ -295,31 +281,6 @@ all examples fit with the actor's instructions, tools, and observation before
 starting a full evaluation.
 Other backends retain their model defaults unless `generation_kwargs` is set;
 use the backend's parameter name (for example, `num_predict` for Ollama).
-
-## Check one real CR call before an evaluation
-
-On `itm`, with an existing vLLM server and a saved run containing an
-`episode_context` event, run:
-
-```bash
-python -m align_system.cli.check_comparative_regression \
-  --events /path/to/saved/run/agent_events.jsonl \
-  --output-dir /path/to/new/cr-check \
-  --base-url http://model-host:8000/v1 \
-  --bert-device cpu
-```
-
-Use `--scenario-id` to select a saved scene instead of the first one. Set
-`--bert-device cuda` when GPU memory is available; either device retains the
-shared BERT scorer and batch size 32. The check invokes the real CR tool once
-with its bounded retries, verifies complete scores and all 20 selected examples
-per attribute in the tool result, and counts the complete actor request against
-the server's context window. It creates no evaluation session and executes no
-environment action. The actor does not generate a decision.
-
-The new output directory contains `summary.json`, `assessment.json`,
-`tool_response.txt`, and `actor_request.json`. A nonzero exit means the checks
-failed; inspect those artifacts before proceeding with an evaluation.
 
 ## Server scores and missing-score diagnostics
 

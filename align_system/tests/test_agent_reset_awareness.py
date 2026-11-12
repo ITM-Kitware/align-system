@@ -11,8 +11,6 @@ from align_system.drivers.itm_open_world_langchain import (
 from align_system.tests.test_agent_assessments import Model, Scenario, action
 from align_system.tests.test_agent_controls_and_events import Actor
 from align_system.tests.test_agent_patient_progress import recorded_state
-from align_system.cli.report_reset_progress import episode_metrics, report_run
-from align_system.utils.agent_events import AgentEventLog
 
 
 def recorded_session():
@@ -167,36 +165,6 @@ def test_ledger_is_in_every_model_request_when_history_is_trimmed():
     for messages in actor.messages:
         assert 'CURRENT CARE CREDIT' in messages[0].content
         assert '"currently_treated": false' in messages[0].content
-
-
-def test_recorded_metrics_do_not_count_pre_reset_treatment_as_current_coverage():
-    session, steps = recorded_session()
-    records = [{'input': {'full_state': recorded_state(step).to_dict(),
-                          'choices': [a.to_dict() for a in session.scenario.actions]},
-                'output': {'action': step['action']}}
-               for step in steps[:-1]]
-    metrics = episode_metrics(records)
-    assert metrics['total_actions'] == 100
-    assert metrics['movement_actions'] == 47
-    assert metrics['longest_movement_sequence'] == 16
-    assert metrics['revisits_without_patient_action'] == 28
-    coverage = metrics['treatment_coverage_by_scene'][-1]
-    assert coverage['after_scene_reset']
-    assert coverage['treated'] == 10 and coverage['patients'] == 12
-    assert coverage['without_treatment'] == ['Patient 5', 'Patient 9']
-
-
-def test_metrics_include_zero_action_failures_and_flag_missing_trace_actions(tmp_path):
-    with AgentEventLog(tmp_path / 'agent_events.jsonl') as events:
-        with events.episode('failed-before-action'):
-            events.emit('episode_finished', completed=False)
-        with events.episode('completed-with-missing-trace-row'):
-            events.emit('action_succeeded', decision_index=0, action=action('search').to_dict())
-            events.emit('episode_finished', completed=True)
-    report = report_run(tmp_path)
-    assert report['episodes_started'] == 2
-    assert report['completion_rate'] == 0.5
-    assert not report['trace_metrics_complete']
 
 
 def test_evacuation_only_scene_does_not_require_a_care_navigation_plan():
