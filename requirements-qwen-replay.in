@@ -1,0 +1,7 @@
+# CUDA 12.9 runtime pins from ALIGN commit 8071eb49b0caa8ba8619ef3af9ca053de227bd31.
+vllm==0.32.0+cu129
+torch==2.13.0+cu129
+torchaudio==2.11.0+cu129
+torchvision==0.28.0+cu129
+transformers==5.19.0
+xgrammar==0.2.8

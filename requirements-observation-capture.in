@@ -1,0 +1,7 @@
+numpy==1.26.4
+PyYAML==6.0.3
+gymnasium==1.2.2
+prettytable==3.16.0
+paramiko==3.5.1
+loguru==0.7.3
+pandas==2.2.3
