@@ -50,7 +50,7 @@ from align_system.drivers.agent_actions import ActionResolutionSnapshot, paramet
 from align_system.drivers.agent_context_budget import (
     ContextBudgetError, ContextBudgetManager, is_context_overflow,
 )
-from align_system.drivers.agent_history import pack_history
+from align_system.algorithms.agents.agent_history import pack_history
 from align_system.drivers.agent_evidence import FinalReviewResponse, build_citation_guide
 from align_system.drivers.agent_review import ActionReviewer, validate_reviewer_contract
 from align_system.drivers.agent_recovery import (

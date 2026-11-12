@@ -12,7 +12,7 @@ from pydantic import (
 
 from align_system.drivers.agent_actions import NATIVE_ACTION_TOOLS, compact_action_catalog
 from align_system.drivers.agent_alignment import ALIGNMENT_GUIDANCE, SCENE_END_GUIDANCE
-from align_system.drivers.agent_patient_history import PATIENT_HISTORY_GUIDANCE
+from align_system.prompt_engineering.agentic_prompts import PATIENT_HISTORY_GUIDANCE
 from align_system.drivers.agent_evidence import (
     EvidenceValidationError, ReviewAssessment,
 )

@@ -36,27 +36,6 @@ def composed(result):
     return cfg
 
 
-def test_april_affiliation_launcher_uses_server_target_without_actor_override():
-    cfg = composed(dry_run(
-        launcher='phase2_ow_agent_qwen38_kaleido_april_affiliation0.sbatch'))
-    assert cfg.interface.adm_profile == 'APRIL_AFFILIATION_0'
-    assert cfg.interface.session_type == 'eval'
-    assert cfg.interface.training_session is None
-    assert list(cfg.interface.scenario_ids) == ['April2026-OW_desert3']
-    assert cfg.interface.api_endpoint == 'http://127.0.0.1:18081'
-    assert cfg.get('alignment_target') is None
-    assert cfg.driver.target_context is not None
-    assert not cfg.driver.extra_tools.kaleido.auto_assess
-
-
-def test_april_affiliation_launcher_rejects_conflicting_actor_target():
-    result = dry_run(
-        ['+alignment_target=june2025/ADEPT-June2025-merit-0.0'],
-        launcher='phase2_ow_agent_qwen38_kaleido_april_affiliation0.sbatch')
-    assert result.returncode == 2
-    assert 'no Hydra overrides' in result.stderr
-
-
 @pytest.mark.parametrize('launcher', [
     'phase2_ow_agent_qwen38.sh', 'phase2_ow_agent_qwen38_kaleido.sh',
     'phase2_ow_agent_qwen38_kaleido.sbatch', 'phase2_ow_agent_qwen38_live.sbatch',

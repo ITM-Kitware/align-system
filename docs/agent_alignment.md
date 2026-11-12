@@ -227,20 +227,6 @@ is not controlled. Exact environment-seed pairing requires server support.
 Live multi-seed results are still pending; offline replay does not fill the
 retest cells.
 
-Measure saved runs, including failures, with:
-
-```bash
-python -m align_system.cli.report_reset_progress /path/to/run [/path/to/other/run ...]
-```
-
-The report retains every started episode, reports completion from the journal,
-and gives per-scene distinct-treatment coverage, movement/total action counts,
-longest movement sequence, and the revisit proxy above. Missing successful
-trace rows are flagged: their action metrics are lower bounds. Coverage is an
-action measure, not a claim about recovery or persisting credit after later
-clinical changes. Compare outcomes by target, condition, and paired seed;
-never drop action-limit failures from the completion denominator.
-
 `TARGET_CONTEXT=true` adds the requested target and its attribute definitions to
 the actor's opening message, which remains pinned when conversation history is
 trimmed. This performs no model calls and provides no action scores. Use it with
