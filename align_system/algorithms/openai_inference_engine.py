@@ -41,7 +41,8 @@ class OpenAIInferenceEngine(StructuredInferenceEngine):
                  use_batch_api: bool = True,
                  batch_poll_interval: int = 60,
                  max_retries: int = 20,
-                 retry_base_delay: float = 1.0):
+                 retry_base_delay: float = 1.0,
+                 service_tier: Optional[str] = None):
         """Initialize the OpenAI inference engine.
 
         Args:
@@ -62,6 +63,9 @@ class OpenAIInferenceEngine(StructuredInferenceEngine):
             batch_poll_interval: Seconds between batch status polls.
             max_retries: Maximum number of retry attempts for API calls.
             retry_base_delay: Base delay in seconds for exponential backoff.
+            service_tier: Optional service tier for synchronous requests.
+                When None, omit it to use the API default. Ignored for Batch API
+                requests.
         """
         self.model_name = model_name
         self.temperature = temperature
@@ -71,6 +75,7 @@ class OpenAIInferenceEngine(StructuredInferenceEngine):
         self.batch_poll_interval = batch_poll_interval
         self.max_retries = max_retries
         self.retry_base_delay = retry_base_delay
+        self.service_tier = service_tier
         self.using_vllm = base_url is not None
 
         self.client = OpenAI(
@@ -88,7 +93,8 @@ class OpenAIInferenceEngine(StructuredInferenceEngine):
                         max_tokens="{max_tokens}",
                         base_url="{base_url}",
                         use_batch_api="{use_batch_api}",
-                        batch_poll_interval="{batch_poll_interval}"
+                        batch_poll_interval="{batch_poll_interval}",
+                        service_tier="{service_tier}"
                        )""").strip()
 
     def _build_request_params(self, prompt, text_kwargs, *, include_service_tier=True) -> dict:
@@ -112,8 +118,8 @@ class OpenAIInferenceEngine(StructuredInferenceEngine):
             # "top_p": self.top_p,
             **text_kwargs,
         }
-        if include_service_tier:
-            params["service_tier"] = "flex"
+        if include_service_tier and self.service_tier is not None:
+            params["service_tier"] = self.service_tier
         return params
 
     def dialog_to_prompt(self, dialog: list[dict]) -> str:
