@@ -10,6 +10,7 @@ import json
 import os
 from pathlib import Path
 import random
+import shutil
 import sys
 import time
 
@@ -118,6 +119,14 @@ def read_results(path, requests):
     return completed
 
 
+def input_protocol(requests):
+    return {
+        'input_views': sorted({item.get('input_view', 'privileged_attacker_actions') for item in requests}),
+        'conditions': sorted({item.get('condition', 'monitor') for item in requests}),
+        'prompt_protocol': 'historical_instructions_and_examples_held_fixed',
+    }
+
+
 def report(output, requests, completed, gpu_memory_bytes=None):
     report_path = output / "classification_report.json"
     if report_path.exists():
@@ -150,7 +159,8 @@ def report(output, requests, completed, gpu_memory_bytes=None):
         "total_inference_seconds": seconds,
         "mean_inference_seconds": seconds / len(completed) if completed else None,
         "peak_gpu_allocated_bytes": gpu_memory_bytes,
-        "interpretation": "Local greedy replay of historical inputs; not a reproduction of the hosted Turbo backend.",
+        "input_protocol": input_protocol(requests),
+        "interpretation": "Local greedy classification with historical instructions and examples held fixed; observation views are recorded in input_protocol. Not a reproduction of the hosted Turbo backend.",
     }
     write_json(report_path, result)
     return result
@@ -169,10 +179,15 @@ def run(args, requests):
     output.mkdir(parents=True, exist_ok=True)
     lock = (output / ".lock").open("w")
     fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    root = Path(__file__).resolve().parents[1]
+    sources = [Path(__file__).resolve(), root / 'scripts/classifier_replay.slurm',
+               root / 'requirements-classifier-replay.in', root / 'requirements-classifier-replay.txt']
     manifest = {
         "format_version": 1,
         "requests_sha256": digest(args.requests),
         "runner_sha256": digest(__file__),
+        "source_sha256": {path.name: digest(path) for path in sources},
+        "input_protocol": input_protocol(requests),
         "dependency_lock_sha256": digest(
             Path(__file__).resolve().parents[1] / "requirements-classifier-replay.txt"
         ),
@@ -196,6 +211,10 @@ def run(args, requests):
         raise ValueError("Predictions exist without a run manifest")
     else:
         write_json(manifest_path, manifest)
+        evidence = output / 'source'
+        evidence.mkdir(exist_ok=True)
+        for path in sources:
+            shutil.copyfile(path, evidence / path.name)
     predictions_path = output / "predictions.jsonl"
     completed = read_results(predictions_path, requests)
     remaining = [r for r in requests if r["request_id"] not in completed]

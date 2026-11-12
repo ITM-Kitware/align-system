@@ -1,37 +1,18 @@
-import argparse
-from uuid import uuid4
 import inspect
-import itertools
 import json
+import logging
 from pathlib import Path
 
-from hydra.utils import to_absolute_path
-
-from align_system.utils import logging
+from align_system.interfaces.cage_observations import (
+    DEFENDER_FIELDS, capture_paths, format_window, trajectory_length, validate_fields,
+)
 from align_system.interfaces.abstracts import (
     Interface,
     ActionBasedScenarioInterface)
 
-from swagger_client.models import (MetaInfo,)
-import random
-from CybORG import CybORG
-
-from CybORG.Agents.SimpleAgents.SleepAgent import SleepAgent
-from CybORG.Agents.SimpleAgents.Meander_Resilience import RedMeanderAgent_Resilience
-from CybORG.Agents.SimpleAgents.B_line_resilience import B_lineAgent_Resilience
-from CybORG.Agents.SimpleAgents.B_line_resilience import B_lineAgent_Resilience_C
-from CybORG.Agents.SimpleAgents.B_line_resilience import B_lineAgent_Resilience_I
-from CybORG.Agents.SimpleAgents.B_line_resilience import B_lineAgent_Resilience_A
-from CybORG.Agents.Wrappers import BlueTableWrapper
-
-from CybORG.AlignmentMetric.resilience_measure import ResilienceMetric
-
 log = logging.getLogger(__name__)
 
 RED_AGENT_LABELS = ['Sleep', 'Meander', 'B-line']
-
-TRAJECTORY_FIELDS = {'blue_actions': 'Blue', 'red_actions': 'Red'}
-
 
 class CAGEActionBasedServiceInterface(Interface):
     seed = None
@@ -41,7 +22,7 @@ class CAGEActionBasedServiceInterface(Interface):
             n_rollouts:int = 10,
             episode_length:int = 4,
             trajectory_dir:str = None,
-            observation_fields = ('blue_actions', 'red_actions'),
+            observation_fields = DEFENDER_FIELDS,
             red_agent_labels = None,
             start_step:int = 0,
             window_size:int = None,
@@ -72,15 +53,15 @@ class CAGEActionBasedServiceInterface(Interface):
                 raise ValueError('window_stride must be a positive integer')
             # Hydra changes the working directory, so resolve relative
             # paths against the directory the CLI was run from
-            self.trajectory_dir = Path(to_absolute_path(trajectory_dir))
+            self.trajectory_dir = Path(trajectory_dir)
+            if not self.trajectory_dir.is_absolute():
+                from hydra.utils import to_absolute_path
+                self.trajectory_dir = Path(to_absolute_path(trajectory_dir))
+            validate_fields(self.observation_fields)
 
-            unknown_fields = set(self.observation_fields) - TRAJECTORY_FIELDS.keys()
-            if unknown_fields or not self.observation_fields:
-                raise ValueError(
-                    f"observation_fields must be a non-empty subset of "
-                    f"{list(TRAJECTORY_FIELDS)}, got {self.observation_fields}")
-
-            trajectory_paths = sorted(self.trajectory_dir.rglob('*.json'))
+            trajectory_paths = (capture_paths(self.trajectory_dir)
+                                if (self.trajectory_dir / 'summary.json').exists()
+                                else sorted(self.trajectory_dir.rglob('*.json')))
             if not trajectory_paths:
                 raise ValueError(f"No trajectory JSON files found under {self.trajectory_dir}")
             if n_rollouts > len(trajectory_paths):
@@ -92,6 +73,10 @@ class CAGEActionBasedServiceInterface(Interface):
     def start_scenario(self):
         if self.trajectory_dir is not None:
             return self._start_trajectory_scenario()
+
+        from CybORG import CybORG
+        from CybORG.Agents.SimpleAgents.Meander_Resilience import RedMeanderAgent_Resilience
+        from CybORG.Agents.Wrappers import BlueTableWrapper
 
         self.current_rollout += 1
         log.info("Starting CAGE Scenario") #f"*ADM Name*: {self.username}")
@@ -131,8 +116,7 @@ class CAGEActionBasedServiceInterface(Interface):
             with trajectory_path.open() as stream:
                 trajectory = json.load(stream)
             trajectory_id = str(trajectory_path.relative_to(self.trajectory_dir))
-            episode_end = min(self.episode_length, *(len(trajectory[field])
-                              for field in self.observation_fields))
+            episode_end = min(self.episode_length, trajectory_length(trajectory, self.observation_fields))
             if self.window_size is None:
                 windows = [(None, self.start_step, episode_end)]
             else:
@@ -229,6 +213,8 @@ class CAGEActionBasedScenario(ActionBasedScenarioInterface):
     agent_name = 'Blue'
     def __init__(self, cyborg_sim, episode_length = 500, episode_number = 0,
                  red_agent_labels=None):
+        from CybORG.AlignmentMetric.resilience_measure import ResilienceMetric
+
         self.done = False
         self.red_agent_labels = list(RED_AGENT_LABELS if red_agent_labels is None else red_agent_labels)
         self.hostnames =[]
@@ -328,17 +314,6 @@ class CAGEActionBasedScenario(ActionBasedScenarioInterface):
         return self.obs #swagger_state
 
 
-def _format_trajectory_action(action):
-    # AgentTrajectory records the action name as the 'Host' of
-    # untargeted actions (e.g. Monitor)
-    text = action['Action']
-    if 'Subnet' in action:
-        text += f" on subnet {action['Subnet']}"
-    elif action.get('Host') not in (None, action['Action']):
-        text += f" on {action['Host']}"
-    return f"{text} (success: {action['Status']})"
-
-
 class CAGETrajectoryScenario(ActionBasedScenarioInterface):
     # Replays a trajectory JSON exported by CAGE2's AgentTrajectory.
     # Nothing is simulated, so the scenario starts complete with the
@@ -364,26 +339,12 @@ class CAGETrajectoryScenario(ActionBasedScenarioInterface):
         self.start_step = start_step
 
         self.obs = CAGEState(self.format_trajectory(episode_length, observation_fields),
-                             list(self.trajectory['network_topology'].keys()),
+                             list(self.trajectory.get('network_topology', {}).keys()),
                              self.scenario_id)
         self.obs.scenario_complete = True
 
     def format_trajectory(self, episode_length, observation_fields):
-        steps = zip(*(self.trajectory[field] for field in observation_fields))
-        lines = []
-        # episode_length remains the exclusive episode endpoint, not a window size.
-        # Keep the original timestep labels after skipping the opening steps.
-        for step, actions in enumerate(
-                itertools.islice(steps, self.start_step, episode_length),
-                start=self.start_step):
-            lines.append(f'Step {step}:')
-            for field, action in zip(observation_fields, actions):
-                lines.append(f'  {TRAJECTORY_FIELDS[field]}: {_format_trajectory_action(action)}')
-        if not lines:
-            raise ValueError(
-                f'No trajectory observations in [{self.start_step}, {episode_length}) '
-                f'for {self.scenario_id}; check start_step and episode_length')
-        return '\n'.join(lines)
+        return format_window(self.trajectory, self.start_step, episode_length, observation_fields)
 
     def get_red_agent_label(self):
         # Preserve family-only scoring for the default classifier, and use

@@ -94,6 +94,18 @@ class ReplaySafety(unittest.TestCase):
             self.assertEqual(result["expected_samples"], 2)
             self.assertEqual(result["per_class"]["Meander-A"]["accuracy"], None)
 
+    def test_report_identifies_defender_view_without_claiming_prompt_adaptation(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            item = {**request(), "input_view": "defender_table_and_blue_action",
+                    "condition": "active_hybrid_ppo"}
+            REPLAY.report(Path(temporary), [item], {})
+            result = json.loads((Path(temporary) / 'classification_report.json').read_text())
+            self.assertEqual(result['input_protocol'], {
+                'input_views': ['defender_table_and_blue_action'],
+                'conditions': ['active_hybrid_ppo'],
+                'prompt_protocol': 'historical_instructions_and_examples_held_fixed',
+            })
+
     def test_report_keeps_peak_memory_across_resume_and_completed_recheck(self):
         with tempfile.TemporaryDirectory() as temporary:
             output = Path(temporary)

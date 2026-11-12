@@ -13,8 +13,8 @@ interface:
   start_step: 0
   # Folder of trajectory JSONs exported by CAGE2
   trajectory_dir: null
-  # Trajectory fields shown per step
-  observation_fields: [blue_actions, red_actions]
+  # Defender-visible fields; requires captured Blue observation tables.
+  observation_fields: [blue_actions, defender_observations]
 
 
 adm:

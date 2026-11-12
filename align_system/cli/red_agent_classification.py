@@ -1,9 +1,11 @@
 import json
+import hashlib
 from copy import deepcopy
 import atexit
 import os
 import platform
 import shutil
+import subprocess
 from pathlib import Path
 from importlib.metadata import version
 
@@ -17,6 +19,7 @@ from timeit import default_timer as timer
 
 from align_system.utils import logging
 from align_system.utils.hydra_utils import initialize_with_custom_references
+from align_system.interfaces.cage_observations import trajectory_length
 
 log = logging.getLogger(__name__)
 JSON_HIGHLIGHTER = JSONHighlighter()
@@ -49,8 +52,7 @@ def _completed_replay_records(interface, records):
             continue
         with path.open() as stream:
             trajectory = json.load(stream)
-        end = min(interface.episode_length, *(len(trajectory[field])
-                  for field in interface.observation_fields))
+        end = min(interface.episode_length, trajectory_length(trajectory, interface.observation_fields))
         if interface.window_size is None:
             expected = [trajectory_id]
         else:
@@ -71,6 +73,8 @@ def _completed_replay_records(interface, records):
 def _validate_resume_manifest(previous, current):
     # Output schema and token budget may change when repairing a failed run.
     # Replay inputs, labels, model, and seeds must still describe the same run.
+    if previous.get('source') != current.get('source'):
+        raise ValueError('Cannot resume with changed source; use a new output directory')
     for key, value in previous['replay'].items():
         if current['replay'].get(key) != value:
             raise ValueError(f'Cannot resume with changed replay setting {key}; use a new output directory')
@@ -205,7 +209,23 @@ def main(cfg: DictConfig) -> None:
 
     # Record resolved settings, without persisting credentials. Hydra also saves
     # the experiment configuration and CLI overrides in .hydra/ for each run.
+    source_root = Path(__file__).resolve().parents[2]
+    source = {
+        'git_commit': None, 'git_dirty': None,
+        'files_sha256': {name: hashlib.sha256((source_root / name).read_bytes()).hexdigest()
+                         for name in ('align_system/cli/red_agent_classification.py',
+                                      'align_system/interfaces/cia_cage2_service.py',
+                                      'align_system/interfaces/cage_observations.py')},
+    }
+    if (source_root / '.git').exists():
+        source['git_commit'] = subprocess.check_output(
+            ['git', '-C', str(source_root), 'rev-parse', 'HEAD'], text=True).strip()
+        source['git_dirty'] = bool(subprocess.check_output(
+            ['git', '-C', str(source_root), 'status', '--porcelain'], text=True).strip())
+    trajectory_dir = getattr(interface, 'trajectory_dir', None)
+    audit_summary = Path(trajectory_dir) / 'summary.json' if trajectory_dir is not None else None
     manifest = {
+        'source': source,
         'python_version': platform.python_version(),
         'force_determinism': cfg.get('force_determinism', False),
         'random_seed': cfg.get('random_seed'),
@@ -223,6 +243,10 @@ def main(cfg: DictConfig) -> None:
             'observation_fields': getattr(interface, 'observation_fields', None),
             'red_agent_labels': getattr(interface, 'red_agent_labels', None),
             'trajectory_paths': [str(path) for path in getattr(interface, 'trajectory_paths', [])],
+            'trajectory_sha256': {str(path): hashlib.sha256(path.read_bytes()).hexdigest()
+                                  for path in getattr(interface, 'trajectory_paths', [])},
+            'audit_summary_sha256': (hashlib.sha256(audit_summary.read_bytes()).hexdigest()
+                                     if audit_summary is not None and audit_summary.exists() else None),
         },
     }
     if request_history is not None:

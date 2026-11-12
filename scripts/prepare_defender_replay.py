@@ -7,45 +7,40 @@ import hashlib
 import json
 from pathlib import Path
 import shutil
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from align_system.interfaces.cage_observations import (
+    capture_paths, format_window,
+)
 
 from run_classifier_replay import digest, read_requests, write_json
 
 
-def format_action(action):
-    text = action["Action"]
-    if "Subnet" in action:
-        text += f" on subnet {action['Subnet']}"
-    elif action.get("Host") not in (None, action["Action"]):
-        text += f" on {action['Host']}"
-    return f"{text} (success: {action['Status']})"
+def request_sections(item):
+    user = item["messages"][-1]
+    if user["role"] != "user" or not user["content"].startswith("# OBSERVATIONS\n"):
+        raise ValueError("Unknown historical request format")
+    before, after = user["content"].split("\n\n# AVAILABLE LABELS\n")
+    return before, after
 
 
-def paired_request(item, captured, capture_sha):
+def validate_historical_window(item, captured):
     provenance = item["provenance"]
     start, end = provenance["window_start"], provenance["window_end"]
-    window = captured["steps"][start:end]
-    if [row["step"] for row in window] != list(range(start, end)):
-        raise ValueError("Captured observations do not cover the requested window")
-    privileged = []
-    defender = []
-    for row in window:
-        blue = f"  Blue: {format_action(row['blue_action'])}"
-        privileged.extend((f"Step {row['step']}:", blue,
-                           f"  Red: {format_action(row['red_action'])}"))
-        defender.extend((f"Step {row['step']}:", blue, "  Blue observation:",
-                         row["defender_observation"]))
-    original_user = item["messages"][-1]
-    if original_user["role"] != "user":
-        raise ValueError("Expected the final message to be the classification request")
-    prefix = "# OBSERVATIONS\n"
-    boundary = "\n\n# AVAILABLE LABELS\n"
-    if not original_user["content"].startswith(prefix):
-        raise ValueError("Unknown historical request format")
-    before, after = original_user["content"].split(boundary)
-    if before != prefix + "\n".join(privileged):
+    before, _ = request_sections(item)
+    expected = format_window(captured, start, end, ('blue_actions', 'red_actions'))
+    if before != "# OBSERVATIONS\n" + expected:
         raise ValueError("Recovered action window differs from the historical model input")
+
+
+def defender_request(item, captured, capture_sha):
+    provenance = item["provenance"]
+    start, end = provenance["window_start"], provenance["window_end"]
+    _, after = request_sections(item)
+    observations = format_window(captured, start, end)
     result = copy.deepcopy(item)
-    result["messages"][-1]["content"] = prefix + "\n".join(defender) + boundary + after
+    result["messages"][-1]["content"] = "# OBSERVATIONS\n" + observations + "\n\n# AVAILABLE LABELS\n" + after
     result["original_request_id"] = item["request_id"]
     result["input_view"] = "defender_table_and_blue_action"
     message_sha = hashlib.sha256(json.dumps(result["messages"], sort_keys=True).encode()).hexdigest()
@@ -69,21 +64,17 @@ def main():
     args = parser.parse_args()
     requests = read_requests(args.requests)
     summary = json.loads((args.capture_dir / "summary.json").read_text())
-    if summary["status"] != "complete":
-        raise ValueError("Episode audit must finish before preparing a classifier comparison")
+    if summary.get('condition') == 'active_hybrid_ppo':
+        raise ValueError('Use prepare_active_replay.py for active-defender captures')
     captures = {}
-    for episode in summary["episodes"]:
-        required = ("fresh_process_repeat_identical", "historical_initial_network_matches",
-                    "historical_metric_scores_match", "historical_action_trace_matches")
-        if not all(episode[field] for field in required):
-            raise ValueError(f"Historical episode verification failed: {episode['trajectory_id']}")
-        path = args.capture_dir / episode["capture_path"]
-        if digest(path) != episode["capture_sha256"]:
-            raise ValueError(f"Captured evidence changed: {path}")
+    for episode, path in zip(summary["episodes"], capture_paths(args.capture_dir)):
         captures[(episode["class_directory"], episode["trajectory_id"])] = (
             json.loads(path.read_text()), episode["capture_sha256"])
-    paired = [paired_request(item, *captures[(item["provenance"]["class_directory"],
-                                              item["trajectory_id"])]) for item in requests]
+    paired = []
+    for item in requests:
+        captured, capture_sha = captures[(item["provenance"]["class_directory"], item["trajectory_id"])]
+        validate_historical_window(item, captured)
+        paired.append(defender_request(item, captured, capture_sha))
     args.output_dir.mkdir(parents=True, exist_ok=False)
     privileged_path = args.output_dir / "privileged-requests.jsonl"
     defender_path = args.output_dir / "defender-requests.jsonl"
@@ -96,6 +87,7 @@ def main():
         "n_requests_per_view": len(requests), "capture_audit_sha256": digest(args.capture_dir / "summary.json"),
         "privileged_requests_sha256": digest(privileged_path), "defender_requests_sha256": digest(defender_path),
         "preparation_script_sha256": digest(Path(__file__)),
+        "observation_formatter_sha256": digest(Path(__file__).resolve().parents[1] / "align_system/interfaces/cage_observations.py"),
         "system_prompts_unchanged": True, "generation_settings_unchanged": True,
         "classification_labels_unchanged": True, "windows_unchanged": True,
         "comparison": "Change only the current observation section; retain historical prompts and examples.",

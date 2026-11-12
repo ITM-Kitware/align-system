@@ -8,4 +8,5 @@ interface:
   n_rollouts: 20
   episode_length: 100
   trajectory_dir: ../CAGE2/CybORG/results/red_classifier_jumping_seeds_100_150/bline_a/trajectories
+  # Privileged historical action baseline; defender-only runs require captured Blue tables.
   observation_fields: [blue_actions, red_actions]

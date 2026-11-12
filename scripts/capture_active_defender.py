@@ -10,7 +10,9 @@ import random
 import shutil
 import sys
 
-from capture_defender_observations import action_record, capture, digest, json_safe
+from capture_defender_observations import (
+    action_record, capture, digest, json_safe, simulator_source_digest, verified_monitor_episodes,
+)
 from run_classifier_replay import write_json
 
 
@@ -84,15 +86,20 @@ def main():
     parser.add_argument("--first-per-class", action="store_true")
     parser.add_argument("--policy-deterministic", action="store_true")
     args = parser.parse_args()
+    summary = json.loads((args.monitor_capture_dir / "summary.json").read_text())
+    episodes = verified_monitor_episodes(summary)
+    source_sha = simulator_source_digest(args.cage_root)
+    for episode in episodes:
+        path = args.monitor_capture_dir / episode['capture_path']
+        if digest(path) != episode['capture_sha256']:
+            raise ValueError('Monitor capture hash changed')
+        if json.loads(path.read_text())['cage_python_source_sha256'] != source_sha:
+            raise ValueError('Simulator source differs from the verified Monitor capture')
     sys.path.insert(0, str(args.cage_root.resolve()))
     import torch
     from stable_baselines3 import PPO
     torch.set_num_threads(1)
     torch.use_deterministic_algorithms(True)
-    summary = json.loads((args.monitor_capture_dir / "summary.json").read_text())
-    if summary["status"] != "complete":
-        raise ValueError("Monitor reproducibility audit must be complete")
-    episodes = summary["episodes"]
     indices = collections.Counter()
     assignments = []
     for row in episodes:
@@ -108,7 +115,7 @@ def main():
     root = Path(__file__).resolve().parents[1]
     for path in (Path(__file__), root / "scripts/capture_defender_observations.py",
                  root / "scripts/run_classifier_replay.py", root / "requirements-active-capture.in",
-                 root / "requirements-active-capture.txt"):
+                 root / "requirements-active-capture.txt", root / "align_system/interfaces/cage_observations.py"):
         shutil.copyfile(path, sources / path.name)
     policies = {}
     results = []
@@ -125,7 +132,9 @@ def main():
         if digest(scenario) != monitor["scenario_sha256"]:
             raise ValueError("Scenario changed")
         control = capture(reference, scenario)
-        if control["steps"] != monitor["steps"]:
+        if (control["steps"] != monitor["steps"] or not all(control[field] is True for field in (
+            "historical_initial_network_matches", "historical_metric_scores_match", "historical_action_trace_matches",
+        ))):
             raise ValueError("CPU PPO runtime changed the Monitor control replay")
         checkpoint = Path(args.checkpoint_template.format(seed=training_seed))
         if training_seed not in policies:
@@ -142,13 +151,15 @@ def main():
             "policy_deterministic": args.policy_deterministic, "policy_device": "cpu",
             "monitor_capture_sha256": episode["capture_sha256"],
             "scenario_sha256": monitor["scenario_sha256"], "cage_revision": monitor["cage_revision"],
-            "cage_python_source_sha256": monitor["cage_python_source_sha256"],
+            "cage_python_source_sha256": source_sha,
             "collector_sha256": digest(Path(__file__)),
+            "observation_protocol_sha256": digest(root / "align_system/interfaces/cage_observations.py"),
             "dependency_lock_sha256": digest(root / "requirements-active-capture.txt"),
             "software": {name: importlib.metadata.version(name) for name in
                          ("torch", "stable-baselines3", "numpy", "gymnasium")},
             "repeat_capture_identical": True, "monitor_control_reproduced": True,
-            "observation_timing": monitor["observation_timing"], "blue_action_counts": counts,
+            "observation_timing": "post-action; step 0 follows the first Blue action",
+            "blue_action_counts": counts,
             **first,
         }
         name = f"{episode['class_directory']}-{Path(episode['trajectory_id']).stem}.json"

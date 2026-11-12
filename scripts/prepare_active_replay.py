@@ -2,13 +2,11 @@
 """Prepare active-defender classifier inputs with the historical prompt held fixed."""
 
 import argparse
-import copy
-import hashlib
 import json
 from pathlib import Path
 import shutil
 
-from prepare_defender_replay import format_action, paired_request
+from prepare_defender_replay import capture_paths, defender_request
 from run_classifier_replay import digest, read_requests, write_json
 
 
@@ -23,30 +21,14 @@ def main():
     if summary["status"] != "complete" or summary["condition"] != "active_hybrid_ppo":
         raise ValueError("Active-defender capture is incomplete")
     captures = {}
-    for episode in summary["episodes"]:
-        path = args.capture_dir / episode["capture_path"]
-        if digest(path) != episode["capture_sha256"]:
-            raise ValueError("Active capture changed")
+    for episode, path in zip(summary["episodes"], capture_paths(args.capture_dir)):
         record = json.loads(path.read_text())
-        if not all(record[key] for key in ("repeat_capture_identical", "monitor_control_reproduced",
-                                           "initial_network_matches_monitor")):
-            raise ValueError("Active replay or Monitor control verification failed")
         captures[(episode["class_directory"], episode["trajectory_id"])] = (record, episode["capture_sha256"])
     paired = []
     for original in requests:
-        item = copy.deepcopy(original)
-        captured, capture_sha = captures[(item["provenance"]["class_directory"], item["trajectory_id"])]
-        start, end = item["provenance"]["window_start"], item["provenance"]["window_end"]
-        action_lines = []
-        for row in captured["steps"][start:end]:
-            action_lines.extend((f"Step {row['step']}:",
-                                 f"  Blue: {format_action(row['blue_action'])}",
-                                 f"  Red: {format_action(row['red_action'])}"))
-        boundary = "\n\n# AVAILABLE LABELS\n"
-        suffix = item["messages"][-1]["content"].split(boundary)[1]
-        item["messages"][-1]["content"] = "# OBSERVATIONS\n" + "\n".join(action_lines) + boundary + suffix
-        item["historical_prediction"] = None
-        result = paired_request(item, captured, capture_sha)
+        captured, capture_sha = captures[(original["provenance"]["class_directory"], original["trajectory_id"])]
+        result = defender_request(original, captured, capture_sha)
+        result["historical_prediction"] = None
         result["scenario_id"] = f"active-hybrid/seed{captured['training_seed']}/{original['scenario_id']}"
         result["condition"] = "active_hybrid_ppo"
         result["provenance"].update({"checkpoint_sha256": captured["checkpoint_sha256"],
@@ -67,6 +49,7 @@ def main():
         "capture_summary_sha256": digest(args.capture_dir / "summary.json"),
         "preparation_script_sha256": digest(Path(__file__)),
         "shared_preparation_script_sha256": digest(Path(__file__).with_name("prepare_defender_replay.py")),
+        "observation_formatter_sha256": digest(Path(__file__).resolve().parents[1] / "align_system/interfaces/cage_observations.py"),
         "system_prompts_unchanged": True, "generation_settings_unchanged": True,
         "window_schedule_unchanged": True,
         "interpretation": "New active-defender episodes paired to Monitor by environment seed, initial network, attacker class, and window schedule. Current attacker actions are excluded from the LLM input.",

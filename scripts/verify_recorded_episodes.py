@@ -9,6 +9,8 @@ import shutil
 import subprocess
 import sys
 
+from capture_defender_observations import HISTORICAL_CHECKS, verified_monitor_episodes
+
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
@@ -22,6 +24,8 @@ def main():
     args = parser.parse_args()
     references = sorted({(row["provenance"]["class_directory"], row["trajectory_id"])
                          for row in map(json.loads, args.requests.read_text().splitlines())})
+    if not references:
+        raise ValueError('No recorded episodes to verify')
     if args.first_per_class:
         references = list({kind: next(item for item in references if item[0] == kind)
                            for kind in sorted({item[0] for item in references})}.values())
@@ -31,7 +35,8 @@ def main():
     source.mkdir()
     root = script.resolve().parents[1]
     for path in (script, Path(__file__), root / "requirements-observation-capture.in",
-                 root / "requirements-observation-capture.txt"):
+                 root / "requirements-observation-capture.txt",
+                 root / "align_system/interfaces/cage_observations.py"):
         shutil.copyfile(path, source / path.name)
     results = []
     for kind, trajectory in references:
@@ -58,7 +63,8 @@ def main():
             **{key: value for key, value in captured.items() if key.startswith("historical_")},
         }
         results.append(row)
-        report = {"status": "complete" if len(results) == len(references) else "partial",
+        passed = all(row.get(field) is True for field in HISTORICAL_CHECKS)
+        report = {"status": ("complete" if len(results) == len(references) else "partial") if passed else "failed",
                   "expected_episodes": len(references), "checked_episodes": len(results),
                   "requests_sha256": hashlib.sha256(args.requests.read_bytes()).hexdigest(),
                   "episodes": results}
@@ -66,6 +72,9 @@ def main():
         temporary.write_text(json.dumps(report, indent=2) + "\n")
         temporary.replace(args.output_dir / "summary.json")
         print(json.dumps(row), flush=True)
+        if not passed:
+            raise RuntimeError(f"Historical episode verification failed: {name}")
+    verified_monitor_episodes(report)
 
 
 if __name__ == "__main__":

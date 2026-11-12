@@ -1,10 +1,11 @@
 # Recorded attacker-classification replay
 
-This workflow evaluates a local model on recorded system/user dialogues. It
-requires no simulator rollouts, defender checkpoints, hosted inference account,
-or training. Inference runs as a Slurm batch job and continues after the submitting
-terminal disconnects. The preparation and validation commands need only Python's
-standard library.
+This workflow evaluates a local model on recorded system/user dialogues.
+Historical replay requires no simulator rollouts or defender checkpoints.
+Defender observation capture requires the simulator; active capture also requires
+defender checkpoints. Neither requires a hosted inference account or training.
+Inference runs as a Slurm batch job and continues after the submitting terminal
+disconnects. Input preparation and validation need only Python's standard library.
 
 ## Prepare inputs
 
@@ -119,6 +120,21 @@ Use a new output directory for every changed setting.
 
 ## Verify and capture defender observations
 
+Defender-only input is the normal classification view. The existing
+`CAGEActionBasedServiceInterface` and base classification configuration default to
+`observation_fields: [blue_actions, defender_observations]`. Set `trajectory_dir`
+to a completed Monitor or active capture directory containing `summary.json`.
+The interface verifies capture hashes and reads only primary episodes named in
+that summary, excluding repeated captures and metadata. Its window formatter is
+also used by both replay preparation scripts.
+
+Historical action-only datasets do not contain Blue's observations. They fail
+under the default instead of silently exposing Red actions. For the explicit
+privileged baseline, select `observation_fields: [blue_actions, red_actions]`.
+The six historical per-class configurations retain that explicit selection.
+`prepare_classifier_replay.py` likewise retains the original privileged dialogues
+for baseline comparisons. There is no automatic fallback between input views.
+
 `capture_defender_observations.py` runs a recorded Monitor episode twice with
 the saved environment seed. It compares both sides' actions and success flags,
 initial network data, and per-step CIA/resilience scores with the reference.
@@ -132,6 +148,8 @@ CPU-only. Use the separate `requirements-observation-capture.txt` environment
 and a pinned simulator source directory. These checks establish consistency
 with retained historical evidence; the historical defender observations were
 not independently recorded, so their exact identity cannot be proven.
+An action, score, or initial-network mismatch marks the audit failed and exits
+unsuccessfully. Both Monitor preparation and active capture reject failed audits.
 
 `prepare_defender_replay.py` refuses incomplete or mismatched captures. It
 verifies every recovered attacker-action window against the historical prompt,
@@ -153,6 +171,8 @@ sampling is seeded and repeated; `--policy-deterministic` instead selects greedy
 actions. Policy inference runs on CPU. The runtime first reproduces each Monitor
 control, then captures both defender-visible observations and separate attacker
 actions for the active episode. Checkpoint hashes and action mappings are saved.
+The simulator source is fingerprinted directly and must match the verified
+Monitor capture before loading a policy or generating active episodes.
 
 Install `requirements-active-capture.txt` in a separate environment. Use
 `capture_active_defender.slurm` for capture and `prepare_active_replay.py` to
@@ -177,3 +197,12 @@ Keep each experiment's input manifests, source snapshot, dependency locks,
 checkpoint/model locators and hashes, predictions, logs, and reports together.
 Model weights and environments stay in their existing caches or personal code
 directories. Never overwrite historical result directories.
+
+Inference manifests and reports identify the input view, defender condition, and
+held-fixed historical prompt protocol. Source hashes and retained files identify
+the code that actually ran. Keep its Git revision and bundle locator in the run
+registry. A code review or later fix gets a separate revision and record; it must
+not change the revision attributed to existing runs. Use a new output directory
+for inference with revised code, because resume checks include source hashes.
+Native classification manifests also retain the audit-summary hash, input-file
+hashes, source hashes, and Git revision and dirty state when run from a checkout.

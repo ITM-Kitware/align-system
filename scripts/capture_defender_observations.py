@@ -12,9 +12,23 @@ from pathlib import Path
 import random
 import sys
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from align_system.interfaces.cage_observations import HISTORICAL_CHECKS, verified_monitor_episodes
+
 
 def digest(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def simulator_source_digest(cage_root):
+    files = sorted((cage_root / 'CybORG').rglob('*.py'))
+    if not files:
+        raise ValueError('No CybORG Python source found under --cage-root')
+    result = hashlib.sha256()
+    for path in files:
+        result.update(str(path.relative_to(cage_root)).encode())
+        result.update(path.read_bytes())
+    return result.hexdigest()
 
 
 def json_safe(value):
@@ -128,18 +142,15 @@ def main():
     second = capture(reference, args.scenario)
     if first != second:
         raise RuntimeError("Repeated seeded capture changed observations or actions")
-    source_files = sorted((args.cage_root / "CybORG").rglob("*.py"))
-    source_digest = hashlib.sha256()
-    for path in source_files:
-        source_digest.update(str(path.relative_to(args.cage_root)).encode())
-        source_digest.update(path.read_bytes())
+    source_digest = simulator_source_digest(args.cage_root)
     result = {
         "format_version": 1, "reference_sha256": digest(args.reference),
         "reference_path": str(args.reference), "seed": reference["seed"],
         "red_agent_name": reference["red_agent_name"], "blue_policy": "Monitor",
         "scenario_sha256": digest(args.scenario), "scenario_path": str(args.scenario),
-        "cage_revision": args.cage_revision, "cage_python_source_sha256": source_digest.hexdigest(),
+        "cage_revision": args.cage_revision, "cage_python_source_sha256": source_digest,
         "collector_sha256": digest(Path(__file__)),
+        "observation_protocol_sha256": digest(Path(__file__).resolve().parents[1] / "align_system/interfaces/cage_observations.py"),
         "dependency_lock_sha256": digest(Path(__file__).resolve().parents[1] / "requirements-observation-capture.txt"),
         "software": {name: importlib.metadata.version(name) for name in
                      ("numpy", "gymnasium", "prettytable", "PyYAML", "paramiko")},

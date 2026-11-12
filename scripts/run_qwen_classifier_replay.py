@@ -10,12 +10,12 @@ from pathlib import Path
 import shutil
 import time
 
-from run_classifier_replay import LABELS, digest, read_requests, read_results, report, write_json
+from run_classifier_replay import LABELS, digest, input_protocol, read_requests, read_results, report, write_json
 
 
 INTERPRETATION = (
-    "Qwen FP8 local replay of historical base dialogues with thinking disabled. "
-    "Not a reproduction of the hosted Llama backend or an independently verified Dena run."
+    "Qwen FP8 local classification with thinking disabled and historical instructions and examples held fixed. "
+    "Observation views are recorded in input_protocol. Not an exact reproduction of a hosted backend."
 )
 
 
@@ -59,6 +59,7 @@ def run(args, requests):
                root / "requirements-qwen-replay.in", root / "requirements-qwen-replay.txt"]
     manifest = {
         "format_version": 1, "requests_sha256": digest(args.requests),
+        "input_protocol": input_protocol(requests),
         "source_sha256": {p.name: digest(p) for p in sources},
         "model_snapshot": str(model),
         "model_files_sha256": {name: digest(model / name) for name in
