@@ -9,7 +9,7 @@ from langchain_core.messages import (
 from omegaconf import OmegaConf
 from swagger_client.models import Action
 
-from align_system.drivers.agent_history import pack_history
+from align_system.algorithms.agents.agent_history import pack_history
 from align_system.drivers.agent_resume_trace import RecoveryError, ReplayPlan
 from align_system.utils.agent_events import write_json_atomic
 from align_system.utils.alignment_targets import alignment_target_entries

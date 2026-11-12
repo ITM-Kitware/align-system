@@ -8,7 +8,7 @@ from omegaconf import OmegaConf
 import pytest
 from swagger_client.models import ActionTypeEnum
 
-from align_system.drivers.agent_history import pack_history
+from align_system.algorithms.agents.agent_history import pack_history
 from align_system.drivers.agent_resume import preflight_resume, reconstructed_messages
 from align_system.drivers.agent_resume_trace import RecoveryError, ReplayPlan
 from align_system.drivers.itm_open_world_langchain import ITMOpenWorldLangChainDriver
