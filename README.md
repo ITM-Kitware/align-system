@@ -126,6 +126,10 @@ Hydra also saves out all of the config parameters, config overrides,
 and internal hydra parameters for the run in the output directory in a
 subdirectory called `.hydra`.
 
+The LangChain open-world driver saves conversation checkpoints and a durable
+action journal. See [Recovering an agent run](docs/agent_recovery.md) to resume
+after a server reset by replaying the recorded actions into a fresh session.
+
 #### Output scores
 
 Assuming the `save_scoring_output` configuration option is `true`

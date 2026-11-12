@@ -29,6 +29,7 @@ import json
 import os
 from copy import deepcopy
 from enum import Enum
+from pathlib import Path
 from timeit import default_timer as timer
 
 import hydra
@@ -44,8 +45,16 @@ from align_system.algorithms.random_adm_component import (
     OWRandomParameterCompletionADMComponent)
 from align_system.data_models.compat.ta3_ph1_client_models import (
     CharacterTagEnum, InjuryLocationEnum)
+from align_system.drivers.agent_recovery import (
+    completed_state_after_error, is_completion_response)
+from align_system.drivers.agent_resume import (
+    replay_episode, restore_conversation, save_conversation)
+from align_system.drivers.agent_resume_trace import RecoveryError, ReplayPlan
 from align_system.utils import get_swagger_class_enum_values
 from align_system.utils import logging
+from align_system.utils.agent_actions import action_identity
+from align_system.utils.agent_events import AgentEventLog, write_json_atomic
+from align_system.utils.alignment_targets import alignment_target_entries
 from align_system.utils.text_tool_calls import parse_text_tool_calls
 from align_system.utils.version import get_version
 
@@ -239,12 +248,13 @@ class ScenarioSession:
     each executed action."""
 
     def __init__(self, scenario, alignment_target, apply_action_filtering,
-                 sort_available_actions, record_input_output):
+                 sort_available_actions, record_input_output, record_event=None):
         self.scenario = scenario
         self.alignment_target = alignment_target
         self.apply_action_filtering = apply_action_filtering
         self.sort_available_actions = sort_available_actions
         self.record_input_output = record_input_output
+        self.record_event = record_event or (lambda *args, **kwargs: None)
 
         self.current_state = scenario.get_state()
         self.scenario_complete = self.current_state.scenario_complete
@@ -257,6 +267,16 @@ class ScenarioSession:
         self.n_actions = 0
         self.times_s = []
         self.decision_start = timer()
+        self.assessments = {}
+        self.context_provider_results = {}
+        self.resume_plan = None
+        self.resume_episode = None
+        self.checkpoint_path = None
+        self.checkpoint_identity = {}
+
+    def record_assessment(self, name, assessment):
+        """Retain toolkit evidence at the current decision boundary."""
+        self.assessments[name] = deepcopy({**assessment, 'n_actions': self.n_actions})
 
     def all_patients_handled(self):
         """True once every (seen) character is tagged and every
@@ -339,27 +359,45 @@ class ScenarioSession:
         log.info(json.dumps(_as_dict(action_to_take), indent=4),
                  extra={"highlighter": JSON_HIGHLIGHTER})
 
+        self.record_event('action_attempted', decision_index=self.n_actions,
+                          action=action_identity(action_to_take),
+                          full_action=_as_dict(action_to_take),
+                          pre_action_state=_as_dict(self.current_state))
         try:
             if getattr(action_to_take, "intent_action", False):
                 current_state = self.scenario.intend_action(action_to_take)
             else:
                 current_state = self.scenario.take_action(action_to_take)
         except Exception as e:
+            self.record_event('action_response_error', decision_index=self.n_actions,
+                              error_type=type(e).__name__, status=getattr(e, 'status', None))
+            current_state = completed_state_after_error(self.scenario, e)
+            if current_state is not None:
+                self.record_event('scenario_completion_recovered', source='action',
+                                  decision_index=self.n_actions,
+                                  action=action_identity(action_to_take),
+                                  pre_action_state=_as_dict(self.current_state),
+                                  final_state=_as_dict(current_state))
+                self.current_state = current_state
+                self.scenario_complete = True
+                self.available_actions = []
+                self.actions_filtered = []
+                return current_state
             if hasattr(e, 'json'):
                 log.info(e.json(indent=2))
             else:
                 log.info(str(e))
 
-            if getattr(e, 'status', None) in (400, 500):
-                # The environment refused the action -- 400 for e.g. a
-                # too-distant character, 500 when the (live) server
-                # chokes on the action's parameters (e.g. TREAT_PATIENT
-                # without a treatment supply); recoverable by choosing
-                # differently
+            if getattr(e, 'status', None) == 400 and not is_completion_response(e):
                 raise ActionRejectedException(
                     str(getattr(e, 'body', e))) from e
-            raise e
+            # An ambiguous server failure must not trigger another mutation
+            # against stale state. Recovery can replay the confirmed prefix.
+            raise
 
+        self.record_event('action_succeeded', decision_index=self.n_actions,
+                          action=action_identity(action_to_take),
+                          full_state=_as_dict(current_state))
         # Only successfully executed actions are recorded
         if decision_time_s is not None:
             self.times_s.append(decision_time_s)
@@ -389,6 +427,8 @@ class ScenarioSession:
         self.current_state = current_state
         self.scenario_complete = current_state.scenario_complete
         self.n_actions += 1
+        self.assessments.clear()
+        self.context_provider_results.clear()
         # Listed actions are stale after the environment changes
         self.actions_filtered = []
         self.decision_start = timer()
@@ -398,6 +438,13 @@ class ScenarioSession:
     def _record_action(self, action_to_take, choice_info):
         # Called before the session state is updated, so the recorded
         # state/choices are the ones the decision was made against
+        choice_info = deepcopy(choice_info)
+        choice_info.setdefault('langchain_agent', {})[
+            'n_actions_taken_in_scenario'] = self.n_actions
+        if self.checkpoint_identity:
+            choice_info['event_log'] = dict(self.checkpoint_identity)
+        if self.assessments:
+            choice_info['assessments'] = deepcopy(self.assessments)
         action_choice_idx = None
         for i, a in enumerate(self.available_actions):
             if a.action_id == action_to_take.action_id:
@@ -1030,6 +1077,9 @@ class ITMOpenWorldLangChainDriver:
         resulted in an environment action being taken."""
         acted = False
         for tool_call in tool_calls:
+            session.record_event('tool_requested', decision_index=session.n_actions,
+                                 tool_call=tool_call)
+            n_actions_before = session.n_actions
             log.info("[bold]*AGENT TOOL CALL*[/bold]: "
                      "{}({})".format(
                          tool_call['name'],
@@ -1047,7 +1097,6 @@ class ITMOpenWorldLangChainDriver:
                 log.warning("Agent called unknown tool "
                             f"'{tool_call['name']}'")
             else:
-                n_actions_before = session.n_actions
                 try:
                     result = tools_by_name[tool_call['name']].invoke(
                         tool_call['args'])
@@ -1059,6 +1108,9 @@ class ITMOpenWorldLangChainDriver:
                 if session.n_actions > n_actions_before:
                     acted = True
 
+            session.record_event('tool_result', decision_index=session.n_actions,
+                                 tool_call_id=tool_call['id'], result=str(result),
+                                 action_executed=session.n_actions > n_actions_before)
             messages.append(ToolMessage(
                 content=str(result),
                 tool_call_id=tool_call['id']))
@@ -1083,6 +1135,7 @@ class ITMOpenWorldLangChainDriver:
             log.info(f"[bold]*TOOLKIT '{name}' DECISION CONTEXT*[/bold]",
                      extra={"markup": True})
             log.info(context)
+            session.context_provider_results[name] = str(context)
 
             if len(messages) > 1 and isinstance(messages[-1], HumanMessage):
                 messages[-1] = HumanMessage(
@@ -1129,6 +1182,11 @@ class ITMOpenWorldLangChainDriver:
         # Decision point (action count) the toolkits last provided
         # context for
         context_n_actions = None
+        if session.resume_episode is not None:
+            messages, context_n_actions, source = restore_conversation(
+                session.resume_plan, session.resume_episode, session, messages[0])
+            session.record_event('conversation_restored', source=source,
+                                 decision_index=session.n_actions, messages=len(messages))
 
         while (not session.scenario_complete
                and session.n_actions < self.max_actions_per_scenario):
@@ -1136,6 +1194,7 @@ class ITMOpenWorldLangChainDriver:
                 context_n_actions = session.n_actions
                 self._add_decision_context(session, messages)
 
+            save_conversation(session.checkpoint_path, session, messages, context_n_actions)
             message_window = self._trim_message_window(messages)
 
             try:
@@ -1186,6 +1245,8 @@ class ITMOpenWorldLangChainDriver:
                             tool_calls=recovered,
                             additional_kwargs=ai_message.additional_kwargs)
 
+                session.record_event('model_completed', decision_index=session.n_actions,
+                                     tool_calls=ai_message.tool_calls)
                 messages.append(ai_message)
 
                 if not ai_message.tool_calls:
@@ -1270,6 +1331,22 @@ class ITMOpenWorldLangChainDriver:
         return alignment_target
 
     def drive(self, cfg):
+        output_dir = hydra.core.hydra_config.HydraConfig.get().runtime.output_dir
+        source = cfg.get('resume_from')
+        resume = ReplayPlan(source) if source else None
+        if resume is not None:
+            destination = Path(output_dir).resolve()
+            if destination == resume.directory or resume.directory in destination.parents:
+                raise RecoveryError('Recovery requires a new output directory outside the source run')
+            if any((destination / name).exists()
+                   for name in ('agent_events.jsonl', 'input_output.json')):
+                raise RecoveryError('Recovery destination already contains a run')
+        with AgentEventLog(os.path.join(output_dir, 'agent_events.jsonl')) as events:
+            if cfg.save_input_output:
+                write_json_atomic(os.path.join(output_dir, 'input_output.json'), [])
+            self._drive(cfg, events, resume)
+
+    def _drive(self, cfg, events, resume):
         interface = cfg.interface
 
         # Resolve the chat model up front so a missing/misconfigured
@@ -1310,11 +1387,15 @@ class ITMOpenWorldLangChainDriver:
             # crashes or is interrupted
             inputs_outputs.append(entry)
             if save_input_output_to_path is not None:
-                with open(save_input_output_to_path, 'w') as f:
-                    json.dump(inputs_outputs, f, indent=2)
+                write_json_atomic(save_input_output_to_path, inputs_outputs)
 
         # Write version sidecar once at the start of the run
-        meta = {"version": get_version(), "driver": "langchain_agent"}
+        meta = {"version": get_version(), "driver": "langchain_agent",
+                "run_id": events.run_id, "event_log": "agent_events.jsonl"}
+        if resume is not None:
+            meta['resume'] = {'source_run_id': resume.run_id,
+                              'source_directory': str(resume.directory)}
+            events.emit('run_resumed', **meta['resume'])
         username = getattr(interface, 'username', None)
         if username is not None:
             meta["username"] = username
@@ -1333,90 +1414,114 @@ class ITMOpenWorldLangChainDriver:
                 break
             log.info(f'[bold]*Scenario ID*[/bold]: {scenario.id()}')
 
-            alignment_target = self._get_alignment_target(cfg, scenario)
+            with events.episode(scenario.id()) as record_event:
+                alignment_target = self._get_alignment_target(cfg, scenario)
 
-            log.info('[bold]*ALIGNMENT TARGET*[/bold]')
-            if alignment_target is None:
-                log.info('Alignment target is `None`')
-            else:
-                log.info(alignment_target)
-                if save_alignment_targets_to_path is not None:
-                    alignment_target_path = os.path.join(
-                        save_alignment_targets_to_path,
-                        f"{alignment_target.id}.json")
-
-                    with open(alignment_target_path, "w") as f:
-                        json.dump(alignment_target.to_dict(), f, indent=2)
-
-            session = ScenarioSession(
-                scenario=scenario,
-                alignment_target=(alignment_target
-                                  if cfg.align_to_target else None),
-                apply_action_filtering=self.apply_action_filtering,
-                sort_available_actions=sort_available_actions,
-                record_input_output=record_input_output)
-
-            self._run_agent_loop(session)
-
-            if (not session.scenario_complete
-                    and session.n_actions >= self.max_actions_per_scenario):
-                log.warning(f"Hit max_actions_per_scenario "
-                            f"({self.max_actions_per_scenario}) before "
-                            "scenario completion; ending scene")
-                session.refresh_actions()
-                self._force_end_scene(
-                    session, "Hit max_actions_per_scenario; ending scene")
-
-            if session.scenario_complete:
-                final_state = session.current_state
-                log.info("*Final state unstructured*: {}".format(
-                    final_state.unstructured))
-
-                if cfg.get('save_last_unstructured_state_per_scenario', False):
-                    if alignment_target is None:
-                        scenario_alignment_target = scenario.get_alignment_target()
-
-                        if scenario_alignment_target is not None:
-                            alignment_target_id = scenario_alignment_target.id
-                        else:
-                            alignment_target_id = None
-                    else:
-                        alignment_target_id = alignment_target.id
-
-                    final_scenario_state_output_path = os.path.join(
-                        output_dir, "{}.{}.final_state_unstructured.json".format(
-                            scenario.id(), alignment_target_id))
-                    with open(final_scenario_state_output_path, "w") as f:
-                        print(final_state.unstructured, file=f)
-
-            if save_timing_to_path is not None:
-                action_times["scenarios"].append(
-                    _compute_time_stats(session.times_s))
-
-            if alignment_target is not None:
-                try:
-                    session_alignment = interface.get_session_alignment(
-                        alignment_target)
-                except Exception:
-                    # Could be more specific about what kind of exceptions
-                    # to expect here
-                    session_alignment = None
-
-                if session_alignment is None:
-                    log.info("Couldn't get session alignment from interface")
+                log.info('[bold]*ALIGNMENT TARGET*[/bold]')
+                if alignment_target is None:
+                    log.info('Alignment target is `None`')
                 else:
-                    session_alignment_scores.append(session_alignment)
+                    log.info(alignment_target)
+                    if save_alignment_targets_to_path is not None:
+                        alignment_target_path = os.path.join(
+                            save_alignment_targets_to_path,
+                            f"{alignment_target.id}.json")
 
-                    if isinstance(session_alignment, dict):
-                        session_alignment_dict = session_alignment
+                        with open(alignment_target_path, "w") as f:
+                            json.dump(alignment_target.to_dict(), f, indent=2)
+
+                session = ScenarioSession(
+                    scenario=scenario,
+                    alignment_target=(alignment_target
+                                      if cfg.align_to_target else None),
+                    apply_action_filtering=self.apply_action_filtering,
+                    sort_available_actions=sort_available_actions,
+                    record_input_output=record_input_output,
+                    record_event=record_event)
+                session.checkpoint_identity = {'run_id': events.run_id,
+                                               'episode_id': events.episode_id}
+                if cfg.get('save_agent_checkpoint', True):
+                    session.checkpoint_path = os.path.join(output_dir, 'agent_checkpoint.json')
+                session.record_event(
+                    'episode_context', scenario_id=scenario.id(),
+                    alignment_target_id=getattr(session.alignment_target, 'id', None),
+                    target=alignment_target_entries(session.alignment_target),
+                    full_state=_as_dict(session.current_state))
+
+                episode = (resume.next_episode(scenario.id(), getattr(session.alignment_target, 'id', None))
+                           if resume is not None else None)
+                if episode is not None:
+                    replay_episode(resume, episode, session,
+                                   lambda state, session: self._observation_text(state))
+                    session.resume_plan = resume
+                    session.resume_episode = episode
+                if not session.scenario_complete:
+                    self._run_agent_loop(session)
+
+                if (not session.scenario_complete
+                        and session.n_actions >= self.max_actions_per_scenario):
+                    log.warning(f"Hit max_actions_per_scenario "
+                                f"({self.max_actions_per_scenario}) before "
+                                "scenario completion; ending scene")
+                    session.refresh_actions()
+                    self._force_end_scene(
+                        session, "Hit max_actions_per_scenario; ending scene")
+
+                if session.scenario_complete:
+                    final_state = session.current_state
+                    log.info("*Final state unstructured*: {}".format(
+                        final_state.unstructured))
+
+                    if cfg.get('save_last_unstructured_state_per_scenario', False):
+                        if alignment_target is None:
+                            scenario_alignment_target = scenario.get_alignment_target()
+
+                            if scenario_alignment_target is not None:
+                                alignment_target_id = scenario_alignment_target.id
+                            else:
+                                alignment_target_id = None
+                        else:
+                            alignment_target_id = alignment_target.id
+
+                        final_scenario_state_output_path = os.path.join(
+                            output_dir, "{}.{}.final_state_unstructured.json".format(
+                                scenario.id(), alignment_target_id))
+                        with open(final_scenario_state_output_path, "w") as f:
+                            print(final_state.unstructured, file=f)
+
+                if save_timing_to_path is not None:
+                    action_times["scenarios"].append(
+                        _compute_time_stats(session.times_s))
+
+                if alignment_target is not None:
+                    try:
+                        session_alignment = interface.get_session_alignment(
+                            alignment_target)
+                    except Exception:
+                        # Could be more specific about what kind of exceptions
+                        # to expect here
+                        session_alignment = None
+
+                    if session_alignment is None:
+                        log.info("Couldn't get session alignment from interface")
                     else:
-                        session_alignment_dict = session_alignment.to_dict()
+                        session_alignment_scores.append(session_alignment)
 
-                    log.info("[bold]*TA1 Alignment Score*[/bold]",
-                             extra={"markup": True})
-                    log.info(json.dumps(session_alignment_dict, indent=4),
-                             extra={"highlighter": JSON_HIGHLIGHTER})
+                        if isinstance(session_alignment, dict):
+                            session_alignment_dict = session_alignment
+                        else:
+                            session_alignment_dict = session_alignment.to_dict()
 
+                        log.info("[bold]*TA1 Alignment Score*[/bold]",
+                                 extra={"markup": True})
+                        log.info(json.dumps(session_alignment_dict, indent=4),
+                                 extra={"highlighter": JSON_HIGHLIGHTER})
+
+                session.record_event('episode_finished', completed=session.scenario_complete,
+                                     successful_actions=session.n_actions)
+
+        if resume is not None:
+            resume.assert_consumed()
         if save_timing_to_path is not None:
             all_times = []
             for sce in action_times["scenarios"]:
