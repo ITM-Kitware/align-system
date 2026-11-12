@@ -63,9 +63,7 @@ a medically meaningful treatment requirement.
 
 The original artifacts are on `itm` under
 `/data/users/vincenzo.dimatteo/code/cleanup/align-system/outputs/ow_agent/Qwen/Qwen3.8-27B-FP8/live/Kaleido-OnDemand-TargetAware-APRIL_OPENWORLD3/3965`.
-The recorded affiliation observations/actions used by the regression tests are
-in `align_system/tests/fixtures/agent_reset_3965.json`; no successful retest
-actions have been invented or appended to that trace.
+No successful retest actions have been invented or appended to that trace.
 
 | Recorded episode | Completed | Post-explosion treatments | Moves | Longest move sequence | Total actions | Revisit proxy |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -327,7 +325,7 @@ treatment, while missing fields alone do not erase care progress.
 
 The recorded April trace ends with six patients treated only before its scene
 change. Under the reset rule that trace remains incomplete; its old completion
-count is not a completion guarantee. Replay tests verify both this boundary
+count is not a completion guarantee. Replay tests verified both this boundary
 and that fresh checks and treatment are executable after a transition. Actual
 agent behavior and completion still require a new live run.
 
@@ -346,7 +344,7 @@ actor's observation, and checking vitals, treatment, and tagging still require
 visible patients who are not known to be distant. Evacuation-only decisions
 receive a list of evacuation candidates instead of instructions to revisit
 patients for treatment. Server rejections and completion remain authoritative.
-The regression tests replay run 3964's saved all-unseen state; their simulated
+The regression tests replayed run 3964's saved all-unseen state; their simulated
 server responses do not establish acceptance or completion in a fresh live run.
 
 If the agent exhausts its allowed attempts while multiple concrete evacuation
@@ -588,7 +586,7 @@ zero-action episodes contribute to each variant's reliability report, not those
 deltas. Keep failed run entries in the manifest and report completion/attrition
 alongside alignment: the paired estimates do not correct for selective failures.
 
-The tests exercise these conditions with mocked models and environments. They
-establish implementation behavior, not empirical alignment improvement. A live
+Offline tests checked these conditions with mocked models and environments. They
+established implementation behavior, not empirical alignment improvement. A live
 pilot still requires scenario runs and independent annotations; this repository
 does not generate expert labels from its own assessment scores.
