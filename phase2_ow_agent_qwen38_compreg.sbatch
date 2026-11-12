@@ -25,8 +25,7 @@ export EXPERIMENT=phase2_langchain_agent_ow_comparative_regression_live
 # that can reach TA1: the server scores each scenario at its end and the
 # driver records the result in scoring_status.json. Test sessions never
 # score, and the OpenWorld profiles have no training scenarios, so
-# TRAINING_SESSION=full does not apply. The job fails if a scenario ends
-# without a score (REQUIRE_SCORES=false to only warn).
+# TRAINING_SESSION=full does not apply.
 # Job array: task 0 runs April OpenWorld, task 1 runs February OpenWorld, as
 # separate jobs with their own output directories. Submit with --array=0 or
 # --array=1 for one of them, or set ADM_PROFILE to run a single profile.

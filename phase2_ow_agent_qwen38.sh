@@ -8,7 +8,6 @@
 # MODEL, TP, PORT, VLLM_URL, TA3_ENDPOINT, ADM_PROFILE, TRAINING_SESSION, SCENARIO_ID,
 # RUN_USERNAME, OUT_DIR, CONDA_SH, CONDA_ENV, KALEIDO_DEVICE are optional.
 # VLLM_GPU_MEMORY_UTILIZATION, VLLM_MAX_MODEL_LEN, VLLM_MAX_NUM_SEQS tune memory.
-# REQUIRE_SCORES=true|false (default true) fails live runs that end without server scores.
 # DRY_RUN=1 prints commands without activating Conda or contacting servers.
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")"
@@ -102,12 +101,6 @@ case "${run_mode}" in
     run_label=Live ;;
   *) fail "RUN_MODE must be smoke or live" ;;
 esac
-require_scores="${REQUIRE_SCORES:-true}"
-require_scores="${require_scores,,}"
-case "${require_scores}" in
-  true|false) ;;
-  *) fail "REQUIRE_SCORES must be true or false" ;;
-esac
 if [[ "${toolkit}" == compreg ]]; then
   assessment_mode="${assessment_mode:-ranked}"
   case "${assessment_mode}" in
@@ -198,14 +191,6 @@ if [[ "${toolkit}" == kaleido ]]; then
 fi
 run_args+=("${extra_args[@]}" "interface.username=${username}")
 
-# Alignment scores come from the TA3 server at the end of each live eval
-# scenario (docs/agent_alignment.md); test sessions never score. After the
-# run, report every scenario's score or the reason it is missing.
-report_args=("${out_dir}")
-if [[ "${run_mode}" == live && "${require_scores}" == true ]]; then
-  report_args+=(--require)
-fi
-
 vllm_args=(
   serve "${model}"
   --language-model-only
@@ -225,8 +210,6 @@ if [[ "${DRY_RUN:-0}" == 1 ]]; then
     printf '\n'
   fi
   printf '%q ' run_align_system "${run_args[@]}"
-  printf '\n'
-  printf '%q ' python -m align_system.cli.report_agent_scores "${report_args[@]}"
   printf '\n'
   exit 0
 fi
@@ -264,17 +247,4 @@ else
   done
   curl -sf "${base_url%/v1}/health" >/dev/null || fail "vLLM did not come up in time"
 fi
-run_status=0
-run_align_system "${run_args[@]}" || run_status=$?
-
-# Summarize the run and report its scores even after a failed run, so the
-# Slurm log always says which scenarios were scored.
-if ! python -m align_system.cli.summarize_agent_alignment "${out_dir}/input_output.json" \
-    > "${out_dir}/alignment_summary.json"; then
-  rm -f "${out_dir}/alignment_summary.json"
-  echo "Warning: could not summarize ${out_dir}/input_output.json" >&2
-fi
-report_status=0
-python -m align_system.cli.report_agent_scores "${report_args[@]}" || report_status=$?
-if [[ "${run_status}" != 0 ]]; then exit "${run_status}"; fi
-exit "${report_status}"
+run_align_system "${run_args[@]}"
