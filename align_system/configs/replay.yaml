@@ -1,0 +1,7 @@
+defaults:
+  - driver: replay
+  - _self_
+  - override hydra/job_logging: custom
+
+replay_run: ???
+interface: {}
