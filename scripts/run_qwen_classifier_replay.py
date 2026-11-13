@@ -21,10 +21,18 @@ INTERPRETATION = (
 
 def summarize(output, requests, completed):
     result = report(output, requests, completed)
-    result["interpretation"] = INTERPRETATION
+    result["interpretation"] = interpretation(requests)
     result["memory_measurement"] = "vLLM worker allocations are recorded in the Slurm logs"
     write_json(output / "classification_report.json", result)
     return result
+
+
+def interpretation(requests):
+    if input_protocol(requests)['prompt_protocol'] == 'historical_instructions_and_examples_held_fixed':
+        return INTERPRETATION
+    return ('Blue-only prompt adaptation with recorded instructions, examples, and history variants; '
+            'Qwen FP8 with thinking disabled. Reserved episodes are separate from prompt development, '
+            'but contributed to previously inspected aggregate baselines.')
 
 
 def run(args, requests):
@@ -71,7 +79,7 @@ def run(args, requests):
         "max_input_tokens": max(map(len, prompts.values())),
         "software": {name: importlib.metadata.version(name) for name in
                      ("vllm", "torch", "transformers", "xgrammar", "huggingface-hub")},
-        "interpretation": INTERPRETATION,
+        "interpretation": interpretation(requests),
     }
     output = args.output_dir
     output.mkdir(parents=True, exist_ok=True)

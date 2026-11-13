@@ -120,10 +120,12 @@ def read_results(path, requests):
 
 
 def input_protocol(requests):
+    protocols = {item.get('prompt_protocol', 'historical_instructions_and_examples_held_fixed')
+                 for item in requests}
     return {
         'input_views': sorted({item.get('input_view', 'privileged_attacker_actions') for item in requests}),
         'conditions': sorted({item.get('condition', 'monitor') for item in requests}),
-        'prompt_protocol': 'historical_instructions_and_examples_held_fixed',
+        'prompt_protocol': next(iter(protocols)) if len(protocols) == 1 else sorted(protocols),
     }
 
 
