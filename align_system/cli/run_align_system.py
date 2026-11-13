@@ -19,6 +19,11 @@ JSON_HIGHLIGHTER = JSONHighlighter()
             config_name="action_based")
 def main(cfg: DictConfig) -> None:
     source_cfg = cfg
+
+    if 'replay_run' in cfg:
+        from align_system.drivers.replay import prepare_replay_config
+        cfg = prepare_replay_config(cfg)
+
     cfg = initialize_with_custom_references(cfg)
 
     # Using the hydra generated output directory for the run

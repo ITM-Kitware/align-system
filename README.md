@@ -126,6 +126,36 @@ Hydra also saves out all of the config parameters, config overrides,
 and internal hydra parameters for the run in the output directory in a
 subdirectory called `.hydra`.
 
+#### Replaying a run
+
+To submit a previous run's recorded decisions to its interface again:
+
+```bash
+run_align_system --config-name replay \
+    replay_run=/absolute/path/to/previous/run \
+    ++interface.username=replay-user
+```
+
+`replay_run` accepts a run directory or its `input_output.json` file. The
+original `.hydra/config.yaml` must be present alongside the decision log.
+Replay reuses the saved interface configuration and run settings without
+loading the original ADM or agent. Omit the username override to reuse the
+configured username; the TA3 interface still appends a new session UUID.
+Use `++` for other overrides too, for example
+`++interface.api_endpoint=http://127.0.0.1:8080`.
+
+Before submitting each recorded action, replay checks the scenario ID,
+full state, alignment target ID, and availability of the action ID. Saved
+target values in `targets/` are checked when present. A mismatch stops the
+run with the decision index and differing field. The recording must cover
+the complete scenarios returned by the interface; truncated recordings
+raise an error when their decisions run out.
+
+Replay writes a new `input_output.json` containing successfully submitted
+decisions and saves its effective configuration in the new output directory.
+Scoring, saved targets, and final unstructured states follow the original
+run settings. No model inference timings are generated.
+
 #### Output scores
 
 Assuming the `save_scoring_output` configuration option is `true`
