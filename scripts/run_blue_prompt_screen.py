@@ -102,7 +102,7 @@ def execute(args):
         n=sum(r['variant'] in variants and r['provenance']['window_end'] in ends for r in development)
         return (n+240*confirm_count)*mean*1.25+900
 
-    for optional in ['P4','P5']:
+    for optional in ['P4','P6','P5']:
         if estimate()>available and optional in variants:
             variants.remove(optional)
     if estimate()>available:
@@ -144,7 +144,7 @@ def main():
     p.add_argument('--inputs',required=True,type=Path)
     p.add_argument('--output',required=True,type=Path)
     p.add_argument('--model',required=True,type=Path)
-    p.add_argument('--context-limit',type=int,default=16384)
+    p.add_argument('--context-limit',type=int,default=32768)
     p.add_argument('--stop-at',type=float)
     p.add_argument('--preflight-only',action='store_true')
     args=p.parse_args()

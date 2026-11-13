@@ -1,7 +1,7 @@
 # Blue observation prompt comparisons
 
 This workflow compares defender-specific instructions, compact chronological
-tables, one or two examples per class, and longer histories. It reuses verified
+tables, one, two, or three examples per class, and longer histories. It reuses verified
 Monitor captures and completed matched-baseline predictions. It never supplies
 Red actions, hidden metric scores, episode filenames, or true evaluation labels
 in model messages.
@@ -21,8 +21,9 @@ The prepared variants are:
 | P1 | Blue-specific instructions and full tables | 0 | 7 |
 | P2 | Blue-specific instructions and initial rows plus chronological changes | 0 | 7 |
 | P3 | Same as P2 | 1 per class | 7 |
-| P4 | Same as P2 | 2 per class | 7 |
+| P4 | Same as P2 | 3 per class | 7 |
 | P5 | Same as P3, with additional past history | 1 per class | Up to 21 |
+| P6 | Same as P2 | 2 per class | 7 |
 
 Compact histories preserve every initial row, subsequent changes, each current
 non-None activity including repetitions, and every Blue action and result. P5
@@ -35,12 +36,13 @@ Use `scripts/run_blue_prompt_screen.py --preflight-only` with the prepared input
 directory, a separate output directory, the cached model, and a context limit.
 It tokenizes every development and confirmation request with thinking disabled.
 An over-context optional variant is excluded entirely; evidence is not truncated.
-Core variants P1, P2, and P3 must fit.
+Core variants P1, P2, and P3 must fit. The default runtime cap is 32,768 tokens;
+this is a configurable memory budget, not the model's declared context capacity.
 
 The inference workflow requires a Slurm allocation and `--stop-at` as an absolute
 epoch timestamp. Its twenty-four-request pilot contains four requests per class
 chosen for large contexts. Only pilot latency determines the budget. The recorded
-budget can omit P4, then P5, reduce confirmation to one candidate, and finally
+budget can omit P4, then P6, then P5, reduce confirmation to one candidate, and finally
 reduce development to one balanced window per episode. If the smallest complete
 protocol cannot fit, inference stops before development rather than scheduling
 an incomplete class-ordered comparison.

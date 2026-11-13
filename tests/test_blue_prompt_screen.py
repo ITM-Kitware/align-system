@@ -70,7 +70,7 @@ class BluePromptScreenTest(unittest.TestCase):
             self.assertEqual(result.returncode,0,result.stderr)
             split=json.loads((root/'inputs/protocol.json').read_text())['shared_seed_partitions']
             self.assertEqual({k:len(v) for k,v in split.items()}, {'examples':4,'development':8,'confirmation':8})
-            for partition,expected in [('development',480),('confirmation',1200)]:
+            for partition,expected in [('development',576),('confirmation',1440)]:
                 rows=[json.loads(line) for line in (root/f'inputs/{partition}-requests.jsonl').read_text().splitlines()]
                 self.assertEqual(len(rows),expected)
                 for row in rows:
@@ -81,6 +81,8 @@ class BluePromptScreenTest(unittest.TestCase):
                     self.assertTrue(set(row['provenance']['example_episode_seeds']) <= set(split['examples']))
                     self.assertNotIn(row['seed'],row['provenance']['example_episode_seeds'])
                     if row['variant']=='P4':
+                        self.assertEqual(row['messages'][0]['content'].count('Training example '),18)
+                    if row['variant']=='P6':
                         self.assertEqual(row['messages'][0]['content'].count('Training example '),12)
             repeated=root/'repeat'
             command[-1]=str(repeated)
