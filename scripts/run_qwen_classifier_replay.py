@@ -64,10 +64,12 @@ def run(args, requests):
     settings = {
         "dtype": "bfloat16", "quantization": "fp8", "tensor_parallel_size": 1,
         "max_model_len": args.max_model_len, "max_num_seqs": 1,
-        "max_num_batched_tokens": args.max_model_len,
+        "max_num_batched_tokens": args.prefill_batch_tokens or args.max_model_len,
         "gpu_memory_utilization": 0.88, "enforce_eager": True,
         "language_model_only": True, "enable_prefix_caching": True, "seed": 0,
     }
+    if args.prefill_batch_tokens is not None:
+        settings['enable_chunked_prefill'] = True
     root = Path(__file__).resolve().parents[1]
     sources = [Path(__file__).resolve(), root / "scripts/run_classifier_replay.py",
                root / "scripts/qwen_classifier_replay.slurm",
@@ -162,6 +164,7 @@ def main():
     parser.add_argument("--model", type=Path)
     parser.add_argument("--output-dir", type=Path)
     parser.add_argument("--max-model-len", type=int, default=8192)
+    parser.add_argument("--prefill-batch-tokens", type=int)
     parser.add_argument("--validate-only", action="store_true")
     args = parser.parse_args()
     requests = read_requests(args.requests)

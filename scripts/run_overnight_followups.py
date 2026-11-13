@@ -151,6 +151,7 @@ def main():
     for name in ['inputs','output','model','fresh-captures','screen-inputs','primary-output','legacy-requests']:
         p.add_argument('--'+name,type=Path,required=True)
     p.add_argument('--context-limit',type=int,default=32768)
+    p.add_argument('--prefill-batch-tokens',type=int)
     p.add_argument('--stop-at',type=float,required=True)
     args=p.parse_args()
     if not os.environ.get('SLURM_JOB_ID') or not os.environ.get('CUDA_VISIBLE_DEVICES'):p.error('Use a Slurm GPU allocation')

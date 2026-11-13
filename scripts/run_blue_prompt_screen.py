@@ -67,6 +67,8 @@ def infer(args, rows, name):
     command=[sys.executable,str(Path(__file__).with_name('run_qwen_classifier_replay.py')),
              '--requests',str(path),'--output-dir',str(args.output/name),'--model',str(args.model),
              '--max-model-len',str(args.context_limit)]
+    if getattr(args,'prefill_batch_tokens',None) is not None:
+        command.extend(['--prefill-batch-tokens',str(args.prefill_batch_tokens)])
     subprocess.run(command,check=True,timeout=remaining)
 
 

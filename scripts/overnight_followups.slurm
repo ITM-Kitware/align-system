@@ -38,9 +38,13 @@ export OMP_NUM_THREADS="${SLURM_CPUS_PER_TASK}"
 mkdir -p "$TMPDIR" "$XDG_CACHE_HOME" "$VLLM_CACHE_ROOT" "$FOLLOWUP_ROOT/$1/output"
 cp "$0" "$FOLLOWUP_ROOT/$1/output/submitted_job.sh"
 cd "$REPLAY_CHECKOUT"
+context_args=(--context-limit 32768)
+if [[ "$1" == raw ]]; then
+    context_args=(--context-limit 65536 --prefill-batch-tokens 8192)
+fi
 exec timeout --signal=TERM --kill-after=45s "${remaining}s" \
     "$REPLAY_PYTHON" -u scripts/run_overnight_followups.py "$1" \
     --inputs "$FOLLOWUP_ROOT/$1/inputs" --output "$FOLLOWUP_ROOT/$1/output" \
     --fresh-captures "$FRESH_CAPTURE_ROOT" --screen-inputs "$PRIMARY_SCREEN_ROOT/inputs" \
     --primary-output "$PRIMARY_SCREEN_ROOT/output" --legacy-requests "$LEGACY_BLUE_REQUESTS" \
-    --model "$REPLAY_MODEL" --stop-at "$REPLAY_STOP_AT_EPOCH"
+    --model "$REPLAY_MODEL" --stop-at "$REPLAY_STOP_AT_EPOCH" "${context_args[@]}"
