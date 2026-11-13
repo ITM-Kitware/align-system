@@ -28,8 +28,15 @@ def summarize(output, requests, completed):
 
 
 def interpretation(requests):
-    if input_protocol(requests)['prompt_protocol'] == 'historical_instructions_and_examples_held_fixed':
+    protocol = input_protocol(requests)['prompt_protocol']
+    if protocol == 'historical_instructions_and_examples_held_fixed':
         return INTERPRETATION
+    if protocol == 'fresh_seed_validation':
+        return ('Frozen prompt comparison on newly seeded Monitor episodes, each captured twice. '
+                'Fresh scores are excluded from candidate selection; shared-seed groups are the resampling unit.')
+    if protocol == 'legal_event_history':
+        return ('Blue table and raw-observation representations with short or cumulative histories. '
+                'No true Red actions or hidden outcomes are supplied. Historical reserved episodes are exploratory.')
     return ('Blue-only prompt adaptation with recorded instructions, examples, and history variants; '
             'Qwen FP8 with thinking disabled. Reserved episodes are separate from prompt development, '
             'but contributed to previously inspected aggregate baselines.')
