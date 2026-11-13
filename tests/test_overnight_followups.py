@@ -52,6 +52,7 @@ class FollowupTest(unittest.TestCase):
             base.update(variant='P3',provenance={'window_start':30,'window_end':37},input_view='defender_table_compact_history')
             (screen/'development-requests.jsonl').write_text(json.dumps(base)+'\n')
             legacy=copy.deepcopy(base);legacy.pop('variant');legacy['messages'][0]['content']='FROZEN_LEGACY'
+            legacy['generation']['max_tokens']=32
             (root/'legacy.jsonl').write_text(json.dumps(legacy)+'\n');(primary/'selection.json').write_text(json.dumps({'selected_variants':['P3']}))
             episodes=[]
             for seed in [20000,20001]:
@@ -73,6 +74,7 @@ class FollowupTest(unittest.TestCase):
             for row in rows:
                 self.assertEqual(row['messages'][0]['content'],'FROZEN_LEGACY' if row['variant']=='P0' else 'FROZEN_PRIMARY')
                 self.assertEqual(row['actual_history_length'],row['provenance']['window_end']-row['provenance']['window_start'])
+                self.assertEqual(row['generation']['max_tokens'],256)
                 for secret in ['SECRET_RED_ACTION','SECRET_METRICS','SECRET_IDENTITY']:self.assertNotIn(secret,json.dumps(row['messages']))
             path=captures/episodes[0]['capture_path'];path.write_text(path.read_text()+' ')
             cmd[cmd.index('--output')+1]=str(root/'bad')

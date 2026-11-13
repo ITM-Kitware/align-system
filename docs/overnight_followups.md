@@ -29,8 +29,9 @@ supplies a true Red action or Red action outcome. Round-trip checks verify the
 retained host evidence, including repeated and partially specified connections.
 
 `prepare_overnight_followups.py fresh` reads the original development selection,
-freezes its first candidate, and preserves that candidate's exact system prompt
-and generation settings. It pairs this prompt with the historical Blue baseline
+freezes its first candidate, and preserves that candidate's exact system prompt,
+greedy sampling, and output schema. Every new condition uses a uniform 256-token
+output cap instead of the historical mixture of 32 and 256. It pairs this prompt with the historical Blue baseline
 on new captures, at the same prediction times. The fresh labels and episode
 identities remain outside model messages.
 

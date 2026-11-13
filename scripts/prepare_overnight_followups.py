@@ -21,6 +21,7 @@ EVENT_VARIANTS={'T-short':(False,7),'R-short':(True,7),
 
 
 def identify(row):
+    row['generation']['max_tokens']=256
     row['provenance']['messages_sha256']=hashlib.sha256(json.dumps(row['messages'],sort_keys=True).encode()).hexdigest()
     row['request_id']=hashlib.sha256(json.dumps({k:row[k] for k in
         ['variant','partition','seed','pair_id','messages','generation']},sort_keys=True).encode()).hexdigest()
@@ -107,6 +108,7 @@ def raw_inputs(args):
         'raw_factor':'Tables plus legally observed raw fields versus tables; matched example episode identities.',
         'primary_selection':'Highest development joint accuracy; shorter inputs break ties; confirm one.',
         'secondary_selection':'Best raw development condition versus table condition at the same history length, on fresh seeds.',
+        'max_output_tokens':256,'generation_normalization':'Greedy sampling and schema preserved; historical 32/256 token caps standardized to 256 for every new condition.',
         'fresh_primary_times':[17,37,58,79,100],'fresh_reduced_times':[37,79,100],
         'confirmation_limit':'Previously included in inspected aggregate baseline; exploratory.'})
 
@@ -148,6 +150,7 @@ def fresh_inputs(args):
         'primary_selection_sha256':digest(args.primary_output/'selection.json'),
         'fresh_capture_summary_sha256':digest(args.capture_dir/'summary.json'),
         'primary_prompt_sha256':hashlib.sha256(template['messages'][0]['content'].encode()).hexdigest(),
+        'max_output_tokens':256,'generation_normalization':'Greedy sampling and schema preserved; historical 32/256 token caps standardized to 256 for both arms.',
         'baseline_prompt_sha256':hashlib.sha256(legacy['messages'][0]['content'].encode()).hexdigest(),
         'candidate_selection':'Original development only; no confirmation or fresh scores used.',
         'times':[17,37,58,79,100],'reduced_times':[37,79,100],
