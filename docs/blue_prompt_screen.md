@@ -1,7 +1,7 @@
 # Blue observation prompt comparisons
 
 This workflow compares defender-specific instructions, compact chronological
-tables, one or three examples per class, and longer histories. It reuses verified
+tables, one or two examples per class, and longer histories. It reuses verified
 Monitor captures and completed matched-baseline predictions. It never supplies
 Red actions, hidden metric scores, episode filenames, or true evaluation labels
 in model messages.
@@ -21,7 +21,7 @@ The prepared variants are:
 | P1 | Blue-specific instructions and full tables | 0 | 7 |
 | P2 | Blue-specific instructions and initial rows plus chronological changes | 0 | 7 |
 | P3 | Same as P2 | 1 per class | 7 |
-| P4 | Same as P2 | 3 per class | 7 |
+| P4 | Same as P2 | 2 per class | 7 |
 | P5 | Same as P3, with additional past history | 1 per class | Up to 21 |
 
 Compact histories preserve every initial row, subsequent changes, each current

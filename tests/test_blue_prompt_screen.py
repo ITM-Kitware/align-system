@@ -80,6 +80,8 @@ class BluePromptScreenTest(unittest.TestCase):
                     self.assertIn(row['seed'],split[partition])
                     self.assertTrue(set(row['provenance']['example_episode_seeds']) <= set(split['examples']))
                     self.assertNotIn(row['seed'],row['provenance']['example_episode_seeds'])
+                    if row['variant']=='P4':
+                        self.assertEqual(row['messages'][0]['content'].count('Training example '),12)
             repeated=root/'repeat'
             command[-1]=str(repeated)
             again=subprocess.run(command,capture_output=True,text=True)

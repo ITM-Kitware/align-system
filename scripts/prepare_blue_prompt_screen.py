@@ -58,7 +58,7 @@ No hidden Red actions are added by this representation.
 '''
 
 VARIANTS = {'P1': (False, 0, 7), 'P2': (True, 0, 7), 'P3': (True, 1, 7),
-            'P4': (True, 3, 7), 'P5': (True, 1, 21)}
+            'P4': (True, 2, 7), 'P5': (True, 1, 21)}
 LABEL_BY_DIRECTORY = {label.lower().replace('b-line', 'bline').replace('-', '_'): label for label in LABELS}
 
 
@@ -159,7 +159,7 @@ def prepare(args):
     if any(set(a) & set(b) for i, a in enumerate(split.values()) for b in list(split.values())[i+1:]):
         raise ValueError('Episode-seed partitions overlap')
     examples = []
-    for index in range(3):
+    for index in range(2):
         for label in LABELS:
             matches = [capture for (directory, _), capture in captures.items()
                        if LABEL_BY_DIRECTORY[directory] == label and capture['seed'] == split['examples'][index]]
@@ -202,7 +202,7 @@ def prepare(args):
         'source_requests_sha256': digest(args.requests), 'capture_audit_sha256': digest(args.capture_dir/'summary.json'),
         'baseline_predictions_sha256': digest(args.baseline_predictions),
         'preparer_sha256': digest(Path(__file__)), 'variants': VARIANTS,
-        'example_selection': 'First three shuffled example seeds; windows ending at 37,58,79 respectively; nested class-balanced examples.',
+        'example_selection': 'First two shuffled example seeds; windows ending at 37,58 respectively; nested class-balanced examples.',
         'confirmation_limit': 'Reserved from prompt tuning; previously included in inspected aggregate baselines.',
         'early_long_history': 'P5 uses all available steps if fewer than 21 exist; actual length retained per request.',
         'primary_selection': 'Development joint accuracy, then shorter mean token count; confirm top two eligible variants.',
