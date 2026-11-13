@@ -182,6 +182,13 @@ do not switch policies in response to LLM predictions.
 
 ## Compare and retain evidence
 
+For an early matched comparison, `prepare_matched_classifier_replay.py` selects
+five spaced, nonoverlapping windows from every episode in a historical request
+file and its defender-view counterpart. It preserves the exact messages and
+generation settings. Requests alternate across the six classes, so early progress
+does not consist of a single class. With 120 episodes this produces 600 requests
+per view. The output manifest records source hashes and the selection rule.
+
 `summarize_classifier_comparison.py` reads a configuration listing each input
 file, output directory, model, and comparison pair. It verifies input hashes and
 model identities, joins changed input views by their original request IDs, and
