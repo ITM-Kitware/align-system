@@ -1,0 +1,10 @@
+_target_: align_system.algorithms.cage_vllm_inference_engine.CAGEVLLMInferenceEngine
+_convert_: all
+
+model_name: Qwen/Qwen3.8-27B
+tensor_parallel_size: 2
+dtype: bfloat16
+max_model_len: 8192
+gpu_memory_utilization: 0.90
+max_tokens: 128
+seed: ${oc.select:random_seed,0}

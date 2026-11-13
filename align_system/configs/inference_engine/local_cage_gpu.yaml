@@ -1,0 +1,12 @@
+_target_: align_system.algorithms.cage_local_inference_engine.CAGELocalInferenceEngine
+_convert_: all
+
+model_name: fdtn-ai/Foundation-Sec-8B-Instruct
+# CUDA_VISIBLE_DEVICES in the launcher exposes one physical GPU per worker.
+device: cuda:0
+precision: half
+max_tokens: 128
+model_kwargs:
+  local_files_only: true
+tokenizer_kwargs:
+  local_files_only: true

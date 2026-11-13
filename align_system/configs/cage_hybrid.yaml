@@ -1,0 +1,32 @@
+defaults:
+  - inference_engine: local_cage_vllm
+  - _self_
+
+# Live policy switching with local Qwen/vLLM on two GPUs.
+# Launch with python -m align_system.cli.cage_hybrid.
+mode: hybrid  # hybrid or oracle; oracle never constructs an inference engine
+scenario_path: ../CAGE2/CybORG/CybORG/Shared/Scenarios/scalability_experiments/base_with_resilience_tied.yaml
+checkpoint_dir: ../CAGE2/CybORG/checkpoints/CAGE2_CIA
+red_agent: bline_c
+# Optional [{step: 0, red_agent: meander_c}, {step: 50, red_agent: bline_i}].
+# Zero-based phase starts: switch after 50 completed actions, before action 51.
+# The first phase must match red_agent. The live environment is never reset.
+red_schedule: null
+n_rollouts: 50
+episode_length: 100
+start_seed: 1000
+policy_seeds: [0, 1, 2, 3, 4]
+episodes_per_policy_seed: 10
+window_size: 9
+window_stride: 1
+# Use greedy PPO actions, matching the CAGE2 deterministic cross-play evaluation.
+deterministic_policy: true
+random_seed: 0  # Inference seed; independent of episode and checkpoint seeds.
+resume: true
+check_only: false
+
+hydra:
+  job:
+    chdir: false
+  run:
+    dir: outputs/cia_hybrid/${now:%Y-%m-%d_%H-%M-%S}/${mode}/${red_agent}
