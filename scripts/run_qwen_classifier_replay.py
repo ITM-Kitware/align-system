@@ -37,6 +37,10 @@ def interpretation(requests):
     if protocol == 'legal_event_history':
         return ('Blue table and raw-observation representations with short or cumulative histories. '
                 'No true Red actions or hidden outcomes are supplied. Historical reserved episodes are exploratory.')
+    if protocol == 'frozen_active_transfer':
+        return ('Frozen Monitor-trained prompts on active hybrid PPO and matched Monitor captures. '
+                'Example episodes excluded; reserved and development-exposed cohorts reported separately. '
+                'No live LLM-driven defender switching.')
     return ('Blue-only prompt adaptation with recorded instructions, examples, and history variants; '
             'Qwen FP8 with thinking disabled. Reserved episodes are separate from prompt development, '
             'but contributed to previously inspected aggregate baselines.')
