@@ -10,6 +10,7 @@ import transformers
 from outlines.types import JsonSchema
 
 from align_system.algorithms.abstracts import StructuredInferenceEngine
+from align_system.algorithms.outlines_compat import from_transformers
 
 # Sometimes the internal default for outlines/transformers is 20,
 # leading to very short (and often invalid JSON) outputs.  Setting a
@@ -59,7 +60,7 @@ class OutlinesTransformersInferenceEngine(StructuredInferenceEngine):
 
         self.model_kwargs["dtype"] = torch_dtype
 
-        self.model = outlines.from_transformers(
+        self.model = from_transformers(
             transformers.AutoModelForCausalLM.from_pretrained(
                 model_name, **self.model_kwargs, device_map=device
             ),
@@ -69,9 +70,9 @@ class OutlinesTransformersInferenceEngine(StructuredInferenceEngine):
             device_dtype=torch_dtype,
         )
 
-        # https://github.com/dottxt-ai/outlines/pull/1817
-        # newer verion of outlines fixes this issue, but we are blocked with the vllm dependency
-        self.model.tokenizer.is_llama = True
+        # Retain the legacy tokenizer workaround; newer Outlines includes it.
+        if hasattr(self.model.tokenizer, 'is_llama'):
+            self.model.tokenizer.is_llama = True
 
     def dialog_to_prompt(self, dialog):
         tokenizer = self.model.tokenizer.tokenizer
