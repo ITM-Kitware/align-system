@@ -4,7 +4,7 @@ defaults:
 
 # Live policy switching with local Qwen/vLLM on two GPUs.
 # Launch with python -m align_system.cli.cage_hybrid.
-mode: hybrid  # hybrid or oracle; oracle never constructs an inference engine
+mode: hybrid  # hybrid, oracle, or random; only hybrid constructs an inference engine
 scenario_path: ../CAGE2/CybORG/CybORG/Shared/Scenarios/scalability_experiments/base_with_resilience_tied.yaml
 checkpoint_dir: ../CAGE2/CybORG/checkpoints/CAGE2_CIA
 red_agent: bline_c
@@ -14,6 +14,8 @@ red_agent: bline_c
 red_schedule: null
 n_rollouts: 50
 episode_length: 100
+# Random policy selection (and hybrid warm-up) uses each episode's seed in an
+# independent RNG. Sample all six specialists with replacement before each action.
 start_seed: 1000
 policy_seeds: [0, 1, 2, 3, 4]
 episodes_per_policy_seed: 10

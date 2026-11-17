@@ -41,6 +41,7 @@ class CAGEActionBasedServiceInterface(Interface):
             n_rollouts:int = 10,
             episode_length:int = 4,
             trajectory_dir:str = None,
+            trajectory_glob:str = '*.json',
             observation_fields = ('blue_actions', 'red_actions'),
             red_agent_labels = None,
             start_step:int = 0,
@@ -80,9 +81,11 @@ class CAGEActionBasedServiceInterface(Interface):
                     f"observation_fields must be a non-empty subset of "
                     f"{list(TRAJECTORY_FIELDS)}, got {self.observation_fields}")
 
-            trajectory_paths = sorted(self.trajectory_dir.rglob('*.json'))
+            # Matched recursively; narrow it when a folder mixes generation runs.
+            trajectory_paths = sorted(self.trajectory_dir.rglob(trajectory_glob))
             if not trajectory_paths:
-                raise ValueError(f"No trajectory JSON files found under {self.trajectory_dir}")
+                raise ValueError(f"No trajectory files matching {trajectory_glob!r} "
+                                 f"found under {self.trajectory_dir}")
             if n_rollouts > len(trajectory_paths):
                 log.warning(f"n_rollouts={n_rollouts} but only {len(trajectory_paths)} "
                             f"trajectories found under {self.trajectory_dir}, replaying all of them")

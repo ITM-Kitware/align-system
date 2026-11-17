@@ -1,0 +1,17 @@
+defaults:
+  - cage_hybrid
+  - _self_
+
+# Separate from the historical Red-action hybrid experiment.
+# P4: exact three examples per class (18 total), seven-step demonstrations.
+# Each live query uses nine post-action Blue tables and Blue actions/results.
+classifier_input: blue_observations
+window_size: 9
+window_stride: 1
+
+inference_engine:
+  max_model_len: 32768
+
+hydra:
+  run:
+    dir: outputs/cia_hybrid_blue_observations/${now:%Y-%m-%d_%H-%M-%S}/${mode}/${red_agent}

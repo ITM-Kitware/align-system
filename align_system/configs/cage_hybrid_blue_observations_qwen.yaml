@@ -1,0 +1,9 @@
+defaults:
+  - cage_hybrid_blue_observations
+  - _self_
+
+inference_engine:
+  model_name: Qwen/Qwen3.8-27B
+  tensor_parallel_size: 2
+  dtype: bfloat16
+  gpu_memory_utilization: 0.90

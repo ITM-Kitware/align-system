@@ -1,0 +1,24 @@
+# @package _global_
+defaults:
+  - /experiment/phase2_july_collab/pipeline_baseline_red_agent_classification
+  - override /inference_engine@adm.structured_inference_engine: local_cage_vllm
+  - _self_
+
+interface:
+  # Skip steps 0-9, then classify each full 7-step window independently.
+  # For 100 steps: 10-16, 11-17, ..., 93-99 (84 predictions per trajectory).
+  start_step: 10
+  window_size: 7
+  window_stride: 1
+  red_agent_labels: [B-line-C, B-line-I, B-line-A, Meander-C, Meander-I, Meander-A]
+
+adm:
+  # Shared by all six CIA resilience recipes, including direct CLI runs.
+  structured_inference_engine:
+    model_name: meta-llama/Llama-3.1-8B-Instruct
+    # The model sometimes echoes the JSON schema before answering, which overruns 32 tokens.
+    max_tokens: 128
+  step_definitions:
+    outlines_baseline:
+      system_prompt_template:
+        _target_: align_system.prompt_engineering.outlines_prompts.CAGEResilienceRedAgentClassificationSystemPrompt

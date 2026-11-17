@@ -1,0 +1,470 @@
+You classify a simulated attacker from partial defender observations.
+Return exactly one available label in the required JSON schema.
+
+There are two strategy families. B-line follows a comparatively direct sequential
+route, usually finishing work on one host before moving forward. Meander explores
+more broadly and may revisit hosts or interleave activity across hosts. These are
+behavioral tendencies, not guaranteed signatures in a short partial history.
+
+Within each family, the fixed objective controls eligible Impact targets:
+C: Auth and Database; I: Auth and Front; A: Auth, Database, and Front.
+Targets overlap. Auth alone distinguishes none of these objectives. Database is
+compatible with C or A; Front is compatible with I or A. Exploiting a host does
+not establish that the attacker intends to Impact it. The objective stays fixed
+through the episode; target hosts can change.
+
+You receive only Blue's selected actions and its resulting observation tables.
+Activity is detected Scan, Exploit, or None, not an exact Red action transcript.
+Compromised is Blue's retained estimate: No, Unknown, User, or Privileged. No
+means no compromise inferred by this table, not proof the host is safe. Unknown
+does not mean confirmed clean. A retained compromise label is not a new attack
+at every turn. None activity does not prove Red did nothing. Impact and privilege
+escalation are not directly named in these tables. Do not invent hidden actions.
+
+Blue receives automatic network-event monitoring each turn. Monitor collects
+network-event evidence. Analyse inspects files on a selected host while routine
+monitoring continues. Remove and Restore can change retained compromise labels.
+Host roles are indicated by their visible hostnames. Addresses are network
+identifiers, not attacker identity labels.
+
+Use chronology and visible host patterns. Evidence can be genuinely ambiguous;
+choose the best-supported available class without treating missing detections as
+certain absence. Examples show training labels even when their evidence overlaps.
+
+The compact history begins with every visible table row. Columns are
+Subnet, IP Address, Hostname, Activity, Compromised. Later steps list every changed
+row and every non-None Activity, including repeated detections. Other rows are
+unchanged from the preceding table. Blue action results are included every turn.
+No hidden Red actions are added by this representation.
+
+Training example 1:
+Columns: Subnet, IP Address, Hostname, Activity, Compromised.
+Step 30: Blue Monitor (success: TRUE)
+Initial visible table rows: [["10.0.235.64/28","10.0.235.74","Auth0","None","User"],["10.0.235.64/28","10.0.235.72","Database0","None","User"],["10.0.74.144/28","10.0.74.150","Defender","None","No"],["10.0.74.144/28","10.0.74.156","Enterprise0","None","User"],["10.0.74.144/28","10.0.74.151","Enterprise1","None","No"],["10.0.74.144/28","10.0.74.158","Enterprise2","None","User"],["10.0.235.64/28","10.0.235.76","Front0","None","No"],["10.0.235.64/28","10.0.235.77","Op_Host0","None","No"],["10.0.235.64/28","10.0.235.66","Op_Host1","None","No"],["10.0.235.64/28","10.0.235.78","Op_Host2","None","No"],["10.0.235.64/28","10.0.235.73","Op_Server0","None","No"],["10.0.232.224/28","10.0.232.225","User0","None","No"],["10.0.232.224/28","10.0.232.235","User1","None","User"],["10.0.232.224/28","10.0.232.237","User2","None","No"],["10.0.232.224/28","10.0.232.228","User3","None","No"],["10.0.232.224/28","10.0.232.230","User4","None","No"]]
+Step 31: Blue Monitor (success: TRUE)
+Changed rows and current activity: [["10.0.232.224/28","10.0.232.225","User0","Scan","No"]]
+All other rows unchanged.
+Step 32: Blue Monitor (success: TRUE)
+Changed rows and current activity: [["10.0.232.224/28","10.0.232.225","User0","None","No"],["10.0.232.224/28","10.0.232.228","User3","Scan","No"]]
+All other rows unchanged.
+Step 33: Blue Monitor (success: TRUE)
+Changed rows and current activity: [["10.0.232.224/28","10.0.232.228","User3","None","No"]]
+All other rows unchanged.
+Step 34: Blue Monitor (success: TRUE)
+Changed rows and current activity: [["10.0.232.224/28","10.0.232.235","User1","Scan","User"]]
+All other rows unchanged.
+Step 35: Blue Monitor (success: TRUE)
+Changed rows and current activity: [["10.0.232.224/28","10.0.232.235","User1","None","User"],["10.0.232.224/28","10.0.232.230","User4","Scan","No"]]
+All other rows unchanged.
+Step 36: Blue Monitor (success: TRUE)
+Changed rows and current activity: [["10.0.74.144/28","10.0.74.156","Enterprise0","Scan","User"],["10.0.232.224/28","10.0.232.230","User4","None","No"]]
+All other rows unchanged.
+Correct training label: B-line-C
+
+Training example 2:
+Columns: Subnet, IP Address, Hostname, Activity, Compromised.
+Step 30: Blue Monitor (success: TRUE)
+Initial visible table rows: [["10.0.235.64/28","10.0.235.74","Auth0","None","User"],["10.0.235.64/28","10.0.235.72","Database0","None","No"],["10.0.74.144/28","10.0.74.150","Defender","None","No"],["10.0.74.144/28","10.0.74.156","Enterprise0","None","User"],["10.0.74.144/28","10.0.74.151","Enterprise1","None","No"],["10.0.74.144/28","10.0.74.158","Enterprise2","None","User"],["10.0.235.64/28","10.0.235.76","Front0","None","User"],["10.0.235.64/28","10.0.235.77","Op_Host0","None","No"],["10.0.235.64/28","10.0.235.66","Op_Host1","None","No"],["10.0.235.64/28","10.0.235.78","Op_Host2","None","No"],["10.0.235.64/28","10.0.235.73","Op_Server0","None","No"],["10.0.232.224/28","10.0.232.225","User0","None","No"],["10.0.232.224/28","10.0.232.235","User1","None","User"],["10.0.232.224/28","10.0.232.237","User2","None","No"],["10.0.232.224/28","10.0.232.228","User3","None","No"],["10.0.232.224/28","10.0.232.230","User4","None","No"]]
+Step 31: Blue Monitor (success: TRUE)
+Changed rows and current activity: [["10.0.232.224/28","10.0.232.225","User0","Scan","No"]]
+All other rows unchanged.
+Step 32: Blue Monitor (success: TRUE)
+Changed rows and current activity: [["10.0.232.224/28","10.0.232.225","User0","None","No"],["10.0.232.224/28","10.0.232.228","User3","Scan","No"]]
+All other rows unchanged.
+Step 33: Blue Monitor (success: TRUE)
+Changed rows and current activity: [["10.0.232.224/28","10.0.232.228","User3","None","No"]]
+All other rows unchanged.
+Step 34: Blue Monitor (success: TRUE)
+Changed rows and current activity: [["10.0.232.224/28","10.0.232.235","User1","Scan","User"]]
+All other rows unchanged.
+Step 35: Blue Monitor (success: TRUE)
+Changed rows and current activity: [["10.0.232.224/28","10.0.232.235","User1","None","User"],["10.0.232.224/28","10.0.232.230","User4","Scan","No"]]
+All other rows unchanged.
+Step 36: Blue Monitor (success: TRUE)
+Changed rows and current activity: [["10.0.74.144/28","10.0.74.156","Enterprise0","Scan","User"],["10.0.232.224/28","10.0.232.230","User4","None","No"]]
+All other rows unchanged.
+Correct training label: B-line-I
+
+Training example 3:
+Columns: Subnet, IP Address, Hostname, Activity, Compromised.
+Step 30: Blue Monitor (success: TRUE)
+Initial visible table rows: [["10.0.235.64/28","10.0.235.74","Auth0","None","User"],["10.0.235.64/28","10.0.235.72","Database0","None","User"],["10.0.74.144/28","10.0.74.150","Defender","None","No"],["10.0.74.144/28","10.0.74.156","Enterprise0","None","User"],["10.0.74.144/28","10.0.74.151","Enterprise1","None","No"],["10.0.74.144/28","10.0.74.158","Enterprise2","None","User"],["10.0.235.64/28","10.0.235.76","Front0","None","User"],["10.0.235.64/28","10.0.235.77","Op_Host0","None","No"],["10.0.235.64/28","10.0.235.66","Op_Host1","None","No"],["10.0.235.64/28","10.0.235.78","Op_Host2","None","No"],["10.0.235.64/28","10.0.235.73","Op_Server0","None","No"],["10.0.232.224/28","10.0.232.225","User0","None","No"],["10.0.232.224/28","10.0.232.235","User1","None","User"],["10.0.232.224/28","10.0.232.237","User2","None","No"],["10.0.232.224/28","10.0.232.228","User3","Scan","No"],["10.0.232.224/28","10.0.232.230","User4","None","No"]]
+Step 31: Blue Monitor (success: TRUE)
+Changed rows and current activity: [["10.0.232.224/28","10.0.232.228","User3","None","No"]]
+All other rows unchanged.
+Step 32: Blue Monitor (success: TRUE)
+Changed rows and current activity: [["10.0.232.224/28","10.0.232.235","User1","Scan","User"]]
+All other rows unchanged.
+Step 33: Blue Monitor (success: TRUE)
+Changed rows and current activity: [["10.0.232.224/28","10.0.232.235","User1","None","User"],["10.0.232.224/28","10.0.232.230","User4","Scan","No"]]
+All other rows unchanged.
+Step 34: Blue Monitor (success: TRUE)
+Changed rows and current activity: [["10.0.74.144/28","10.0.74.156","Enterprise0","Scan","User"],["10.0.232.224/28","10.0.232.230","User4","None","No"]]
+All other rows unchanged.
+Step 35: Blue Monitor (success: TRUE)
+Changed rows and current activity: [["10.0.74.144/28","10.0.74.156","Enterprise0","None","User"]]
+All other rows unchanged.
+Step 36: Blue Monitor (success: TRUE)
+Changed rows and current activity: [["10.0.74.144/28","10.0.74.151","Enterprise1","Scan","No"]]
+All other rows unchanged.
+Correct training label: B-line-A
+
+Training example 4:
+Columns: Subnet, IP Address, Hostname, Activity, Compromised.
+Step 30: Blue Monitor (success: TRUE)
+Initial visible table rows: [["10.0.235.64/28","10.0.235.74","Auth0","None","User"],["10.0.235.64/28","10.0.235.72","Database0","None","No"],["10.0.74.144/28","10.0.74.150","Defender","None","User"],["10.0.74.144/28","10.0.74.156","Enterprise0","None","No"],["10.0.74.144/28","10.0.74.151","Enterprise1","None","User"],["10.0.74.144/28","10.0.74.158","Enterprise2","None","No"],["10.0.235.64/28","10.0.235.76","Front0","None","No"],["10.0.235.64/28","10.0.235.77","Op_Host0","None","User"],["10.0.235.64/28","10.0.235.66","Op_Host1","None","No"],["10.0.235.64/28","10.0.235.78","Op_Host2","None","No"],["10.0.235.64/28","10.0.235.73","Op_Server0","Exploit","User"],["10.0.232.224/28","10.0.232.225","User0","None","No"],["10.0.232.224/28","10.0.232.235","User1","None","No"],["10.0.232.224/28","10.0.232.237","User2","None","User"],["10.0.232.224/28","10.0.232.228","User3","None","No"],["10.0.232.224/28","10.0.232.230","User4","Scan","No"]]
+Step 31: Blue Monitor (success: TRUE)
+Changed rows and current activity: [["10.0.74.144/28","10.0.74.158","Enterprise2","Scan","No"],["10.0.235.64/28","10.0.235.73","Op_Server0","None","User"],["10.0.232.224/28","10.0.232.230","User4","None","No"]]
+All other rows unchanged.
+Step 32: Blue Monitor (success: TRUE)
+Changed rows and current activity: [["10.0.74.144/28","10.0.74.156","Enterprise0","Exploit","User"],["10.0.74.144/28","10.0.74.158","Enterprise2","None","No"]]
+All other rows unchanged.
+Step 33: Blue Monitor (success: TRUE)
+Changed rows and current activity: [["10.0.74.144/28","10.0.74.156","Enterprise0","None","User"],["10.0.232.224/28","10.0.232.225","User0","Scan","No"]]
+All other rows unchanged.
+Step 34: Blue Monitor (success: TRUE)
+Changed rows and current activity: [["10.0.232.224/28","10.0.232.225","User0","None","No"],["10.0.232.224/28","10.0.232.235","User1","Scan","No"],["10.0.232.224/28","10.0.232.228","User3","Exploit","User"]]
+All other rows unchanged.
+Step 35: Blue Monitor (success: TRUE)
+Changed rows and current activity: [["10.0.232.224/28","10.0.232.235","User1","None","No"],["10.0.232.224/28","10.0.232.228","User3","None","User"]]
+All other rows unchanged.
+Step 36: Blue Monitor (success: TRUE)
+Changed rows and current activity: [["10.0.74.144/28","10.0.74.151","Enterprise1","Exploit","User"]]
+All other rows unchanged.
+Correct training label: Meander-C
+
+Training example 5:
+Columns: Subnet, IP Address, Hostname, Activity, Compromised.
+Step 30: Blue Monitor (success: TRUE)
+Initial visible table rows: [["10.0.235.64/28","10.0.235.74","Auth0","None","User"],["10.0.235.64/28","10.0.235.72","Database0","None","No"],["10.0.74.144/28","10.0.74.150","Defender","None","User"],["10.0.74.144/28","10.0.74.156","Enterprise0","None","No"],["10.0.74.144/28","10.0.74.151","Enterprise1","None","User"],["10.0.74.144/28","10.0.74.158","Enterprise2","None","No"],["10.0.235.64/28","10.0.235.76","Front0","None","No"],["10.0.235.64/28","10.0.235.77","Op_Host0","None","User"],["10.0.235.64/28","10.0.235.66","Op_Host1","None","No"],["10.0.235.64/28","10.0.235.78","Op_Host2","None","No"],["10.0.235.64/28","10.0.235.73","Op_Server0","Exploit","User"],["10.0.232.224/28","10.0.232.225","User0","None","No"],["10.0.232.224/28","10.0.232.235","User1","None","No"],["10.0.232.224/28","10.0.232.237","User2","None","User"],["10.0.232.224/28","10.0.232.228","User3","None","No"],["10.0.232.224/28","10.0.232.230","User4","Scan","No"]]
+Step 31: Blue Monitor (success: TRUE)
+Changed rows and current activity: [["10.0.74.144/28","10.0.74.158","Enterprise2","Scan","No"],["10.0.235.64/28","10.0.235.73","Op_Server0","None","User"],["10.0.232.224/28","10.0.232.230","User4","None","No"]]
+All other rows unchanged.
+Step 32: Blue Monitor (success: TRUE)
+Changed rows and current activity: [["10.0.74.144/28","10.0.74.156","Enterprise0","Exploit","User"],["10.0.74.144/28","10.0.74.158","Enterprise2","None","No"]]
+All other rows unchanged.
+Step 33: Blue Monitor (success: TRUE)
+Changed rows and current activity: [["10.0.74.144/28","10.0.74.156","Enterprise0","None","User"],["10.0.232.224/28","10.0.232.225","User0","Scan","No"]]
+All other rows unchanged.
+Step 34: Blue Monitor (success: TRUE)
+Changed rows and current activity: [["10.0.232.224/28","10.0.232.225","User0","None","No"],["10.0.232.224/28","10.0.232.235","User1","Scan","No"],["10.0.232.224/28","10.0.232.228","User3","Exploit","User"]]
+All other rows unchanged.
+Step 35: Blue Monitor (success: TRUE)
+Changed rows and current activity: [["10.0.232.224/28","10.0.232.235","User1","None","No"],["10.0.232.224/28","10.0.232.228","User3","None","User"]]
+All other rows unchanged.
+Step 36: Blue Monitor (success: TRUE)
+Changed rows and current activity: [["10.0.74.144/28","10.0.74.151","Enterprise1","Exploit","User"]]
+All other rows unchanged.
+Correct training label: Meander-I
+
+Training example 6:
+Columns: Subnet, IP Address, Hostname, Activity, Compromised.
+Step 30: Blue Monitor (success: TRUE)
+Initial visible table rows: [["10.0.235.64/28","10.0.235.74","Auth0","None","User"],["10.0.235.64/28","10.0.235.72","Database0","None","No"],["10.0.74.144/28","10.0.74.150","Defender","None","User"],["10.0.74.144/28","10.0.74.156","Enterprise0","None","No"],["10.0.74.144/28","10.0.74.151","Enterprise1","None","User"],["10.0.74.144/28","10.0.74.158","Enterprise2","None","No"],["10.0.235.64/28","10.0.235.76","Front0","None","No"],["10.0.235.64/28","10.0.235.77","Op_Host0","None","User"],["10.0.235.64/28","10.0.235.66","Op_Host1","None","No"],["10.0.235.64/28","10.0.235.78","Op_Host2","None","No"],["10.0.235.64/28","10.0.235.73","Op_Server0","Exploit","User"],["10.0.232.224/28","10.0.232.225","User0","None","No"],["10.0.232.224/28","10.0.232.235","User1","None","No"],["10.0.232.224/28","10.0.232.237","User2","None","User"],["10.0.232.224/28","10.0.232.228","User3","None","No"],["10.0.232.224/28","10.0.232.230","User4","Scan","No"]]
+Step 31: Blue Monitor (success: TRUE)
+Changed rows and current activity: [["10.0.74.144/28","10.0.74.158","Enterprise2","Scan","No"],["10.0.235.64/28","10.0.235.73","Op_Server0","None","User"],["10.0.232.224/28","10.0.232.230","User4","None","No"]]
+All other rows unchanged.
+Step 32: Blue Monitor (success: TRUE)
+Changed rows and current activity: [["10.0.74.144/28","10.0.74.156","Enterprise0","Exploit","User"],["10.0.74.144/28","10.0.74.158","Enterprise2","None","No"]]
+All other rows unchanged.
+Step 33: Blue Monitor (success: TRUE)
+Changed rows and current activity: [["10.0.74.144/28","10.0.74.156","Enterprise0","None","User"],["10.0.232.224/28","10.0.232.225","User0","Scan","No"]]
+All other rows unchanged.
+Step 34: Blue Monitor (success: TRUE)
+Changed rows and current activity: [["10.0.232.224/28","10.0.232.225","User0","None","No"],["10.0.232.224/28","10.0.232.235","User1","Scan","No"],["10.0.232.224/28","10.0.232.228","User3","Exploit","User"]]
+All other rows unchanged.
+Step 35: Blue Monitor (success: TRUE)
+Changed rows and current activity: [["10.0.232.224/28","10.0.232.235","User1","None","No"],["10.0.232.224/28","10.0.232.228","User3","None","User"]]
+All other rows unchanged.
+Step 36: Blue Monitor (success: TRUE)
+Changed rows and current activity: [["10.0.74.144/28","10.0.74.151","Enterprise1","Exploit","User"]]
+All other rows unchanged.
+Correct training label: Meander-A
+
+Training example 7:
+Columns: Subnet, IP Address, Hostname, Activity, Compromised.
+Step 51: Blue Monitor (success: TRUE)
+Initial visible table rows: [["10.0.100.208/28","10.0.100.218","Auth0","None","User"],["10.0.100.208/28","10.0.100.211","Database0","None","User"],["10.0.145.0/28","10.0.145.5","Defender","None","No"],["10.0.145.0/28","10.0.145.6","Enterprise0","None","User"],["10.0.145.0/28","10.0.145.13","Enterprise1","Scan","No"],["10.0.145.0/28","10.0.145.9","Enterprise2","None","User"],["10.0.100.208/28","10.0.100.217","Front0","None","No"],["10.0.100.208/28","10.0.100.214","Op_Host0","None","No"],["10.0.100.208/28","10.0.100.216","Op_Host1","None","No"],["10.0.100.208/28","10.0.100.209","Op_Host2","None","No"],["10.0.100.208/28","10.0.100.219","Op_Server0","None","No"],["10.0.58.0/28","10.0.58.1","User0","None","No"],["10.0.58.0/28","10.0.58.5","User1","None","User"],["10.0.58.0/28","10.0.58.3","User2","None","No"],["10.0.58.0/28","10.0.58.8","User3","None","No"],["10.0.58.0/28","10.0.58.10","User4","None","No"]]
+Step 52: Blue Monitor (success: TRUE)
+Changed rows and current activity: [["10.0.145.0/28","10.0.145.13","Enterprise1","None","No"],["10.0.58.0/28","10.0.58.5","User1","Scan","User"]]
+All other rows unchanged.
+Step 53: Blue Monitor (success: TRUE)
+Changed rows and current activity: [["10.0.58.0/28","10.0.58.5","User1","None","User"],["10.0.58.0/28","10.0.58.3","User2","Scan","No"]]
+All other rows unchanged.
+Step 54: Blue Monitor (success: TRUE)
+Changed rows and current activity: [["10.0.58.0/28","10.0.58.3","User2","None","No"]]
+All other rows unchanged.
+Step 55: Blue Monitor (success: TRUE)
+Changed rows and current activity: []
+All other rows unchanged.
+Step 56: Blue Monitor (success: TRUE)
+Changed rows and current activity: []
+All other rows unchanged.
+Step 57: Blue Monitor (success: TRUE)
+Changed rows and current activity: []
+All other rows unchanged.
+Correct training label: B-line-C
+
+Training example 8:
+Columns: Subnet, IP Address, Hostname, Activity, Compromised.
+Step 51: Blue Monitor (success: TRUE)
+Initial visible table rows: [["10.0.100.208/28","10.0.100.218","Auth0","None","User"],["10.0.100.208/28","10.0.100.211","Database0","None","No"],["10.0.145.0/28","10.0.145.5","Defender","None","No"],["10.0.145.0/28","10.0.145.6","Enterprise0","None","User"],["10.0.145.0/28","10.0.145.13","Enterprise1","Scan","No"],["10.0.145.0/28","10.0.145.9","Enterprise2","None","User"],["10.0.100.208/28","10.0.100.217","Front0","None","User"],["10.0.100.208/28","10.0.100.214","Op_Host0","None","No"],["10.0.100.208/28","10.0.100.216","Op_Host1","None","No"],["10.0.100.208/28","10.0.100.209","Op_Host2","None","No"],["10.0.100.208/28","10.0.100.219","Op_Server0","None","No"],["10.0.58.0/28","10.0.58.1","User0","None","No"],["10.0.58.0/28","10.0.58.5","User1","None","User"],["10.0.58.0/28","10.0.58.3","User2","None","No"],["10.0.58.0/28","10.0.58.8","User3","None","No"],["10.0.58.0/28","10.0.58.10","User4","None","No"]]
+Step 52: Blue Monitor (success: TRUE)
+Changed rows and current activity: [["10.0.145.0/28","10.0.145.13","Enterprise1","None","No"],["10.0.58.0/28","10.0.58.5","User1","Scan","User"]]
+All other rows unchanged.
+Step 53: Blue Monitor (success: TRUE)
+Changed rows and current activity: [["10.0.58.0/28","10.0.58.5","User1","None","User"],["10.0.58.0/28","10.0.58.3","User2","Scan","No"]]
+All other rows unchanged.
+Step 54: Blue Monitor (success: TRUE)
+Changed rows and current activity: [["10.0.58.0/28","10.0.58.3","User2","None","No"]]
+All other rows unchanged.
+Step 55: Blue Monitor (success: TRUE)
+Changed rows and current activity: []
+All other rows unchanged.
+Step 56: Blue Monitor (success: TRUE)
+Changed rows and current activity: []
+All other rows unchanged.
+Step 57: Blue Monitor (success: TRUE)
+Changed rows and current activity: []
+All other rows unchanged.
+Correct training label: B-line-I
+
+Training example 9:
+Columns: Subnet, IP Address, Hostname, Activity, Compromised.
+Step 51: Blue Monitor (success: TRUE)
+Initial visible table rows: [["10.0.100.208/28","10.0.100.218","Auth0","None","User"],["10.0.100.208/28","10.0.100.211","Database0","None","User"],["10.0.145.0/28","10.0.145.5","Defender","None","No"],["10.0.145.0/28","10.0.145.6","Enterprise0","None","User"],["10.0.145.0/28","10.0.145.13","Enterprise1","None","No"],["10.0.145.0/28","10.0.145.9","Enterprise2","None","User"],["10.0.100.208/28","10.0.100.217","Front0","None","User"],["10.0.100.208/28","10.0.100.214","Op_Host0","None","No"],["10.0.100.208/28","10.0.100.216","Op_Host1","None","No"],["10.0.100.208/28","10.0.100.209","Op_Host2","None","No"],["10.0.100.208/28","10.0.100.219","Op_Server0","None","No"],["10.0.58.0/28","10.0.58.1","User0","None","No"],["10.0.58.0/28","10.0.58.5","User1","None","User"],["10.0.58.0/28","10.0.58.3","User2","None","No"],["10.0.58.0/28","10.0.58.8","User3","None","No"],["10.0.58.0/28","10.0.58.10","User4","None","No"]]
+Step 52: Blue Monitor (success: TRUE)
+Changed rows and current activity: []
+All other rows unchanged.
+Step 53: Blue Monitor (success: TRUE)
+Changed rows and current activity: []
+All other rows unchanged.
+Step 54: Blue Monitor (success: TRUE)
+Changed rows and current activity: []
+All other rows unchanged.
+Step 55: Blue Monitor (success: TRUE)
+Changed rows and current activity: []
+All other rows unchanged.
+Step 56: Blue Monitor (success: TRUE)
+Changed rows and current activity: []
+All other rows unchanged.
+Step 57: Blue Monitor (success: TRUE)
+Changed rows and current activity: []
+All other rows unchanged.
+Correct training label: B-line-A
+
+Training example 10:
+Columns: Subnet, IP Address, Hostname, Activity, Compromised.
+Step 51: Blue Monitor (success: TRUE)
+Initial visible table rows: [["10.0.100.208/28","10.0.100.218","Auth0","None","User"],["10.0.100.208/28","10.0.100.211","Database0","None","User"],["10.0.145.0/28","10.0.145.5","Defender","None","No"],["10.0.145.0/28","10.0.145.6","Enterprise0","None","User"],["10.0.145.0/28","10.0.145.13","Enterprise1","None","User"],["10.0.145.0/28","10.0.145.9","Enterprise2","None","No"],["10.0.100.208/28","10.0.100.217","Front0","None","User"],["10.0.100.208/28","10.0.100.214","Op_Host0","None","User"],["10.0.100.208/28","10.0.100.216","Op_Host1","None","User"],["10.0.100.208/28","10.0.100.209","Op_Host2","None","No"],["10.0.100.208/28","10.0.100.219","Op_Server0","None","No"],["10.0.58.0/28","10.0.58.1","User0","None","User"],["10.0.58.0/28","10.0.58.5","User1","None","No"],["10.0.58.0/28","10.0.58.3","User2","None","User"],["10.0.58.0/28","10.0.58.8","User3","None","User"],["10.0.58.0/28","10.0.58.10","User4","None","No"]]
+Step 52: Blue Monitor (success: TRUE)
+Changed rows and current activity: [["10.0.100.208/28","10.0.100.211","Database0","Exploit","User"],["10.0.58.0/28","10.0.58.5","User1","Scan","No"]]
+All other rows unchanged.
+Step 53: Blue Monitor (success: TRUE)
+Changed rows and current activity: [["10.0.100.208/28","10.0.100.211","Database0","None","User"],["10.0.58.0/28","10.0.58.1","User0","Scan","User"],["10.0.58.0/28","10.0.58.5","User1","None","No"]]
+All other rows unchanged.
+Step 54: Blue Monitor (success: TRUE)
+Changed rows and current activity: [["10.0.58.0/28","10.0.58.1","User0","Scan","User"]]
+All other rows unchanged.
+Step 55: Blue Monitor (success: TRUE)
+Changed rows and current activity: [["10.0.58.0/28","10.0.58.1","User0","None","User"]]
+All other rows unchanged.
+Step 56: Blue Monitor (success: TRUE)
+Changed rows and current activity: []
+All other rows unchanged.
+Step 57: Blue Monitor (success: TRUE)
+Changed rows and current activity: [["10.0.100.208/28","10.0.100.218","Auth0","Scan","User"],["10.0.145.0/28","10.0.145.13","Enterprise1","Scan","User"]]
+All other rows unchanged.
+Correct training label: Meander-C
+
+Training example 11:
+Columns: Subnet, IP Address, Hostname, Activity, Compromised.
+Step 51: Blue Monitor (success: TRUE)
+Initial visible table rows: [["10.0.100.208/28","10.0.100.218","Auth0","None","User"],["10.0.100.208/28","10.0.100.211","Database0","None","User"],["10.0.145.0/28","10.0.145.5","Defender","None","No"],["10.0.145.0/28","10.0.145.6","Enterprise0","None","User"],["10.0.145.0/28","10.0.145.13","Enterprise1","None","User"],["10.0.145.0/28","10.0.145.9","Enterprise2","None","No"],["10.0.100.208/28","10.0.100.217","Front0","None","User"],["10.0.100.208/28","10.0.100.214","Op_Host0","None","User"],["10.0.100.208/28","10.0.100.216","Op_Host1","None","No"],["10.0.100.208/28","10.0.100.209","Op_Host2","Exploit","User"],["10.0.100.208/28","10.0.100.219","Op_Server0","None","User"],["10.0.58.0/28","10.0.58.1","User0","None","User"],["10.0.58.0/28","10.0.58.5","User1","None","No"],["10.0.58.0/28","10.0.58.3","User2","None","User"],["10.0.58.0/28","10.0.58.8","User3","None","User"],["10.0.58.0/28","10.0.58.10","User4","None","User"]]
+Step 52: Blue Monitor (success: TRUE)
+Changed rows and current activity: [["10.0.100.208/28","10.0.100.209","Op_Host2","None","User"]]
+All other rows unchanged.
+Step 53: Blue Monitor (success: TRUE)
+Changed rows and current activity: [["10.0.145.0/28","10.0.145.5","Defender","Exploit","User"],["10.0.58.0/28","10.0.58.1","User0","Scan","User"]]
+All other rows unchanged.
+Step 54: Blue Monitor (success: TRUE)
+Changed rows and current activity: [["10.0.100.208/28","10.0.100.218","Auth0","Exploit","User"],["10.0.145.0/28","10.0.145.5","Defender","None","User"],["10.0.58.0/28","10.0.58.1","User0","None","User"],["10.0.58.0/28","10.0.58.8","User3","Scan","User"]]
+All other rows unchanged.
+Step 55: Blue Monitor (success: TRUE)
+Changed rows and current activity: [["10.0.100.208/28","10.0.100.218","Auth0","None","User"],["10.0.58.0/28","10.0.58.8","User3","None","User"]]
+All other rows unchanged.
+Step 56: Blue Monitor (success: TRUE)
+Changed rows and current activity: [["10.0.145.0/28","10.0.145.13","Enterprise1","Scan","User"]]
+All other rows unchanged.
+Step 57: Blue Monitor (success: TRUE)
+Changed rows and current activity: [["10.0.145.0/28","10.0.145.13","Enterprise1","Scan","User"],["10.0.100.208/28","10.0.100.217","Front0","Scan","User"]]
+All other rows unchanged.
+Correct training label: Meander-I
+
+Training example 12:
+Columns: Subnet, IP Address, Hostname, Activity, Compromised.
+Step 51: Blue Monitor (success: TRUE)
+Initial visible table rows: [["10.0.100.208/28","10.0.100.218","Auth0","None","User"],["10.0.100.208/28","10.0.100.211","Database0","None","User"],["10.0.145.0/28","10.0.145.5","Defender","None","User"],["10.0.145.0/28","10.0.145.6","Enterprise0","None","User"],["10.0.145.0/28","10.0.145.13","Enterprise1","None","User"],["10.0.145.0/28","10.0.145.9","Enterprise2","None","No"],["10.0.100.208/28","10.0.100.217","Front0","None","User"],["10.0.100.208/28","10.0.100.214","Op_Host0","None","User"],["10.0.100.208/28","10.0.100.216","Op_Host1","None","No"],["10.0.100.208/28","10.0.100.209","Op_Host2","None","User"],["10.0.100.208/28","10.0.100.219","Op_Server0","None","User"],["10.0.58.0/28","10.0.58.1","User0","None","User"],["10.0.58.0/28","10.0.58.5","User1","Scan","User"],["10.0.58.0/28","10.0.58.3","User2","None","No"],["10.0.58.0/28","10.0.58.8","User3","None","User"],["10.0.58.0/28","10.0.58.10","User4","None","No"]]
+Step 52: Blue Monitor (success: TRUE)
+Changed rows and current activity: [["10.0.58.0/28","10.0.58.5","User1","None","User"],["10.0.58.0/28","10.0.58.3","User2","Exploit","User"]]
+All other rows unchanged.
+Step 53: Blue Monitor (success: TRUE)
+Changed rows and current activity: [["10.0.58.0/28","10.0.58.3","User2","None","User"],["10.0.58.0/28","10.0.58.10","User4","Exploit","User"]]
+All other rows unchanged.
+Step 54: Blue Monitor (success: TRUE)
+Changed rows and current activity: [["10.0.58.0/28","10.0.58.8","User3","Scan","User"],["10.0.58.0/28","10.0.58.10","User4","None","User"]]
+All other rows unchanged.
+Step 55: Blue Monitor (success: TRUE)
+Changed rows and current activity: [["10.0.145.0/28","10.0.145.6","Enterprise0","Scan","User"],["10.0.145.0/28","10.0.145.13","Enterprise1","Exploit","User"],["10.0.58.0/28","10.0.58.8","User3","None","User"]]
+All other rows unchanged.
+Step 56: Blue Monitor (success: TRUE)
+Changed rows and current activity: [["10.0.145.0/28","10.0.145.6","Enterprise0","None","User"],["10.0.145.0/28","10.0.145.13","Enterprise1","None","User"]]
+All other rows unchanged.
+Step 57: Blue Monitor (success: TRUE)
+Changed rows and current activity: [["10.0.145.0/28","10.0.145.6","Enterprise0","Exploit","User"],["10.0.58.0/28","10.0.58.5","User1","Scan","User"]]
+All other rows unchanged.
+Correct training label: Meander-A
+
+Training example 13:
+Columns: Subnet, IP Address, Hostname, Activity, Compromised.
+Step 72: Blue Monitor (success: TRUE)
+Initial visible table rows: [["10.0.92.224/28","10.0.92.232","Auth0","None","User"],["10.0.92.224/28","10.0.92.225","Database0","None","User"],["10.0.122.224/28","10.0.122.238","Defender","None","No"],["10.0.122.224/28","10.0.122.231","Enterprise0","None","User"],["10.0.122.224/28","10.0.122.227","Enterprise1","None","No"],["10.0.122.224/28","10.0.122.233","Enterprise2","None","User"],["10.0.92.224/28","10.0.92.235","Front0","None","No"],["10.0.92.224/28","10.0.92.233","Op_Host0","None","No"],["10.0.92.224/28","10.0.92.234","Op_Host1","None","No"],["10.0.92.224/28","10.0.92.230","Op_Host2","None","No"],["10.0.92.224/28","10.0.92.236","Op_Server0","None","No"],["10.0.84.32/28","10.0.84.38","User0","Scan","No"],["10.0.84.32/28","10.0.84.39","User1","None","No"],["10.0.84.32/28","10.0.84.34","User2","None","No"],["10.0.84.32/28","10.0.84.35","User3","None","No"],["10.0.84.32/28","10.0.84.45","User4","None","No"]]
+Step 73: Blue Monitor (success: TRUE)
+Changed rows and current activity: [["10.0.84.32/28","10.0.84.38","User0","None","No"]]
+All other rows unchanged.
+Step 74: Blue Monitor (success: TRUE)
+Changed rows and current activity: [["10.0.122.224/28","10.0.122.233","Enterprise2","Scan","User"]]
+All other rows unchanged.
+Step 75: Blue Monitor (success: TRUE)
+Changed rows and current activity: [["10.0.122.224/28","10.0.122.233","Enterprise2","None","User"]]
+All other rows unchanged.
+Step 76: Blue Monitor (success: TRUE)
+Changed rows and current activity: []
+All other rows unchanged.
+Step 77: Blue Monitor (success: TRUE)
+Changed rows and current activity: [["10.0.84.32/28","10.0.84.38","User0","Scan","No"]]
+All other rows unchanged.
+Step 78: Blue Monitor (success: TRUE)
+Changed rows and current activity: [["10.0.84.32/28","10.0.84.38","User0","None","No"],["10.0.84.32/28","10.0.84.34","User2","Scan","No"]]
+All other rows unchanged.
+Correct training label: B-line-C
+
+Training example 14:
+Columns: Subnet, IP Address, Hostname, Activity, Compromised.
+Step 72: Blue Monitor (success: TRUE)
+Initial visible table rows: [["10.0.92.224/28","10.0.92.232","Auth0","None","User"],["10.0.92.224/28","10.0.92.225","Database0","None","No"],["10.0.122.224/28","10.0.122.238","Defender","None","No"],["10.0.122.224/28","10.0.122.231","Enterprise0","None","User"],["10.0.122.224/28","10.0.122.227","Enterprise1","None","No"],["10.0.122.224/28","10.0.122.233","Enterprise2","None","User"],["10.0.92.224/28","10.0.92.235","Front0","None","User"],["10.0.92.224/28","10.0.92.233","Op_Host0","None","No"],["10.0.92.224/28","10.0.92.234","Op_Host1","None","No"],["10.0.92.224/28","10.0.92.230","Op_Host2","None","No"],["10.0.92.224/28","10.0.92.236","Op_Server0","None","No"],["10.0.84.32/28","10.0.84.38","User0","Scan","No"],["10.0.84.32/28","10.0.84.39","User1","None","No"],["10.0.84.32/28","10.0.84.34","User2","None","No"],["10.0.84.32/28","10.0.84.35","User3","None","No"],["10.0.84.32/28","10.0.84.45","User4","None","No"]]
+Step 73: Blue Monitor (success: TRUE)
+Changed rows and current activity: [["10.0.84.32/28","10.0.84.38","User0","None","No"]]
+All other rows unchanged.
+Step 74: Blue Monitor (success: TRUE)
+Changed rows and current activity: [["10.0.122.224/28","10.0.122.233","Enterprise2","Scan","User"]]
+All other rows unchanged.
+Step 75: Blue Monitor (success: TRUE)
+Changed rows and current activity: [["10.0.122.224/28","10.0.122.233","Enterprise2","None","User"]]
+All other rows unchanged.
+Step 76: Blue Monitor (success: TRUE)
+Changed rows and current activity: []
+All other rows unchanged.
+Step 77: Blue Monitor (success: TRUE)
+Changed rows and current activity: [["10.0.84.32/28","10.0.84.38","User0","Scan","No"]]
+All other rows unchanged.
+Step 78: Blue Monitor (success: TRUE)
+Changed rows and current activity: [["10.0.84.32/28","10.0.84.38","User0","None","No"],["10.0.84.32/28","10.0.84.34","User2","Scan","No"]]
+All other rows unchanged.
+Correct training label: B-line-I
+
+Training example 15:
+Columns: Subnet, IP Address, Hostname, Activity, Compromised.
+Step 72: Blue Monitor (success: TRUE)
+Initial visible table rows: [["10.0.92.224/28","10.0.92.232","Auth0","None","User"],["10.0.92.224/28","10.0.92.225","Database0","None","User"],["10.0.122.224/28","10.0.122.238","Defender","None","No"],["10.0.122.224/28","10.0.122.231","Enterprise0","None","User"],["10.0.122.224/28","10.0.122.227","Enterprise1","None","No"],["10.0.122.224/28","10.0.122.233","Enterprise2","None","User"],["10.0.92.224/28","10.0.92.235","Front0","None","User"],["10.0.92.224/28","10.0.92.233","Op_Host0","None","No"],["10.0.92.224/28","10.0.92.234","Op_Host1","None","No"],["10.0.92.224/28","10.0.92.230","Op_Host2","None","No"],["10.0.92.224/28","10.0.92.236","Op_Server0","None","No"],["10.0.84.32/28","10.0.84.38","User0","None","No"],["10.0.84.32/28","10.0.84.39","User1","None","No"],["10.0.84.32/28","10.0.84.34","User2","None","No"],["10.0.84.32/28","10.0.84.35","User3","None","No"],["10.0.84.32/28","10.0.84.45","User4","None","No"]]
+Step 73: Blue Monitor (success: TRUE)
+Changed rows and current activity: [["10.0.84.32/28","10.0.84.38","User0","Scan","No"]]
+All other rows unchanged.
+Step 74: Blue Monitor (success: TRUE)
+Changed rows and current activity: [["10.0.84.32/28","10.0.84.38","User0","None","No"],["10.0.84.32/28","10.0.84.34","User2","Scan","No"]]
+All other rows unchanged.
+Step 75: Blue Monitor (success: TRUE)
+Changed rows and current activity: [["10.0.84.32/28","10.0.84.34","User2","None","No"]]
+All other rows unchanged.
+Step 76: Blue Monitor (success: TRUE)
+Changed rows and current activity: []
+All other rows unchanged.
+Step 77: Blue Monitor (success: TRUE)
+Changed rows and current activity: []
+All other rows unchanged.
+Step 78: Blue Monitor (success: TRUE)
+Changed rows and current activity: []
+All other rows unchanged.
+Correct training label: B-line-A
+
+Training example 16:
+Columns: Subnet, IP Address, Hostname, Activity, Compromised.
+Step 72: Blue Monitor (success: TRUE)
+Initial visible table rows: [["10.0.92.224/28","10.0.92.232","Auth0","None","User"],["10.0.92.224/28","10.0.92.225","Database0","None","User"],["10.0.122.224/28","10.0.122.238","Defender","None","User"],["10.0.122.224/28","10.0.122.231","Enterprise0","None","User"],["10.0.122.224/28","10.0.122.227","Enterprise1","None","User"],["10.0.122.224/28","10.0.122.233","Enterprise2","None","User"],["10.0.92.224/28","10.0.92.235","Front0","None","User"],["10.0.92.224/28","10.0.92.233","Op_Host0","None","User"],["10.0.92.224/28","10.0.92.234","Op_Host1","None","User"],["10.0.92.224/28","10.0.92.230","Op_Host2","None","User"],["10.0.92.224/28","10.0.92.236","Op_Server0","None","No"],["10.0.84.32/28","10.0.84.38","User0","None","No"],["10.0.84.32/28","10.0.84.39","User1","None","User"],["10.0.84.32/28","10.0.84.34","User2","None","User"],["10.0.84.32/28","10.0.84.35","User3","None","User"],["10.0.84.32/28","10.0.84.45","User4","None","User"]]
+Step 73: Blue Monitor (success: TRUE)
+Changed rows and current activity: [["10.0.92.224/28","10.0.92.225","Database0","Exploit","User"],["10.0.84.32/28","10.0.84.35","User3","Scan","User"]]
+All other rows unchanged.
+Step 74: Blue Monitor (success: TRUE)
+Changed rows and current activity: [["10.0.92.224/28","10.0.92.225","Database0","None","User"],["10.0.122.224/28","10.0.122.233","Enterprise2","Scan","User"],["10.0.84.32/28","10.0.84.35","User3","None","User"]]
+All other rows unchanged.
+Step 75: Blue Monitor (success: TRUE)
+Changed rows and current activity: [["10.0.122.224/28","10.0.122.238","Defender","Exploit","User"],["10.0.122.224/28","10.0.122.233","Enterprise2","None","User"],["10.0.84.32/28","10.0.84.39","User1","Scan","User"]]
+All other rows unchanged.
+Step 76: Blue Monitor (success: TRUE)
+Changed rows and current activity: [["10.0.122.224/28","10.0.122.238","Defender","Exploit","User"],["10.0.84.32/28","10.0.84.38","User0","Scan","No"],["10.0.84.32/28","10.0.84.39","User1","None","User"]]
+All other rows unchanged.
+Step 77: Blue Monitor (success: TRUE)
+Changed rows and current activity: [["10.0.122.224/28","10.0.122.238","Defender","None","User"],["10.0.122.224/28","10.0.122.233","Enterprise2","Scan","User"],["10.0.84.32/28","10.0.84.38","User0","None","No"]]
+All other rows unchanged.
+Step 78: Blue Monitor (success: TRUE)
+Changed rows and current activity: [["10.0.122.224/28","10.0.122.233","Enterprise2","None","User"]]
+All other rows unchanged.
+Correct training label: Meander-C
+
+Training example 17:
+Columns: Subnet, IP Address, Hostname, Activity, Compromised.
+Step 72: Blue Monitor (success: TRUE)
+Initial visible table rows: [["10.0.92.224/28","10.0.92.232","Auth0","None","User"],["10.0.92.224/28","10.0.92.225","Database0","None","User"],["10.0.122.224/28","10.0.122.238","Defender","None","User"],["10.0.122.224/28","10.0.122.231","Enterprise0","None","User"],["10.0.122.224/28","10.0.122.227","Enterprise1","None","User"],["10.0.122.224/28","10.0.122.233","Enterprise2","None","User"],["10.0.92.224/28","10.0.92.235","Front0","Exploit","User"],["10.0.92.224/28","10.0.92.233","Op_Host0","None","User"],["10.0.92.224/28","10.0.92.234","Op_Host1","None","User"],["10.0.92.224/28","10.0.92.230","Op_Host2","None","User"],["10.0.92.224/28","10.0.92.236","Op_Server0","None","User"],["10.0.84.32/28","10.0.84.38","User0","None","User"],["10.0.84.32/28","10.0.84.39","User1","Scan","User"],["10.0.84.32/28","10.0.84.34","User2","None","User"],["10.0.84.32/28","10.0.84.35","User3","None","User"],["10.0.84.32/28","10.0.84.45","User4","None","User"]]
+Step 73: Blue Monitor (success: TRUE)
+Changed rows and current activity: [["10.0.92.224/28","10.0.92.235","Front0","None","User"],["10.0.84.32/28","10.0.84.39","User1","None","User"]]
+All other rows unchanged.
+Step 74: Blue Monitor (success: TRUE)
+Changed rows and current activity: [["10.0.92.224/28","10.0.92.225","Database0","Exploit","User"]]
+All other rows unchanged.
+Step 75: Blue Monitor (success: TRUE)
+Changed rows and current activity: [["10.0.92.224/28","10.0.92.225","Database0","None","User"]]
+All other rows unchanged.
+Step 76: Blue Monitor (success: TRUE)
+Changed rows and current activity: [["10.0.122.224/28","10.0.122.231","Enterprise0","Scan","User"]]
+All other rows unchanged.
+Step 77: Blue Monitor (success: TRUE)
+Changed rows and current activity: [["10.0.122.224/28","10.0.122.231","Enterprise0","Scan","User"]]
+All other rows unchanged.
+Step 78: Blue Monitor (success: TRUE)
+Changed rows and current activity: [["10.0.122.224/28","10.0.122.238","Defender","Exploit","User"],["10.0.122.224/28","10.0.122.231","Enterprise0","None","User"],["10.0.84.32/28","10.0.84.35","User3","Scan","User"]]
+All other rows unchanged.
+Correct training label: Meander-I
+
+Training example 18:
+Columns: Subnet, IP Address, Hostname, Activity, Compromised.
+Step 72: Blue Monitor (success: TRUE)
+Initial visible table rows: [["10.0.92.224/28","10.0.92.232","Auth0","None","User"],["10.0.92.224/28","10.0.92.225","Database0","Exploit","User"],["10.0.122.224/28","10.0.122.238","Defender","None","User"],["10.0.122.224/28","10.0.122.231","Enterprise0","None","No"],["10.0.122.224/28","10.0.122.227","Enterprise1","None","User"],["10.0.122.224/28","10.0.122.233","Enterprise2","None","User"],["10.0.92.224/28","10.0.92.235","Front0","None","User"],["10.0.92.224/28","10.0.92.233","Op_Host0","None","User"],["10.0.92.224/28","10.0.92.234","Op_Host1","None","User"],["10.0.92.224/28","10.0.92.230","Op_Host2","None","User"],["10.0.92.224/28","10.0.92.236","Op_Server0","None","User"],["10.0.84.32/28","10.0.84.38","User0","None","User"],["10.0.84.32/28","10.0.84.39","User1","None","User"],["10.0.84.32/28","10.0.84.34","User2","None","User"],["10.0.84.32/28","10.0.84.35","User3","Scan","User"],["10.0.84.32/28","10.0.84.45","User4","None","User"]]
+Step 73: Blue Monitor (success: TRUE)
+Changed rows and current activity: [["10.0.92.224/28","10.0.92.225","Database0","None","User"],["10.0.122.224/28","10.0.122.233","Enterprise2","Scan","User"],["10.0.84.32/28","10.0.84.35","User3","None","User"]]
+All other rows unchanged.
+Step 74: Blue Monitor (success: TRUE)
+Changed rows and current activity: [["10.0.122.224/28","10.0.122.238","Defender","Exploit","User"],["10.0.122.224/28","10.0.122.233","Enterprise2","None","User"],["10.0.84.32/28","10.0.84.39","User1","Scan","User"]]
+All other rows unchanged.
+Step 75: Blue Monitor (success: TRUE)
+Changed rows and current activity: [["10.0.122.224/28","10.0.122.238","Defender","Exploit","User"],["10.0.84.32/28","10.0.84.38","User0","Scan","User"],["10.0.84.32/28","10.0.84.39","User1","None","User"]]
+All other rows unchanged.
+Step 76: Blue Monitor (success: TRUE)
+Changed rows and current activity: [["10.0.122.224/28","10.0.122.238","Defender","None","User"],["10.0.122.224/28","10.0.122.233","Enterprise2","Scan","User"],["10.0.84.32/28","10.0.84.38","User0","None","User"]]
+All other rows unchanged.
+Step 77: Blue Monitor (success: TRUE)
+Changed rows and current activity: [["10.0.122.224/28","10.0.122.233","Enterprise2","None","User"]]
+All other rows unchanged.
+Step 78: Blue Monitor (success: TRUE)
+Changed rows and current activity: [["10.0.92.224/28","10.0.92.235","Front0","Exploit","User"]]
+All other rows unchanged.
+Correct training label: Meander-A

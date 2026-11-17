@@ -1,4 +1,4 @@
-"""Live CIA classification -> PPO selection, with a no-LLM oracle comparison."""
+"""Live CIA classification -> PPO selection, with oracle and random baselines."""
 
 from collections import deque
 from contextlib import contextmanager
@@ -31,7 +31,7 @@ from CybORG.Agents.SimpleAgents.Meander_Resilience import (
 )
 
 
-# Keep oracle execution independent of the LLM service and its dependencies.
+# Keep oracle/random execution independent of the LLM service and its dependencies.
 ATTACKERS = {
     'bline_c': BlineJumping_C, 'bline_i': BlineJumping_I, 'bline_a': BlineJumping_A,
     'meander_c': MeanderJumping_C, 'meander_i': MeanderJumping_I,
@@ -58,8 +58,8 @@ def preserve_rng():
 
 
 def episode_plan(cfg):
-    if cfg.mode not in ('hybrid', 'oracle'):
-        raise ValueError('mode must be hybrid or oracle')
+    if cfg.mode not in ('hybrid', 'oracle', 'random'):
+        raise ValueError('mode must be hybrid, oracle, or random')
     if cfg.red_agent not in LABELS:
         raise ValueError(f'red_agent must be one of {list(LABELS)}')
     for name, minimum in (('n_rollouts', 1), ('episode_length', 1), ('start_seed', 0),
@@ -69,6 +69,12 @@ def episode_plan(cfg):
             raise ValueError(f'{name} must be an integer >= {minimum}')
     if type(cfg.window_size) is not int or cfg.window_size not in (5, 7, 9):
         raise ValueError('Few-shot window_size must be 5, 7, or 9')
+    if cfg.mode == 'hybrid':
+        classifier_input = cfg.get('classifier_input', 'red_actions')
+        if classifier_input not in ('red_actions', 'blue_observations'):
+            raise ValueError('classifier_input must be red_actions or blue_observations')
+        if classifier_input == 'blue_observations' and cfg.window_size != 9:
+            raise ValueError('Blue-only hybrid classification requires window_size=9')
     if (not cfg.policy_seeds or len(set(cfg.policy_seeds)) != len(cfg.policy_seeds)
             or any(type(s) is not int or s < 0 for s in cfg.policy_seeds)):
         raise ValueError('policy_seeds must be distinct nonnegative integers')
@@ -225,6 +231,8 @@ def format_window(window):
 
 
 def make_classifier(cfg):
+    if cfg.get('classifier_input', 'red_actions') == 'blue_observations':
+        return make_blue_classifier(cfg)
     # Oracle execution never imports prompt machinery or constructs an inference engine.
     from align_system.prompt_engineering.cage_prompts import (
         CAGEHybridCIAFewshotSystemPrompt, CAGERedAgentClassificationPrompt,
@@ -249,6 +257,35 @@ def make_classifier(cfg):
     return engine, classify, system
 
 
+def make_blue_classifier(cfg):
+    """P4 instructions/examples with a live, exclusively Blue-visible query."""
+    from align_system.prompt_engineering.cage_blue_prompts import (
+        CAGEBlueObservationFewshotSystemPrompt, CAGEBlueObservationClassificationPrompt,
+        format_blue_window,
+    )
+    from align_system.prompt_engineering.cage_prompts import CAGERedAgentClassificationSchema
+
+    system = CAGEBlueObservationFewshotSystemPrompt(cfg.window_size)()
+    user_template = CAGEBlueObservationClassificationPrompt()
+    schema = CAGERedAgentClassificationSchema()(list(LABELS.values()))
+    engine = instantiate(cfg.inference_engine)
+
+    def classify(window):
+        if len(window) != cfg.window_size:
+            raise ValueError('Classifier requires a complete 9-step Blue window')
+        prompt = engine.dialog_to_prompt([
+            {'role': 'system', 'content': system},
+            {'role': 'user', 'content': user_template(format_blue_window(window), list(LABELS.values()))},
+        ])
+        result = engine.run_inference(prompt, schema)
+        label = result['action_choice']
+        if label not in LABELS.values():
+            raise ValueError(f'Unknown predicted CIA label: {label}')
+        return label
+
+    return engine, classify, system
+
+
 def _write_json(path, value):
     temporary = path.with_suffix(path.suffix + '.tmp')
     temporary.write_text(json.dumps(value, indent=2) + '\n')
@@ -259,15 +296,19 @@ def _manifest(cfg, plan):
     settings = OmegaConf.to_container(cfg, resolve=True)
     for key in ('resume', 'check_only'):
         settings.pop(key, None)
-    if cfg.mode == 'oracle':
-        # Neither model settings nor trajectory windows affect the oracle.
-        for key in ('inference_engine', 'random_seed', 'window_size', 'window_stride'):
+    if cfg.mode in ('oracle', 'random'):
+        # Baselines use no LLM/window settings. Random selection uses the episode seed.
+        for key in ('inference_engine', 'random_seed', 'window_size', 'window_stride', 'classifier_input'):
             settings.pop(key, None)
     root = Path(__file__).resolve().parents[1]
     sources = [Path(__file__), Path(to_absolute_path(cfg.scenario_path))]
     if cfg.mode == 'hybrid':
         sources += [root / 'prompt_engineering/cage_prompts.py',
                     root / 'interfaces/cia_cage2_service.py']
+        if cfg.get('classifier_input', 'red_actions') == 'blue_observations':
+            sources += [root / 'prompt_engineering/cage_blue_prompts.py',
+                        root / 'prompt_engineering/blue_observation_examples/p4_system.txt',
+                        root / 'prompt_engineering/blue_observation_examples/provenance.json']
         # Hash the selected backend; direct vLLM runs need no hosted client,
         # Outlines runtime, LLM-only service, or shell launcher source files.
         target = cfg.inference_engine.get('_target_')
@@ -290,7 +331,7 @@ def _manifest(cfg, plan):
 
 def run_episode(cfg, seed, policy_seed, env, observation, policies, engine, classify, attempt_dir):
     window = deque(maxlen=cfg.window_size)
-    warmup_rng = random.Random(seed)  # Does not consume simulator randomness.
+    selection_rng = random.Random(seed)  # Does not consume simulator randomness.
     metric = ResilienceMetric()
     schedule = attacker_schedule(cfg)
     transitions = {phase['step']: phase['red_agent'] for phase in schedule}
@@ -312,8 +353,12 @@ def run_episode(cfg, seed, policy_seed, env, observation, policies, engine, clas
             bounds = None
             if cfg.mode == 'oracle':
                 selected, source = truth, 'oracle'
+            elif cfg.mode == 'random':
+                # Uniform sampling with replacement before EVERY action, including
+                # after attacker switches; the checkpoint seed stays fixed.
+                selected, source = selection_rng.choice(list(policies)), 'random'
             elif len(window) < cfg.window_size:
-                selected, source = warmup_rng.choice(list(policies)), 'random_warmup'
+                selected, source = selection_rng.choice(list(policies)), 'random_warmup'
             elif (step - cfg.window_size) % cfg.window_stride == 0:
                 bounds = [window[0]['step'], window[-1]['step'] + 1]
                 try:
@@ -341,7 +386,13 @@ def run_episode(cfg, seed, policy_seed, env, observation, policies, engine, clas
                 env, blue_action=env.get_last_action('Blue'))]
             record = {'step': step, 'blue_action': action_record(env, 'Blue'),
                       'red_action': action_record(env, 'Red')}
-            window.append(record)
+            if cfg.mode == 'hybrid' and cfg.get('classifier_input', 'red_actions') == 'blue_observations':
+                from align_system.prompt_engineering.cage_blue_prompts import blue_table_snapshot
+                record['blue_table'] = blue_table_snapshot(env)
+                # Hidden Red actions and scoring fields remain in audit logs only.
+                window.append({key: record[key] for key in ('step', 'blue_action', 'blue_table')})
+            else:
+                window.append(record)
             rewards.append(float(reward))
             cia_scores.append(cia)
             selections.append(selected)
@@ -376,8 +427,12 @@ def preflight(cfg):
     finally:
         env.close()
     if cfg.mode == 'hybrid':
-        from align_system.prompt_engineering.cage_prompts import CAGEHybridCIAFewshotSystemPrompt
-        CAGEHybridCIAFewshotSystemPrompt(cfg.window_size)()
+        if cfg.get('classifier_input', 'red_actions') == 'blue_observations':
+            from align_system.prompt_engineering.cage_blue_prompts import CAGEBlueObservationFewshotSystemPrompt
+            CAGEBlueObservationFewshotSystemPrompt(cfg.window_size)()
+        else:
+            from align_system.prompt_engineering.cage_prompts import CAGEHybridCIAFewshotSystemPrompt
+            CAGEHybridCIAFewshotSystemPrompt(cfg.window_size)()
     print(f'Preflight passed: {len(plan)} episodes, {cfg.episode_length} steps, '
           f'RL seeds {sorted({p for _, p in plan})}; no inference performed.', flush=True)
 

@@ -1,0 +1,32 @@
+# @package _global_
+defaults:
+  - /experiment/phase2_july_collab/pipeline_baseline_single_cage2
+  - override /inference_engine@adm.structured_inference_engine: local_cage_vllm
+  - _self_
+
+interface:
+  _target_: align_system.interfaces.cage_llm_service.CAGELLMServiceInterface
+  scenario_path: ../CAGE2/CybORG/CybORG/Shared/Scenarios/scalability_experiments/base_with_resilience_tied.yaml
+  red_agent: bline_c
+  n_rollouts: 100
+  episode_length: 100
+  start_seed: 1000
+
+# Simulator seeds are start_seed + episode index. The local inference seed is
+# independent and fixed.
+random_seed: 0
+resume: true
+loglevel: WARNING
+
+adm:
+  structured_inference_engine:
+    model_name: meta-llama/Llama-3.1-8B-Instruct
+    # Both action/host schemas request reasoning (up to 512 characters), so the
+    # classifier's 128-token cap is too small here.
+    max_tokens: 512
+  step_definitions:
+    outlines_baseline:
+      # Every game step asks the LLM; no policy, classifier, or cached decisions.
+      enable_caching: false
+    action_parameter_completion:
+      _target_: align_system.algorithms.cage_llm_adm_component.CAGELLMParameterCompletion

@@ -44,6 +44,8 @@ class CAGEVLLMInferenceEngine(StructuredInferenceEngine):
                            for message in map(dict, dialog)])
 
     def run_inference(self, prompts, schema):
+        if isinstance(prompts, list):
+            return [self.run_inference(prompt, schema) for prompt in prompts]
         from vllm import SamplingParams
         from vllm.sampling_params import StructuredOutputsParams
 

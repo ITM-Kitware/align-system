@@ -1,0 +1,13 @@
+defaults:
+  - cage_hybrid
+  - override inference_engine: local_cage_gpu
+  - _self_
+
+# Cisco uses local Transformers + Outlines with cached model weights.
+classifier_input: blue_observations
+window_size: 9
+window_stride: 1
+
+hydra:
+  run:
+    dir: outputs/cia_hybrid_blue_observations/${now:%Y-%m-%d_%H-%M-%S}/${mode}/${red_agent}

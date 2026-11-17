@@ -1,0 +1,5 @@
+defaults:
+  - cage_hybrid_blue_observations_cisco
+  - _self_
+
+# Compatibility name for the local Hugging Face Transformers Cisco config.

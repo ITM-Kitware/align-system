@@ -1,0 +1,14 @@
+# @package _global_
+defaults:
+  # Same classifier settings as the Blue Monitor run; only the replayed trajectories differ.
+  - /experiment/phase2_july_collab/pipeline_baseline_resilience_red_agent_classification_meander_i
+  - _self_
+
+interface:
+  # PPO jumping_all_cia_hybrid blue agent: checkpoint seeds 0-4, one episode each
+  # (env seeds 100-104). Only the flat folder holds the main run, and E[0-4]
+  # excludes leftovers of an earlier 10-episodes-per-seed generation. Widen both
+  # n_rollouts and trajectory_glob if the dataset is regenerated with more episodes.
+  n_rollouts: 5
+  trajectory_dir: ../CAGE2/CybORG/results/red_classifier_jumping_all_cia_hybrid_seeds_100_150/meander_i/trajectories/PPO agent-MeanderJumping_I
+  trajectory_glob: 'E[0-4].json'

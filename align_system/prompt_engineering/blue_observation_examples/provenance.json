@@ -1,0 +1,18 @@
+{
+  "variant": "P4",
+  "source_branch": "origin/classifier-blue-prompts",
+  "source_revision": "e01dc6e6f052382d63ed03e716d4b2ac037fb144",
+  "source_renderer": "scripts/prepare_blue_prompt_screen.py",
+  "source_requests": "/data/shared/aaai_aics2027/classifier_results/paul.elliott/20261112-blue-prompt-screen/inputs/confirmation-requests.jsonl",
+  "source_request_id": "85511fe80dcf453ce9904f292a9a51bd626e3b25317ba875baac288448faf736",
+  "source_system_sha256": "39a8e10e6ac68f444239823c6b375eaf312f63c039a932e77f3590a1b830eb81",
+  "examples_per_class": 3,
+  "example_window_size": 7,
+  "live_window_size": 9,
+  "example_seeds": [
+    100,
+    115,
+    117
+  ],
+  "notes": "Exact recorded P4 system prompt; unchanged seven-step Monitor demonstrations. Live queries use nine post-action Blue observations. New experiment episodes start at seed 1000."
+}

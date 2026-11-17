@@ -1,7 +1,7 @@
 # @package _global_
 defaults:
   - override /adm: pipeline_baseline
-  - override /inference_engine@adm.structured_inference_engine: huggingface
+  - override /inference_engine@adm.structured_inference_engine: local_cage_vllm
   - override /interface: cage_cia
 
 interface:
@@ -13,12 +13,15 @@ interface:
   start_step: 0
   # Folder of trajectory JSONs exported by CAGE2
   trajectory_dir: null
+  # Files replayed from trajectory_dir (matched recursively, sorted by path)
+  trajectory_glob: '*.json'
   # Trajectory fields shown per step
   observation_fields: [blue_actions, red_actions]
 
 
 adm:
   structured_inference_engine:
+    model_name: meta-llama/Llama-3.1-8B-Instruct
     # Only {"action_choice": "Meander-C"} is generated.
     max_tokens: 32
   step_definitions:
@@ -55,7 +58,7 @@ apply_action_filtering: false
 save_scoring_output: true
 
 force_determinism: true
-# The API seed and local RNGs follow this single experiment seed. Trajectory
+# The inference seed and local RNGs follow this single experiment seed. Trajectory
 # seeds (100-150 in the CIA replays) are separate, fixed dataset inputs.
 random_seed: 0
 numpy_random_seed: ${random_seed}
