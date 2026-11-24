@@ -398,7 +398,9 @@ Add token as git credential? (Y/n) n
 >>>
 ```
 
-## Quicklinks
+## Quick Links
+
+[Try the ALIGN Spark demo](https://align-spark.netlify.app/)
 
 [ALIGN App](https://github.com/ITM-Kitware/align-app)
 
